@@ -1,0 +1,916 @@
+import { computed, reactive, ref, watch } from 'vue'
+
+// Wspólny stan panelu sterowania: biblioteka, pieśni, to co jest na żywo.
+export const api = window.api
+// Pętla ma w danych typ „scene” — tak zapisują ją istniejące biblioteki.
+export const KIND = { image: 'Zdjęcie', video: 'Film', text: 'Tekst', scene: 'Pętla', song: 'Pieśń' }
+export const TEXT_STYLE = { fs: 12, color: '#ffffff', bg: '#000000', bgImage: null, dim: 0.45, align: 'center', valign: 'center', shadow: false }
+const SONG_LIMIT = 300
+
+export const items = ref([])
+export const songs = ref([])
+export const settings = reactive({
+  fadeMs: 350, // 0 = bez przejścia
+  copyFiles: true,
+  remote: false,
+  remoteToken: '',
+  songSort: 'number', // 'number' | 'title'
+  service: [], // pieśni na najbliższe nabożeństwo: [{ key, songId }]
+  activeService: null, // id nabożeństwa wczytanego do wyświetlania
+  sharedDir: '', // folder wspólny z nabożeństwami i bazą pieśni (ten sam na wszystkich komputerach)
+  cue: false, // sygnały dla kamerzysty (stream)
+  cueToken: '',
+  deletedSongs: {}, // id → czas usunięcia; żeby pieśń usunięta tutaj zniknęła też na innych komputerach
+  songStyle: { ...TEXT_STYLE, fs: 14, shadow: true, valign: 'top' }, // pieśni domyślnie od góry ekranu
+})
+export const role = ref(null) // wybrana służba: 'display' | 'stream' | 'planner'
+export const services = ref([]) // zaplanowane nabożeństwa
+export const serviceModal = ref(false) // okno „Wczytaj nabożeństwo”
+export const plannerTarget = ref(null) // nabożeństwo edytowane w organizacji — tam trafia pieśń dodana z bazy
+export const tab = ref('materials')
+export const search = reactive({ materials: '', songs: '', service: '' })
+export const selectedId = ref(null)
+export const liveId = ref(null)
+export const liveNonce = ref(0)
+export const songIndex = ref(0) // zwrotka pieśni na rzutniku
+export const previewIndex = ref(0) // zwrotka w podglądzie, gdy pieśń nie jest na żywo
+export const displays = ref([])
+export const displayId = ref(null)
+export const output = ref({ open: false, fullscreen: false, waiting: false })
+export const video = ref({ time: 0, duration: 0, paused: true, step: 0 })
+export const volume = ref(0.25)
+export const notice = ref('')
+export const busy = ref('')
+export const remoteUrl = ref('')
+export const renamingId = ref(null)
+export const renameValue = ref('')
+export const confirmId = ref(null)
+export const managerOpen = ref(false) // duży widok bazy pieśni
+export const hidden = ref(false) // obraz na rzutniku schowany (H), ale nadal „na żywo”
+export const frozen = ref(false) // rzutnik stoi na ostatnim obrazie (F); zmiany czekają na odmrożenie
+export const frozenAt = ref(null) // { id, index } — na czym stanął rzutnik w chwili zamrożenia
+export const previewVideo = ref(null) // { time, duration, paused } filmu w podglądzie
+const liveStart = ref(0) // od której sekundy ma ruszyć film na rzutniku
+const liveStep = ref(0) // od którego slajdu ma ruszyć pętla / prezentacja na rzutniku
+export const textPopup = ref(null) // element, którego tekst jest edytowany w dużym oknie
+const liveFrozen = ref(null) // tekst na żywo: stan wysłany na rzutnik, niezależny od dalszej edycji
+const loaded = ref(false)
+
+export const uid = () => Math.random().toString(36).slice(2, 10)
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n))
+export const itemById = id => items.value.find(i => i.id === id)
+const find = id => (id == null ? null : itemById(id) || songs.value.find(s => s.id === id) || null)
+export const selected = computed(() => find(selectedId.value))
+export const liveItem = computed(() => find(liveId.value))
+
+// Pusta linia w tekście pieśni rozdziela zwrotki (slajdy). Slajd może zaczynać się skrótem
+// w nawiasie kwadratowym, np. „[2]” albo „[R]” — ten klawisz przenosi wtedy prosto do niego.
+const SHORTCUT = /^\[([^\]\s]{1,3})\][ \t]*/
+const parsedSongs = new WeakMap()
+function parseSong(song) {
+  let cached = parsedSongs.get(song)
+  if (!cached || cached.text !== song.text) {
+    const list = song.text.split(/\n[ \t]*\n/).map(v => v.trim()).filter(Boolean).map(v => {
+      const m = SHORTCUT.exec(v)
+      return { key: m ? m[1] : '', text: m ? v.slice(m[0].length).trim() : v }
+    }).filter(v => v.text)
+    parsedSongs.set(song, cached = { text: song.text, list })
+  }
+  return cached.list
+}
+export const verses = song => parseSong(song).map(v => v.text)
+// Początek tekstu — pomaga upewnić się, że to ta pieśń, a nie inna o podobnym tytule.
+export const firstLine = song => (parseSong(song)[0]?.text.split('\n').slice(0, 2).join(' / ') || '')
+// To, co widać przy slajdzie na liście: jego skrót albo kolejny numer.
+export const verseKey = (song, i) => parseSong(song)[i]?.key || String(i + 1)
+
+export const label = it => {
+  if (!it) return 'Usunięty element'
+  if (it.type === 'song') return (it.number ? it.number + '. ' : '') + (it.title.trim() || 'Bez tytułu')
+  if (it.name?.trim()) return it.name.trim()
+  if (it.type === 'text') return it.text.trim().split('\n')[0] || 'Pusty tekst'
+  return KIND[it.type]
+}
+export const kindLabel = it => (it.missing ? 'Nie znaleziono pliku' : it.type === 'scene' ? `Pętla · slajdów: ${it.entries.length}` : KIND[it.type])
+
+/* ---------- co widać ---------- */
+// Zamienia element biblioteki na to, co rysuje Stage. Pętla i pieśń dostają gotowe slajdy,
+// żeby okno rzutnika nie musiało znać biblioteki.
+export function view(it, index = 0) {
+  if (!it) return null
+  if (it.type === 'scene') {
+    const slides = it.entries.map(e => {
+      const s = itemById(e.ref)
+      return s && !s.missing ? { ...s, seconds: e.seconds || it.seconds } : null
+    }).filter(Boolean)
+    return { id: it.id, type: 'scene', fadeMs: it.transition === 'none' ? 0 : it.fadeMs, auto: it.auto !== false, slides }
+  }
+  if (it.type === 'song') {
+    const all = verses(it)
+    const i = clamp(index, 0, Math.max(0, all.length - 1))
+    return { ...settings.songStyle, id: it.id, type: 'text', text: all[i] || '', slideKey: i, fadeMs: settings.fadeMs }
+  }
+  return { ...it, fadeMs: settings.fadeMs }
+}
+
+export const selectedIndex = computed(() => (selected.value?.id === liveId.value ? songIndex.value : previewIndex.value))
+export const selectedView = computed(() => view(selected.value, selectedIndex.value))
+export const liveView = computed(() => {
+  const it = liveItem.value
+  if (it?.type === 'text' && liveFrozen.value) return JSON.parse(liveFrozen.value)
+  return view(it, songIndex.value)
+})
+// Edytowany tekst trafia na rzutnik dopiero po zatwierdzeniu — literówek nie widzi cała sala.
+export const textDirty = computed(() => liveItem.value?.type === 'text' && JSON.stringify(view(liveItem.value)) !== liveFrozen.value)
+export function sendText() { liveFrozen.value = JSON.stringify(view(liveItem.value)) }
+
+// To, co faktycznie widać teraz na rzutniku (dla pętli — jej bieżący slajd).
+export const liveSlide = computed(() => {
+  const v = liveView.value
+  if (v?.type !== 'scene') return v
+  return v.slides.length ? v.slides[(video.value.step || 0) % v.slides.length] : null
+})
+export const liveIsVideo = computed(() => liveSlide.value?.type === 'video')
+/* Pętla w podglądzie stoi na wybranym slajdzie, dopóki nie włączy się jej odtwarzania.
+   Pętla na rzutniku prowadzi podgląd sama. */
+export const loopStep = ref(0)
+export const loopPlaying = ref(false)
+const slideCount = it => view(it).slides.length
+export const selectedStep = computed(() => {
+  const it = selected.value
+  if (it?.type !== 'scene') return 0
+  return (it.id === liveId.value ? video.value.step || 0 : loopStep.value) % (slideCount(it) || 1)
+})
+export const followStep = computed(() => {
+  const it = selected.value
+  if (it?.type !== 'scene') return null
+  if (it.id === liveId.value) return video.value.step || 0
+  return loopPlaying.value ? null : loopStep.value
+})
+// Numer slajdu, któremu odpowiada pozycja na liście pętli (-1, gdy plik zaginął).
+export function entrySlide(loop, i) {
+  let n = -1
+  for (let k = 0; k <= i; k++) {
+    const s = itemById(loop.entries[k].ref)
+    if (s && !s.missing) n++
+    else if (k === i) return -1
+  }
+  return n
+}
+// Ręczne sterowanie: wybrana pętla na rzutniku przeskakuje od razu, inaczej zmienia się podgląd.
+export function setLoopStep(i) {
+  if (selected.value.id === liveId.value) api.videoCmd({ type: 'step', value: i })
+  else { loopPlaying.value = false; loopStep.value = i }
+}
+export function stepLoop(d) {
+  const n = slideCount(selected.value)
+  if (n) setLoopStep((selectedStep.value + d + n) % n)
+}
+export const mirroring = computed(() => !!selected.value && selected.value.id === liveId.value && liveIsVideo.value)
+export const canGo = computed(() => {
+  const it = selected.value
+  if (!it || it.missing) return false
+  if (it.type === 'scene') return view(it).slides.length > 0
+  if (it.type === 'song') return verses(it).length > 0
+  return true
+})
+
+/* ---------- listy ---------- */
+const plain = s => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l')
+const songText = new WeakMap() // pieśń → tekst do wyszukiwania (liczony raz na zmianę)
+function searchable(song) {
+  const key = song.number + '\n' + song.title + '\n' + song.text
+  let cached = songText.get(song)
+  if (!cached || cached.key !== key) songText.set(song, cached = { key, title: plain(song.title), text: plain(song.text) })
+  return cached
+}
+
+export const visibleItems = computed(() => {
+  const q = plain(search.materials.trim())
+  return items.value.filter(it => !it.hidden && (!q || plain(label(it)).includes(q)))
+})
+const byTitle = (a, b) => a.title.localeCompare(b.title, 'pl')
+const byNumber = (a, b) => (a.number ? +a.number || 1e9 : 1e9) - (b.number ? +b.number || 1e9 : 1e9)
+export const sortSongs = list => [...list].sort(settings.songSort === 'title' ? byTitle : (a, b) => byNumber(a, b) || byTitle(a, b))
+const sortedSongs = computed(() => sortSongs(songs.value))
+// list: posortowana lista do przeszukania (domyślnie cała baza; okno bazy pieśni podaje swoją wersję roboczą).
+export function matchSongs(query, list = sortedSongs.value) {
+  const q = plain(query.trim())
+  if (!q) return list
+  // Trafienia w numerze i tytule idą przed trafieniami w samym tekście.
+  const first = [], rest = []
+  for (const s of list) {
+    const c = searchable(s)
+    if (s.number === q || c.title.includes(q)) first.push(s)
+    else if (c.text.includes(q)) rest.push(s)
+  }
+  return [...first, ...rest]
+}
+const matchingSongs = computed(() => matchSongs(search.songs))
+export const findSongs = (query, limit = 8) => (query.trim() ? matchSongs(query).slice(0, limit) : [])
+// Podpowiedzi przy dodawaniu pieśni do nabożeństwa.
+export const serviceResults = computed(() => (search.service.trim() ? matchSongs(search.service).slice(0, 8) : []))
+export const serviceList = computed(() => settings.service
+  .map(e => ({ key: e.key, song: songs.value.find(s => s.id === e.songId) }))
+  .filter(e => e.song))
+export const songMatches = computed(() => matchingSongs.value.length)
+export const visibleSongs = computed(() => matchingSongs.value.slice(0, SONG_LIMIT))
+
+/* ---------- rzutnik ---------- */
+export function setDisplays(list) {
+  displays.value = list
+  if (!list.some(d => d.id === displayId.value)) displayId.value = (list.find(d => !d.current) || list[0])?.id ?? null
+}
+export const openOutput = () => api.openOutput(displayId.value)
+export const toggleOutput = () => (output.value.open || output.value.waiting ? api.closeOutput() : openOutput())
+
+export async function goLive() {
+  if (!canGo.value) return
+  frozen.value = false
+  notice.value = ''
+  if (!output.value.open && !output.value.waiting) await openOutput()
+  const it = selected.value
+  // Filmy w pętli startują same, więc zaczynają na cichej głośności ustawionej w pętli.
+  if (it.type === 'scene') volume.value = it.volume
+  if (it.type === 'song') songIndex.value = previewIndex.value
+  liveFrozen.value = it.type === 'text' ? JSON.stringify(view(it)) : null
+  // Film rusza na rzutniku od miejsca, do którego został przewinięty w podglądzie.
+  liveStart.value = it.type === 'video' && previewVideo.value ? previewVideo.value.time : 0
+  // Pętla i prezentacja zaczynają od slajdu, który jest właśnie w podglądzie.
+  liveStep.value = it.type === 'scene' ? selectedStep.value : 0
+  hidden.value = false
+  liveNonce.value++
+  liveId.value = it.id
+}
+
+// Zdejmuje obraz z rzutnika — okno robi się przezroczyste.
+export function hide() { liveId.value = null }
+// H: chowa obraz bez zdejmowania go — drugie naciśnięcie pokazuje go z powrotem.
+export function toggleHidden(on = !hidden.value) { if (liveId.value) hidden.value = on }
+// F działa na zaznaczeniu, ale nigdy niczego nie wyświetla: zamraża zaznaczony materiał lub
+// pieśń tylko wtedy, gdy właśnie on jest na rzutniku, a naciśnięte na zamrożonym — odmraża.
+// Zamrożony rzutnik nie reaguje na strzałki, pętla i film stoją; „Wyświetl” zdejmuje zamrożenie.
+export const selectedFrozen = computed(() => frozen.value && !!selected.value && frozenAt.value?.id === selected.value.id)
+export const frozenLabel = computed(() => {
+  const it = frozenAt.value && find(frozenAt.value.id)
+  if (!it) return ''
+  if (it.type === 'song') return `${label(it)} — slajd ${verseKey(it, frozenAt.value.index)}`
+  if (it.type !== 'scene') return label(it)
+  const slides = view(it).slides
+  const at = slides.length ? frozenAt.value.step % slides.length : 0
+  return `${label(it)} — slajd ${at + 1}: ${label(slides[at])}`
+})
+// Krótki komunikat, który sam znika.
+let flashTimer = null
+export function flash(message) {
+  notice.value = message
+  clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => { if (notice.value === message) notice.value = '' }, 3500)
+}
+export function toggleFrozen() {
+  const it = selected.value
+  if (frozen.value) {
+    if (it?.id === frozenAt.value?.id) frozen.value = false
+    else flash(`Zamrożone jest „${frozenLabel.value}”. Zaznacz je, żeby odmrozić.`)
+  } else if (!liveId.value) flash('Nie można zamrozić — nic się nie wyświetla.')
+  else if (it?.id !== liveId.value) flash(it ? `Nie można zamrozić — „${label(it)}” nie jest wyświetlane.` : 'Nie można zamrozić — nic nie jest zaznaczone.')
+  // Filmów się nie zamraża — do zatrzymania służy pauza na pasku pod podglądem.
+  else if (liveIsVideo.value) flash('Filmów nie można zamrażać — użyj pauzy.')
+  else frozen.value = true
+}
+
+// Klawisz skrótu: przejście do slajdu z takim oznaczeniem (kolejne naciśnięcia krążą po
+// slajdach o tym samym skrócie, np. refrenach). Cyfra bez własnego skrótu = slajd o tym numerze.
+export function jumpToKey(key) {
+  const song = liveItem.value?.type === 'song' ? liveItem.value : selected.value?.type === 'song' ? selected.value : null
+  if (!song) return false
+  const list = parseSong(song)
+  const live = song.id === liveId.value
+  const now = live ? songIndex.value : previewIndex.value
+  const hits = list.map((v, i) => (v.key.toLowerCase() === key.toLowerCase() ? i : -1)).filter(i => i >= 0)
+  let target = hits.find(i => i > now) ?? hits[0]
+  if (target == null && /^[1-9]$/.test(key) && +key <= list.length) target = +key - 1
+  if (target == null) return false
+  if (live) songIndex.value = target
+  else previewIndex.value = target
+  return true
+}
+
+export function setVerse(i) {
+  if (selected.value?.id === liveId.value) songIndex.value = i
+  else previewIndex.value = i
+}
+
+// Następna / poprzednia zwrotka. Pilot z telefonu (everything=true) poza pieśniami
+// przechodzi po prostu do sąsiedniego elementu listy i od razu go wyświetla.
+export function stepBy(d, everything = false) {
+  const song = liveItem.value?.type === 'song' ? liveItem.value : selected.value?.type === 'song' ? selected.value : null
+  if (song) {
+    const last = verses(song).length - 1
+    const list = serviceList.value
+    const at = list.findIndex(e => e.song.id === song.id)
+    const neighbour = at >= 0 ? list[at + d]?.song : null
+    // Pilot: za ostatnim slajdem „Dalej” przechodzi do następnej pieśni z listy nabożeństwa.
+    if (everything && song.id === liveId.value && neighbour && (d > 0 ? songIndex.value >= last : songIndex.value <= 0)) {
+      selectedId.value = neighbour.id
+      goLive()
+    } else if (song.id === liveId.value) songIndex.value = clamp(songIndex.value + d, 0, last)
+    else previewIndex.value = clamp(previewIndex.value + d, 0, last)
+  } else if (liveItem.value?.type === 'scene') {
+    const n = slideCount(liveItem.value)
+    if (n) api.videoCmd({ type: 'step', value: ((video.value.step || 0) % n + d + n) % n })
+  } else if (selected.value?.type === 'scene') {
+    stepLoop(d)
+  } else if (everything) {
+    const list = visibleItems.value
+    const i = list.findIndex(x => x.id === selectedId.value)
+    const next = list[clamp(i + d, 0, list.length - 1)]
+    if (next) { selectedId.value = next.id; goLive() }
+  }
+}
+
+/* ---------- pliki ---------- */
+const BUILTIN_NOTE = 'Prezentację odtworzył wbudowany czytnik — sprawdź slajdy, bo układ i kolory mogą różnić się od oryginału. Dokładną kopię daje komputer z PowerPointem lub LibreOffice albo zapis prezentacji jako PDF.'
+
+// Zamienia wskazane pliki na elementy biblioteki. Prezentacja (PowerPoint albo wielostronicowy PDF)
+// staje się pętlą ze slajdami przełączanymi ręcznie; pozostałe pliki — pojedynczymi materiałami.
+export async function addFiles(paths, intoLoop = null) {
+  if (!paths.length) return
+  busy.value = 'Dodawanie plików…'
+  try {
+    const parts = [] // { name, files, deck } — deck: slajdy jednej prezentacji
+    let problem = ''
+    const pdfPages = async (name, file, word) => {
+      const pages = []
+      const { pdfToImages } = await import('./pdf.js')
+      await pdfToImages(await api.readPdf(file), async (n, total, bytes) => {
+        busy.value = `${name}: ${word} ${n} z ${total}…`
+        pages.push(await api.saveImage(total > 1 ? `${name} – ${word} ${n}` : name, bytes))
+      })
+      return pages
+    }
+    for (const f of await api.importFiles(paths, settings.copyFiles)) {
+      if (f.type === 'pptx') {
+        busy.value = `Importuję prezentację „${f.name}”…`
+        const res = await api.pptxToSlides(f.path)
+        // LibreOffice oddaje PDF — rozkładamy go na strony tak jak każdy inny.
+        const slides = res.pdf ? await pdfPages(f.name, res.pdf, 'slajd') : res.slides || []
+        parts.push({ name: f.name, files: slides, deck: true })
+        if (res.error) problem = res.error
+        else if (res.method === 'builtin') problem = BUILTIN_NOTE
+      } else if (f.type === 'pdf') {
+        busy.value = `Importuję „${f.name}”…`
+        parts.push({ name: f.name, files: await pdfPages(f.name, f.path, 'str.'), deck: true })
+      } else {
+        parts.push({ name: f.name, files: [f], deck: false })
+      }
+    }
+
+    const item = (f, hidden) => ({ id: uid(), type: f.type, name: f.name, path: f.path, fit: 'contain', loop: false, ...(hidden ? { hidden: true } : {}) })
+    const entry = it => ({ key: uid(), ref: it.id, seconds: null })
+    let last = null
+    for (const part of parts) {
+      if (intoLoop) {
+        // Slajdy dodane wprost do pętli nie zaśmiecają głównej listy materiałów.
+        const added = part.files.map(f => item(f, true))
+        items.value.push(...added)
+        intoLoop.entries.push(...added.map(entry))
+        last = added.at(-1) || last
+      } else if (part.deck && part.files.length > 1) {
+        const slides = part.files.map(f => item(f, true))
+        const deck = { id: uid(), type: 'scene', name: part.name, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false, entries: slides.map(entry) }
+        items.value.push(...slides, deck)
+        last = deck
+      } else {
+        const added = part.files.map(f => item(f, false))
+        items.value.push(...added)
+        last = added.at(-1) || last
+      }
+    }
+    if (!intoLoop && last) { tab.value = 'materials'; selectedId.value = last.id }
+    notice.value = problem || (last ? '' : 'Tych plików nie da się wyświetlić — obsługiwane są zdjęcia, filmy, PDF i prezentacje PowerPoint.')
+  } catch (e) {
+    notice.value = 'Nie udało się dodać plików: ' + e.message
+  } finally {
+    busy.value = ''
+  }
+}
+export const pickFiles = async intoLoop => addFiles(await api.pickFiles(), intoLoop)
+// Prezentacja (PowerPoint lub PDF) — wchodzi jako pętla ze slajdami przełączanymi ręcznie.
+export const pickDeck = async () => addFiles(await api.pickFiles('deck'))
+
+const fileUsed = p => items.value.some(i => i.path === p || i.bgImage === p) || settings.songStyle.bgImage === p ||
+  services.value.some(s => s.files.some(f => f.path === p))
+// Kasuje kopię pliku z folderu aplikacji, gdy nic już z niej nie korzysta.
+const dropFile = p => { if (p && !fileUsed(p)) api.removeFile(p) }
+
+export async function pickBackground(style) {
+  const [file] = await api.importFiles(await api.pickFiles('image'), settings.copyFiles)
+  if (file) setBackground(style, file.path)
+}
+export function setBackground(style, p) {
+  const old = style.bgImage
+  style.bgImage = p
+  dropFile(old)
+}
+
+/* ---------- biblioteka ---------- */
+export function addText() {
+  const it = { id: uid(), type: 'text', name: '', text: '', ...TEXT_STYLE }
+  items.value.push(it)
+  selectedId.value = it.id
+}
+
+export function addLoop() {
+  const n = items.value.filter(i => i.type === 'scene').length + 1
+  const it = { id: uid(), type: 'scene', name: 'Pętla ' + n, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, entries: [] }
+  items.value.push(it)
+  selectedId.value = it.id
+}
+
+function deleteItem(it) {
+  const i = items.value.indexOf(it)
+  if (i >= 0) items.value.splice(i, 1)
+  dropFile(it.path)
+  dropFile(it.bgImage)
+}
+
+export function removeEntry(loop, i) {
+  const [entry] = loop.entries.splice(i, 1)
+  const it = itemById(entry.ref)
+  const stillUsed = items.value.some(l => l.type === 'scene' && l.entries.some(e => e.ref === entry.ref))
+  if (it?.hidden && !stillUsed) deleteItem(it)
+}
+
+export function remove(it) {
+  confirmId.value = null
+  if (it.id === liveId.value) hide()
+  const list = it.type === 'song' ? visibleSongs.value : visibleItems.value
+  const at = list.indexOf(it)
+  const neighbour = list[at + 1] || list[at - 1]
+  if (it.type === 'song') {
+    songs.value.splice(songs.value.indexOf(it), 1)
+    settings.service = settings.service.filter(e => e.songId !== it.id)
+    if (settings.sharedDir) settings.deletedSongs[it.id] = Date.now()
+  } else {
+    if (it.type === 'scene') while (it.entries.length) removeEntry(it, 0)
+    else for (const loop of items.value) if (loop.type === 'scene') loop.entries = loop.entries.filter(e => e.ref !== it.id)
+    deleteItem(it)
+  }
+  if (it.id === selectedId.value) selectedId.value = neighbour?.id ?? null
+}
+
+export function moveItem(fromId, toId) {
+  const list = items.value
+  const from = list.findIndex(x => x.id === fromId)
+  const [it] = list.splice(from, 1)
+  const to = list.findIndex(x => x.id === toId)
+  list.splice(from <= to ? to + 1 : to, 0, it)
+}
+
+export function startRename(it) {
+  selectedId.value = it.id
+  renameValue.value = label(it)
+  renamingId.value = it.id
+}
+export function commitRename(it) {
+  if (renamingId.value !== it.id) return
+  renamingId.value = null
+  const name = renameValue.value.trim()
+  // Pusta nazwa tekstu = wróć do pokazywania jego pierwszej linii.
+  if (name || it.type === 'text') it.name = name
+}
+
+/* ---------- pieśni ---------- */
+export function addToService(song) {
+  settings.service.push({ key: uid(), songId: song.id })
+  search.service = ''
+  tab.value = 'songs'
+  selectedId.value = song.id
+}
+export function removeFromService(i) {
+  const entry = serviceList.value[i]
+  settings.service = settings.service.filter(e => e.key !== entry.key)
+}
+export function moveInService(from, to) {
+  const keys = serviceList.value.map(e => e.key)
+  keys.splice(to, 0, ...keys.splice(from, 1))
+  settings.service = keys.map(key => settings.service.find(e => e.key === key))
+}
+export function clearService() { settings.service = [] }
+
+export function addSong() {
+  const song = { id: uid(), type: 'song', number: '', title: '', text: '' }
+  songs.value.push(song)
+  search.songs = ''
+  return song
+}
+
+// Wczytuje pieśni z plików lub folderu, ale ich nie zapisuje — trafiają do wersji roboczej w oknie bazy.
+export async function pickSongs(folder) {
+  const files = await api.pickSongFiles(folder)
+  const found = []
+  let skipped = 0
+  if (files.length) {
+    const { parseSongFile } = await import('./songImport.js')
+    for (const f of files) {
+      const list = parseSongFile(f.name, f.content)
+      if (!list.length) skipped++
+      found.push(...list.map(x => ({ id: uid(), type: 'song', ...x })))
+    }
+  }
+  return { songs: found, skipped }
+}
+
+// Zapis z okna bazy pieśni: tylko to, co użytkownik faktycznie zmienił od otwarcia okna.
+export function applySongChanges({ added, removed, edited }) {
+  for (const id of removed) { const song = songs.value.find(x => x.id === id); if (song) remove(song) }
+  for (const e of edited) { const song = songs.value.find(x => x.id === e.id); if (song) Object.assign(song, { number: e.number, title: e.title, text: e.text }) }
+  songs.value.push(...added.map(x => ({ id: x.id, type: 'song', number: x.number, title: x.title, text: x.text })))
+}
+
+export function removeAllSongs() {
+  if (liveItem.value?.type === 'song') hide()
+  if (selected.value?.type === 'song') selectedId.value = null
+  if (settings.sharedDir) for (const s of songs.value) settings.deletedSongs[s.id] = Date.now()
+  songs.value = []
+  settings.service = []
+}
+
+/* ---------- nabożeństwa ---------- */
+const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+export const today = () => localDate(new Date())
+// Najbliższa niedziela (dzisiejsza też się liczy).
+export const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return localDate(d) }
+// Informacje, bez których nabożeństwo nie jest gotowe (opcjonalny jest tylko skład zespołu).
+const REQUIRED = [['sermonTitle', 'tytułu kazania'], ['passage', 'fragmentu'], ['speaker', 'mówcy']]
+export const missingInfo = svc => [
+  ...REQUIRED.filter(([key]) => !String(svc[key] || '').trim()).map(([, name]) => name),
+  ...(svc.songs?.length ? [] : ['pieśni']),
+]
+// Alarm: na najbliższą niedzielę nie ma nabożeństwa albo brakuje w nim wymaganych informacji.
+export const planAlert = computed(() => {
+  const date = nextSunday()
+  const service = services.value.find(s => s.date === date) || null
+  if (!service) return { date, service: null, text: `Nie ma nabożeństwa na niedzielę ${prettyDate(date).replace(/^niedziela, /, '')}.` }
+  const missing = missingInfo(service)
+  return missing.length ? { date, service, text: `Nabożeństwo na niedzielę nie ma: ${missing.join(', ')}.` } : null
+})
+export const prettyDate = date => (date ? new Date(date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'bez daty')
+export const sortedServices = computed(() => [...services.value].sort((a, b) => b.date.localeCompare(a.date)))
+// Najbliższe nabożeństwo: dzisiejsze lub pierwsze przyszłe, a gdy takich nie ma — ostatnie.
+export const nearestService = computed(() => {
+  const upcoming = sortedServices.value.filter(s => s.date >= today())
+  return upcoming.at(-1) || sortedServices.value[0] || null
+})
+export const activeService = computed(() => services.value.find(s => s.id === settings.activeService) || null)
+
+// Potwierdzenie: nabożeństwo na najbliższą niedzielę istnieje i ma komplet wymaganych informacji.
+export const planReady = computed(() => {
+  if (planAlert.value) return null
+  const service = services.value.find(s => s.date === nextSunday())
+  return service ? { service, text: `Nabożeństwo na niedzielę ${prettyDate(service.date).replace(/^niedziela, /, '')} jest gotowe.` } : null
+})
+
+export function newService(date = today()) {
+  const svc = { id: uid(), date, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [] }
+  services.value.push(svc)
+  return svc
+}
+export function removeService(svc) {
+  services.value.splice(services.value.indexOf(svc), 1)
+  if (svc.shared && settings.sharedDir) api.sharedRemove(settings.sharedDir, svc.id)
+  else for (const f of svc.files) dropFile(f.path)
+  synced.delete(svc.id)
+}
+export async function attachToService(svc) {
+  const paths = await api.pickFiles()
+  if (!paths.length) return
+  busy.value = 'Dodaję załącznik…'
+  try {
+    // 'all' — do biblioteki aplikacji trafia też sam PDF lub prezentacja, żeby załącznik nie zależał od pendrive'a.
+    const files = await api.importFiles(paths, 'all')
+    svc.files.push(...files.map(f => ({ key: uid(), path: f.path, name: f.name, type: f.type })))
+  } finally {
+    busy.value = ''
+  }
+}
+export function detachFromService(svc, i) {
+  const [f] = svc.files.splice(i, 1)
+  dropFile(f.path)
+}
+
+// Rzutnik: lista pieśni i załączniki nabożeństwa trafiają do panelu wyświetlania.
+export async function applyService(svc) {
+  settings.service = svc.songs.filter(e => songs.value.some(x => x.id === e.songId)).map(e => ({ key: uid(), songId: e.songId }))
+  settings.activeService = svc.id
+  for (const f of svc.files) {
+    const source = svc.id + ':' + f.key
+    if (items.value.some(i => i.source === source)) continue // już wczytane wcześniej
+    const before = items.value.length
+    await addFiles([f.path])
+    for (const it of items.value.slice(before)) it.source = source
+  }
+  tab.value = 'songs'
+  selectedId.value = serviceList.value[0]?.song.id ?? selectedId.value
+  serviceModal.value = false
+  const missing = svc.songs.length - settings.service.length
+  flash(`Wczytano nabożeństwo: pieśni ${settings.service.length}, załączników ${svc.files.length}.` + (missing ? ` Brak w bazie: ${missing}.` : ''))
+}
+
+// Nabożeństwo wędruje między komputerami razem z tekstami pieśni, bo każdy komputer ma własną
+// bazę (i własne identyfikatory pieśni). Przy odbiorze pieśni są dopasowywane po numerze i tytule,
+// a brakujące dopisywane do tutejszej bazy.
+function servicePayload(svc) {
+  const copy = plainCopy(svc)
+  const texts = copy.songs.map(e => songs.value.find(x => x.id === e.songId)).filter(Boolean).map(({ number, title, text }) => ({ number, title, text }))
+  return { service: copy, songs: texts }
+}
+function adoptService({ service, songs: texts }, id) {
+  const entries = []
+  for (const e of service.songs || []) {
+    const same = x => x.title === e.title && (x.number || '') === (e.number || '')
+    let own = songs.value.find(same)
+    const text = (texts || []).find(same)
+    if (!own && text) { own = { id: uid(), type: 'song', ...text }; songs.value.push(own) }
+    entries.push({ key: e.key || uid(), songId: own?.id ?? null, title: e.title, number: e.number || '' })
+  }
+  return { band: '', notes: '', files: [], ...service, id, songs: entries }
+}
+
+// Ręczne przeniesienie: nabożeństwo jako folder (np. na pendrivie).
+export const exportService = svc => api.exportService(servicePayload(svc))
+export async function importService() {
+  const res = await api.importService()
+  if (!res.payload) return res
+  const svc = adoptService(res.payload, uid())
+  services.value.push(svc)
+  return { service: svc }
+}
+
+/* ---------- folder wspólny: te same nabożeństwa na wielu komputerach ---------- */
+// Każdy komputer wskazuje ten sam folder (OneDrive, Dysk Google, dysk sieciowy…). Nabożeństwa są
+// tam zapisywane jako podfoldery; aplikacja co kilkanaście sekund sprawdza, czy ktoś coś zmienił.
+// Przy równoczesnej edycji wygrywa późniejszy zapis.
+export const sharedStatus = ref('')
+export const sharedAccount = ref(null) // { provider, email } — konto dysku, na którym leży folder (gdy da się ustalić)
+const synced = new Map() // id → stan nabożeństwa, który jest już w folderze wspólnym
+const snapshot = svc => JSON.stringify({ ...svc, updated: 0 })
+const clock = () => new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' })
+
+export const syncing = ref(false)
+export async function syncShared() {
+  if (syncing.value) return
+  syncing.value = true
+  try { await runSync() } finally { syncing.value = false }
+}
+async function runSync() {
+  const dir = settings.sharedDir
+  if (!dir || !loaded.value) return
+  const res = await api.sharedRead(dir)
+  if (res.error) { sharedStatus.value = res.error; return }
+  const seen = new Set()
+  for (const payload of res.list) {
+    const id = payload.service.id
+    seen.add(id)
+    const local = services.value.find(x => x.id === id)
+    if (local && (local.updated || 0) >= (payload.service.updated || 0)) continue
+    const svc = { ...adoptService(payload, id), shared: true }
+    if (local) Object.assign(local, svc)
+    else services.value.push(svc)
+    synced.set(id, snapshot(services.value.find(x => x.id === id)))
+  }
+  // Nabożeństwo usunięte na innym komputerze znika też tutaj.
+  for (const svc of [...services.value]) {
+    if (svc.shared && !seen.has(svc.id)) { services.value.splice(services.value.indexOf(svc), 1); synced.delete(svc.id) }
+  }
+  await pushShared()
+  await syncSongs(dir)
+  if (settings.sharedDir === dir) sharedStatus.value = 'Zsynchronizowano o ' + clock()
+}
+
+/* Wspólna baza pieśni. Każda pieśń ma czas ostatniej zmiany; przy łączeniu wygrywa nowsza wersja,
+   a usunięcia są zapamiętywane, żeby pieśń nie „wracała” z innego komputera. */
+const songSeen = new Map() // id → treść przy ostatnim sprawdzeniu (do wykrywania edycji)
+const songBody = s => s.number + '\n' + s.title + '\n' + s.text
+let songsDirty = true
+let songsMtime = 0
+function stampSongs() {
+  const now = Date.now()
+  for (const s of songs.value) {
+    const body = songBody(s)
+    const seen = songSeen.get(s.id)
+    if (seen === body) continue
+    // Edycja jest zawsze nowsza od wersji, na której powstała — także gdy zegary komputerów się różnią.
+    if (seen !== undefined || !s.updated) s.updated = Math.max(now, (s.updated || 0) + 1)
+    songSeen.set(s.id, body)
+  }
+}
+// Ta sama pieśń dodana niezależnie na dwóch komputerach dostaje wspólny identyfikator.
+function changeSongId(song, id) {
+  const old = song.id
+  song.id = id
+  songSeen.set(id, songSeen.get(old)); songSeen.delete(old)
+  for (const e of settings.service) if (e.songId === old) e.songId = id
+  for (const svc of services.value) for (const e of svc.songs) if (e.songId === old) e.songId = id
+  if (selectedId.value === old) selectedId.value = id
+  if (liveId.value === old) liveId.value = id
+}
+async function syncSongs(dir) {
+  stampSongs()
+  const remote = await api.sharedSongsRead(dir, songsDirty ? 0 : songsMtime)
+  if (remote.error || remote.unchanged) return
+  const remoteSongs = remote.songs || []
+  const deleted = { ...remote.deleted }
+  for (const [id, at] of Object.entries(settings.deletedSongs)) if (!(deleted[id] >= at)) deleted[id] = at
+
+  const byId = new Map(songs.value.map(s => [s.id, s]))
+  const nameOf = s => (s.number || '') + '|' + s.title
+  const byName = new Map(songs.value.map(s => [nameOf(s), s]))
+  const remoteIds = new Set(remoteSongs.map(r => r.id))
+  for (const r of remoteSongs) {
+    if (deleted[r.id] >= (r.updated || 0)) continue
+    let own = byId.get(r.id)
+    if (!own) {
+      const twin = byName.get(nameOf(r))
+      if (twin && !remoteIds.has(twin.id)) { changeSongId(twin, r.id); byId.set(r.id, twin); own = twin }
+    }
+    if (!own) {
+      own = { id: r.id, type: 'song', number: r.number || '', title: r.title, text: r.text, updated: r.updated || 0 }
+      songs.value.push(own)
+    } else if ((r.updated || 0) > (own.updated || 0)) {
+      Object.assign(own, { number: r.number || '', title: r.title, text: r.text, updated: r.updated })
+    } else continue
+    songSeen.set(own.id, songBody(own))
+  }
+  for (const s of [...songs.value]) {
+    if (!(deleted[s.id] >= (s.updated || 0))) continue
+    if (s.id === liveId.value) hide()
+    if (s.id === selectedId.value) selectedId.value = null
+    songs.value.splice(songs.value.indexOf(s), 1)
+    settings.service = settings.service.filter(e => e.songId !== s.id)
+  }
+
+  const mine = songs.value.map(({ id, number, title, text, updated }) => ({ id, number, title, text, updated: updated || 0 }))
+  const order = list => JSON.stringify([...list].sort((a, b) => (a.id < b.id ? -1 : 1)))
+  const same = order(mine) === order(remoteSongs.map(({ id, number, title, text, updated }) => ({ id, number: number || '', title, text, updated: updated || 0 }))) &&
+    JSON.stringify(deleted) === JSON.stringify(remote.deleted || {})
+  if (same) { songsMtime = remote.mtime; songsDirty = false; return }
+  const res = await api.sharedSongsWrite(dir, { songs: mine, deleted })
+  if (res.error) { sharedStatus.value = res.error; return }
+  songsMtime = res.mtime
+  songsDirty = false
+}
+let songSyncTimer = null
+function songsChanged() {
+  songsDirty = true
+  if (!settings.sharedDir) return
+  clearTimeout(songSyncTimer)
+  songSyncTimer = setTimeout(syncShared, 3000)
+}
+
+let pushing = false
+async function pushShared() {
+  const dir = settings.sharedDir
+  if (!dir || !loaded.value || pushing) return
+  pushing = true
+  try {
+    for (const svc of services.value) {
+      if (synced.get(svc.id) === snapshot(svc)) continue
+      svc.updated = Date.now()
+      const res = await api.sharedWrite(dir, servicePayload(svc))
+      if (res.error) { sharedStatus.value = res.error; return }
+      // Załączniki leżą odtąd w folderze wspólnym — lokalna kopia nie jest już potrzebna.
+      for (const f of svc.files) {
+        const moved = res.files.find(x => x.key === f.key)
+        if (moved && moved.path !== f.path) { const old = f.path; f.path = moved.path; dropFile(old) }
+      }
+      svc.shared = true
+      synced.set(svc.id, snapshot(svc))
+      sharedStatus.value = 'Zapisano o ' + clock()
+    }
+  } finally {
+    pushing = false
+  }
+}
+let pushTimer = null
+function pushSoon() {
+  clearTimeout(pushTimer)
+  pushTimer = setTimeout(pushShared, 1500)
+}
+
+export async function pickSharedDir() {
+  const dir = await api.sharedPick()
+  if (dir) settings.sharedDir = dir
+}
+export function leaveSharedDir() {
+  settings.sharedDir = ''
+  sharedStatus.value = ''
+  synced.clear()
+  songsMtime = 0
+  songsDirty = true
+  for (const svc of services.value) delete svc.shared
+}
+
+/* ---------- zapis ---------- */
+// Przez IPC przechodzą tylko zwykłe obiekty, nie reaktywne — stąd kopia przez JSON.
+const plainCopy = data => JSON.parse(JSON.stringify(data))
+const savers = {
+  library: () => api.saveStore('library', plainCopy(items.value.map(({ missing, ...rest }) => rest))),
+  songs: () => api.saveStore('songs', plainCopy(songs.value)),
+  settings: () => api.saveStore('settings', plainCopy(settings)),
+  services: () => api.saveStore('services', plainCopy(services.value)),
+}
+const timers = {}
+function saveSoon(name) {
+  if (!loaded.value) return
+  clearTimeout(timers[name])
+  timers[name] = setTimeout(() => { delete timers[name]; savers[name]() }, 500)
+}
+// Zapisuje od razu wszystko, co czeka — przed kopią zapasową.
+export async function flush() {
+  for (const name of Object.keys(timers)) { clearTimeout(timers[name]); delete timers[name]; await savers[name]() }
+}
+
+function migrate(it) {
+  if (it.type !== 'scene') return it
+  const { itemIds, ...rest } = it
+  return {
+    volume: 0.25, transition: 'fade', fadeMs: 350, ...rest,
+    name: (it.name || '').replace(/^Scena( \d+)?$/, 'Pętla$1'),
+    entries: it.entries || (itemIds || []).map(ref => ({ key: uid(), ref, seconds: null })),
+  }
+}
+
+let started = false
+export async function init() {
+  if (started) return
+  started = true
+  api.onDisplays(setDisplays)
+  api.onOutputState(state => {
+    output.value = state
+    if (!state.open) hidden.value = frozen.value = false
+    if (!state.open && !state.waiting) liveId.value = null
+  })
+  api.onVideoState(state => { video.value = state })
+  api.onPptxProgress(p => { busy.value = `${p.name}: slajd ${p.done} z ${p.count}…` })
+  api.onRemoteCmd(cmd => (cmd === 'hide' ? toggleHidden() : stepBy(cmd === 'next' ? 1 : -1, true)))
+  wire()
+  setDisplays(await api.getDisplays())
+
+  const saved = await api.loadStore('settings')
+  if (saved) Object.assign(settings, saved, { songStyle: { ...settings.songStyle, ...saved.songStyle } })
+  if (!settings.remoteToken) settings.remoteToken = uid()
+  items.value = ((await api.loadStore('library')) || []).map(migrate)
+  songs.value = (await api.loadStore('songs')) || []
+  services.value = (await api.loadStore('services')) || []
+  selectedId.value = visibleItems.value[0]?.id ?? null
+  loaded.value = true
+
+  watch(items, () => saveSoon('library'), { deep: true })
+  watch(songs, () => { saveSoon('songs'); songsChanged() }, { deep: true })
+  watch(services, () => { saveSoon('services'); pushSoon() }, { deep: true })
+  watch(() => settings.sharedDir, async dir => {
+    sharedAccount.value = null
+    syncShared()
+    const account = dir ? await api.sharedAccount(dir) : null
+    if (settings.sharedDir === dir) sharedAccount.value = account
+  }, { immediate: true })
+  setInterval(syncShared, 15000)
+  window.addEventListener('focus', syncShared)
+  watch(settings, () => saveSoon('settings'), { deep: true })
+  watch(() => settings.remote, async on => {
+    const res = await api.setRemote(on, settings.remoteToken)
+    remoteUrl.value = res.url || ''
+    if (res.error) { notice.value = 'Pilot: ' + res.error; settings.remote = false }
+  }, { immediate: true })
+}
+
+// Każda zmiana tego, co jest „na żywo”, od razu trafia na rzutnik.
+const livePayload = computed(() => {
+  if (!liveView.value) return null
+  const { missing, ...rest } = liveView.value
+  return JSON.stringify({ ...rest, nonce: liveNonce.value, startAt: liveStart.value, startStep: liveStep.value })
+})
+// Podpinane dopiero w init(): ten moduł ładuje też okno rzutnika, a ono nie może nic wysyłać.
+function wire() {
+  const send = json => api.show(json ? { ...JSON.parse(json), volume: volume.value } : null)
+  watch(livePayload, json => { if (!frozen.value) send(json) })
+  watch(frozen, on => {
+    frozenAt.value = on ? { id: liveId.value, index: songIndex.value, step: video.value.step || 0 } : null
+    api.videoCmd({ type: 'freeze', value: on })
+    if (!on) send(livePayload.value) // po odmrożeniu rzutnik dogania to, co zmieniło się w międzyczasie
+  })
+  watch(hidden, on => api.videoCmd({ type: 'blank', value: on }))
+  watch(liveId, id => { if (!id) hidden.value = frozen.value = false })
+  watch([liveId, liveNonce], () => { video.value = { time: 0, duration: 0, paused: true, step: liveStep.value } })
+  watch(selectedId, () => { previewIndex.value = 0; confirmId.value = null; loopStep.value = 0; loopPlaying.value = false })
+  watch(volume, v => api.videoCmd({ type: 'volume', value: v }))
+  watch(() => (liveItem.value?.type === 'scene' ? liveItem.value.volume : null), v => { if (v != null) volume.value = v })
+  watch(() => {
+    const it = liveItem.value
+    if (!it) return 'Nic nie jest wyświetlane'
+    if (hidden.value) return 'Ukryte: ' + label(it)
+    return label(it) + (it.type === 'song' ? ` — ${songIndex.value + 1} / ${verses(it).length}` : '')
+  }, title => api.remoteState({ title }), { immediate: true })
+}
