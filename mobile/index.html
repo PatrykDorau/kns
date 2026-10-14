@@ -234,7 +234,18 @@
 
   <!-- Instalacja na telefonie jako aplikacja (ikona na ekranie głównym, bez paska przeglądarki). -->
   <!-- Karta znika dopiero po zainstalowaniu aplikacji — nie da się jej zamknąć wcześniej. -->
-  <div v-if="!installed && !current" class="install">
+  <!-- Komputer z Windows: pełna aplikacja (rzutnik, stream, organizacja) z GitHub Releases. -->
+  <div v-if="desktop && !current && !hideDesktop" class="install">
+    <img src="icon-192.png" alt="">
+    <div>
+      <b>Aplikacja na komputer (Windows)</b>
+      <template v-if="desktopApp.error">{{ desktopApp.error }}</template>
+      <template v-else>Rzutnik, stream i organizacja nabożeństw{{ desktopApp.version ? ' · wersja ' + desktopApp.version : '' }}. Aktualizuje się sama.</template>
+    </div>
+    <a v-if="desktopApp.url" class="button primary" :href="desktopApp.url"><svg class="i"><use href="#download"/></svg>Pobierz</a>
+    <button class="icon" aria-label="Ukryj" title="Ukryj" @click="dismissDesktop"><svg class="i"><use href="#x"/></svg></button>
+  </div>
+  <div v-else-if="!desktop && !installed && !current" class="install">
     <img src="icon-192.png" alt="">
     <div>
       <b>Aplikacja na telefon</b>
@@ -509,7 +520,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.10 · 14.10.2026'
+const VERSION = '2.11 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -851,6 +862,21 @@ createApp({
 
     // Instalacja: Android/Chrome podaje gotowe okno instalacji, iPhone wymaga dodania ręcznie z Safari.
     const installed = ref(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)
+    // Komputer (Windows): zamiast instalacji strony — instalator aplikacji na komputer z najnowszego wydania na GitHubie.
+    const desktop = !/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) && /windows/i.test(navigator.userAgent) && !installed.value
+    const desktopApp = Vue.reactive({ url: '', version: '', error: '' })
+    let desktopHidden = false
+    try { desktopHidden = localStorage.getItem('kns-desktop-hidden') === '1' } catch { /* tryb prywatny */ }
+    const hideDesktop = ref(desktopHidden)
+    function dismissDesktop() { hideDesktop.value = true; try { localStorage.setItem('kns-desktop-hidden', '1') } catch { /* tryb prywatny */ } }
+    if (desktop && !desktopHidden) {
+      fetch('https://api.github.com/repos/PatrykDorau/kns/releases/latest').then(r => (r.ok ? r.json() : null)).then(rel => {
+        const asset = rel?.assets?.find(a => /instalator.*\.exe$/i.test(a.name)) || rel?.assets?.find(a => /\.exe$/i.test(a.name))
+        if (!asset) { desktopApp.error = 'Instalator nie jest jeszcze opublikowany — zajrzyj tu za jakiś czas.'; return }
+        desktopApp.url = asset.browser_download_url
+        desktopApp.version = String(rel.tag_name || '').replace(/^v/, '')
+      }).catch(() => { desktopApp.error = 'Nie udało się sprawdzić najnowszej wersji — sprawdź internet.' })
+    }
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent)
     // Przeglądarki wbudowane w Messengera, Facebooka, Instagrama itp. — Google blokuje w nich logowanie.
     const embedded = ref(!demo && /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|Snapchat|TikTok|musical_ly|; wv\)/i.test(navigator.userAgent))
@@ -907,7 +933,9 @@ createApp({
         // Brave (i niektóre przeglądarki) domyślnie wyłącza usługę powiadomień — wtedy zapis kończy się tym błędem.
         const brave = !!navigator.brave
         push.error = /push service|registration failed|AbortError/i.test(String(e.message || e) + e.name)
-          ? (brave ? 'Brave blokuje powiadomienia: otwórz brave://settings/privacy, włącz „Use Google services for push messaging”, uruchom Brave ponownie i spróbuj jeszcze raz.'
+          ? (brave ? (/android/i.test(navigator.userAgent)
+              ? 'Brave blokuje powiadomienia. W Brave: Ustawienia → Prywatność i bezpieczeństwo (Brave Shields & privacy) → włącz „Use Google services for push messaging”, zamknij Brave i spróbuj ponownie. Albo zainstaluj aplikację z Chrome.'
+              : 'Brave blokuje powiadomienia: otwórz brave://settings/privacy, włącz „Use Google services for push messaging”, uruchom Brave ponownie i spróbuj jeszcze raz.')
             : 'Ta przeglądarka nie przyjęła zapisu na powiadomienia. Spróbuj w Chrome albo Edge, albo sprawdź, czy powiadomienia nie są wyłączone w jej ustawieniach.')
           : e.message || String(e)
         if (e.auth) ready.value = false
@@ -953,7 +981,7 @@ createApp({
       showTabs, countdown, push, enablePush, disablePush, testPush,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
-      installed, ios, canPrompt, showHelp, install,
+      installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,
       version: VERSION, offline, showPast, coming, past, shown, logout,
       drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, alert, current, dirty,
       query, picking, results, confirmDelete,
