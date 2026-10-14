@@ -1,10 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import Icon from './Icon.vue'
-import { api, flush, notice, remoteUrl, removeAllSongs, settings, songs } from './store.js'
+import { api, flush, remoteUrl, settings } from './store.js'
 
 const emit = defineEmits(['close'])
-const confirmSongs = ref(false)
 const message = ref('')
 
 async function exportBackup() {
@@ -18,11 +17,6 @@ async function importBackup() {
   if (res.error) message.value = res.error
   // Dane na dysku zostały podmienione — wczytujemy aplikację od nowa.
   else if (res.ok) location.reload()
-}
-function deleteSongs() {
-  removeAllSongs()
-  confirmSongs.value = false
-  notice.value = 'Usunięto wszystkie pieśni.'
 }
 </script>
 
@@ -59,12 +53,6 @@ function deleteSongs() {
       <p class="note">Kopia to folder z materiałami, pieśniami i ustawieniami — do przeniesienia na inny komputer.</p>
       <p v-if="message" class="url">{{ message }}</p>
 
-      <h4>Pieśni</h4>
-      <div v-if="confirmSongs" class="btnrow">
-        <button class="del-yes" @click="deleteSongs">Tak, usuń {{ songs.length }} pieśni</button>
-        <button @click="confirmSongs = false">Nie</button>
-      </div>
-      <button v-else :disabled="!songs.length" @click="confirmSongs = true"><Icon name="trash" />Usuń wszystkie pieśni ({{ songs.length }})</button>
     </div>
   </div>
 </template>

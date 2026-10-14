@@ -46,6 +46,7 @@ export function createDrive(config) {
   let email = saved.email || ''
   let client = null
   let baseId = '' // podfolder z nabożeństwami
+  let rootFolder = '', songsDirId = '', songsFileId = '' // baza pieśni: <folder aplikacji>/piesni/baza-piesni.json
   const folders = new Map() // id nabożeństwa → { folderId, fileId, name }
 
   async function call(url, options = {}) {
@@ -155,6 +156,7 @@ export function createDrive(config) {
       baseId = await subfolder(config.servicesFolder) || (await create({ name: config.servicesFolder, mimeType: FOLDER, parents: [rootId] })).id
       const songsDir = await subfolder(config.songsFolder)
       const songsFile = songsDir ? (await list(`${quote(songsDir)} in parents and name='baza-piesni.json' and trashed=false`))[0] : null
+      rootFolder = rootId; songsDirId = songsDir || ''; songsFileId = songsFile?.id || ''
       const songs = songsFile ? (await read(songsFile.id)).songs || [] : []
       const children = await list(`${quote(baseId)} in parents and mimeType='${FOLDER}' and trashed=false`)
       folders.clear()
@@ -189,6 +191,31 @@ export function createDrive(config) {
       else entry.fileId = (await create({ name: 'nabozenstwo.json', parents: [entry.folderId] }, payload)).id
       if (entry.name !== name) { await patch(entry.folderId, { name }); entry.name = name }
       await cleanFiles(entry, svc.files)
+    },
+    // Zmiana w bazie pieśni: plik jest czytany na świeżo tuż przed zapisem, więc zmiany innych osób
+    // w innych pieśniach zostają. Ten sam format co na komputerze: każda pieśń ma czas zmiany,
+    // a usunięte są zapamiętywane, żeby nie wróciły z komputera, który jeszcze ich nie usunął.
+    // base — czas zmiany pieśni w chwili otwarcia; nowsza wersja na Dysku wstrzymuje zapis (chyba że force).
+    async saveSongs(change, base = 0, force = false) {
+      if (!songsDirId) songsDirId = (await create({ name: config.songsFolder, mimeType: FOLDER, parents: [rootFolder] })).id
+      const data = songsFileId ? await read(songsFileId) : { songs: [], deleted: {} }
+      data.songs = data.songs || []; data.deleted = data.deleted || {}
+      const id = change.song?.id || change.remove
+      const remote = data.songs.find(x => x.id === id)
+      if (change.song && !force && remote && (remote.updated || 0) > base) throw Object.assign(new Error('Ktoś inny zmienił tę pieśń w międzyczasie.'), { conflict: true, remote })
+      if (change.song) {
+        const song = { id, number: change.song.number || '', title: change.song.title, text: change.song.text, updated: Math.max(Date.now(), (remote?.updated || 0) + 1) }
+        const i = data.songs.findIndex(x => x.id === id)
+        if (i >= 0) data.songs[i] = song
+        else data.songs.push(song)
+        delete data.deleted[id]
+      } else {
+        data.songs = data.songs.filter(x => x.id !== id)
+        data.deleted[id] = Date.now()
+      }
+      if (songsFileId) await write(songsFileId, data)
+      else songsFileId = (await create({ name: 'baza-piesni.json', parents: [songsDirId] }, data)).id
+      return data.songs
     },
     // Wyszukiwanie na Dysku zalogowanego konta (także w udostępnionych) — ostatnio zmienione najpierw.
     async searchFiles(text = '') {
@@ -255,6 +282,16 @@ export function createDemo() {
       persist()
     },
     async remove(id) { data.services = data.services.filter(s => s.id !== id); persist() },
+    async saveSongs(change) {
+      if (change.song) {
+        const song = { ...change.song, updated: Date.now() }
+        const i = data.songs.findIndex(x => x.id === song.id)
+        if (i >= 0) data.songs[i] = song
+        else data.songs.push(song)
+      } else data.songs = data.songs.filter(x => x.id !== change.remove)
+      persist()
+      return JSON.parse(JSON.stringify(data.songs))
+    },
     searchFiles: async text => [
       { id: 'x1', name: 'Kazanie — slajdy.pptx', mimeType: PPTX },
       { id: 'x2', name: 'Ogłoszenia.pdf', mimeType: 'application/pdf' },

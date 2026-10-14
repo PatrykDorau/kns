@@ -533,13 +533,6 @@ export function applySongChanges({ added, removed, edited }) {
   songs.value.push(...added.map(x => ({ id: x.id, type: 'song', number: x.number, title: x.title, text: x.text })))
 }
 
-export function removeAllSongs() {
-  if (liveItem.value?.type === 'song') hide()
-  if (selected.value?.type === 'song') selectedId.value = null
-  if (settings.sharedDir) for (const s of songs.value) settings.deletedSongs[s.id] = Date.now()
-  songs.value = []
-  settings.service = []
-}
 
 /* ---------- nabożeństwa ---------- */
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)

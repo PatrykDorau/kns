@@ -148,6 +148,13 @@
   .camera .net.on::before { background: #3ddc97; }
   .camera .hint { position: absolute; bottom: calc(16px + env(safe-area-inset-bottom)); left: 16px; right: 16px; margin: 0; font-size: 13px; opacity: .7; }
   body.locked { overflow: hidden; }
+  .songsbtn { width: 100%; margin-top: 10px; justify-content: flex-start; background: var(--panel); }
+  .songsbtn .count { margin-left: auto; color: var(--muted); font-size: 14px; }
+  .songsbtn .chev { color: var(--muted); }
+  button.song.pickable { width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; padding-right: 10px; }
+  button.song.pickable .chev { color: var(--muted); }
+  .songs .song .pos { min-width: 28px; width: auto; padding: 0 6px; border-radius: 14px; }
+  textarea.songtext { min-height: 340px; font-size: 15px; line-height: 1.5; }
   .countdown { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
   .cd-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .cd-digits { display: flex; align-items: baseline; gap: 3px; font-variant-numeric: tabular-nums; }
@@ -185,8 +192,10 @@
 <div id="app" v-cloak>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : 'Nabożeństwa' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : 'Nabożeństwa' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>Lista</button>
+    <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
+    <button v-else-if="songView" class="ghost" @click="songView = false"><svg class="i"><use href="#back"/></svg>Nabożeństwa</button>
     <template v-else>
       <button v-if="cueTopic" class="ghost" @click="openCamera"><svg class="i"><use href="#camera"/></svg>Kamera</button>
       <button v-if="ready" class="ghost" :disabled="busy" aria-label="Odśwież" title="Odśwież" @click="reload"><svg class="i"><use href="#refresh"/></svg></button>
@@ -242,6 +251,45 @@
   </div>
 
   <!-- lista -->
+  <!-- baza pieśni: edycja pojedynczej pieśni -->
+  <template v-else-if="song">
+    <div class="row">
+      <div style="flex:0 0 96px"><label for="sNum">Numer</label><input id="sNum" v-model="song.number" inputmode="numeric" autocomplete="off"></div>
+      <div><label for="sTitle">Tytuł <span class="req">*</span></label><input id="sTitle" v-model="song.title" :class="{ invalid: !song.title.trim() }" autocomplete="off"></div>
+    </div>
+    <p v-if="numberTaken" class="note error">Numer {{ song.number }} ma już pieśń „{{ numberTaken.title }}”.</p>
+    <label for="sText">Tekst</label>
+    <textarea id="sText" v-model="song.text" class="songtext" spellcheck="false" placeholder="Pierwsza zwrotka…&#10;&#10;Refren…"></textarea>
+    <p class="note">Pusta linia = nowy slajd ({{ slideCount }}). Na początku slajdu można wpisać skrót, np. <b>[R]</b> — na rzutniku pokaże go klawisz.</p>
+    <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
+    <div class="bar">
+      <template v-if="!song.isNew">
+        <button v-if="confirmDelete" class="danger" :disabled="busy" @click="deleteSong">Na pewno usuń</button>
+        <button v-else :disabled="busy" aria-label="Usuń pieśń" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
+      </template>
+      <button class="primary" :disabled="busy || !songDirty || !song.title.trim()" @click="saveSong()">
+        <svg v-if="!songDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : songDirty ? 'Zapisz' : 'Zapisane' }}
+      </button>
+    </div>
+  </template>
+
+  <!-- baza pieśni: lista -->
+  <template v-else-if="songView">
+    <div class="searchbox">
+      <svg class="i"><use href="#search"/></svg>
+      <input v-model="songQuery" type="search" :placeholder="`Szukaj: numer, tytuł, tekst (${songs.length})`" autocomplete="off">
+    </div>
+    <button class="primary" style="width:100%;margin-top:12px" @click="newSong"><svg class="i"><use href="#plus"/></svg>Nowa pieśń</button>
+    <div class="songs">
+      <p v-if="!songResults.length" class="note">{{ songs.length ? 'Nie ma takiej pieśni.' : 'Baza pieśni jest pusta.' }}</p>
+      <button v-for="s in songResults" :key="s.id" class="song pickable" @click="openSong(s)">
+        <span class="pos">{{ s.number || '♪' }}</span>
+        <span class="meta"><b>{{ s.title }}</b><small>{{ lines(s.text) }}</small></span>
+        <svg class="i chev"><use href="#chev"/></svg>
+      </button>
+    </div>
+  </template>
+
   <template v-else-if="!current">
     <div v-if="countdown" class="countdown">
       <span class="cd-label">{{ countdown.live ? 'Nabożeństwo trwa' : 'Do nabożeństwa' }}</span>
@@ -264,6 +312,7 @@
     </div>
 
     <button class="primary" style="width:100%" @click="create()"><svg class="i"><use href="#plus"/></svg>Nowe nabożeństwo</button>
+    <button class="songsbtn" @click="openSongs"><svg class="i"><use href="#music"/></svg>Baza pieśni <span class="count">{{ songs.length }}</span><svg class="i chev"><use href="#chev"/></svg></button>
 
     <div class="section"><h2>Nadchodzące</h2></div>
     <p v-if="!coming.length" class="note">Nie ma zaplanowanych nabożeństw.</p>
@@ -352,7 +401,7 @@
       <div class="progress"><i :style="{ width: Math.round(progress * 100) + '%' }"></i></div>
     </template>
     <div class="attach">
-      <button :disabled="!!uploading || offline" @click="$refs.phoneFile.click()"><svg class="i"><use href="#clip"/></svg>Z telefonu</button>
+      <button :disabled="!!uploading || offline" @click="$refs.phoneFile.click()"><svg class="i"><use href="#clip"/></svg>Z urządzenia</button>
       <button :disabled="!!uploading || offline" @click="openPicker"><svg class="i"><use href="#drive"/></svg>Z Dysku Google</button>
     </div>
     <input ref="phoneFile" type="file" multiple :accept="ACCEPT" hidden @change="fromPhone">
@@ -406,10 +455,10 @@ const plain = s => String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const today = () => localDate(new Date())
 const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return localDate(d) }
-const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').slice(0, 2).join(' / ')
+const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.1 · 14.10.2026'
+const VERSION = '2.2 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -591,6 +640,7 @@ createApp({
     }
 
     function open(svc) {
+      songView.value = false; song.value = null
       current.value = { time: DEFAULT_TIME, place: DEFAULT_PLACE, ...JSON.parse(JSON.stringify(svc)) }
       saved.value = JSON.stringify(current.value)
       base = svc.updated || 0
@@ -610,6 +660,52 @@ createApp({
       if (dirty.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
       current.value = null
     }
+    /* ---------- baza pieśni ---------- */
+    const songView = ref(false), song = ref(null), songQuery = ref('')
+    let songSaved = '', songBase = 0
+    const songResults = computed(() => {
+      const q = plain(songQuery.value.trim())
+      const all = [...songs.value].sort(byNumber)
+      if (!q) return all
+      const byTitle = all.filter(s => s.number === q || plain(s.title).includes(q))
+      return [...byTitle, ...all.filter(s => !byTitle.includes(s) && plain(s.text).includes(q))]
+    })
+    const songDirty = computed(() => !!song.value && JSON.stringify(song.value) !== songSaved)
+    const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
+    const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
+    function openSongs() { songView.value = true; songQuery.value = ''; scrollTo(0, 0) }
+    function openSong(s) {
+      song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
+      songSaved = JSON.stringify(song.value); songBase = s.updated || 0
+      status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
+    }
+    function newSong() {
+      song.value = { id: uid(), number: '', title: '', text: '', isNew: true }
+      songSaved = ''; songBase = 0; status.value = ''; confirmDelete.value = false
+    }
+    function closeSong() {
+      if (songDirty.value && song.value.title.trim() && !confirm('Masz niezapisane zmiany w pieśni. Wyjść bez zapisywania?')) return
+      song.value = null
+    }
+    const saveSong = (force = false) => guard(async () => {
+      const { isNew, ...data } = song.value
+      data.number = data.number.trim(); data.title = data.title.trim()
+      try {
+        songs.value = await drive.saveSongs({ song: data }, songBase, force === true)
+      } catch (e) {
+        if (!e.conflict) throw e
+        if (!confirm('Ktoś inny zmienił tę pieśń, odkąd ją otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) { openSong(e.remote); status.value = 'Wczytano najnowszą wersję'; return }
+        songs.value = await drive.saveSongs({ song: data }, songBase, true)
+      }
+      const fresh = songs.value.find(s => s.id === data.id)
+      openSong(fresh || data)
+      status.value = 'Zapisano o ' + new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }) + ' — komputery pobiorą zmianę przy synchronizacji'
+    })
+    const deleteSong = () => guard(async () => {
+      songs.value = await drive.saveSongs({ remove: song.value.id })
+      song.value = null
+    })
+
     // Dotknięcie pieśni dodaje ją albo — gdy już jest — zdejmuje; lista zostaje otwarta, żeby wybrać kilka.
     function addSong(song) {
       const list = current.value.songs
@@ -745,6 +841,7 @@ createApp({
       query, picking, results, confirmDelete,
       pretty, day, month, weekday, missing, upcoming, songTitle, firstLine, inBase, chosen, lines,
       start, reload, open, create, fix, back, addSong, move, save, remove,
+      songView, song, songQuery, songResults, songDirty, slideCount, numberTaken, openSongs, openSong, newSong, closeSong, saveSong, deleteSong,
       KIND, ACCEPT, fileType, uploading, progress, fromPhone, picker, pickQuery, pickFound, pickBusy, openPicker, searchSoon, fromDrive,
     }
   },
