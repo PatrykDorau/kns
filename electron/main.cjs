@@ -5,6 +5,7 @@ const os = require('node:os')
 const http = require('node:http')
 const { Readable } = require('node:stream')
 const { execFile } = require('node:child_process')
+const createGoogleDrive = require('./gdrive.cjs')
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL
 // Dane zostają w dotychczasowym folderze niezależnie od nazwy programu — zmiana nazwy
@@ -791,14 +792,26 @@ app.whenReady().then(() => {
     const res = await dialog.showOpenDialog(control, { title: 'Wybierz folder aplikacji na Dysku Google (np. „Aplikacja KNS Nabo”)', properties: ['openDirectory', 'createDirectory'] })
     return res.canceled ? null : res.filePaths[0]
   })
-  ipcMain.handle('shared:account', (e, dir) => sharedAccount(dir))
+  // „google” zamiast ścieżki = folder aplikacji obsługiwany przez logowanie do Dysku Google.
+  const GOOGLE = 'google'
+  const gdrive = createGoogleDrive({ serviceFolderName, safeId })
+  const viaGoogle = async job => { try { return await job() } catch (e) { return { error: e.message, needLogin: !!e.needLogin } } }
+  ipcMain.handle('google:login', () => viaGoogle(() => gdrive.login()))
+  ipcMain.handle('google:logout', () => gdrive.logout())
+  ipcMain.handle('google:status', () => gdrive.status())
+  ipcMain.handle('shared:ensure', (e, paths) => viaGoogle(() => gdrive.ensureFiles(paths)))
+  ipcMain.handle('shared:account', (e, dir) => {
+    if (dir !== GOOGLE) return sharedAccount(dir)
+    const { email } = gdrive.status()
+    return email ? { provider: 'Dysk Google', email } : null
+  })
   ipcMain.handle('shared:suggest', () => suggestShared())
   ipcMain.handle('shared:check', (e, dir) => ({ hasData: typeof dir === 'string' && hasAppData(dir), name: typeof dir === 'string' ? path.basename(dir) : '' }))
-  ipcMain.handle('shared:read', (e, dir) => sharedRead(dir))
-  ipcMain.handle('shared:write', (e, dir, payload) => sharedWrite(dir, payload))
-  ipcMain.handle('shared:remove', (e, dir, id) => sharedRemove(dir, id))
-  ipcMain.handle('shared:songsRead', (e, dir, known) => sharedSongsRead(dir, known))
-  ipcMain.handle('shared:songsWrite', (e, dir, data) => sharedSongsWrite(dir, data))
+  ipcMain.handle('shared:read', (e, dir) => (dir === GOOGLE ? viaGoogle(() => gdrive.readServices()) : sharedRead(dir)))
+  ipcMain.handle('shared:write', (e, dir, payload) => (dir === GOOGLE ? viaGoogle(() => gdrive.writeService(payload)) : sharedWrite(dir, payload)))
+  ipcMain.handle('shared:remove', (e, dir, id) => (dir === GOOGLE ? viaGoogle(() => gdrive.removeService(id)) : sharedRemove(dir, id)))
+  ipcMain.handle('shared:songsRead', (e, dir, known) => (dir === GOOGLE ? viaGoogle(() => gdrive.readSongs(known)) : sharedSongsRead(dir, known)))
+  ipcMain.handle('shared:songsWrite', (e, dir, data) => (dir === GOOGLE ? viaGoogle(() => gdrive.writeSongs(data)) : sharedSongsWrite(dir, data)))
   ipcMain.handle('backup:export', () => exportBackup())
   ipcMain.handle('backup:import', () => importBackup())
   ipcMain.handle('remote:set', (e, on, token) => setRemote(on, token))

@@ -7,7 +7,7 @@ import PlannerPanel from './PlannerPanel.vue'
 import StreamPanel from './StreamPanel.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
-import { busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir } from './store.js'
+import { busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir, googleExpired, loginGoogle, logoutGoogle } from './store.js'
 
 // Na starcie użytkownik wybiera służbę — każda ma swój widok, a łączy je wspólne nabożeństwo.
 const ready = ref(false)
@@ -53,7 +53,15 @@ function choose(next) {
       </button>
     </div>
     <div v-if="ready" class="shared">
-      <template v-if="settings.sharedDir">
+      <template v-if="settings.sharedDir === 'google'">
+        <Icon :name="googleExpired ? 'missing' : 'folder'" />
+        <span v-if="googleExpired"><b>Logowanie do Dysku Google wygasło.</b> Zmiany zapisują się na tym komputerze i zostaną wysłane po ponownym zalogowaniu.</span>
+        <span v-else>Dysk Google: <b>{{ sharedAccount?.email || 'zalogowano' }}</b><template v-if="sharedStatus"> · {{ sharedStatus }}</template></span>
+        <button v-if="googleExpired" class="small primary" @click="loginGoogle">Zaloguj ponownie</button>
+        <SyncButton v-else />
+        <button class="small" @click="logoutGoogle">Wyloguj</button>
+      </template>
+      <template v-else-if="settings.sharedDir">
         <Icon name="folder" />
         <span>Folder wspólny: <b>{{ settings.sharedDir }}</b><template v-if="sharedAccount"> · {{ sharedAccount.provider }}, konto <b>{{ sharedAccount.email }}</b></template><template v-if="sharedStatus"> · {{ sharedStatus }}</template></span>
         <SyncButton />
@@ -68,9 +76,10 @@ function choose(next) {
       </template>
       <template v-else>
         <Icon name="missing" />
-        <span><b>Ten komputer nie jest połączony z Dyskiem Google.</b> Nabożeństwa i pieśni zapisują się tylko tutaj.
-          Żeby je współdzielić, zainstaluj „Dysk Google na komputer”, zaloguj się kontem z dostępem do folderu „Aplikacja KNS Nabo” i wskaż ten folder.</span>
-        <button class="small" @click="pickSharedDir">Wskaż folder…</button>
+        <span><b>Ten komputer nie jest połączony z danymi kościoła.</b> Nabożeństwa i pieśni zapisują się tylko tutaj.
+          Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo” — będą wspólne dla wszystkich komputerów i telefonów.</span>
+        <button class="small primary" @click="loginGoogle">Zaloguj kontem Google</button>
+        <button class="small" title="Dla komputera z programem „Dysk Google na komputer”" @click="pickSharedDir">lub wskaż folder…</button>
       </template>
     </div>
   </div>

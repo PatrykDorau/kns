@@ -1,0 +1,14 @@
+// Logowanie do Dysku Google w aplikacji na komputerze.
+// Identyfikator i „sekret” klienta typu „Aplikacja komputerowa” z Google Cloud Console (projekt KNS Nabo).
+// Google nie traktuje sekretu klienta komputerowego jako poufnego — i tak trafia do instalatora.
+module.exports = {
+  clientId: '828184441520-8o83kfp8n9617a5fmhk25vbs8lncc7ed.apps.googleusercontent.com',
+  clientSecret: '',
+
+  // Folder aplikacji na Dysku: najpewniej jego identyfikator (końcówka adresu
+  // drive.google.com/drive/folders/<IDENTYFIKATOR>); gdy pusty, folder jest szukany po nazwie.
+  folderId: '',
+  folderName: 'Aplikacja KNS Nabo',
+  servicesFolder: 'nabozenstwa',
+  songsFolder: 'piesni',
+}

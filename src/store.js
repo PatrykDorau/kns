@@ -604,6 +604,13 @@ export function detachFromService(svc, i) {
 export async function applyService(svc) {
   settings.service = svc.songs.filter(e => songs.value.some(x => x.id === e.songId)).map(e => ({ key: uid(), songId: e.songId }))
   settings.activeService = svc.id
+  // Przy logowaniu do Dysku Google załączniki pobierane są dopiero teraz, gdy są potrzebne.
+  if (settings.sharedDir === 'google' && svc.files.length) {
+    busy.value = 'Pobieram załączniki z Dysku Google…'
+    const got = await api.sharedEnsure(svc.files.map(f => f.path))
+    busy.value = ''
+    if (got.error) flash(got.error)
+  }
   for (const f of svc.files) {
     const source = svc.id + ':' + f.key
     if (items.value.some(i => i.source === source)) continue // już wczytane wcześniej
@@ -668,6 +675,7 @@ async function runSync() {
   const dir = settings.sharedDir
   if (!dir || !loaded.value) return
   const res = await api.sharedRead(dir)
+  googleExpired.value = !!res.needLogin
   if (res.error) { sharedStatus.value = res.error; return }
   const seen = new Set()
   for (const payload of res.list) {
@@ -808,6 +816,28 @@ function forgetShared() {
   for (const svc of services.value) delete svc.shared
 }
 export const sharedSuggestions = ref([]) // znalezione na tym komputerze foldery aplikacji
+export const googleExpired = ref(false) // logowanie do Dysku Google wygasło (tryb testowy Google: co 7 dni)
+
+// Logowanie do Dysku Google: aplikacja sama czyta i zapisuje folder „Aplikacja KNS Nabo” — bez programu
+// „Dysk Google na komputer” i bez wskazywania folderu. W ustawieniach zamiast ścieżki jest wtedy „google”.
+export async function loginGoogle() {
+  busy.value = 'Dokończ logowanie w przeglądarce, która się otworzyła…'
+  try {
+    const res = await api.googleLogin()
+    if (res.error) { flash(res.error); return }
+    googleExpired.value = false
+    sharedAccount.value = res.email ? { provider: 'Dysk Google', email: res.email } : sharedAccount.value
+    if (settings.sharedDir !== 'google') connectSharedDir('google')
+    else syncShared()
+  } finally {
+    busy.value = ''
+  }
+}
+export async function logoutGoogle() {
+  await api.googleLogout()
+  googleExpired.value = false
+  leaveSharedDir()
+}
 export async function findSharedDir() {
   sharedSuggestions.value = settings.sharedDir ? [] : await api.sharedSuggest()
 }
