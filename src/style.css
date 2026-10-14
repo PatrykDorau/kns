@@ -766,3 +766,8 @@ main.planner .tags .badge.past { display: none; }
 section.props.fixed-head { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
 section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; border-bottom: 1px solid var(--line); }
 .props-body { flex: 1; min-height: 0; overflow: hidden auto; padding: 4px 14px 18px; scrollbar-gutter: stable; }
+
+/* nagłówek listy pieśni: tytuł skraca się, przyciski w jednej linii */
+.service-head { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.service-head h2 { flex: 1; min-width: 0; margin: 0; }
+.service-head button.small { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; }

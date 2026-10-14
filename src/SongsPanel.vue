@@ -62,8 +62,8 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
         <button class="small" @click="confirmClear = false">Nie</button>
       </template>
       <template v-else>
-        <button class="small" :aria-pressed="picking" title="Zaznaczanie wielu pieśni naraz" @click="picking ? stopPicking() : (picking = true)">{{ picking ? 'Gotowe' : 'Zaznacz' }}</button>
-        <button class="small" title="Usuwa pieśni z listy, nie z bazy" @click="confirmClear = true">Wyczyść listę</button>
+        <button class="small" :aria-pressed="picking" title="Zaznaczanie wielu pieśni naraz" @click="picking ? stopPicking() : (picking = true)"><Icon :name="picking ? 'check' : 'select'" />{{ picking ? 'Gotowe' : 'Zaznacz' }}</button>
+        <button class="small" title="Wyczyść listę — usuwa pieśni z listy, nie z bazy" @click="confirmClear = true"><Icon name="trash" />Wyczyść</button>
       </template>
     </template>
   </div>
