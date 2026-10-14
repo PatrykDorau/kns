@@ -144,8 +144,8 @@ function dropEntry(i) {
       <option value="contain">Cały obraz (z pasami)</option>
       <option value="cover">Wypełnij ekran (przycina)</option>
     </select>
-    <ColorAlpha v-if="selected.fit !== 'cover'" :model="selected" label="Tło obok obrazu (pasy)" />
-    <p v-if="selected.fit !== 'cover'" class="note">0% — pasy przezroczyste (na rzutniku widać to, co pod oknem obrazu, zwykle pulpit).</p>
+    <ColorAlpha v-if="selected.fit !== 'cover'" :model="selected" label="Tło obok obrazu (pasy)" empty="#000000ff" />
+    <p v-if="selected.fit !== 'cover'" class="note">Czarny = rzutnik w tym miejscu nie świeci — na ścianie widać tylko obraz. Przezroczyste (0%) pokaże pulpit Windows z ekranu rzutnika.</p>
     <label v-if="selected.type === 'video'" class="check">
       <input v-model="selected.loop" type="checkbox"> Odtwarzaj w kółko
     </label>

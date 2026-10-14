@@ -63,9 +63,12 @@
   .section { display: flex; align-items: center; justify-content: space-between; margin: 26px 0 10px; }
   .section h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
   .card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
-  .card .date { display: grid; place-items: center; width: 48px; height: 52px; border-radius: 12px; background: var(--panel2); flex: none; line-height: 1.1; }
-  .card .date b { font-size: 20px; }
+  .card .date { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 60px; height: 70px; border-radius: 14px; background: var(--panel2); flex: none; line-height: 1; box-shadow: inset 0 0 0 1px var(--line); }
+  .card .date b { font-size: 26px; }
   .card .date small { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .card .date .wd { font-size: 10px; font-weight: 700; letter-spacing: .06em; }
+  .card .rel { flex: none; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 12px; }
+  .card.past .rel { background: var(--panel2); color: var(--muted); }
   .card .body { flex: 1; min-width: 0; }
   .card .title { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card .sub { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; margin-top: 2px; }
@@ -179,6 +182,8 @@
   .origin-warn { margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: var(--bad-soft); border: 1px solid rgba(240, 72, 62, .4); font-size: 14px; color: var(--bad-text); display: flex; flex-direction: column; gap: 10px; align-items: center; }
   .origin-warn b { color: var(--text); }
   button.ghost.link { min-height: 0; padding: 0; font-size: inherit; display: inline; }
+  .login-cd { margin: 6px 0 22px; }
+  .center .login-cd { background: transparent; border: 0; }
   .countdown { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
   .cd-live { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; background: var(--bad); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .06em; margin: 2px 0 4px; }
   .cd-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; animation: cdpulse 1.4s ease-in-out infinite; }
@@ -284,6 +289,15 @@
   </div>
   <div v-else-if="!ready" class="center">
     <img src="logo.png" alt="Kościół Na Skale">
+    <div v-if="countdown" class="countdown login-cd">
+      <span v-if="countdown.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
+      <span v-else class="cd-label">Do nabożeństwa</span>
+      <span v-if="!countdown.live" class="cd-digits">
+        <template v-if="countdown.days"><b>{{ countdown.days }}</b><small>{{ countdown.days === 1 ? 'dzień' : 'dni' }}</small></template>
+        <b>{{ countdown.hours }}</b><small>godz</small><b>{{ countdown.minutes }}</b><small>min</small><b>{{ countdown.seconds }}</b><small>s</small>
+      </span>
+      <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
+    </div>
     <p class="note">Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.</p>
     <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
     <div v-if="wrongOrigin" class="origin-warn">
@@ -361,10 +375,10 @@
     <div class="section"><h2>Nadchodzące</h2></div>
     <p v-if="!coming.length" class="note">Nie ma zaplanowanych nabożeństw.</p>
     <button v-for="svc in shown" :key="svc.id" class="card" :class="{ past: !upcoming(svc) }" @click="open(svc)">
-      <span class="date"><b>{{ day(svc.date) }}</b><small>{{ month(svc.date) }}</small></span>
+      <span class="date"><small class="wd">{{ wd(svc.date) }}</small><b>{{ day(svc.date) }}</b><small>{{ month(svc.date) }}</small></span>
       <span class="body">
         <span class="title">{{ svc.sermonTitle || 'Bez tytułu kazania' }}</span>
-        <span class="sub">{{ weekday(svc.date) }}<template v-if="svc.speaker"> · <svg class="i"><use href="#user"/></svg>{{ svc.speaker }}</template></span>
+        <span class="sub"><span class="rel">{{ relDay(svc.date) }}</span>{{ svc.time || DEFAULT_TIME }}<template v-if="svc.speaker"> · <svg class="i"><use href="#user"/></svg>{{ svc.speaker }}</template></span>
         <span v-if="upcoming(svc)" class="chips">
           <span v-if="!missing(svc).length" class="chip good"><svg class="i"><use href="#check"/></svg>Komplet</span>
           <span v-for="m in missing(svc)" :key="m" class="chip"><svg class="i"><use href="#warn"/></svg>brak: {{ m }}</span>
@@ -538,7 +552,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.19 · 14.10.2026'
+const VERSION = '2.20 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -656,6 +670,11 @@ createApp({
     const day = date => asDate(date).getDate()
     const month = date => asDate(date).toLocaleDateString('pl', { month: 'short' }).replace('.', '')
     const weekday = date => asDate(date).toLocaleDateString('pl', { weekday: 'long' })
+    const wd = date => asDate(date).toLocaleDateString('pl', { weekday: 'short' }).replace('.', '')
+    const relDay = date => {
+      const days = Math.round((asDate(date) - asDate(today())) / 86400000)
+      return days === 0 ? 'dziś' : days === 1 ? 'jutro' : days === -1 ? 'wczoraj' : days > 0 ? `za ${days} dni` : `${-days} dni temu`
+    }
     const missing = svc => [
       ...[['sermonTitle', 'tytuł kazania'], ['passage', 'fragment'], ['speaker', 'mówca']].filter(([k]) => !String(svc[k] || '').trim()).map(([, n]) => n),
       ...(svc.songs?.length ? [] : ['pieśni']),
@@ -680,8 +699,13 @@ createApp({
     const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && (ready.value || !!cueTopic))
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
+    let cachedTimes = []
+    try { cachedTimes = JSON.parse(localStorage.getItem('kns-times') || '[]') } catch { /* brak zapisu */ }
     const countdown = computed(() => {
-      const next = services.value.filter(s => s.date && startsAt(s) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0]
+      const sunday = d => { const x = asDate(d); x.setDate(x.getDate() + 7); return localDate(x) }
+      const times = services.value.length ? services.value : cachedTimes.length ? cachedTimes
+        : [{ date: nextSunday() }, { date: sunday(nextSunday()) }]
+      const next = times.filter(s => s.date && startsAt(s) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0]
       if (!next) return null
       const sec = Math.floor(Math.max(0, startsAt(next) - now.value) / 1000)
       return { live: sec === 0, days: Math.floor(sec / 86400), hours: two(Math.floor(sec / 3600) % 24), minutes: two(Math.floor(sec / 60) % 60), seconds: two(sec % 60),
@@ -711,6 +735,8 @@ createApp({
     const fetchAll = async () => {
       const data = await drive.load()
       services.value = data.services.map(s => ({ band: '', notes: '', songs: [], files: [], ...s }))
+      // Terminy na odliczanie przed zalogowaniem (ekran logowania).
+      try { localStorage.setItem('kns-times', JSON.stringify(services.value.filter(s => s.date >= today()).map(({ date, time, place }) => ({ date, time, place })))) } catch { /* tryb prywatny */ }
       songs.value = data.songs
     }
     const start = () => guard(async () => { await drive.signIn(); await fetchAll(); ready.value = true })
@@ -1039,7 +1065,7 @@ createApp({
     else if (clientId && drive.signedIn()) guard(async () => { await fetchAll(); ready.value = true })
 
     return {
-      showTabs, countdown, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
+      showTabs, countdown, wd, relDay, DEFAULT_TIME, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,

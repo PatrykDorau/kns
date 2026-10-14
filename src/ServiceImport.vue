@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
 import SyncButton from './SyncButton.vue'
-import { applyService, importService, missingInfo, nearestService, serviceModal, services, settings, today } from './store.js'
+import { applyService, importService, missingInfo, nearestService, relDay, serviceModal, services, settings, today } from './store.js'
 
 // Rzutnik: wczytanie zaplanowanego nabożeństwa — pieśni i załączniki ładują się same.
 const message = ref('')
@@ -17,6 +17,7 @@ const asDate = d => new Date(d + 'T12:00')
 const day = d => asDate(d).getDate()
 const month = d => asDate(d).toLocaleDateString('pl', { month: 'short' }).replace('.', '')
 const weekday = d => asDate(d).toLocaleDateString('pl', { weekday: 'long' })
+const wd = d => asDate(d).toLocaleDateString('pl', { weekday: 'short' }).replace('.', '')
 
 async function load(svc, parts) {
   busyId.value = svc.id
@@ -45,7 +46,7 @@ async function fromFolder() {
       </div>
       <ul class="svc-list">
         <li v-for="svc in list" :key="svc.id" :class="{ next: svc.id === nearestService?.id && svc.date >= today(), active: svc.id === settings.activeService, past: svc.date < today() }">
-          <span class="date"><b>{{ day(svc.date) }}</b><small>{{ month(svc.date) }}</small></span>
+          <span class="date"><small class="wd">{{ wd(svc.date) }}</small><b>{{ day(svc.date) }}</b><small>{{ month(svc.date) }}</small></span>
           <span class="meta">
             <span class="title">{{ svc.sermonTitle || 'Bez tytułu kazania' }}</span>
             <span class="kind">{{ weekday(svc.date) }}<template v-if="svc.speaker"> · {{ svc.speaker }}</template><template v-if="svc.passage"> · {{ svc.passage }}</template></span>
@@ -53,6 +54,7 @@ async function fromFolder() {
               <span v-if="svc.id === settings.activeService" class="badge loaded"><Icon name="check" />WCZYTANE</span>
               <span v-else-if="svc.id === nearestService?.id && svc.date >= today()" class="badge next">NAJBLIŻSZE</span>
               <span v-if="svc.date >= today() && missingInfo(svc).length" class="badge bad" :title="'Brakuje: ' + missingInfo(svc).join(', ')"><Icon name="missing" />BRAKI</span>
+              <span class="chip rel" :class="{ soon: svc.date >= today() }">{{ relDay(svc.date) }}</span>
               <span class="chip"><Icon name="music" />{{ svc.songs.length }}</span>
               <span class="chip"><Icon name="image" />{{ svc.files.length }}</span>
             </span>
@@ -63,8 +65,8 @@ async function fromFolder() {
               {{ busyId === svc.id ? 'Wczytuję…' : svc.id === settings.activeService ? 'Wczytaj ponownie' : 'Wczytaj wszystko' }}
             </button>
             <span class="only">
-              <button class="small" :disabled="busyId !== null || !svc.songs.length" title="Tylko pieśni — materiały zostają bez zmian" @click="load(svc, { songs: true })"><Icon name="music" />Pieśni</button>
-              <button class="small" :disabled="busyId !== null || !svc.files.length" title="Tylko załączniki — lista pieśni zostaje bez zmian" @click="load(svc, { files: true })"><Icon name="image" />Materiały</button>
+              <button :disabled="busyId !== null || !svc.songs.length" title="Tylko pieśni — materiały zostają bez zmian" @click="load(svc, { songs: true })"><Icon name="music" />Pieśni</button>
+              <button :disabled="busyId !== null || !svc.files.length" title="Tylko załączniki — lista pieśni zostaje bez zmian" @click="load(svc, { files: true })"><Icon name="image" />Materiały</button>
             </span>
           </span>
         </li>

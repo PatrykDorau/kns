@@ -8,7 +8,7 @@ import StatsPanel from './StatsPanel.vue'
 import { ago, songHistory } from './stats.js'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
-  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE,
+  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay,
 } from './store.js'
 
 // Organizacja nabożeństw: plan, z którego korzystają potem rzutnik i stream.
@@ -193,6 +193,7 @@ load(nearestService.value)
                 <span class="kind">{{ svc.sermonTitle || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> · {{ svc.speaker }}</template></span>
               </span>
               <span class="tags">
+                <span class="badge rel" :class="{ soon: svc.date >= today() }">{{ relDay(svc.date) }}</span>
                 <span v-if="svc.id === nearestService?.id && svc.date >= today()" class="badge next">NAJBLIŻSZE</span>
                 <span v-if="svc.date >= today() && missingInfo(svc).length" class="badge bad" :title="'Brakuje: ' + missingInfo(svc).join(', ')"><Icon name="missing" />BRAKI: {{ missingInfo(svc).join(', ') }}</span>
                 <span v-if="svc.date < today()" class="badge past">MINIONE</span>

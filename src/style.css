@@ -736,3 +736,23 @@ table.sermons td:first-child { color: var(--muted); white-space: nowrap; }
 .cd-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; animation: cdpulse 1.4s ease-in-out infinite; }
 @keyframes cdpulse { 50% { opacity: .25; } }
 .countdown.compact .cd-live { align-self: flex-start; }
+
+/* ================= „Wczytaj nabożeństwo”: równa siatka ================= */
+.svc-modal { width: min(680px, 100%); }
+.svc-list li { display: grid; grid-template-columns: 64px minmax(0, 1fr) 216px; align-items: center; column-gap: 16px; padding: 14px; }
+.svc-list .date { width: 64px; height: 74px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; box-shadow: inset 0 0 0 1px var(--line); }
+.svc-list .date .wd { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
+.svc-list .date b { font-size: 26px; line-height: 1; }
+.svc-list .date small { font-size: 11px; }
+.svc-list li.next .date { box-shadow: inset 0 0 0 1px rgba(61, 220, 151, .6); }
+.svc-list .chip.rel { padding: 1px 8px; border-radius: 999px; background: var(--panel3); color: var(--text); font-weight: 600; }
+.svc-list .chip.rel.soon { background: var(--accent-soft); color: var(--accent); }
+.loadbox { width: 216px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.loadbox > button { grid-column: 1 / -1; min-width: 0 !important; height: 38px; }
+.loadbox .only { display: contents; }
+.loadbox .only button { height: 32px; padding: 0 8px; font-size: 12px; gap: 6px; justify-content: center; }
+.loadbox .only button .icon { width: 14px; height: 14px; }
+
+.badge.rel { background: var(--panel3); color: var(--text); text-transform: none; }
+.badge.rel.soon { background: var(--accent-soft); color: var(--accent); }
+main.planner .tags .badge.past { display: none; }

@@ -47,8 +47,9 @@ watch(() => props.item?.fadeMs, ms => { if (props.item) fadeMs.value = ms ?? 0 }
 const mediaUrl = p => 'media://local/' + encodeURIComponent(p)
 const layerStyle = computed(() => {
   const c = current.value
-  // Zdjęcie i film: pasy obok obrazu w kolorze z ustawień, domyślnie przezroczyste.
-  if (c.type !== 'text') return { backgroundColor: c.bg || 'transparent' }
+  // Zdjęcie i film: pasy obok obrazu w kolorze z ustawień, domyślnie czarne — na rzutniku czerń to brak
+  // światła, więc na ścianie widać tylko sam obraz (przezroczystość pokazałaby pulpit Windows pod oknem).
+  if (c.type !== 'text') return { backgroundColor: c.bg || '#000' }
   if (!c.bgImage) return { backgroundColor: c.bg }
   const dim = `rgba(0,0,0,${c.dim ?? 0.45})`
   return { backgroundColor: '#000', backgroundImage: `linear-gradient(${dim},${dim}),url("${mediaUrl(c.bgImage)}")` }

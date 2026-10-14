@@ -632,6 +632,14 @@ export const countdown = computed(() => {
     when: prettyDate(next.date) + ', ' + serviceTime(next), place: servicePlace(next),
   }
 })
+// „dziś”, „jutro”, „za 4 dni”, „wczoraj”, „3 dni temu” — przy nabożeństwach na listach.
+export function relDay(date) {
+  const days = Math.round((new Date(date + 'T12:00') - new Date(today() + 'T12:00')) / 86400000)
+  if (days === 0) return 'dziś'
+  if (days === 1) return 'jutro'
+  if (days === -1) return 'wczoraj'
+  return days > 0 ? `za ${days} dni` : `${-days} dni temu`
+}
 export const prettyDate = date => (date ? new Date(date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'bez daty')
 export const sortedServices = computed(() => [...services.value].sort((a, b) => b.date.localeCompare(a.date)))
 // Najbliższe nabożeństwo: dzisiejsze lub pierwsze przyszłe, a gdy takich nie ma — ostatnie.
