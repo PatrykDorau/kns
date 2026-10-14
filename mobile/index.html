@@ -577,7 +577,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.22 · 14.10.2026'
+const VERSION = '2.23 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -953,11 +953,13 @@ createApp({
     let promptEvent = null
     const canPrompt = ref(false)
     // Zainstalowana aplikacja otwarta w zwykłej przeglądarce: pamiętamy instalację, a Chrome potrafi ją też wykryć.
-    try { if (localStorage.getItem('kns-installed') === '1') installed.value = true } catch { /* tryb prywatny */ }
-    const markInstalled = () => { installed.value = true; try { localStorage.setItem('kns-installed', '1') } catch { /* tryb prywatny */ } }
+    // Czy aplikacja jest zainstalowana — sprawdzane na bieżąco (bez zapamiętywania: po odinstalowaniu karta „Pobierz” wraca).
+    try { localStorage.removeItem('kns-installed') } catch { /* tryb prywatny */ }
+    const markInstalled = () => { installed.value = true }
     navigator.getInstalledRelatedApps?.().then(apps => { if (apps.length) markInstalled() }).catch(() => {})
     const showHelp = ref(false)
-    addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvent = e; canPrompt.value = true })
+    // Chrome proponuje instalację tylko wtedy, gdy aplikacji nie ma na telefonie — wtedy karta zawsze się pokazuje.
+    addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvent = e; canPrompt.value = true; if (!matchMedia('(display-mode: standalone)').matches) installed.value = false })
     addEventListener('appinstalled', markInstalled)
     async function install() {
       if (!promptEvent) { showHelp.value = true; return }
