@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
 import TextStyle from './TextStyle.vue'
+import ColorAlpha from './ColorAlpha.vue'
 import {
   COUNTDOWN, liveId, nextServiceStart, sendText, KIND, entrySlide, frozenAt, itemById, items, label, pickFiles, removeEntry, selected, selectedIndex, selectedStep, setLoopStep, setVerse, settings, textPopup, uid, verseKey, verses,
 } from './store.js'
@@ -143,6 +144,8 @@ function dropEntry(i) {
       <option value="contain">Cały obraz (z pasami)</option>
       <option value="cover">Wypełnij ekran (przycina)</option>
     </select>
+    <ColorAlpha v-if="selected.fit !== 'cover'" :model="selected" label="Tło obok obrazu (pasy)" />
+    <p v-if="selected.fit !== 'cover'" class="note">0% — pasy przezroczyste (na rzutniku widać to, co pod oknem obrazu, zwykle pulpit).</p>
     <label v-if="selected.type === 'video'" class="check">
       <input v-model="selected.loop" type="checkbox"> Odtwarzaj w kółko
     </label>

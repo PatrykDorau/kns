@@ -1,6 +1,7 @@
 <script setup>
 import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
+import ColorAlpha from './ColorAlpha.vue'
 import { pickBackground, setBackground } from './store.js'
 
 // Wygląd tekstu — wspólny dla pojedynczych tekstów i dla wszystkich pieśni.
@@ -12,10 +13,9 @@ defineProps({ model: Object })
   <input v-model.number="model.fs" type="range" min="3" max="40" step="0.5" aria-label="Rozmiar tekstu">
   <p class="note">Dłuższy tekst zmniejszy się sam, żeby zmieścić się na ekranie.</p>
 
-  <div class="row2">
-    <div><label>Kolor tekstu</label><input v-model="model.color" type="color" aria-label="Kolor tekstu"></div>
-    <div><label>Kolor tła</label><input v-model="model.bg" type="color" aria-label="Kolor tła" :disabled="!!model.bgImage"></div>
-  </div>
+  <label>Kolor tekstu</label>
+  <input v-model="model.color" type="color" aria-label="Kolor tekstu">
+  <ColorAlpha :model="model" label="Kolor tła" :disabled="!!model.bgImage" />
 
   <label>Zdjęcie w tle</label>
   <div v-if="model.bgImage" class="bgpick">
