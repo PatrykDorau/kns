@@ -6,8 +6,10 @@
 <meta name="theme-color" content="#0f1115">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Nabożeństwa — Kościół Na Skale</title>
-<link rel="icon" href="znak.png">
-<link rel="apple-touch-icon" href="znak.png">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Nabożeństwa">
 <style>
   :root { --bg: #0f1115; --panel: #171a21; --panel2: #1f232c; --line: #2a2f3a; --text: #eef0f4; --muted: #8f98a8; --accent: #5b8cff; --bad: #f0483e; --ok: #3ddc97; color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -54,6 +56,12 @@
   .bar { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); margin-top: 18px; }
   .bar button { flex: 1; }
   .saved { color: var(--ok); font-size: 14px; text-align: center; min-height: 1.4em; }
+  .install { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--accent); }
+  .install img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
+  .install div { flex: 1; font-size: 14px; }
+  .install b { display: block; font-size: 15px; }
+  .install button { flex: none; }
+  .steps { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
   .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
 </style>
 </head>
@@ -65,6 +73,18 @@
     <button v-if="current" class="link" @click="back">‹ Lista</button>
     <button v-else-if="ready" class="link" :disabled="busy" @click="reload">Odśwież</button>
   </header>
+  <!-- Instalacja na telefonie jako aplikacja (ikona na ekranie głównym, bez paska przeglądarki). -->
+  <div v-if="!installed && !current && !hideInstall" class="install">
+    <img src="icon-192.png" alt="">
+    <div>
+      <b>Zainstaluj na telefonie</b>
+      <template v-if="canPrompt">Ikona na ekranie głównym, otwiera się jak zwykła aplikacja.</template>
+      <template v-else-if="ios">W Safari: <ol class="steps"><li>dotknij „Udostępnij” (kwadrat ze strzałką),</li><li>wybierz „Do ekranu początkowego”,</li><li>potwierdź „Dodaj”.</li></ol></template>
+      <template v-else>W menu przeglądarki (⋮) wybierz „Zainstaluj aplikację” lub „Dodaj do ekranu głównego”.</template>
+    </div>
+    <button v-if="canPrompt" class="primary" @click="install">Zainstaluj</button>
+    <button v-else class="link" aria-label="Ukryj" @click="dismissInstall">✕</button>
+  </div>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
 
@@ -247,11 +267,34 @@ createApp({
       current.value = null
     })
 
+    // Instalacja: Android/Chrome podaje gotowe okno instalacji, iPhone wymaga dodania ręcznie z Safari.
+    const installed = ref(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    let promptEvent = null
+    const canPrompt = ref(false)
+    let hidden = false
+    try { hidden = localStorage.getItem('kns-install-hidden') === '1' } catch { /* tryb prywatny */ }
+    const hideInstall = ref(hidden)
+    addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvent = e; canPrompt.value = true })
+    addEventListener('appinstalled', () => { installed.value = true })
+    async function install() {
+      if (!promptEvent) return
+      promptEvent.prompt()
+      const choice = await promptEvent.userChoice
+      if (choice.outcome === 'accepted') installed.value = true
+      promptEvent = null; canPrompt.value = false
+    }
+    function dismissInstall() {
+      hideInstall.value = true
+      try { localStorage.setItem('kns-install-hidden', '1') } catch { /* tryb prywatny */ }
+    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {})
+
     // Zamknięcie karty z niezapisanymi zmianami wymaga potwierdzenia.
     addEventListener('beforeunload', e => { if (dirty.value) e.preventDefault() })
     if (demo) start()
 
-    return { drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, sorted, alert, current, dirty, query, results, confirmDelete,
+    return { installed, ios, canPrompt, hideInstall, install, dismissInstall, drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, sorted, alert, current, dirty, query, results, confirmDelete,
       pretty, missing, upcoming, songTitle, firstLine, lines, start, reload, open, create, fix, back, addSong, move, save, remove }
   },
 }).mount('#app')
