@@ -77,13 +77,13 @@
   <div v-if="!installed && !current && !hideInstall" class="install">
     <img src="icon-192.png" alt="">
     <div>
-      <b>Zainstaluj na telefonie</b>
-      <template v-if="canPrompt">Ikona na ekranie głównym, otwiera się jak zwykła aplikacja.</template>
-      <template v-else-if="ios">W Safari: <ol class="steps"><li>dotknij „Udostępnij” (kwadrat ze strzałką),</li><li>wybierz „Do ekranu początkowego”,</li><li>potwierdź „Dodaj”.</li></ol></template>
-      <template v-else>W menu przeglądarki (⋮) wybierz „Zainstaluj aplikację” lub „Dodaj do ekranu głównego”.</template>
+      <b>Aplikacja na telefon</b>
+      <template v-if="ios && showHelp">Na iPhonie Apple pozwala tylko tak: <ol class="steps"><li>dotknij „Udostępnij” (kwadrat ze strzałką na dole Safari),</li><li>wybierz „Do ekranu początkowego”,</li><li>potwierdź „Dodaj”.</li></ol></template>
+      <template v-else-if="showHelp">Przeglądarka jeszcze nie pozwala na instalację jednym dotknięciem. Otwórz tę stronę w Chrome, odczekaj chwilę i dotknij przycisku ponownie.</template>
+      <template v-else>Ikona na ekranie głównym, otwiera się jak zwykła aplikacja.</template>
     </div>
-    <button v-if="canPrompt" class="primary" @click="install">Zainstaluj</button>
-    <button v-else class="link" aria-label="Ukryj" @click="dismissInstall">✕</button>
+    <button class="primary" @click="install">Pobierz</button>
+    <button class="link" aria-label="Ukryj" @click="dismissInstall">✕</button>
   </div>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -277,8 +277,11 @@ createApp({
     const hideInstall = ref(hidden)
     addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvent = e; canPrompt.value = true })
     addEventListener('appinstalled', () => { installed.value = true })
+    const showHelp = ref(false)
+    // Android/Chrome: jedno dotknięcie otwiera systemowe okno instalacji. Gdzie się nie da (iPhone,
+    // przeglądarka bez tej funkcji), ten sam przycisk pokazuje najkrótszą drogę.
     async function install() {
-      if (!promptEvent) return
+      if (!promptEvent) { showHelp.value = true; return }
       promptEvent.prompt()
       const choice = await promptEvent.userChoice
       if (choice.outcome === 'accepted') installed.value = true
@@ -294,7 +297,7 @@ createApp({
     addEventListener('beforeunload', e => { if (dirty.value) e.preventDefault() })
     if (demo) start()
 
-    return { installed, ios, canPrompt, hideInstall, install, dismissInstall, drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, sorted, alert, current, dirty, query, results, confirmDelete,
+    return { installed, ios, canPrompt, showHelp, hideInstall, install, dismissInstall, drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, sorted, alert, current, dirty, query, results, confirmDelete,
       pretty, missing, upcoming, songTitle, firstLine, lines, start, reload, open, create, fix, back, addSong, move, save, remove }
   },
 }).mount('#app')
