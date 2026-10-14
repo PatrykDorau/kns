@@ -47,6 +47,9 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       body: new URLSearchParams({ client_id: CONFIG.clientId, client_secret: CONFIG.clientSecret, ...params }),
     })
     const data = await res.json().catch(() => ({}))
+    if (!res.ok && !CONFIG.clientSecret && /client_secret/.test(data.error_description || '')) {
+      throw new Error('Brak „Client secret” klienta Google w electron/google-config.cjs.')
+    }
     if (!res.ok) throw Object.assign(new Error(data.error_description || data.error || 'Logowanie nie powiodło się.'), { code: data.error })
     return data
   }
@@ -87,20 +90,25 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       const challenge = b64(crypto.createHash('sha256').update(verifier).digest())
       const state = b64(crypto.randomBytes(16))
       ;({ code, redirect } = await new Promise((resolve, reject) => {
+        let port = 0
+        let done = false
         const server = http.createServer((req, res) => {
           const url = new URL(req.url, 'http://127.0.0.1')
-          if (url.pathname !== '/') { res.writeHead(404).end(); return }
+          if (url.pathname !== '/' || done) { res.writeHead(404).end(); return }
+          done = true
           const ok = url.searchParams.get('state') === state && url.searchParams.get('code')
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(`<!doctype html><meta charset="utf-8"><title>Kościół Na Skale</title>
 <body style="font:18px system-ui;background:#0f1115;color:#eef0f4;display:grid;place-items:center;height:90vh;text-align:center">
 <div>${ok ? '<h2>Zalogowano ✓</h2><p>Możesz zamknąć tę kartę i wrócić do aplikacji.</p>' : '<h2>Logowanie przerwane</h2><p>Wróć do aplikacji i spróbuj ponownie.</p>'}</div>`)
           clearTimeout(timer)
           server.close()
-          ok ? resolve({ code: url.searchParams.get('code'), redirect: `http://127.0.0.1:${server.address().port}` }) : reject(new Error('Logowanie przerwane.'))
+          // Odpowiedź Google bez kodu (np. „Anuluj”) ma pole error.
+          ok ? resolve({ code: url.searchParams.get('code'), redirect: `http://127.0.0.1:${port}` })
+            : reject(new Error(url.searchParams.get('error') === 'access_denied' ? 'Logowanie anulowane.' : 'Logowanie przerwane.'))
         })
         const timer = setTimeout(() => { server.close(); reject(new Error('Logowanie nie zostało dokończone w ciągu 5 minut.')) }, 5 * 60000)
         server.listen(0, '127.0.0.1', () => {
-          const port = server.address().port
+          port = server.address().port
           const params = new URLSearchParams({
             client_id: CONFIG.clientId, redirect_uri: `http://127.0.0.1:${port}`, response_type: 'code',
             scope: 'https://www.googleapis.com/auth/drive', code_challenge: challenge, code_challenge_method: 'S256',

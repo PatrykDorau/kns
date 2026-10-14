@@ -12,4 +12,8 @@ window.KNS_CONFIG = {
   // Podfoldery w folderze aplikacji (te same, których używa aplikacja na komputerze).
   servicesFolder: 'nabozenstwa',
   songsFolder: 'piesni',
+
+  // Ekran „Kamera”: sygnały od operatora streamu przez internet (ntfy.sh).
+  // Ten sam temat co cueTopic w electron/google-config.cjs.
+  cueTopic: 'kns-kamera-25f03cec611e3ab11cb9a5e9',
 }

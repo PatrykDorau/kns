@@ -11,4 +11,7 @@ module.exports = {
   folderName: 'Aplikacja KNS Nabo',
   servicesFolder: 'nabozenstwa',
   songsFolder: 'piesni',
+
+  // Sygnały dla kamerzysty przez internet (ntfy.sh) — ten sam temat co w mobile/config.js.
+  cueTopic: 'kns-kamera-25f03cec611e3ab11cb9a5e9',
 }

@@ -14,12 +14,14 @@ const service = computed(() => services.value.find(s => s.id === serviceId.value
 const copied = ref('')
 const showInfo = ref(true) // boczny panel z danymi nabożeństwa można schować, żeby kamery miały całe okno
 
-// Sygnały dla kamerzysty: jego telefon (ze słuchawką) otwiera stronę z tego komputera i dostaje
-// sygnał dźwiękowy przy każdej zmianie stanu wybranej tutaj.
+// Sygnały dla kamerzysty: jego telefon (ze słuchawką) ma otwarty ekran „Kamera” w aplikacji na telefon
+// (przez internet) albo stronę z tego komputera (ta sama sieć) i dostaje sygnał dźwiękowy przy każdej zmianie stanu.
 const CUES = [['live', 'NA WIZJI', '1'], ['ready', 'PRZYGOTUJ SIĘ', '2'], ['off', 'POZA WIZJĄ', '3']]
 const cueUrl = ref('')
 const cueError = ref('')
 const cueClients = ref(0)
+const cueRemote = ref({ phones: 0, error: '' })
+const phones = computed(() => cueRemote.value.phones + cueClients.value)
 const cueState = ref('off')
 let offCue = null
 async function applyCue() {
@@ -28,17 +30,17 @@ async function applyCue() {
   cueUrl.value = res.url || ''
   cueError.value = res.error || ''
   cueState.value = 'off'
-  if (res.error) settings.cue = false
+  cueRemote.value = { phones: 0, error: '' }
 }
 async function sendCue(state) {
-  if (!cueUrl.value) return
+  if (!settings.cue) return
   cueState.value = state
   await api.sendCue(state)
 }
 function onCueKey(e) {
   if (e.target.closest?.('input, textarea, select') || e.ctrlKey || e.altKey || e.metaKey) return
   const hit = CUES.find(c => c[2] === e.key)
-  if (hit && cueUrl.value) { e.preventDefault(); sendCue(hit[0]) }
+  if (hit && settings.cue) { e.preventDefault(); sendCue(hit[0]) }
 }
 
 const stop = cam => cam.stream?.getTracks().forEach(t => t.stop())
@@ -87,7 +89,9 @@ const fields = computed(() => {
 })
 
 onMounted(() => {
-  offCue = api.onCueClients(n => { cueClients.value = n })
+  const offClients = api.onCueClients(n => { cueClients.value = n })
+  const offRemote = api.onCueRemote(r => { cueRemote.value = r })
+  offCue = () => { offClients(); offRemote() }
   window.addEventListener('keydown', onCueKey)
   if (settings.cue) applyCue()
   refresh()
@@ -121,11 +125,13 @@ onBeforeUnmount(() => {
           <div class="cue-head">
             <h2>Sygnały dla kamerzysty</h2>
             <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue"> Włączone</label>
-            <span v-if="cueUrl" class="cue-clients" :class="{ none: !cueClients }">{{ cueClients ? 'Połączone telefony: ' + cueClients : 'Żaden telefon nie jest połączony' }}</span>
+            <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones }">{{ phones ? 'Telefony z aktualnym sygnałem: ' + phones : 'Żaden telefon nie potwierdził sygnału' }}</span>
           </div>
-          <p v-if="cueError" class="note bad">{{ cueError }}</p>
-          <template v-if="cueUrl">
-            <p class="url">Na telefonie kamerzysty (ta sama sieć Wi-Fi) otwórz: <b>{{ cueUrl }}</b></p>
+          <p v-if="cueRemote.error" class="note bad">{{ cueRemote.error }}</p>
+          <template v-if="settings.cue">
+            <p class="url">Na telefonie kamerzysty: aplikacja <b>Nabożeństwa</b> → <b>Kamera</b> (działa w każdej sieci, przez internet).
+              <template v-if="cueUrl"><br>Albo w tej samej sieci Wi-Fi: <b>{{ cueUrl }}</b></template>
+              <span v-else-if="cueError" class="bad"><br>{{ cueError }}</span></p>
             <div class="cue-buttons">
               <button v-for="[state, text, key] in CUES" :key="state" :class="[state, { current: cueState === state }]" :aria-pressed="cueState === state" @click="sendCue(state)">
                 {{ text }}<kbd>{{ key }}</kbd>

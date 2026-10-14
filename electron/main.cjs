@@ -563,6 +563,55 @@ const CUE_PORT = 8766
 let cue = null
 const CUE_PAGE = "<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,user-scalable=no\"><title>Sygnał dla kamery</title><style>\nhtml,body{margin:0;height:100%}\nbody{font:600 20px system-ui,sans-serif;color:#fff;background:#14161a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:20px;box-sizing:border-box;transition:background .15s}\nbody.live{background:#d92c22}body.ready{background:#c98a00}body.off{background:#14161a}\n#big{font-size:13vw;font-weight:900;letter-spacing:.02em;line-height:1.05}\n#net{font-size:15px;opacity:.75;min-height:1.3em}\nbutton{font:inherit;font-size:22px;padding:18px 26px;border:0;border-radius:16px;background:#fff;color:#14161a}\n</style></head><body class=\"off\">\n<div id=\"big\">POZA WIZJĄ</div>\n<button id=\"start\">Dotknij, aby włączyć dźwięk</button>\n<div id=\"net\">Łączenie…</div>\n<script>\nconst TEXT = { live: 'NA WIZJI', ready: 'PRZYGOTUJ SIĘ', off: 'POZA WIZJĄ' }\n// Sygnały: na wizji — dwa wysokie krótkie; przygotuj się — jeden średni; poza wizją — jeden niski długi.\nconst TONES = { live: [[880, 0, .14], [880, .22, .14]], ready: [[660, 0, .28]], off: [[330, 0, .55]] }\nconst BUZZ = { live: [120, 80, 120], ready: [250], off: [500] }\nlet audio = null, first = true\nfunction beep(freq, at, len) {\n  const osc = audio.createOscillator(), gain = audio.createGain()\n  osc.frequency.value = freq\n  gain.gain.setValueAtTime(.0001, audio.currentTime + at)\n  gain.gain.exponentialRampToValueAtTime(.6, audio.currentTime + at + .02)\n  gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + at + len)\n  osc.connect(gain).connect(audio.destination)\n  osc.start(audio.currentTime + at); osc.stop(audio.currentTime + at + len + .05)\n}\nfunction signal(state) {\n  if (audio) { audio.resume(); for (const t of TONES[state] || []) beep(...t) }\n  if (navigator.vibrate) navigator.vibrate(BUZZ[state] || 0)\n}\nfunction show(state) { document.body.className = state; big.textContent = TEXT[state] || '' }\nasync function keepAwake() { try { await navigator.wakeLock?.request('screen') } catch {} }\nstart.onclick = () => {\n  audio = new (window.AudioContext || window.webkitAudioContext)()\n  beep(660, 0, .12)\n  start.remove()\n  keepAwake()\n}\ndocument.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake() })\nconst base = location.pathname.replace(/\\/$/, '')\nconst es = new EventSource(base + '/events')\nes.onopen = () => { net.textContent = 'Połączono z komputerem'; first = true }\nes.onerror = () => { net.textContent = 'Brak połączenia — próbuję ponownie…' }\nes.onmessage = e => {\n  const s = JSON.parse(e.data)\n  show(s.state)\n  // Pierwsza wiadomość po połączeniu to tylko bieżący stan — bez sygnału.\n  if (!first) signal(s.state)\n  first = false\n}\n</script></body></html>"
 const cueNotify = () => toControl('cue:clients', cue ? cue.clients.size : 0)
+
+// Ten sam sygnał idzie też przez internet (ntfy.sh) do ekranu „Kamera” w aplikacji na telefon —
+// działa w każdej sieci. Telefon potwierdza odebrany sygnał na temacie „…-ok”, więc widać, ile telefonów go ma.
+// KNS_CUE_BASE: tylko do testów automatycznych (podstawiony serwer zamiast ntfy.sh).
+const CUE_TOPIC = require('./google-config.cjs').cueTopic || ''
+const CUE_RELAY = (process.env.KNS_CUE_BASE || 'https://ntfy.sh') + '/' + CUE_TOPIC
+let relay = null // { ctrl, last: id ostatniego sygnału, phones: Set }
+const relayNotify = (error = '') => toControl('cue:remote', { phones: relay ? relay.phones.size : 0, error })
+async function relayCue(state, quiet = false) {
+  if (!CUE_TOPIC) return
+  try {
+    const res = await fetch(CUE_RELAY, { method: 'POST', headers: { Firebase: 'no' }, body: JSON.stringify({ state, quiet }) })
+    if (!res.ok) throw new Error(String(res.status))
+    const { id } = await res.json()
+    if (relay) { relay.last = id; relay.phones.clear() }
+    relayNotify()
+  } catch {
+    relayNotify('Sygnał nie poszedł przez internet — sprawdź połączenie komputera.')
+  }
+}
+function watchRelay(on) {
+  relay?.ctrl.abort()
+  relay = null
+  if (!on || !CUE_TOPIC) return
+  const ctrl = new AbortController()
+  relay = { ctrl, last: '', phones: new Set() }
+  const take = line => {
+    try {
+      const msg = JSON.parse(line)
+      if (msg.event !== 'message' || !relay) return
+      const ack = JSON.parse(msg.message)
+      if (ack.id && ack.id === relay.last && ack.phone) { relay.phones.add(ack.phone); relayNotify() }
+    } catch { /* nie nasza wiadomość */ }
+  }
+  ;(async () => {
+    while (!ctrl.signal.aborted) {
+      try {
+        const res = await fetch(CUE_RELAY + '-ok/json', { signal: ctrl.signal })
+        let buf = ''
+        for await (const chunk of res.body) {
+          buf += Buffer.from(chunk).toString()
+          let at
+          while ((at = buf.indexOf('\n')) >= 0) { take(buf.slice(0, at)); buf = buf.slice(at + 1) }
+        }
+      } catch { /* zerwane połączenie — ponawiamy */ }
+      if (!ctrl.signal.aborted) await new Promise(r => setTimeout(r, 3000))
+    }
+  })()
+}
 function cueHandler(req, res) {
   const [, token, part] = req.url.split('?')[0].split('/')
   if (!cue || token !== cue.token) { res.writeHead(404).end(); return }
@@ -579,12 +628,19 @@ function cueHandler(req, res) {
   res.writeHead(404).end()
 }
 function sendCue(state) {
-  if (!cue || !['live', 'ready', 'off'].includes(state)) return 0
+  if (!['live', 'ready', 'off'].includes(state)) return 0
+  relayCue(state)
+  if (!cue) return 0
   cue.state = state
   for (const res of cue.clients) res.write('data: ' + JSON.stringify({ state }) + '\n\n')
   return cue.clients.size
 }
 function setCue(on, token) {
+  // Włączenie i wyłączenie ustawia telefony na „poza wizją” bez sygnału dźwiękowego.
+  const wasOn = !!relay
+  watchRelay(on && !!token)
+  if (on && token) relayCue('off', true)
+  else if (wasOn) relayCue('off', true)
   return new Promise(resolve => {
     if (cue) {
       clearInterval(cue.beat)
@@ -596,7 +652,8 @@ function setCue(on, token) {
     }
     if (!on || typeof token !== 'string' || !token) return resolve({})
     const server = http.createServer(cueHandler)
-    server.once('error', e => resolve({ error: e.code === 'EADDRINUSE' ? `Port ${CUE_PORT} jest zajęty przez inny program.` : e.message }))
+    // Bez lokalnej strony (zajęty port) sygnały i tak idą przez internet.
+    server.once('error', e => resolve({ error: e.code === 'EADDRINUSE' ? `Strona w sieci lokalnej nie działa: port ${CUE_PORT} jest zajęty przez inny program.` : e.message }))
     server.listen(CUE_PORT, () => {
       // Co kilkanaście sekund pusty znak, żeby sieć nie uznała połączenia za martwe.
       const beat = setInterval(() => { for (const res of cue?.clients || []) res.write(': \n\n') }, 15000)
