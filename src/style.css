@@ -504,8 +504,8 @@ button[aria-pressed=true].small { border-color: var(--accent); color: var(--acce
 /* podgląd rzutnika: największy obraz 16:9, a przyciski tuż pod nim (bez pustych pasów) */
 .center { container-type: size; }
 .center .frame { flex: 0 0 auto; display: block; container-type: normal; }
-.center .preview { width: min(100cqw, calc((100cqh - 220px) * 16 / 9)); min-width: 240px; margin: 0 auto; }
-.center > .bar { width: min(100cqw, calc((100cqh - 220px) * 16 / 9)); min-width: 240px; margin: 0 auto; }
+.center .preview { width: min(100cqw, calc((100cqh - var(--reserve, 220px)) * 16 / 9)); min-width: 240px; margin: 0 auto; }
+.center > .bar { width: min(100cqw, calc((100cqh - var(--reserve, 220px)) * 16 / 9)); min-width: 240px; margin: 0 auto; }
 .center .keys { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); column-gap: 14px; row-gap: 6px; }
 .center .keys span { display: inline-flex; align-items: center; gap: 5px; }
 .keys kbd { margin-left: 0; }
@@ -662,7 +662,7 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 .cd-box input[type=text] { width: 100%; }
 
 /* rzutnik: następny slajd */
-.nextslide { width: min(100cqw, calc((100cqh - 220px) * 16 / 9)); min-width: 240px; margin: 4px auto 0; display: flex; flex-direction: column; gap: 6px; }
+.nextslide { width: min(100cqw, calc((100cqh - var(--reserve, 220px)) * 16 / 9)); min-width: 240px; margin: 4px auto 0; display: flex; flex-direction: column; gap: 6px; }
 .nextslide .nl { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .nextslide .mini { width: min(320px, 50%); aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 0 0 1px var(--line); opacity: .85; }
 
@@ -758,3 +758,11 @@ table.sermons td:first-child { color: var(--muted); white-space: nowrap; }
 main.planner .tags .badge.past { display: none; }
 
 .iconbtn.on { color: var(--accent); }
+
+/* następny slajd: stała wysokość, zawsze mieści się nad skrótami */
+.center { --mini: clamp(80px, 16cqh, 150px); }
+.nextslide .mini { width: auto; height: var(--mini); max-width: 50%; }
+/* prawy panel: stały nagłówek, przewija się tylko zawartość — z odstępem u góry i u dołu */
+section.props.fixed-head { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; border-bottom: 1px solid var(--line); }
+.props-body { flex: 1; min-height: 0; overflow: hidden auto; padding: 4px 14px 18px; scrollbar-gutter: stable; }

@@ -19,6 +19,8 @@ import {
 
 const previewStage = ref(null)
 const showSettings = ref(false)
+// Wysokość elementów pod dużym podglądem: nagłówek, przyciski i skróty (220), pasek filmu, „wyślij zmiany”, następny slajd.
+const reserve = computed(() => `calc(${170 + (bar.value ? 56 : 0) + (textDirty.value ? 56 : 0) + (nextView.value ? 34 : 0)}px${nextView.value ? ' + var(--mini)' : ''})`)
 // Następny slajd pieśni albo pętli — mały podgląd pod przyciskami, żeby wiedzieć, co będzie dalej.
 const nextView = computed(() => {
   const it = selected.value
@@ -155,7 +157,8 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
         <SongsPanel v-else />
       </section>
 
-      <section class="center">
+      <!-- Duży podgląd zostawia miejsce na wszystko, co jest pod nim (przyciski, film, następny slajd). -->
+      <section class="center" :style="{ '--reserve': reserve }">
         <h2>Podgląd<span v-if="selected" class="h2name"> · {{ label(selected) }}</span></h2>
         <div class="frame">
           <div class="preview" :class="{ hiddenlive: liveId && hidden, frozenlive: liveId && frozen }">
@@ -221,9 +224,9 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
         </p>
       </section>
 
-      <section class="props">
+      <section class="props fixed-head">
         <h2>Ustawienia</h2>
-        <Inspector />
+        <div class="props-body"><Inspector /></div>
       </section>
     </main>
 
