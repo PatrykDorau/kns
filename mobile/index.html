@@ -126,6 +126,16 @@
   /* logowanie, instalacja, tryb pokazowy */
   .center { text-align: center; padding: 40px 0; }
   .center img { height: 120px; margin-bottom: 18px; }
+  .getapp { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 8px 8px 10px; margin-bottom: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .getapp img { width: 32px; height: 32px; flex: none; }
+  .getapp .ga-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  .getapp .ga-text b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .getapp .ga-text small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .getapp .primary, .getapp a.button { min-height: 38px; padding: 6px 14px; border-radius: 10px; font-size: 14px; }
+  .getapp a.button.primary { background: var(--accent); color: #fff; font-weight: 600; gap: 6px; }
+  .getapp .primary svg.i, .getapp a.button svg.i { width: 18px; height: 18px; }
+  .getapp button.icon { min-width: 34px; min-height: 34px; padding: 6px; }
+  .getapp .ga-help { flex-basis: 100%; padding: 4px 4px 2px; color: var(--muted); font-size: 13px; }
   .install { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
   .install img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
   .install { flex-wrap: wrap; }
@@ -267,25 +277,22 @@
   <!-- Instalacja na telefonie jako aplikacja (ikona na ekranie głównym, bez paska przeglądarki). -->
   <!-- Karta znika dopiero po zainstalowaniu aplikacji — nie da się jej zamknąć wcześniej. -->
   <!-- Komputer z Windows: pełna aplikacja (rzutnik, stream, organizacja) z GitHub Releases. -->
-  <div v-if="desktop && !current && !hideDesktop" class="install">
+  <!-- Instalacja: jeden niski pasek — ikona, tytuł, „Pobierz”. -->
+  <div v-if="desktop && !current && !hideDesktop" class="getapp">
     <img src="icon-192.png" alt="">
-    <div>
-      <b>Aplikacja na komputer (Windows)</b>
-      <template v-if="desktopApp.error">{{ desktopApp.error }}</template>
-      <template v-else>Rzutnik, stream i organizacja nabożeństw{{ desktopApp.version ? ' · wersja ' + desktopApp.version : '' }}. Aktualizuje się sama.</template>
-    </div>
+    <span class="ga-text"><b>Aplikacja na komputer</b><small>{{ desktopApp.error || 'Windows' + (desktopApp.version ? ' · ' + desktopApp.version : '') }}</small></span>
     <a v-if="desktopApp.url" class="button primary" :href="desktopApp.url"><svg class="i"><use href="#download"/></svg>Pobierz</a>
     <button class="icon" aria-label="Ukryj" title="Ukryj" @click="dismissDesktop"><svg class="i"><use href="#x"/></svg></button>
   </div>
-  <div v-else-if="!desktop && !installed && !current" class="install">
+  <div v-else-if="!desktop && !installed && !current" class="getapp" :class="{ help: showHelp }">
     <img src="icon-192.png" alt="">
-    <div>
-      <b>Aplikacja na telefon</b>
-      <template v-if="ios && showHelp">Na iPhonie Apple pozwala tylko tak: <ol class="steps"><li>dotknij „Udostępnij” (kwadrat ze strzałką na dole Safari),</li><li>wybierz „Do ekranu początkowego”,</li><li>potwierdź „Dodaj”.</li></ol></template>
-      <template v-else-if="showHelp">Przeglądarka jeszcze nie pozwala na instalację jednym dotknięciem. Otwórz tę stronę w Chrome, odczekaj chwilę i dotknij przycisku ponownie.</template>
-      <template v-else>Ikona na ekranie głównym, otwiera się jak zwykła aplikacja.</template>
-    </div>
+    <span class="ga-text"><b>Zainstaluj aplikację</b></span>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
+    <!-- Instrukcja tylko wtedy, gdy instalacja jednym dotknięciem nie jest możliwa. -->
+    <div v-if="showHelp" class="ga-help">
+      <template v-if="ios">Na iPhonie: dotknij „Udostępnij” (kwadrat ze strzałką na dole Safari) → „Do ekranu początkowego” → „Dodaj”.</template>
+      <template v-else>Przeglądarka jeszcze nie pozwala na instalację jednym dotknięciem. Otwórz tę stronę w Chrome, odczekaj chwilę i dotknij „Pobierz” ponownie (albo menu ⋮ → „Zainstaluj aplikację”).</template>
+    </div>
   </div>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
   <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
@@ -577,7 +584,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.23 · 14.10.2026'
+const VERSION = '2.24 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
