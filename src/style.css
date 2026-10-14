@@ -730,3 +730,9 @@ table.sermons td:first-child { color: var(--muted); white-space: nowrap; }
 .ca-val { width: 38px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* podgląd: szachownica pod przezroczystymi miejscami */
 .preview, .nextslide .mini { background: repeating-conic-gradient(#1b1e25 0 25%, #14161b 0 50%) 50% / 24px 24px; }
+
+/* odliczanie: nabożeństwo w trakcie (3 godziny od rozpoczęcia) */
+.cd-live { display: inline-flex; align-items: center; gap: 8px; align-self: center; padding: 4px 12px; border-radius: 999px; background: var(--live); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .06em; margin: 2px 0 4px; }
+.cd-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; animation: cdpulse 1.4s ease-in-out infinite; }
+@keyframes cdpulse { 50% { opacity: .25; } }
+.countdown.compact .cd-live { align-self: flex-start; }

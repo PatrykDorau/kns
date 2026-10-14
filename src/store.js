@@ -612,14 +612,14 @@ export const serviceTime = svc => svc?.time || DEFAULT_TIME
 export const servicePlace = svc => svc?.place || DEFAULT_PLACE
 const startsAt = svc => new Date(svc.date + 'T' + serviceTime(svc)).getTime()
 
-// Początek najbliższego nabożeństwa — zegar co pół minuty wystarcza, a rzutnik nie dostaje zmian co sekundę.
+const RUNS = 3 * 3600e3 // tyle trwa nabożeństwo „w trakcie”
+// Początek najbliższego nabożeństwa (także trwającego) — zegar co pół minuty wystarcza, a rzutnik nie dostaje zmian co sekundę.
 const nowCoarse = ref(Date.now())
 export const nextServiceStart = computed(() => services.value
-  .filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.date || '')).map(startsAt).filter(t => t > nowCoarse.value - 60000).sort((a, b) => a - b)[0] || 0)
+  .filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.date || '')).map(startsAt).filter(t => t + RUNS > nowCoarse.value).sort((a, b) => a - b)[0] || 0)
 
-// Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu pokazuje „trwa”).
+// Odliczanie do najbliższego nabożeństwa; przez 3 godziny od rozpoczęcia — „w trakcie”, potem do następnego.
 export const now = ref(Date.now())
-const RUNS = 2 * 3600e3
 export const countdown = computed(() => {
   const next = services.value.filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.date || '') && startsAt(s) + RUNS > now.value)
     .sort((a, b) => startsAt(a) - startsAt(b))[0]

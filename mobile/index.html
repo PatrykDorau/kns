@@ -180,6 +180,9 @@
   .origin-warn b { color: var(--text); }
   button.ghost.link { min-height: 0; padding: 0; font-size: inherit; display: inline; }
   .countdown { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
+  .cd-live { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; background: var(--bad); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .06em; margin: 2px 0 4px; }
+  .cd-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; animation: cdpulse 1.4s ease-in-out infinite; }
+  @keyframes cdpulse { 50% { opacity: .25; } }
   .cd-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .cd-digits { display: flex; align-items: baseline; gap: 3px; font-variant-numeric: tabular-nums; }
   .cd-digits b { font-size: 28px; font-weight: 700; }
@@ -333,7 +336,8 @@
 
   <template v-else-if="!current">
     <div v-if="countdown" class="countdown">
-      <span class="cd-label">{{ countdown.live ? 'Nabożeństwo trwa' : 'Do nabożeństwa' }}</span>
+      <span v-if="countdown.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
+      <span v-else class="cd-label">Do nabożeństwa</span>
       <span v-if="!countdown.live" class="cd-digits">
         <template v-if="countdown.days"><b>{{ countdown.days }}</b><small>{{ countdown.days === 1 ? 'dzień' : 'dni' }}</small></template>
         <b>{{ countdown.hours }}</b><small>godz</small><b>{{ countdown.minutes }}</b><small>min</small><b>{{ countdown.seconds }}</b><small>s</small>
@@ -534,7 +538,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.17 · 14.10.2026'
+const VERSION = '2.18 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -677,7 +681,7 @@ createApp({
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
     const countdown = computed(() => {
-      const next = services.value.filter(s => s.date && startsAt(s) + 2 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0]
+      const next = services.value.filter(s => s.date && startsAt(s) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0]
       if (!next) return null
       const sec = Math.floor(Math.max(0, startsAt(next) - now.value) / 1000)
       return { live: sec === 0, days: Math.floor(sec / 86400), hours: two(Math.floor(sec / 3600) % 24), minutes: two(Math.floor(sec / 60) % 60), seconds: two(sec % 60),

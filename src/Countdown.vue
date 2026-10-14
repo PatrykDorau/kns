@@ -8,7 +8,8 @@ const two = n => String(n).padStart(2, '0')
 
 <template>
   <div v-if="countdown" class="countdown" :class="{ compact, live: countdown.live }" role="timer" aria-live="off">
-    <span class="cd-label">{{ countdown.live ? 'Nabożeństwo trwa' : 'Do nabożeństwa' }}</span>
+    <span v-if="countdown.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
+    <span v-else class="cd-label">Do nabożeństwa</span>
     <span v-if="!countdown.live" class="cd-digits">
       <template v-if="countdown.days"><b>{{ countdown.days }}</b><small>{{ countdown.days === 1 ? 'dzień' : 'dni' }}</small></template>
       <b>{{ two(countdown.hours) }}</b><small>godz</small>
