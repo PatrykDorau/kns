@@ -579,7 +579,11 @@ const relayNotify = (error = '') => toControl('cue:remote', {
 async function relayCue(state, quiet = false) {
   if (!CUE_TOPIC) return
   try {
-    const res = await fetch(CUE_RELAY, { method: 'POST', headers: { Firebase: 'no' }, body: JSON.stringify({ state, quiet }) })
+    // Treść czytelna dla człowieka, stan w tagach — aplikacja ntfy na telefonie (działa też przy zablokowanym
+    // ekranie) pokazuje ją jako powiadomienie o priorytecie zależnym od stanu; ciche zmiany — bez dźwięku.
+    const text = { live: 'NA WIZJI', ready: 'PRZYGOTUJ SIĘ', off: 'POZA WIZJĄ' }[state]
+    const priority = quiet ? '1' : { live: '5', ready: '4', off: '3' }[state]
+    const res = await fetch(CUE_RELAY, { method: 'POST', headers: { Title: 'Kamera', Priority: priority, Tags: quiet ? state + ',quiet' : state }, body: text })
     if (!res.ok) throw new Error(String(res.status))
     const { id } = await res.json()
     if (relay) relay.last = id

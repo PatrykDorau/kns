@@ -326,7 +326,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '1.7 · 14.10.2026'
+const VERSION = '1.8 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -371,7 +371,9 @@ function createCamera() {
     source.onerror = () => { cue.net = navigator.onLine ? 'Brak połączenia — próbuję ponownie…' : 'Brak internetu — próbuję ponownie…'; cue.online = false }
     source.onmessage = e => {
       let msg, body
-      try { msg = JSON.parse(e.data); body = JSON.parse(msg.message) } catch { return }
+      try { msg = JSON.parse(e.data) } catch { return }
+      const tags = msg.tags || []
+      body = { state: tags.find(t => CUE_TEXT[t]), quiet: tags.includes('quiet') }
       if (msg.event !== 'message' || seen.has(msg.id) || !CUE_TEXT[body.state]) return
       seen.add(msg.id)
       cue.state = body.state

@@ -461,6 +461,11 @@ button[aria-pressed=true].small { border-color: var(--accent); color: var(--acce
 .cue-head h2 { margin: 0; }
 .cue-clients { margin-left: auto; font-size: 13px; color: var(--ok); }
 .cue-clients.none { color: var(--warn); }
+.cue-info { position: relative; display: inline-flex; color: var(--muted); cursor: help; outline: none; }
+.cue-info:hover, .cue-info:focus { color: var(--text); }
+.cue-tip { display: none; position: absolute; top: calc(100% + 8px); left: -10px; z-index: 20; width: 420px; max-width: 70vw; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel2, #1f232c); color: var(--text); font-size: 13px; line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.cue-info:hover .cue-tip, .cue-info:focus .cue-tip { display: block; }
 .cue-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
 .cue-buttons button { padding: 18px 10px; font-size: 17px; font-weight: 800; letter-spacing: .03em; border-width: 2px; }
 .cue-buttons kbd { margin-left: 4px; }

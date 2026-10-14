@@ -127,6 +127,15 @@ onBeforeUnmount(() => {
           <div class="cue-head">
             <h2>Sygnały dla kamerzysty</h2>
             <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue"> Włączone</label>
+            <!-- Instrukcja dla kamerzysty — tylko po najechaniu (albo kliknięciu) na ikonkę. -->
+            <span class="cue-info" tabindex="0" aria-label="Jak połączyć telefon kamerzysty">
+              <Icon name="info" />
+              <span class="cue-tip" role="tooltip">
+                Na telefonie kamerzysty: aplikacja <b>Nabożeństwa</b> → <b>Kamera</b> (działa w każdej sieci, przez internet).
+                <template v-if="cueUrl"><br>Albo w tej samej sieci Wi-Fi: <b>{{ cueUrl }}</b></template>
+                <br>Sygnały: na wizji — dwa krótkie wysokie, przygotuj się — jeden średni, poza wizją — jeden długi niski.
+              </span>
+            </span>
             <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones || got < phones }">
               <template v-if="!phones">Żaden telefon nie jest połączony</template>
               <template v-else>Telefony: {{ phones }} · {{ got === phones ? 'sygnał odebrany ✓' : 'odebrało ' + got + ' z ' + phones + '…' }}</template>
@@ -134,9 +143,6 @@ onBeforeUnmount(() => {
           </div>
           <p v-if="cueRemote.error" class="note bad">{{ cueRemote.error }}</p>
           <template v-if="settings.cue">
-            <p class="url">Na telefonie kamerzysty: aplikacja <b>Nabożeństwa</b> → <b>Kamera</b> (działa w każdej sieci, przez internet).
-              <template v-if="cueUrl"><br>Albo w tej samej sieci Wi-Fi: <b>{{ cueUrl }}</b></template>
-              <span v-else-if="cueError" class="bad"><br>{{ cueError }}</span></p>
             <div class="cue-buttons">
               <button v-for="[state, text, key] in CUES" :key="state" :class="[state, { current: cueState === state }]" :aria-pressed="cueState === state" @click="sendCue(state)">
                 {{ text }}<kbd>{{ key }}</kbd>
