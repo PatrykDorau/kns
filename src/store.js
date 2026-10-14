@@ -807,16 +807,29 @@ function forgetShared() {
   songsDirty = true
   for (const svc of services.value) delete svc.shared
 }
-export async function pickSharedDir() {
-  const dir = await api.sharedPick()
+export const sharedSuggestions = ref([]) // znalezione na tym komputerze foldery aplikacji
+export async function findSharedDir() {
+  sharedSuggestions.value = settings.sharedDir ? [] : await api.sharedSuggest()
+}
+export function connectSharedDir(dir) {
   if (!dir || dir === settings.sharedDir) return
   forgetShared()
   settings.sharedDir = dir
+  sharedSuggestions.value = []
+}
+export async function pickSharedDir() {
+  const dir = await api.sharedPick()
+  if (!dir || dir === settings.sharedDir) return
+  // Łatwo kliknąć o jeden folder za wysoko (np. „Mój dysk”) — wtedy pytamy, zanim cokolwiek tam powstanie.
+  const check = await api.sharedCheck(dir)
+  if (!check.hasData && !confirm(`W folderze „${check.name}” nie ma jeszcze danych aplikacji (podfolderów „nabozenstwa” i „piesni”).\n\nUtworzyć je tutaj? Wybierz „Anuluj”, jeśli chodziło o folder „Aplikacja KNS Nabo”.`)) return
+  connectSharedDir(dir)
 }
 export function leaveSharedDir() {
   settings.sharedDir = ''
   sharedStatus.value = ''
   forgetShared()
+  findSharedDir()
 }
 
 /* ---------- zapis ---------- */
@@ -883,6 +896,7 @@ export async function init() {
   watch(items, () => saveSoon('library'), { deep: true })
   watch(songs, () => { saveSoon('songs'); songsChanged() }, { deep: true })
   watch(services, () => { saveSoon('services'); pushSoon() }, { deep: true })
+  findSharedDir()
   watch(() => settings.sharedDir, async dir => {
     sharedAccount.value = null
     syncShared()

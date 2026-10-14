@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('api', {
   exportService: invoke('service:export'),
   importService: invoke('service:import'),
   sharedPick: invoke('shared:pick'),
+  sharedSuggest: invoke('shared:suggest'),
+  sharedCheck: invoke('shared:check'),
   sharedAccount: invoke('shared:account'),
   sharedRead: invoke('shared:read'),
   sharedWrite: invoke('shared:write'),

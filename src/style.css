@@ -468,3 +468,4 @@ button[aria-pressed=true].small { border-color: var(--accent); color: var(--acce
 .cue-buttons .ready.current { background: #c98a00; border-color: #c98a00; color: #fff; }
 .cue-buttons .off.current { border-color: var(--text); }
 .note.bad { color: #ff8a82; }
+.shared button.primary { background: var(--accent); border-color: transparent; color: #fff; }

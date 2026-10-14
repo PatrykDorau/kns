@@ -7,7 +7,7 @@ import PlannerPanel from './PlannerPanel.vue'
 import StreamPanel from './StreamPanel.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
-import { busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus } from './store.js'
+import { busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir } from './store.js'
 
 // Na starcie użytkownik wybiera służbę — każda ma swój widok, a łączy je wspólne nabożeństwo.
 const ready = ref(false)
@@ -60,10 +60,17 @@ function choose(next) {
         <button class="small" @click="pickSharedDir">Zmień</button>
         <button class="small" @click="leaveSharedDir">Odłącz</button>
       </template>
+      <template v-else-if="sharedSuggestions.length">
+        <Icon name="folder" />
+        <span><b>Znaleziono folder aplikacji na Dysku Google:</b> {{ sharedSuggestions[0] }}<br>Połącz, żeby ten komputer widział wspólne nabożeństwa i pieśni.</span>
+        <button class="small primary" @click="connectSharedDir(sharedSuggestions[0])">Połącz</button>
+        <button class="small" @click="pickSharedDir">Wybierz inny…</button>
+      </template>
       <template v-else>
         <Icon name="missing" />
-        <span>Nabożeństwa są widoczne tylko na tym komputerze. Wskaż folder aplikacji na Dysku Google (np. „Aplikacja KNS Nabo”), żeby widziały je wszystkie służby i telefony.</span>
-        <button class="small" @click="pickSharedDir">Ustaw folder wspólny</button>
+        <span><b>Ten komputer nie jest połączony z Dyskiem Google.</b> Nabożeństwa i pieśni zapisują się tylko tutaj.
+          Żeby je współdzielić, zainstaluj „Dysk Google na komputer”, zaloguj się kontem z dostępem do folderu „Aplikacja KNS Nabo” i wskaż ten folder.</span>
+        <button class="small" @click="pickSharedDir">Wskaż folder…</button>
       </template>
     </div>
   </div>

@@ -469,6 +469,33 @@ async function sharedSongsWrite(dir, data) {
   return { mtime: (await fs.promises.stat(file)).mtimeMs }
 }
 
+// Folder aplikacji to ten, który ma podfoldery „nabozenstwa” i „piesni” (albo nazywa się „Aplikacja KNS Nabo”).
+const APP_FOLDER = 'Aplikacja KNS Nabo'
+const hasAppData = dir => ['nabozenstwa', 'piesni'].every(sub => fs.existsSync(path.join(dir, sub)))
+
+// Podpowiedź na start: szuka folderu aplikacji na dyskach Google Drive zamontowanych w systemie
+// (np. G:\Mój dysk\Aplikacja KNS Nabo albo skrót do udostępnionego folderu).
+async function suggestShared() {
+  const roots = []
+  for (const letter of 'DEFGHIJKLMNOPQRSTUVWXYZ') {
+    const drive = letter + ':\\'
+    if (fs.existsSync(path.join(drive, '.shortcut-targets-by-id'))) roots.push(path.join(drive, 'Mój dysk'), path.join(drive, 'My Drive'))
+  }
+  const home = os.homedir()
+  roots.push(path.join(home, 'Mój dysk'), path.join(home, 'My Drive'), path.join(home, 'Google Drive'), path.join(home, 'Google Drive', 'My Drive'))
+  const found = []
+  for (const root of roots) {
+    let names = []
+    try { names = (await fs.promises.readdir(root, { withFileTypes: true })).filter(e => e.isDirectory()).map(e => e.name).slice(0, 500) } catch { continue }
+    for (const name of names) {
+      const dir = path.join(root, name)
+      if ((name === APP_FOLDER || hasAppData(dir)) && !found.includes(dir)) found.push(dir)
+    }
+  }
+  // Folder o nazwie „Aplikacja KNS Nabo” na początek listy.
+  return found.sort((a, b) => (path.basename(b) === APP_FOLDER) - (path.basename(a) === APP_FOLDER))
+}
+
 async function sharedRemove(dir, id) {
   if (typeof dir !== 'string' || !safeId(id)) return
   const folder = await findServiceFolder(sharedBase(dir), id)
@@ -765,6 +792,8 @@ app.whenReady().then(() => {
     return res.canceled ? null : res.filePaths[0]
   })
   ipcMain.handle('shared:account', (e, dir) => sharedAccount(dir))
+  ipcMain.handle('shared:suggest', () => suggestShared())
+  ipcMain.handle('shared:check', (e, dir) => ({ hasData: typeof dir === 'string' && hasAppData(dir), name: typeof dir === 'string' ? path.basename(dir) : '' }))
   ipcMain.handle('shared:read', (e, dir) => sharedRead(dir))
   ipcMain.handle('shared:write', (e, dir, payload) => sharedWrite(dir, payload))
   ipcMain.handle('shared:remove', (e, dir, id) => sharedRemove(dir, id))
