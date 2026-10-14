@@ -32,3 +32,11 @@ Instalator i wersja przenośna powstają w folderze `release`.
 - Rzutnik musi być podłączony jako drugi ekran w trybie „Rozszerz” (`Win` + `P`).
 - Prezentacje PowerPoint najwierniej importują się na komputerze z PowerPointem lub LibreOffice; bez nich działa wbudowany, przybliżony czytnik.
 - Pilot i sygnały dla kamerzysty wymagają zezwolenia w Zaporze Windows dla portów 8765 i 8766 oraz telefonu w tej samej sieci co komputer.
+
+## Organizacja nabożeństw na telefonie
+
+Folder `mobile` to osobna strona internetowa (bez budowania) do planowania nabożeństw z telefonu. Czyta i zapisuje te same pliki w folderze wspólnym na Dysku Google, po zalogowaniu kontem Google.
+
+- Wystawiona na Netlify — plik `netlify.toml` wskazuje folder `mobile`, więc po połączeniu repozytorium z Netlify każda zmiana publikuje się sama.
+- W `mobile/config.js` trzeba wpisać identyfikator klienta OAuth z Google Cloud Console (z adresem strony jako autoryzowanym źródłem JavaScript).
+- `?demo` na końcu adresu włącza tryb pokazowy bez logowania.

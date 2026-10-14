@@ -1,0 +1,3 @@
+[build]
+  # Na Netlify trafia tylko strona na telefon (organizacja nabożeństw), bez budowania.
+  publish = "mobile"

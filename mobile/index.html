@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Nabożeństwa — Kościół Na Skale</title>
+<link rel="icon" href="znak.png">
+<link rel="apple-touch-icon" href="znak.png">
+<style>
+  :root { --bg: #0f1115; --panel: #171a21; --panel2: #1f232c; --line: #2a2f3a; --text: #eef0f4; --muted: #8f98a8; --accent: #5b8cff; --bad: #f0483e; --ok: #3ddc97; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); }
+  [v-cloak] { display: none; }
+  #app { max-width: 640px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 0; }
+  header img { height: 34px; }
+  header h1 { font-size: 18px; margin: 0; flex: 1; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { min-height: 44px; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); }
+  button:disabled { opacity: .45; }
+  button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+  button.danger { background: var(--bad); border-color: transparent; color: #fff; font-weight: 600; }
+  button.link { background: none; border: 0; color: var(--accent); padding: 10px 4px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input, textarea { width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
+  input.invalid { border-color: var(--bad); }
+  textarea { min-height: 96px; resize: vertical; }
+  label { display: block; color: var(--muted); font-size: 14px; margin: 16px 0 6px; }
+  h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 26px 0 10px; }
+  .card { display: block; width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .card.bad { border-color: var(--bad); }
+  .card.good { border-color: var(--ok); }
+  .card b { display: block; }
+  .card span { color: var(--muted); font-size: 14px; }
+  .tag { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+  .tag.bad { background: var(--bad); color: #fff; }
+  .tag.good { background: var(--ok); color: #0c1a14; }
+  .alert { padding: 12px 14px; border-radius: 14px; margin-bottom: 14px; border: 2px solid var(--bad); background: rgba(240, 72, 62, .1); }
+  .alert.good { border-color: var(--ok); background: rgba(61, 220, 151, .1); }
+  .note { color: var(--muted); font-size: 14px; }
+  .error { color: #ff8a82; }
+  .center { text-align: center; padding: 40px 0; }
+  .center img { height: 120px; margin-bottom: 18px; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row > * { flex: 1; }
+  .song { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--panel); }
+  .song .meta { flex: 1; min-width: 0; }
+  .song small, .result small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song button { min-height: 40px; min-width: 40px; padding: 6px; flex: none; }
+  .result { display: block; width: 100%; text-align: left; margin-bottom: 6px; }
+  .bar { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); margin-top: 18px; }
+  .bar button { flex: 1; }
+  .saved { color: var(--ok); font-size: 14px; text-align: center; min-height: 1.4em; }
+  .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app" v-cloak>
+  <header>
+    <img src="znak.png" alt="">
+    <h1>{{ current ? 'Nabożeństwo' : 'Organizacja nabożeństw' }}</h1>
+    <button v-if="current" class="link" @click="back">‹ Lista</button>
+    <button v-else-if="ready" class="link" :disabled="busy" @click="reload">Odśwież</button>
+  </header>
+  <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
+  <p v-if="error" class="error" role="alert">{{ error }}</p>
+
+  <!-- brak konfiguracji / logowanie -->
+  <div v-if="!configured" class="center">
+    <img src="logo.png" alt="Kościół Na Skale">
+    <p>Strona nie jest jeszcze skonfigurowana.</p>
+    <p class="note">W pliku <code>config.js</code> trzeba wpisać identyfikator klienta Google.</p>
+  </div>
+  <div v-else-if="!ready" class="center">
+    <img src="logo.png" alt="Kościół Na Skale">
+    <p class="note">Zaloguj się kontem Google, na którym jest folder wspólny z nabożeństwami.</p>
+    <button class="primary" :disabled="busy" @click="start">{{ busy ? 'Wczytuję…' : 'Zaloguj kontem Google' }}</button>
+  </div>
+
+  <!-- lista -->
+  <template v-else-if="!current">
+    <div v-if="alert" class="alert" :class="{ good: alert.good }" role="status">
+      <b>{{ alert.good ? 'Gotowe' : 'Uwaga' }}:</b> {{ alert.text }}
+      <div v-if="!alert.good" style="margin-top:10px"><button class="danger" @click="fix">{{ alert.service ? 'Uzupełnij' : 'Utwórz nabożeństwo na tę niedzielę' }}</button></div>
+    </div>
+    <button class="primary" style="width:100%" @click="create()">+ Nowe nabożeństwo</button>
+    <h2>Nabożeństwa</h2>
+    <p v-if="!services.length" class="note">Nie ma jeszcze żadnego nabożeństwa.</p>
+    <button v-for="svc in sorted" :key="svc.id" class="card" :class="{ bad: upcoming(svc) && missing(svc).length, good: upcoming(svc) && !missing(svc).length }" @click="open(svc)">
+      <b>{{ pretty(svc.date) }}</b>
+      <span>{{ svc.sermonTitle || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> · {{ svc.speaker }}</template></span><br>
+      <span>Pieśni: {{ svc.songs.length }}</span>
+      <template v-if="upcoming(svc)">
+        <br><span v-if="missing(svc).length" class="tag bad">BRAKI: {{ missing(svc).join(', ') }}</span>
+        <span v-else class="tag good">KOMPLET</span>
+      </template>
+    </button>
+  </template>
+
+  <!-- edycja -->
+  <template v-else>
+    <div class="row">
+      <div><label for="date">Data *</label><input id="date" v-model="current.date" type="date"></div>
+      <div><label for="speaker">Mówca *</label><input id="speaker" v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off"></div>
+    </div>
+    <label for="title">Tytuł kazania *</label>
+    <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
+    <label for="passage">Fragment *</label>
+    <input id="passage" v-model="current.passage" :class="{ invalid: !current.passage.trim() }" placeholder="np. J 3,16–21" autocomplete="off">
+    <label for="band">Skład zespołu (opcjonalnie)</label>
+    <textarea id="band" v-model="current.band" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
+
+    <h2 :style="{ color: current.songs.length ? '' : '#ff8a82' }">Pieśni *</h2>
+    <div v-for="(entry, i) in current.songs" :key="entry.key" class="song">
+      <div class="meta"><b>{{ i + 1 }}. {{ songTitle(entry) }}</b><small>{{ firstLine(entry) }}</small></div>
+      <button :disabled="i === 0" aria-label="Wyżej" @click="move(i, -1)">↑</button>
+      <button :disabled="i === current.songs.length - 1" aria-label="Niżej" @click="move(i, 1)">↓</button>
+      <button aria-label="Usuń pieśń z nabożeństwa" @click="current.songs.splice(i, 1)">✕</button>
+    </div>
+    <p v-if="!current.songs.length" class="note error">Nabożeństwo musi mieć pieśni.</p>
+    <label for="find">Dodaj pieśń z bazy ({{ songs.length }})</label>
+    <input id="find" v-model="query" type="search" placeholder="Numer, tytuł lub fragment tekstu" autocomplete="off">
+    <div v-if="query.trim()" style="margin-top:8px">
+      <p v-if="!results.length" class="note">Nie ma takiej pieśni w bazie.</p>
+      <button v-for="song in results" :key="song.id" class="result" @click="addSong(song)">
+        + {{ songTitle(song) }}<small>{{ lines(song.text) }}</small>
+      </button>
+    </div>
+
+    <label for="notes">Dodatkowe informacje</label>
+    <textarea id="notes" v-model="current.notes" placeholder="np. chrzest po kazaniu, błogosławieństwo dzieci, rocznica…"></textarea>
+    <p v-if="current.files.length" class="note">Załączniki ({{ current.files.length }}): {{ current.files.map(f => f.name).join(', ') }} — dodaje się je i usuwa na komputerze.</p>
+
+    <p class="saved" role="status">{{ status }}</p>
+    <div class="bar">
+      <button v-if="confirmDelete" class="danger" :disabled="busy" @click="remove">Na pewno usuń</button>
+      <button v-else :disabled="busy" @click="confirmDelete = true">Usuń</button>
+      <button class="primary" :disabled="busy || !dirty" @click="save">{{ busy ? 'Zapisuję…' : dirty ? 'Zapisz' : 'Zapisane' }}</button>
+    </div>
+  </template>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.38/vue.global.prod.min.js"></script>
+<script src="config.js"></script>
+<script type="module">
+import { createDemo, createDrive, uid } from './drive.js'
+const { createApp, ref, computed } = Vue
+
+const demo = new URLSearchParams(location.search).has('demo')
+const clientId = window.KNS_CONFIG?.clientId || ''
+const drive = demo ? createDemo() : createDrive(clientId)
+const plain = s => String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l')
+const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+const today = () => localDate(new Date())
+const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return localDate(d) }
+const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').slice(0, 2).join(' / ')
+
+createApp({
+  setup() {
+    const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
+    const services = ref([]), songs = ref([])
+    const current = ref(null), saved = ref(''), query = ref(''), confirmDelete = ref(false)
+
+    const pretty = date => (date ? new Date(date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'bez daty')
+    const missing = svc => [
+      ...[['sermonTitle', 'tytułu kazania'], ['passage', 'fragmentu'], ['speaker', 'mówcy']].filter(([k]) => !String(svc[k] || '').trim()).map(([, n]) => n),
+      ...(svc.songs?.length ? [] : ['pieśni']),
+    ]
+    const upcoming = svc => svc.date >= today()
+    const sorted = computed(() => [...services.value].sort((a, b) => b.date.localeCompare(a.date)))
+    const alert = computed(() => {
+      const date = nextSunday(), short = pretty(date).replace(/^niedziela, /, '')
+      const service = services.value.find(s => s.date === date)
+      if (!service) return { date, text: `Nie ma nabożeństwa na niedzielę ${short}.` }
+      const m = missing(service)
+      return m.length ? { service, text: `Nabożeństwo na niedzielę nie ma: ${m.join(', ')}.` } : { good: true, text: `Nabożeństwo na niedzielę ${short} jest gotowe.` }
+    })
+    const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
+    const songTitle = s => (s.number ? s.number + '. ' : '') + s.title
+    const sameSong = e => s => s.title === e.title && (s.number || '') === (e.number || '')
+    const firstLine = entry => lines(songs.value.find(sameSong(entry))?.text) || 'Tej pieśni nie ma w bazie'
+    const results = computed(() => {
+      const q = plain(query.value.trim())
+      if (!q) return []
+      const byTitle = songs.value.filter(s => s.number === q || plain(s.title).includes(q))
+      const byText = songs.value.filter(s => !byTitle.includes(s) && plain(s.text).includes(q))
+      return [...byTitle, ...byText].slice(0, 8)
+    })
+
+    async function guard(job) {
+      busy.value = true; error.value = ''
+      try { await job() } catch (e) {
+        error.value = e.message || String(e)
+        if (e.auth) { ready.value = false; current.value = null }
+      } finally { busy.value = false }
+    }
+    const fetchAll = async () => {
+      const data = await drive.load()
+      services.value = data.services.map(s => ({ band: '', notes: '', songs: [], files: [], ...s }))
+      songs.value = data.songs
+    }
+    const start = () => guard(async () => { await drive.signIn(); await fetchAll(); ready.value = true })
+    const reload = () => guard(fetchAll)
+
+    function open(svc) {
+      current.value = JSON.parse(JSON.stringify(svc))
+      saved.value = JSON.stringify(current.value)
+      query.value = ''; status.value = ''; confirmDelete.value = false
+      scrollTo(0, 0)
+    }
+    function create(date) {
+      open({ id: uid(), date: typeof date === 'string' ? date : today(), sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [] })
+      saved.value = '' // nowe nabożeństwo od razu jest „do zapisania”
+    }
+    const fix = () => (alert.value.service ? open(alert.value.service) : create(alert.value.date))
+    function back() {
+      if (dirty.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
+      current.value = null
+    }
+    function addSong(song) {
+      current.value.songs.push({ key: uid(), songId: null, title: song.title, number: song.number || '' })
+      query.value = ''
+    }
+    function move(i, by) { const list = current.value.songs; list.splice(i + by, 0, ...list.splice(i, 1)) }
+
+    const save = () => guard(async () => {
+      const svc = current.value
+      svc.updated = Date.now()
+      svc.shared = true
+      // Teksty pieśni jadą razem z nabożeństwem — komputer, który ich nie ma, dopisze je do swojej bazy.
+      const texts = svc.songs.map(e => songs.value.find(sameSong(e))).filter(Boolean).map(({ number, title, text }) => ({ number: number || '', title, text }))
+      await drive.save({ service: JSON.parse(JSON.stringify(svc)), songs: texts })
+      const i = services.value.findIndex(s => s.id === svc.id)
+      const copy = JSON.parse(JSON.stringify(svc))
+      if (i >= 0) services.value[i] = copy
+      else services.value.push(copy)
+      saved.value = JSON.stringify(svc)
+      status.value = 'Zapisano o ' + new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' })
+    })
+    const remove = () => guard(async () => {
+      await drive.remove(current.value.id)
+      services.value = services.value.filter(s => s.id !== current.value.id)
+      current.value = null
+    })
+
+    // Zamknięcie karty z niezapisanymi zmianami wymaga potwierdzenia.
+    addEventListener('beforeunload', e => { if (dirty.value) e.preventDefault() })
+    if (demo) start()
+
+    return { drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, sorted, alert, current, dirty, query, results, confirmDelete,
+      pretty, missing, upcoming, songTitle, firstLine, lines, start, reload, open, create, fix, back, addSong, move, save, remove }
+  },
+}).mount('#app')
+</script>
+</body>
+</html>
