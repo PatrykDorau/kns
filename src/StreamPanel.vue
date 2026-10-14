@@ -3,7 +3,8 @@ import { computed, markRaw, onBeforeUnmount, onMounted, ref } from 'vue'
 import Icon from './Icon.vue'
 import SyncButton from './SyncButton.vue'
 import Brand from './Brand.vue'
-import { api, nearestService, prettyDate, role, services, settings, songs, sortedServices, uid } from './store.js'
+import Countdown from './Countdown.vue'
+import { api, servicePlace, serviceTime, nearestService, prettyDate, role, services, settings, songs, sortedServices, uid } from './store.js'
 
 // Stream: podgląd wszystkich kamer podłączonych do komputera i dane nabożeństwa pod ręką.
 const cams = ref([]) // { id, label, stream | error }
@@ -37,6 +38,11 @@ const overlay = ref(false)
 function toggleOverlay() {
   overlay.value = !overlay.value
   api.setCompact(overlay.value)
+}
+// Pasek sygnałów w nakładce; pierwsze włączenie od razu uruchamia sygnały.
+function toggleCueBar() {
+  if (!settings.cue) { settings.cue = true; settings.camCueBar = true; applyCue(); return }
+  settings.camCueBar = !settings.camCueBar
 }
 function toggleOnTop() {
   settings.camOnTop = !settings.camOnTop
@@ -114,6 +120,7 @@ const fields = computed(() => {
   if (!s) return []
   const list = s.songs.map((e, i) => `${i + 1}. ${e.title}${e.number ? ` (nr ${e.number})` : ''}`).join('\n')
   return [
+    ['Godzina i miejsce', serviceTime(s) + ', ' + servicePlace(s)],
     ['Tytuł kazania', s.sermonTitle], ['Fragment', s.passage], ['Mówca', s.speaker],
     ['Skład zespołu', s.band], ['Dodatkowe informacje', s.notes], ['Pieśni', list],
   ].filter(([, value]) => value && value.trim())
@@ -148,6 +155,7 @@ onBeforeUnmount(() => {
       <button v-for="[id, icon, name] in LAYOUTS" :key="id" class="iconbtn" :class="{ on: settings.camLayout === id }" :title="name" :aria-label="name" :aria-pressed="settings.camLayout === id" @click="setLayout(id)"><Icon :name="icon" /></button>
       <span class="sep"></span>
       <button class="iconbtn" :class="{ on: settings.camLabels }" title="Podpisy kamer" aria-label="Podpisy kamer" :aria-pressed="settings.camLabels" @click="settings.camLabels = !settings.camLabels"><Icon name="tag" /></button>
+      <button class="iconbtn" :class="{ on: settings.cue && settings.camCueBar }" title="Sygnały dla kamerzysty (klawisze 1, 2, 3)" aria-label="Sygnały dla kamerzysty" :aria-pressed="settings.cue && settings.camCueBar" @click="toggleCueBar"><Icon name="volume" /></button>
       <button class="iconbtn" :class="{ on: settings.camOnTop }" :title="settings.camOnTop ? 'Zawsze na wierzchu — włączone' : 'Zawsze na wierzchu'" aria-label="Zawsze na wierzchu" :aria-pressed="settings.camOnTop" @click="toggleOnTop"><Icon name="pin" /></button>
       <button class="iconbtn" title="Wyjdź z trybu nakładki" aria-label="Wyjdź z trybu nakładki" @click="toggleOverlay"><Icon name="expand" /></button>
     </div>
@@ -212,10 +220,18 @@ onBeforeUnmount(() => {
             <span v-if="settings.camLabels" class="cam-label">{{ cam.label }}</span>
           </button>
         </div>
+        <!-- Nakładka: pasek sygnałów pod kamerami (w OBS można go przyciąć). -->
+        <div v-if="overlay && settings.cue && settings.camCueBar" class="ov-cues">
+          <button v-for="[state, text, key] in CUES" :key="state" :class="[state, { current: cueState === state }]" :aria-pressed="cueState === state" @click="sendCue(state)">
+            {{ text }}<kbd>{{ key }}</kbd>
+          </button>
+          <span class="ov-phones" :class="{ none: !phones || got < phones }" :title="'Telefony: ' + phones + ', odebrało: ' + got">{{ got }}/{{ phones }}</span>
+        </div>
       </section>
 
       <section v-if="showInfo && !overlay" class="props">
         <div class="panel-head"><h2>Nabożeństwo</h2><SyncButton status /></div>
+        <Countdown compact />
         <div v-if="!services.length" class="empty">Nie ma zaplanowanego nabożeństwa. Tworzy je służba „Organizacja nabożeństw”.</div>
         <template v-else>
           <select v-model="serviceId" aria-label="Nabożeństwo">

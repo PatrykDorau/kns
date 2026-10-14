@@ -6,7 +6,7 @@ import SongManager from './SongManager.vue'
 import Brand from './Brand.vue'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
-  removeService, role, services, settings, songs, sortedServices, syncShared, uid,
+  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE,
 } from './store.js'
 
 // Organizacja nabożeństw: plan, z którego korzystają potem rzutnik i stream.
@@ -22,8 +22,9 @@ watch(current, svc => { plannerTarget.value = svc }, { immediate: true })
 
 function load(svc, fresh = false) {
   currentId.value = svc?.id ?? null
-  current.value = svc ? copy(svc) : null
-  base.value = svc ? copy(svc) : null
+  const withDefaults = s => ({ time: DEFAULT_TIME, place: DEFAULT_PLACE, ...copy(s) })
+  current.value = svc ? withDefaults(svc) : null
+  base.value = svc ? withDefaults(svc) : null
   isNew.value = fresh
   confirmDelete.value = false
   message.value = ''
@@ -83,7 +84,7 @@ function discard() { if (confirm('Porzucić zmiany i wrócić do zapisanej wersj
 
 /* ---------- zapis z wykrywaniem zmian innych osób ---------- */
 // Porównanie: co ktoś zmienił od otwarcia (jego wersja), a co jest u mnie — pokazywane przed nadpisaniem.
-const FIELDS = [['date', 'Data', v => prettyDate(v)], ['sermonTitle', 'Tytuł kazania'], ['passage', 'Fragment'], ['speaker', 'Mówca'], ['band', 'Skład zespołu'],
+const FIELDS = [['date', 'Data', v => prettyDate(v)], ['time', 'Godzina', v => v || DEFAULT_TIME], ['place', 'Miejsce', v => v || DEFAULT_PLACE], ['sermonTitle', 'Tytuł kazania'], ['passage', 'Fragment'], ['speaker', 'Mówca'], ['band', 'Skład zespołu'],
   ['songs', 'Pieśni', v => v.map(songTitle).join('\n')], ['files', 'Załączniki', v => v.map(x => x.name).join('\n')], ['notes', 'Dodatkowe informacje']]
 const show = (field, svc) => { const [key, , fmt] = field; const v = svc[key] ?? ''; return (fmt ? fmt(v) : String(v)) || '—' }
 const conflict = ref(null) // { theirs, rows: [{ label, theirs, mine, lost }] }
@@ -203,6 +204,8 @@ load(nearestService.value)
             <div><label for="pSpeaker">Mówca *</label><input id="pSpeaker" v-model="current.speaker" type="text" :class="{ invalid: blank('speaker') }"></div>
             <div><label for="pTitle">Tytuł kazania *</label><input id="pTitle" v-model="current.sermonTitle" type="text" :class="{ invalid: blank('sermonTitle') }"></div>
             <div><label for="pPassage">Fragment *</label><input id="pPassage" v-model="current.passage" type="text" placeholder="np. J 3,16–21" :class="{ invalid: blank('passage') }"></div>
+            <div><label for="pTime">Godzina</label><input id="pTime" v-model="current.time" type="time" :placeholder="DEFAULT_TIME"></div>
+            <div><label for="pPlace">Miejsce</label><input id="pPlace" v-model="current.place" type="text" :placeholder="DEFAULT_PLACE"></div>
           </div>
 
           <p v-if="clash" class="note bad">Na ten dzień jest już inne nabożeństwo — przy synchronizacji zostaną połączone w jedno.</p>

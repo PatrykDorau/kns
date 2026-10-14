@@ -4,6 +4,7 @@ import Icon from './Icon.vue'
 import Brand from './Brand.vue'
 import Control from './Control.vue'
 import PlannerPanel from './PlannerPanel.vue'
+import Countdown from './Countdown.vue'
 import StreamPanel from './StreamPanel.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
@@ -27,10 +28,7 @@ function choose(next) {
 <template>
   <div v-if="!role" class="roles">
     <Brand full />
-    <p v-if="ready && nearestService" class="next">
-      Najbliższe nabożeństwo: <b>{{ prettyDate(nearestService.date) }}</b>
-      <template v-if="nearestService.sermonTitle"> · {{ nearestService.sermonTitle }}</template>
-    </p>
+    <Countdown v-if="ready" />
     <div class="role-cards">
       <button :disabled="!ready" @click="choose('display')">
         <Icon name="monitor" />

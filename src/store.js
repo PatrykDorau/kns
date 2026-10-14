@@ -23,6 +23,7 @@ export const settings = reactive({
   camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu
+  camCueBar: true, // w trybie nakładki: pasek sygnałów dla kamerzysty pod kamerami
   deletedSongs: {}, // id → czas usunięcia; żeby pieśń usunięta tutaj zniknęła też na innych komputerach
   songStyle: { ...TEXT_STYLE, fs: 14, shadow: true, valign: 'top' }, // pieśni domyślnie od góry ekranu
 })
@@ -559,6 +560,28 @@ export const planAlert = computed(() => {
   const missing = missingInfo(service)
   return missing.length ? { date, service, text: `Nabożeństwo na niedzielę nie ma: ${missing.join(', ')}.` } : null
 })
+// Godzina i miejsce: każde nabożeństwo ma je zapisane, a domyślnie zawsze 12:12 w Hotelu Forza.
+export const DEFAULT_TIME = '12:12'
+export const DEFAULT_PLACE = 'Hotel Forza'
+export const serviceTime = svc => svc?.time || DEFAULT_TIME
+export const servicePlace = svc => svc?.place || DEFAULT_PLACE
+const startsAt = svc => new Date(svc.date + 'T' + serviceTime(svc)).getTime()
+
+// Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu pokazuje „trwa”).
+export const now = ref(Date.now())
+const RUNS = 2 * 3600e3
+export const countdown = computed(() => {
+  const next = services.value.filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.date || '') && startsAt(s) + RUNS > now.value)
+    .sort((a, b) => startsAt(a) - startsAt(b))[0]
+  if (!next) return null
+  const left = Math.max(0, startsAt(next) - now.value)
+  const sec = Math.floor(left / 1000)
+  return {
+    service: next, live: left === 0,
+    days: Math.floor(sec / 86400), hours: Math.floor(sec / 3600) % 24, minutes: Math.floor(sec / 60) % 60, seconds: sec % 60,
+    when: prettyDate(next.date) + ', ' + serviceTime(next), place: servicePlace(next),
+  }
+})
 export const prettyDate = date => (date ? new Date(date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'bez daty')
 export const sortedServices = computed(() => [...services.value].sort((a, b) => b.date.localeCompare(a.date)))
 // Najbliższe nabożeństwo: dzisiejsze lub pierwsze przyszłe, a gdy takich nie ma — ostatnie.
@@ -583,7 +606,7 @@ export const me = () => sharedAccount.value?.email || computerUser.value || 'ten
 export function newService(date = today(), add = true) {
   const existing = services.value.find(s => s.date === date)
   if (existing) return existing
-  const svc = { id: uid(), date, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: me() }
+  const svc = { id: uid(), date, time: DEFAULT_TIME, place: DEFAULT_PLACE, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: me() }
   if (add) services.value.push(svc)
   return svc
 }
@@ -992,6 +1015,7 @@ export async function init() {
   api.onPptxProgress(p => { busy.value = `${p.name}: slajd ${p.done} z ${p.count}…` })
   api.onRemoteCmd(cmd => (cmd === 'hide' ? toggleHidden() : stepBy(cmd === 'next' ? 1 : -1, true)))
   wire()
+  setInterval(() => { now.value = Date.now() }, 1000)
   setDisplays(await api.getDisplays())
 
   const saved = await api.loadStore('settings')

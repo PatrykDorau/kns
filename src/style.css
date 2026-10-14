@@ -39,7 +39,7 @@ button.wide { width: 100%; }
 .iconbtn:hover:not(:disabled) { color: var(--text); }
 .iconbtn.danger:hover:not(:disabled) { color: var(--live); }
 .iconbtn.solid { background: var(--panel3); color: var(--text); padding: 8px; }
-select, textarea, input[type=text], .rename {
+select, textarea, input[type=text], input[type=time], .rename {
   background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px;
 }
 input[type=range] { accent-color: var(--accent); margin: 0; }
@@ -625,4 +625,27 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 /* tryb nakładki: bez marginesów i ramek */
 .app.overlay-mode main { padding: 0 !important; gap: 0; }
 .app.overlay-mode .cam { border: 0; }
-.app.overlay-mode .cams { flex: 1; height: 100%; }
+.app.overlay-mode .cams { flex: 1; min-height: 0; }
+
+/* ================= odliczanie do nabożeństwa ================= */
+.countdown { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 4px; }
+.cd-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.cd-digits { display: flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; }
+.cd-digits b { font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+.cd-digits small { color: var(--muted); font-size: 13px; margin-right: 10px; }
+.cd-digits small:last-child { margin-right: 0; }
+.cd-when { color: var(--muted); font-size: 14px; }
+.countdown.live .cd-label { color: var(--live); font-size: 14px; }
+.countdown.compact { align-items: stretch; padding: 12px 14px; margin: 0 0 14px; border-radius: 12px; background: var(--bg); }
+.countdown.compact .cd-digits b { font-size: 24px; }
+.countdown.compact .cd-when { font-size: 13px; }
+
+/* nakładka: pasek sygnałów */
+.ov-cues { flex: none; display: flex; align-items: stretch; gap: 2px; background: #000; padding-top: 2px; }
+.ov-cues button { flex: 1; padding: 7px 6px; border: 0; border-radius: 0; background: #1a1d24; font-size: 12px; font-weight: 800; letter-spacing: .03em; gap: 6px; }
+.ov-cues button kbd { font-size: 10px; padding: 0 4px; }
+.ov-cues .live.current { background: var(--live); color: #fff; }
+.ov-cues .ready.current { background: #c98a00; color: #fff; }
+.ov-cues .off.current { background: #3a3f4b; }
+.ov-phones { flex: none; display: grid; place-items: center; padding: 0 10px; font-size: 12px; font-weight: 700; color: var(--ok); background: #1a1d24; font-variant-numeric: tabular-nums; }
+.ov-phones.none { color: var(--warn); }

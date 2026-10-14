@@ -148,6 +148,13 @@
   .camera .net.on::before { background: #3ddc97; }
   .camera .hint { position: absolute; bottom: calc(16px + env(safe-area-inset-bottom)); left: 16px; right: 16px; margin: 0; font-size: 13px; opacity: .7; }
   body.locked { overflow: hidden; }
+  .countdown { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
+  .cd-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .cd-digits { display: flex; align-items: baseline; gap: 3px; font-variant-numeric: tabular-nums; }
+  .cd-digits b { font-size: 28px; font-weight: 700; }
+  .cd-digits small { color: var(--muted); font-size: 12px; margin-right: 8px; }
+  .cd-digits small:last-child { margin-right: 0; }
+  .cd-when { color: var(--muted); font-size: 13px; }
   .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
 </style>
 </head>
@@ -236,6 +243,14 @@
 
   <!-- lista -->
   <template v-else-if="!current">
+    <div v-if="countdown" class="countdown">
+      <span class="cd-label">{{ countdown.live ? 'Nabożeństwo trwa' : 'Do nabożeństwa' }}</span>
+      <span v-if="!countdown.live" class="cd-digits">
+        <template v-if="countdown.days"><b>{{ countdown.days }}</b><small>{{ countdown.days === 1 ? 'dzień' : 'dni' }}</small></template>
+        <b>{{ countdown.hours }}</b><small>godz</small><b>{{ countdown.minutes }}</b><small>min</small><b>{{ countdown.seconds }}</b><small>s</small>
+      </span>
+      <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
+    </div>
     <div class="status" :class="{ good: alert.good }" role="status">
       <span class="badge"><svg class="i"><use :href="alert.good ? '#check' : '#warn'"/></svg></span>
       <div class="body">
@@ -283,6 +298,10 @@
     <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
     <label for="passage">Fragment <span class="req">*</span></label>
     <input id="passage" v-model="current.passage" :class="{ invalid: !current.passage.trim() }" placeholder="np. J 3,16–21" autocomplete="off">
+    <div class="row">
+      <div><label for="time">Godzina</label><input id="time" v-model="current.time" type="time"></div>
+      <div><label for="place">Miejsce</label><input id="place" v-model="current.place" autocomplete="off"></div>
+    </div>
 
     <label for="find">Pieśni <span class="req">*</span></label>
     <div class="finder">
@@ -390,7 +409,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.0 · 14.10.2026'
+const VERSION = '2.1 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -476,6 +495,10 @@ function createCamera() {
   }
   return { cue, open, close, enableSound, resume }
 }
+// Godzina i miejsce nabożeństwa — domyślnie zawsze 12:12, Hotel Forza (tak samo jak na komputerze).
+const DEFAULT_TIME = '12:12', DEFAULT_PLACE = 'Hotel Forza'
+const startsAt = s => new Date(s.date + 'T' + (s.time || DEFAULT_TIME)).getTime()
+const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 createApp({
@@ -524,6 +547,16 @@ createApp({
         : { good: true, title: 'Wszystko gotowe', text: `Nabożeństwo na niedzielę ${short} jest kompletne.` }
     })
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
+    // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
+    const now = ref(Date.now())
+    setInterval(() => { now.value = Date.now() }, 1000)
+    const countdown = computed(() => {
+      const next = services.value.filter(s => s.date && startsAt(s) + 2 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0]
+      if (!next) return null
+      const sec = Math.floor(Math.max(0, startsAt(next) - now.value) / 1000)
+      return { live: sec === 0, days: Math.floor(sec / 86400), hours: two(Math.floor(sec / 3600) % 24), minutes: two(Math.floor(sec / 60) % 60), seconds: two(sec % 60),
+        when: pretty(next.date) + ', ' + (next.time || DEFAULT_TIME), place: next.place || DEFAULT_PLACE }
+    })
     const songTitle = s => (s.number ? s.number + '. ' : '') + s.title
     const sameSong = e => s => s.title === e.title && (s.number || '') === (e.number || '')
     const inBase = entry => songs.value.some(sameSong(entry))
@@ -558,7 +591,7 @@ createApp({
     }
 
     function open(svc) {
-      current.value = JSON.parse(JSON.stringify(svc))
+      current.value = { time: DEFAULT_TIME, place: DEFAULT_PLACE, ...JSON.parse(JSON.stringify(svc)) }
       saved.value = JSON.stringify(current.value)
       base = svc.updated || 0
       query.value = ''; status.value = ''; confirmDelete.value = false; picking.value = false
@@ -569,7 +602,7 @@ createApp({
       const day = typeof date === 'string' ? date : nextSunday()
       const existing = services.value.find(s => s.date === day)
       if (existing) { open(existing); status.value = 'Na ten dzień jest już nabożeństwo — otwarto je.'; return }
-      open({ id: uid(), date: day, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: drive.account() || 'telefon' })
+      open({ id: uid(), date: day, time: DEFAULT_TIME, place: DEFAULT_PLACE, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: drive.account() || 'telefon' })
       saved.value = '' // nowe nabożeństwo od razu jest „do zapisania”
     }
     const fix = () => (alert.value.service ? open(alert.value.service) : create(alert.value.date))
@@ -703,6 +736,7 @@ createApp({
     else if (clientId && drive.signedIn()) guard(async () => { await fetchAll(); ready.value = true })
 
     return {
+      countdown,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, hideInstall, install, dismissInstall,
