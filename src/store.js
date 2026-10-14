@@ -1,4 +1,6 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
+import { parseBibleXml, parseRef, passage, refLabel, toSlides } from './bible.js'
+export { parseBibleXml } // do testów
 
 // Wspólny stan panelu sterowania: biblioteka, pieśni, to co jest na żywo.
 export const api = window.api
@@ -428,6 +430,41 @@ export function addText() {
   selectedId.value = it.id
 }
 
+/* ---------- Biblia ---------- */
+// Plik Biblii jest wczytywany raz (zapamiętany w danych aplikacji), a fragment staje się pętlą
+// slajdów tekstowych przełączanych ręcznie — tak jak prezentacja.
+export const bible = shallowRef(null)
+export const bibleOpen = ref(false)
+let bibleLoaded = false
+export async function loadBible() {
+  if (!bibleLoaded) { bible.value = await api.loadStore('bible'); bibleLoaded = true }
+  return bible.value
+}
+export async function importBible() {
+  const file = await api.biblePick()
+  if (!file) return null
+  const data = parseBibleXml(file.text, file.name)
+  const known = data.books.filter(b => b.index >= 0).length
+  if (known < 20) throw new Error(`Rozpoznano tylko ${known} ksiąg z ${data.books.length} — ten plik nie wygląda na pełną Biblię.`)
+  bible.value = data
+  bibleLoaded = true
+  await api.saveStore('bible', data)
+  return data
+}
+export function addPassage(ref, perSlide = 2, source = null) {
+  const r = parseRef(ref)
+  if (!r) return { error: 'Nie rozpoznaję odnośnika — wpisz np. J 3,16–21.' }
+  const verses = passage(bible.value, r)
+  if (!verses.length) return { error: 'W tej Biblii nie ma takiego fragmentu.' }
+  const slides = toSlides(r.book, verses, perSlide).map(s => ({ ...TEXT_STYLE, id: uid(), type: 'text', name: refLabel(r.book, s.verses), text: s.text, fs: 9, hidden: true }))
+  const deck = { id: uid(), type: 'scene', name: refLabel(r.book, verses), seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false,
+    entries: slides.map(it => ({ key: uid(), ref: it.id, seconds: null })), ...(source ? { source } : {}) }
+  items.value.push(...slides, deck)
+  // Dodany ręcznie — od razu zaznaczony; dodany przy wczytywaniu nabożeństwa — tylko czeka w materiałach.
+  if (!source) { tab.value = 'materials'; selectedId.value = deck.id }
+  return { deck }
+}
+
 // Odliczanie na rzutniku: zwykły tekst ze znacznikiem {odliczanie}, który scena zamienia na pozostały czas.
 // Cel: najbliższe nabożeństwo albo „za N minut” od kliknięcia Start.
 export const COUNTDOWN = '{odliczanie}'
@@ -692,11 +729,16 @@ export async function applyService(svc, parts = { songs: true, files: true }) {
     await addFiles([f.path])
     for (const it of items.value.slice(before)) it.source = source
   }
+  // Fragment Biblii z nabożeństwa — gdy jest wczytana Biblia, trafia do materiałów jako pętla.
+  let verses = false
+  if (parts.files && svc.passage?.trim() && await loadBible() && !items.value.some(i => i.source === svc.id + ':bible')) {
+    verses = !addPassage(svc.passage, 2, svc.id + ':bible').error
+  }
   tab.value = parts.songs ? 'songs' : 'materials'
   if (parts.songs) selectedId.value = serviceList.value[0]?.song.id ?? selectedId.value
   serviceModal.value = false
   const missing = parts.songs ? svc.songs.length - settings.service.length : 0
-  const what = [parts.songs && `pieśni ${settings.service.length}`, parts.files && `załączników ${files.length}`].filter(Boolean).join(', ')
+  const what = [parts.songs && `pieśni ${settings.service.length}`, parts.files && `załączników ${files.length}`, verses && `fragment ${svc.passage}`].filter(Boolean).join(', ')
   flash(`Wczytano z nabożeństwa: ${what}.` + (missing ? ` Brak w bazie: ${missing}.` : ''))
 }
 

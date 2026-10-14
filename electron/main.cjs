@@ -17,7 +17,7 @@ const MEDIA = {
   '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
   '.mkv': 'video/x-matroska', '.ogv': 'video/ogg',
 }
-const STORES = ['library', 'songs', 'settings', 'services']
+const STORES = ['library', 'songs', 'settings', 'services', 'bible']
 const SONG_EXT = new Set(['', '.txt', '.xml', '.json', '.pro', '.cho', '.chopro', '.crd'])
 const REMOTE_PORT = 8765
 
@@ -902,6 +902,17 @@ app.whenReady().then(() => {
       if (normalBounds) control.setBounds(normalBounds)
       normalBounds = null
     }
+  })
+  // Plik Biblii (OpenSong albo Zefania XML) — tekst trafia do panelu, który go rozbiera.
+  ipcMain.handle('bible:pick', async () => {
+    const res = await dialog.showOpenDialog(control, { title: 'Wybierz plik Biblii', filters: [{ name: 'Biblia (XML)', extensions: ['xml', 'xmm', 'bible', 'zefania'] }, { name: 'Wszystkie pliki', extensions: ['*'] }], properties: ['openFile'] })
+    if (res.canceled || !res.filePaths[0]) return null
+    const buf = await fs.promises.readFile(res.filePaths[0])
+    // Starsze pliki bywają w kodowaniu Windows-1250 / ISO-8859-2 — wtedy deklarują to w nagłówku.
+    const enc = /encoding=["']([\w-]+)["']/i.exec(buf.subarray(0, 200).toString('latin1'))?.[1]?.toLowerCase() || 'utf-8'
+    let text
+    try { text = new TextDecoder(enc).decode(buf) } catch { text = buf.toString('utf8') }
+    return { name: path.basename(res.filePaths[0]), text }
   })
   ipcMain.handle('window:onTop', (e, on) => { if (control && !control.isDestroyed()) control.setAlwaysOnTop(!!on, 'floating') })
   ipcMain.handle('app:user', () => { try { return os.userInfo().username + ' (' + os.hostname() + ')' } catch { return os.hostname() } })

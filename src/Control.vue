@@ -10,8 +10,9 @@ import AppSettings from './AppSettings.vue'
 import SongManager from './SongManager.vue'
 import TextPopup from './TextPopup.vue'
 import ServiceImport from './ServiceImport.vue'
+import BiblePopup from './BiblePopup.vue'
 import {
-  view, addFiles, api, busy, canGo, displayId, displays, followStep, frozen, frozenLabel, goLive, jumpToKey, role, loopPlaying, loopStep, selectedStep, stepLoop, hidden, init, label, liveId, liveIsVideo,
+  bibleOpen, view, addFiles, api, busy, canGo, displayId, displays, followStep, frozen, frozenLabel, goLive, jumpToKey, role, loopPlaying, loopStep, selectedStep, stepLoop, hidden, init, label, liveId, liveIsVideo,
   managerOpen, mirroring, notice, output, selected, selectedId, selectedIndex, selectedView, previewVideo, selectedFrozen, sendText, serviceList, serviceModal, startRename, stepBy, tab, textPopup, toggleFrozen, toggleHidden,
   textDirty, toggleOutput, verses, video, volume,
 } from './store.js'
@@ -91,7 +92,7 @@ function onDrop(e) {
 
 /* ---------- klawiatura ---------- */
 function onKey(e) {
-  if (showSettings.value || managerOpen.value || textPopup.value || serviceModal.value || e.target.closest?.('textarea, select, input:not([type=range]):not([type=checkbox]):not([type=color])') || e.ctrlKey || e.altKey || e.metaKey) return
+  if (showSettings.value || managerOpen.value || textPopup.value || serviceModal.value || bibleOpen.value || e.target.closest?.('textarea, select, input:not([type=range]):not([type=checkbox]):not([type=color])') || e.ctrlKey || e.altKey || e.metaKey) return
   const onButton = !!e.target.closest?.('button, input')
   if (e.key === 'Enter' && !onButton) { e.preventDefault(); goLive() }
   else if (e.key === 'Escape') toggleHidden(true)
@@ -230,5 +231,6 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
     <SongManager v-if="managerOpen" />
     <TextPopup v-if="textPopup" />
     <ServiceImport v-if="serviceModal" />
+    <BiblePopup v-if="bibleOpen" />
   </div>
 </template>

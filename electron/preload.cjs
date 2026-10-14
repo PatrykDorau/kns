@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld('api', {
   userName: invoke('app:user'),
   setCompact: invoke('window:compact'),
   setOnTop: invoke('window:onTop'),
+  biblePick: invoke('bible:pick'),
 
   // pilot w telefonie
   setRemote: invoke('remote:set'),
