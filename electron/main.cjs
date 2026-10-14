@@ -473,8 +473,9 @@ async function sharedSongsWrite(dir, data) {
 const APP_FOLDER = 'Aplikacja KNS Nabo'
 const hasAppData = dir => ['nabozenstwa', 'piesni'].every(sub => fs.existsSync(path.join(dir, sub)))
 
-// Podpowiedź na start: szuka folderu aplikacji na dyskach Google Drive zamontowanych w systemie
-// (np. G:\Mój dysk\Aplikacja KNS Nabo albo skrót do udostępnionego folderu).
+// Podpowiedź na start: szuka folderu „Aplikacja KNS Nabo” na dyskach Google Drive zamontowanych
+// w systemie (także skrótu do udostępnionego folderu). Tylko po nazwie — same podfoldery
+// „nabozenstwa” i „piesni” nie wystarczą, bo mają je też stare foldery testowe.
 async function suggestShared() {
   const roots = []
   for (const letter of 'DEFGHIJKLMNOPQRSTUVWXYZ') {
@@ -489,11 +490,10 @@ async function suggestShared() {
     try { names = (await fs.promises.readdir(root, { withFileTypes: true })).filter(e => e.isDirectory()).map(e => e.name).slice(0, 500) } catch { continue }
     for (const name of names) {
       const dir = path.join(root, name)
-      if ((name === APP_FOLDER || hasAppData(dir)) && !found.includes(dir)) found.push(dir)
+      if (name.toLowerCase() === APP_FOLDER.toLowerCase() && !found.includes(dir)) found.push(dir)
     }
   }
-  // Folder o nazwie „Aplikacja KNS Nabo” na początek listy.
-  return found.sort((a, b) => (path.basename(b) === APP_FOLDER) - (path.basename(a) === APP_FOLDER))
+  return found
 }
 
 async function sharedRemove(dir, id) {
