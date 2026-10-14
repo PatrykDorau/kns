@@ -217,6 +217,21 @@ export function createDrive(config) {
       else songsFileId = (await create({ name: 'baza-piesni.json', parents: [songsDirId] }, data)).id
       return data.songs
     },
+    // Powiadomienia: każdy telefon ma plik <folder aplikacji>/powiadomienia/<id>.json z adresem powiadomień.
+    // Czyta je skrypt przypomnienia w Google i przez funkcję Netlify wysyła powiadomienie.
+    async savePush(id, data) {
+      const dir = (await list(`${quote(rootFolder)} in parents and name='powiadomienia' and mimeType='${FOLDER}' and trashed=false`))[0]?.id ||
+        (await create({ name: 'powiadomienia', mimeType: FOLDER, parents: [rootFolder] })).id
+      const name = id + '.json'
+      const existing = (await list(`${quote(dir)} in parents and name=${quote(name)} and trashed=false`))[0]
+      if (existing) await write(existing.id, data)
+      else await create({ name, parents: [dir] }, data)
+    },
+    async removePush(id) {
+      const dir = (await list(`${quote(rootFolder)} in parents and name='powiadomienia' and mimeType='${FOLDER}' and trashed=false`))[0]?.id
+      if (!dir) return
+      for (const f of await list(`${quote(dir)} in parents and name=${quote(id + '.json')} and trashed=false`)) await patch(f.id, { trashed: true })
+    },
     // Wyszukiwanie na Dysku zalogowanego konta (także w udostępnionych) — ostatnio zmienione najpierw.
     async searchFiles(text = '') {
       const kinds = `(mimeType contains 'image/' or mimeType contains 'video/' or mimeType='application/pdf' or mimeType='${PPTX}' or mimeType='application/vnd.ms-powerpoint' or mimeType='${SLIDES}')`
@@ -292,6 +307,8 @@ export function createDemo() {
       persist()
       return JSON.parse(JSON.stringify(data.songs))
     },
+    savePush: async () => {},
+    removePush: async () => {},
     searchFiles: async text => [
       { id: 'x1', name: 'Kazanie — slajdy.pptx', mimeType: PPTX },
       { id: 'x2', name: 'Ogłoszenia.pdf', mimeType: 'application/pdf' },

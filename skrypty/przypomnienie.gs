@@ -1,10 +1,10 @@
 // Przypomnienie o niekompletnym nabożeństwie — Google Apps Script (script.google.com) na koncie,
 // które ma dostęp do folderu „Aplikacja KNS Nabo”. Co piątek ok. 19:00 sprawdza najbliższą niedzielę
-// i gdy czegoś brakuje, wysyła mail oraz powiadomienie na telefon (ntfy).
+// i gdy czegoś brakuje, wysyła mail oraz powiadomienie na telefony, które je włączyły w aplikacji.
 //
 // Instalacja (raz):
 //   1. script.google.com → Nowy projekt → wklej cały ten plik (zastąp zawartość Code.gs).
-//   2. Uzupełnij poniżej adresy w „recipients”.
+//   2. Uzupełnij poniżej adresy w „recipients” i hasło „pushSecret” (to samo co PUSH_SECRET w Netlify).
 //   3. Ustawienia projektu (ikona zębatki) → Strefa czasowa: (GMT+01:00) Warszawa.
 //   4. Wybierz funkcję „setup” na górze i kliknij „Uruchom” → zezwól na dostęp (Dysk, Gmail, połączenia).
 //   5. Dla próby uruchom „sprawdzTeraz” — przyjdzie mail i powiadomienie, nawet gdy wszystko jest gotowe.
@@ -13,7 +13,8 @@ const CONFIG = {
   folderName: 'Aplikacja KNS Nabo', // folder aplikacji (ten sam co w aplikacji)
   servicesFolder: 'nabozenstwa',
   recipients: ['wpisz.adres@gmail.com'], // kto dostaje maila — można kilka adresów
-  ntfyTopic: 'kns-przypomnienia-9bb1581a2c90af313845', // ten sam co w aplikacji na telefon
+  pushUrl: 'https://kns-nabozenstwa.netlify.app/api/push', // funkcja wysyłająca powiadomienia na telefony
+  pushSecret: 'WPISZ-HASLO-PUSH_SECRET', // z: node skrypty/klucze-powiadomien.cjs
   appUrl: 'https://kns-nabozenstwa.netlify.app',
   day: ScriptApp.WeekDay.FRIDAY,
   hour: 19,
@@ -55,20 +56,31 @@ function sprawdzNiedziele(always) {
     subject: title,
     htmlBody: `<p><b>${title}</b></p>${lines.length ? '<p>' + lines.join('<br>') + '</p>' : ''}<p><a href="${CONFIG.appUrl}">Uzupełnij w aplikacji</a></p>`,
   })
-  // Wysyłka jako JSON — polskie znaki w tytule nie mogą iść w nagłówkach.
-  UrlFetchApp.fetch('https://ntfy.sh/', {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify({
-      topic: CONFIG.ntfyTopic,
-      title: `Nabożeństwo ${pretty}`,
-      message: missing.length ? 'Brakuje: ' + missing.join(', ') + '. Dotknij, aby uzupełnić.' : 'Wszystko gotowe.',
-      priority: missing.length ? 4 : 3,
-      tags: [missing.length ? 'warning' : 'white_check_mark'],
-      click: CONFIG.appUrl,
-    }),
-    muteHttpExceptions: true,
+  sendPush(`Nabożeństwo ${pretty}`, missing.length ? 'Brakuje: ' + missing.join(', ') + '. Dotknij, aby uzupełnić.' : 'Wszystko gotowe.')
+}
+
+// Powiadomienia na telefony: adresy zapisane przez aplikację w folderze „powiadomienia”.
+// Telefony, które się wypisały (albo usunęły aplikację), są stamtąd usuwane.
+function sendPush(title, body) {
+  const roots = DriveApp.getFoldersByName(CONFIG.folderName)
+  if (!roots.hasNext()) return
+  const dirs = roots.next().getFoldersByName('powiadomienia')
+  if (!dirs.hasNext()) return
+  const files = {}, subscriptions = []
+  const it = dirs.next().getFiles()
+  while (it.hasNext()) {
+    const f = it.next()
+    try { const data = JSON.parse(f.getBlob().getDataAsString()); files[f.getId()] = f; subscriptions.push({ id: f.getId(), subscription: data.subscription }) } catch (e) { /* uszkodzony plik */ }
+  }
+  if (!subscriptions.length) return
+  const res = UrlFetchApp.fetch(CONFIG.pushUrl, {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    payload: JSON.stringify({ secret: CONFIG.pushSecret, title: title, body: body, url: CONFIG.appUrl, subscriptions: subscriptions }),
   })
+  const out = JSON.parse(res.getContentText() || '{}')
+  if (res.getResponseCode() !== 200) throw new Error('Powiadomienia: ' + (out.error || res.getResponseCode()))
+  for (const id of out.gone || []) files[id] && files[id].setTrashed(true)
+  Logger.log('Powiadomienia wysłane: ' + out.sent)
 }
 
 // Nabożeństwo na dany dzień: podfolder „<data> <tytuł> (<id>)” z plikiem nabozenstwo.json.

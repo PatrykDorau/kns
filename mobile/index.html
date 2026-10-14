@@ -162,6 +162,10 @@
   .songs .song .pos { min-width: 28px; width: auto; padding: 0 6px; border-radius: 14px; }
   textarea.songtext { min-height: 340px; font-size: 15px; line-height: 1.5; }
   .remind { margin-top: 18px; align-items: flex-start; }
+  .remind.on { border-color: rgba(61, 220, 151, .4); }
+  .remind.on .bell { color: var(--ok); }
+  .remind .error { display: block; margin-top: 6px; }
+  .remind .primary { margin-left: auto; }
   .remind .steps b { display: inline; font-size: inherit; }
   .remind .bell { width: 28px; height: 28px; color: var(--accent); flex: none; margin: 0 8px; }
   .remind a.button { margin-left: auto; background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
@@ -341,16 +345,19 @@
     </button>
     <button v-if="past.length" class="more" @click="showPast = !showPast">{{ showPast ? 'Ukryj wcześniejsze' : `Pokaż wcześniejsze (${past.length})` }}</button>
 
-    <!-- Przypomnienia: w piątek wieczorem, gdy niedziela nie jest gotowa (powiadomienia przez ntfy). -->
-    <div v-if="reminderTopic" class="install remind">
+    <!-- Powiadomienia: po zgodzie telefon sam dostaje przypomnienie w piątek wieczorem, gdy niedziela nie jest gotowa. -->
+    <div v-if="push.supported" class="install remind" :class="{ on: push.on }">
       <svg class="i bell"><use href="#bell"/></svg>
       <div>
-        <b>Przypomnienia na telefon</b>
-        W piątek wieczorem, gdy na niedzielę czegoś brakuje.
-        <template v-if="showRemindHelp"><ol class="steps"><li>Zainstaluj darmową aplikację <b>ntfy</b> (Google Play / App Store).</li><li>Dotknij <b>+</b> i wpisz temat: <code class="topic">{{ reminderTopic }}</code></li><li>Albo bez aplikacji: otwórz stronę poniżej i włącz powiadomienia w przeglądarce.</li></ol></template>
+        <b>{{ push.on ? 'Powiadomienia włączone' : 'Powiadomienia o brakach' }}</b>
+        <template v-if="push.on">W piątek wieczorem dostaniesz powiadomienie, jeśli na niedzielę czegoś brakuje.</template>
+        <template v-else-if="push.needsInstall">Na iPhonie najpierw zainstaluj aplikację (przycisk „Pobierz” wyżej) i otwórz ją z ekranu głównego.</template>
+        <template v-else-if="push.denied">Powiadomienia są zablokowane w ustawieniach telefonu dla tej strony — odblokuj je tam i spróbuj ponownie.</template>
+        <template v-else>W piątek wieczorem, gdy na niedzielę czegoś brakuje.</template>
+        <span v-if="push.error" class="error">{{ push.error }}</span>
       </div>
-      <button v-if="!showRemindHelp" @click="showRemindHelp = true">Włącz</button>
-      <a v-else class="button" :href="'https://ntfy.sh/' + reminderTopic" target="_blank" rel="noopener">Otwórz w ntfy</a>
+      <button v-if="push.on" :disabled="push.busy" @click="disablePush">Wyłącz</button>
+      <button v-else-if="!push.needsInstall" class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button>
     </div>
 
     <div class="account">
@@ -463,7 +470,7 @@
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
   <nav v-if="showTabs" class="tabbar" aria-label="Części aplikacji">
-    <button :class="{ on: !songView }" :aria-current="!songView ? 'page' : null" @click="songView = false; scrollTo(0, 0)"><svg class="i"><use href="#calendar"/></svg>Nabożeństwa</button>
+    <button :class="{ on: !songView }" :aria-current="!songView ? 'page' : null" @click="showServices"><svg class="i"><use href="#calendar"/></svg>Nabożeństwa</button>
     <button :class="{ on: songView }" :aria-current="songView ? 'page' : null" :disabled="!ready" @click="openSongs"><svg class="i"><use href="#music"/></svg>Pieśni</button>
     <button v-if="cueTopic" @click="openCamera"><svg class="i"><use href="#camera"/></svg>Kamera</button>
   </nav>
@@ -487,7 +494,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.5 · 14.10.2026'
+const VERSION = '2.6 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -627,8 +634,6 @@ createApp({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && (ready.value || !!cueTopic))
-    const reminderTopic = window.KNS_CONFIG?.reminderTopic || ''
-    const showRemindHelp = ref(false)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
     const countdown = computed(() => {
@@ -705,6 +710,7 @@ createApp({
     const songDirty = computed(() => !!song.value && JSON.stringify(song.value) !== songSaved)
     const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
     const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
+    function showServices() { songView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -846,6 +852,52 @@ createApp({
       promptEvent = null; canPrompt.value = false
     }
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {})
+    /* ---------- powiadomienia (Web Push) ---------- */
+    // Zgoda → subskrypcja w przeglądarce → zapis w folderze aplikacji na Dysku; resztę robi skrypt przypomnienia.
+    const pushUrl = window.KNS_CONFIG?.pushUrl || ''
+    const { reactive } = Vue
+    const push = reactive({
+      supported: !!pushUrl && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window || (ios && !!pushUrl),
+      needsInstall: ios && !installed.value,
+      denied: 'Notification' in window && Notification.permission === 'denied',
+      on: false, busy: false, error: '',
+    })
+    let pushId = ''
+    try { pushId = localStorage.getItem('kns-push-id') || ''; if (!pushId) { pushId = uid() + uid(); localStorage.setItem('kns-push-id', pushId) } } catch { pushId = uid() + uid() }
+    const keyBytes = b64 => Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4)), c => c.charCodeAt(0))
+    async function checkPush() {
+      if (!push.supported || push.needsInstall) return
+      const reg = await navigator.serviceWorker.ready
+      push.on = !!(await reg.pushManager.getSubscription()) && Notification.permission === 'granted'
+    }
+    async function enablePush() {
+      push.busy = true; push.error = ''
+      try {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') { push.denied = permission === 'denied'; return }
+        const res = await fetch(pushUrl)
+        const { publicKey, error } = await res.json().catch(() => ({}))
+        if (!publicKey) throw new Error(error || 'Powiadomienia nie są jeszcze skonfigurowane na serwerze.')
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) })
+        await drive.savePush(pushId, { subscription: sub.toJSON(), account: drive.account(), device: navigator.userAgent.slice(0, 120), created: Date.now() })
+        push.on = true
+        reg.showNotification('Powiadomienia włączone', { body: 'W piątek wieczorem dam znać, jeśli na niedzielę czegoś brakuje.', icon: 'icon-192.png', badge: 'icon-192.png' })
+      } catch (e) {
+        push.error = e.message || String(e)
+        if (e.auth) ready.value = false
+      } finally { push.busy = false }
+    }
+    async function disablePush() {
+      push.busy = true; push.error = ''
+      try {
+        const reg = await navigator.serviceWorker.ready
+        await (await reg.pushManager.getSubscription())?.unsubscribe()
+        await drive.removePush(pushId)
+        push.on = false
+      } catch (e) { push.error = e.message || String(e) } finally { push.busy = false }
+    }
+    checkPush().catch(() => {})
 
     // Zamknięcie karty z niezapisanymi zmianami wymaga potwierdzenia.
     addEventListener('beforeunload', e => { if (dirty.value) e.preventDefault() })
@@ -861,7 +913,7 @@ createApp({
     else if (clientId && drive.signedIn()) guard(async () => { await fetchAll(); ready.value = true })
 
     return {
-      showTabs, countdown, reminderTopic, showRemindHelp,
+      showTabs, countdown, push, enablePush, disablePush,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install,
@@ -870,7 +922,7 @@ createApp({
       query, picking, results, confirmDelete,
       pretty, day, month, weekday, missing, upcoming, songTitle, firstLine, inBase, chosen, lines,
       start, reload, open, create, fix, back, addSong, move, save, remove,
-      songView, song, songQuery, songResults, songDirty, slideCount, numberTaken, openSongs, openSong, newSong, closeSong, saveSong, deleteSong,
+      showServices, songView, song, songQuery, songResults, songDirty, slideCount, numberTaken, openSongs, openSong, newSong, closeSong, saveSong, deleteSong,
       KIND, ACCEPT, fileType, uploading, progress, fromPhone, picker, pickQuery, pickFound, pickBusy, openPicker, searchSoon, fromDrive,
     }
   },

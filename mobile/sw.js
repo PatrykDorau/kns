@@ -1,7 +1,7 @@
 // Pozwala zainstalować stronę jako aplikację i otworzyć ją bez zasięgu (z ostatnio pobranej wersji).
 // Pliki strony: najpierw sieć (żeby zawsze była najnowsza wersja), a bez internetu — kopia.
 // Dane z Dysku Google nigdy nie są tu zapisywane — zawsze idą prosto do Google.
-const CACHE = 'kns-nabozenstwa-v16'
+const CACHE = 'kns-nabozenstwa-v17'
 const SHELL = ['./', './index.html', './drive.js', './config.js', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png']
 const LIBRARY = 'https://cdnjs.cloudflare.com/'
 
@@ -19,6 +19,7 @@ self.addEventListener('fetch', event => {
   const { request } = event
   if (request.method !== 'GET') return
   const url = new URL(request.url)
+  if (url.pathname.startsWith('/api/')) return // funkcje serwera — zawsze na żywo
   // Biblioteka Vue: wersja w adresie się nie zmienia, więc wystarczy raz ją pobrać.
   if (request.url.startsWith(LIBRARY)) {
     event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(res => {
@@ -33,4 +34,22 @@ self.addEventListener('fetch', event => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(cache => cache.put(request, copy)) }
     return res
   }).catch(() => caches.match(request).then(hit => hit || caches.match('./index.html'))))
+})
+
+// Powiadomienie z serwera (przypomnienie o brakach w nabożeństwie).
+self.addEventListener('push', event => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch { data = { body: event.data?.text() } }
+  event.waitUntil(self.registration.showNotification(data.title || 'Nabożeństwa', {
+    body: data.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'kns-przypomnienie', renotify: true, data: { url: data.url || './' },
+  }))
+})
+// Dotknięcie powiadomienia otwiera aplikację (albo przełącza na już otwartą).
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const target = new URL(event.notification.data?.url || './', self.registration.scope).href
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const open = list.find(c => c.url.startsWith(self.registration.scope))
+    return open ? open.focus().then(c => c.navigate?.(target) || c) : self.clients.openWindow(target)
+  }))
 })

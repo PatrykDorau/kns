@@ -1,3 +1,11 @@
 [build]
-  # Na Netlify trafia tylko strona na telefon (organizacja nabożeństw), bez budowania.
+  # Na Netlify trafia strona na telefon (organizacja nabożeństw), bez budowania,
+  # oraz funkcja wysyłająca powiadomienia na telefon (netlify/functions/push.mjs → /api/push).
   publish = "mobile"
+
+[build.environment]
+  # Netlify instaluje zależności z package.json — sam Electron nie jest tu potrzebny.
+  ELECTRON_SKIP_BINARY_DOWNLOAD = "1"
+
+[functions]
+  directory = "netlify/functions"

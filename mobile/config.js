@@ -17,6 +17,6 @@ window.KNS_CONFIG = {
   // Ten sam temat co cueTopic w electron/google-config.cjs.
   cueTopic: 'kns-kamera-25f03cec611e3ab11cb9a5e9',
 
-  // Przypomnienia w piątek wieczorem (skrypty/przypomnienie.gs) — ten sam temat co tam.
-  reminderTopic: 'kns-przypomnienia-9bb1581a2c90af313845',
+  // Powiadomienia na telefon (przypomnienie w piątek wieczorem) — funkcja Netlify z netlify/functions/push.mjs.
+  pushUrl: '/api/push',
 }
