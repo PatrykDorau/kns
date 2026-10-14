@@ -3,7 +3,8 @@
 // Google nie traktuje sekretu klienta komputerowego jako poufnego — i tak trafia do instalatora.
 module.exports = {
   clientId: '828184441520-8o83kfp8n9617a5fmhk25vbs8lncc7ed.apps.googleusercontent.com',
-  clientSecret: '',
+  // Sekret jest w osobnym pliku electron/google-secret.cjs (nie trafia na GitHuba, ale trafia do instalatora).
+  clientSecret: (() => { try { return require('./google-secret.cjs') } catch { return '' } })(),
 
   // Folder aplikacji na Dysku: najpewniej jego identyfikator (końcówka adresu
   // drive.google.com/drive/folders/<IDENTYFIKATOR>); gdy pusty, folder jest szukany po nazwie.
