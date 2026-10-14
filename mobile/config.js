@@ -16,4 +16,7 @@ window.KNS_CONFIG = {
   // Ekran „Kamera”: sygnały od operatora streamu przez internet (ntfy.sh).
   // Ten sam temat co cueTopic w electron/google-config.cjs.
   cueTopic: 'kns-kamera-25f03cec611e3ab11cb9a5e9',
+
+  // Przypomnienia w piątek wieczorem (skrypty/przypomnienie.gs) — ten sam temat co tam.
+  reminderTopic: 'kns-przypomnienia-9bb1581a2c90af313845',
 }

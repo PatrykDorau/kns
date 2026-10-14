@@ -43,7 +43,7 @@ export function bookOf(passage) {
   const r = parseRef(passage)
   return r ? r.book : -1
 }
-export const bookName = i => BOOKS[i]?.[1] ? BOOKS[i][1].replace(/^\w/, c => c.toUpperCase()) : '?'
+export const bookName = i => BOOKS[i]?.[1] ? BOOKS[i][1].replace(/\p{L}/u, c => c.toUpperCase()) : '?'
 export const bookShort = i => BOOKS[i]?.[0] || '?'
 export const isNewTestament = i => i >= 39
 
