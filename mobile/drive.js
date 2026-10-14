@@ -10,6 +10,20 @@ const FOLDER = 'application/vnd.google-apps.folder'
 const SCOPE = 'https://www.googleapis.com/auth/drive'
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
+
+// Załączniki: te same rodzaje co na komputerze (zdjęcie, film, PDF, prezentacja).
+const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+const SLIDES = 'application/vnd.google-apps.presentation'
+export const ACCEPT = 'image/*,video/*,application/pdf,.pdf,.ppt,.pptx'
+export function fileType(mime = '', name = '') {
+  if (mime.startsWith('image/')) return 'image'
+  if (mime.startsWith('video/')) return 'video'
+  if (mime === 'application/pdf' || /\.pdf$/i.test(name)) return 'pdf'
+  if (mime === PPTX || mime === SLIDES || mime === 'application/vnd.ms-powerpoint' || /\.pptx?$/i.test(name)) return 'pptx'
+  return ''
+}
+const baseName = name => name.replace(/\.[^.]+$/, '')
+const safeName = name => String(name).replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim() || 'plik'
 export function folderName(svc) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(svc.date || '') ? svc.date : 'bez-daty'
   const title = String(svc.sermonTitle || '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 50).replace(/[. ]+$/, '')
@@ -41,6 +55,55 @@ export function createDrive(config) {
     return res
   }
   const list = async q => (await (await call(`${API}/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`)).json()).files
+
+  // Folder nabożeństwa i jego podfolder „pliki” — tworzone od razu przy pierwszym załączniku.
+  async function filesFolder(svc) {
+    let entry = folders.get(svc.id)
+    if (!entry) {
+      const name = folderName(svc)
+      entry = { folderId: (await create({ name, mimeType: FOLDER, parents: [baseId] })).id, fileId: null, name }
+      folders.set(svc.id, entry)
+    }
+    if (!entry.filesId) {
+      entry.filesId = (await list(`${quote(entry.folderId)} in parents and name='pliki' and mimeType='${FOLDER}' and trashed=false`))[0]?.id ||
+        (await create({ name: 'pliki', mimeType: FOLDER, parents: [entry.folderId] })).id
+    }
+    return entry
+  }
+  // Nazwa pliku jeszcze niezajęta w „pliki” (np. „slajdy (2).pptx”).
+  async function freeName(entry, name) {
+    const taken = new Set((await list(`${quote(entry.filesId)} in parents and trashed=false`)).map(f => f.name))
+    const dot = name.lastIndexOf('.'), stem = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : ''
+    let candidate = name
+    for (let n = 2; taken.has(candidate); n++) candidate = `${stem} (${n})${ext}`
+    return candidate
+  }
+  // Wysyłanie „wznawialne” (filmy bywają duże), z postępem.
+  async function uploadBlob(entry, name, blob, onProgress) {
+    const init = await call(`${UPLOAD}/files?uploadType=resumable&supportsAllDrives=true&fields=id`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': blob.type || 'application/octet-stream', 'X-Upload-Content-Length': String(blob.size) },
+      body: JSON.stringify({ name, parents: [entry.filesId] }),
+    })
+    const url = init.headers.get('Location')
+    if (!url) throw new Error('Dysk Google nie przyjął pliku.')
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('PUT', url)
+      xhr.upload.onprogress = e => e.lengthComputable && onProgress?.(e.loaded / e.total)
+      xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error('Wysyłanie nie powiodło się (' + xhr.status + ').')))
+      xhr.onerror = () => reject(new Error('Wysyłanie przerwane — sprawdź internet.'))
+      xhr.send(blob)
+    })
+  }
+  // Pliki w „pliki”, do których nabożeństwo już się nie odwołuje (usunięte załączniki), idą do kosza.
+  async function cleanFiles(entry, files) {
+    const dir = entry.filesId || (await list(`${quote(entry.folderId)} in parents and name='pliki' and mimeType='${FOLDER}' and trashed=false`))[0]?.id
+    if (!dir) return
+    entry.filesId = dir
+    const keep = new Set((files || []).map(f => String(f.path || '').replace(/^pliki\//, '')))
+    for (const f of await list(`${quote(dir)} in parents and trashed=false`)) if (!keep.has(f.name)) await patch(f.id, { trashed: true })
+  }
   const read = async id => (await call(`${API}/files/${id}?alt=media&supportsAllDrives=true`)).json()
   const write = (id, data) => call(`${UPLOAD}/files/${id}?uploadType=media&supportsAllDrives=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
   const patch = (id, body) => call(`${API}/files/${id}?supportsAllDrives=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -114,18 +177,45 @@ export function createDrive(config) {
       const svc = payload.service
       const name = folderName(svc)
       let entry = folders.get(svc.id)
-      if (entry && !force) {
+      if (entry?.fileId && !force) {
         const remote = await read(entry.fileId)
         if ((remote.service?.updated || 0) > base) throw Object.assign(new Error('Ktoś inny zmienił to nabożeństwo w międzyczasie.'), { conflict: true })
       }
       if (!entry) {
-        const folder = await create({ name, mimeType: FOLDER, parents: [baseId] })
-        const file = await create({ name: 'nabozenstwo.json', parents: [folder.id] }, payload)
-        folders.set(svc.id, { folderId: folder.id, fileId: file.id, name })
-        return
+        entry = { folderId: (await create({ name, mimeType: FOLDER, parents: [baseId] })).id, fileId: null, name }
+        folders.set(svc.id, entry)
       }
-      await write(entry.fileId, payload)
+      if (entry.fileId) await write(entry.fileId, payload)
+      else entry.fileId = (await create({ name: 'nabozenstwo.json', parents: [entry.folderId] }, payload)).id
       if (entry.name !== name) { await patch(entry.folderId, { name }); entry.name = name }
+      await cleanFiles(entry, svc.files)
+    },
+    // Wyszukiwanie na Dysku zalogowanego konta (także w udostępnionych) — ostatnio zmienione najpierw.
+    async searchFiles(text = '') {
+      const kinds = `(mimeType contains 'image/' or mimeType contains 'video/' or mimeType='application/pdf' or mimeType='${PPTX}' or mimeType='application/vnd.ms-powerpoint' or mimeType='${SLIDES}')`
+      const q = `trashed=false and ${kinds}` + (text.trim() ? ` and name contains ${quote(text.trim())}` : '')
+      const res = await (await call(`${API}/files?q=${encodeURIComponent(q)}&orderBy=modifiedTime desc&pageSize=40&fields=files(id,name,mimeType,size,thumbnailLink,modifiedTime)&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`)).json()
+      return res.files || []
+    },
+    // Kopia pliku z Dysku do folderu nabożeństwa — po stronie Google, bez pobierania na telefon.
+    // Prezentacja Google trafia tam jako PowerPoint (komputer umie ją wyświetlić).
+    async attachFromDrive(svc, file, onProgress) {
+      const entry = await filesFolder(svc)
+      if (file.mimeType === SLIDES) {
+        const blob = await (await call(`${API}/files/${file.id}/export?mimeType=${encodeURIComponent(PPTX)}`)).blob()
+        const name = await freeName(entry, safeName(file.name) + '.pptx')
+        await uploadBlob(entry, name, new Blob([blob], { type: PPTX }), onProgress)
+        return { key: uid(), path: 'pliki/' + name, name: baseName(name), type: 'pptx' }
+      }
+      const name = await freeName(entry, safeName(file.name))
+      await call(`${API}/files/${file.id}/copy?supportsAllDrives=true&fields=id`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, parents: [entry.filesId] }) })
+      return { key: uid(), path: 'pliki/' + name, name: baseName(name), type: fileType(file.mimeType, file.name) }
+    },
+    async attachFromPhone(svc, blob, onProgress) {
+      const entry = await filesFolder(svc)
+      const name = await freeName(entry, safeName(blob.name))
+      await uploadBlob(entry, name, blob, onProgress)
+      return { key: uid(), path: 'pliki/' + name, name: baseName(name), type: fileType(blob.type, blob.name) }
     },
     async remove(id) {
       const entry = folders.get(id)
@@ -165,5 +255,13 @@ export function createDemo() {
       persist()
     },
     async remove(id) { data.services = data.services.filter(s => s.id !== id); persist() },
+    searchFiles: async text => [
+      { id: 'x1', name: 'Kazanie — slajdy.pptx', mimeType: PPTX },
+      { id: 'x2', name: 'Ogłoszenia.pdf', mimeType: 'application/pdf' },
+      { id: 'x3', name: 'Zdjęcie z obozu.jpg', mimeType: 'image/jpeg' },
+      { id: 'x4', name: 'Świadectwo.mp4', mimeType: 'video/mp4' },
+    ].filter(f => f.name.toLowerCase().includes(text.trim().toLowerCase())),
+    attachFromDrive: async (svc, f) => ({ key: uid(), path: 'pliki/' + f.name, name: baseName(f.name), type: fileType(f.mimeType, f.name) }),
+    attachFromPhone: async (svc, blob) => ({ key: uid(), path: 'pliki/' + blob.name, name: baseName(blob.name), type: fileType(blob.type, blob.name) }),
   }
 }
