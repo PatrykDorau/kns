@@ -20,6 +20,9 @@ export const settings = reactive({
   sharedDir: '', // folder wspólny z nabożeństwami i bazą pieśni (ten sam na wszystkich komputerach)
   cue: false, // sygnały dla kamerzysty (stream)
   cueToken: '',
+  camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
+  camLabels: true, // podpisy na obrazach kamer
+  camOnTop: false, // okno stream zawsze na wierzchu
   deletedSongs: {}, // id → czas usunięcia; żeby pieśń usunięta tutaj zniknęła też na innych komputerach
   songStyle: { ...TEXT_STYLE, fs: 14, shadow: true, valign: 'top' }, // pieśni domyślnie od góry ekranu
 })

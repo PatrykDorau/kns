@@ -555,3 +555,74 @@ main.planner .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 main.planner .tags .badge { margin: 0; text-transform: none; }
 main.planner .tags .badge.bad { white-space: normal; }
 .badge.past { background: var(--panel3); color: var(--muted); }
+
+/* ================= stream: układy kamer i tryb nakładki ================= */
+.cams-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.cams-head h2 { margin: 0; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bg); }
+.seg button { padding: 5px 10px; font-size: 12px; border: 0; background: transparent; color: var(--muted); gap: 6px; }
+.seg button.on { background: var(--panel3); color: var(--text); }
+.seg .icon { width: 15px; height: 15px; }
+header button.on { border-color: var(--accent); color: var(--accent); }
+
+/* kamery wypełniają całe miejsce, bez przewijania */
+.cams { overflow: hidden; gap: 8px; align-content: stretch; }
+.cams .cam { aspect-ratio: auto; min-height: 0; min-width: 0; border-radius: 10px; }
+.cams.l-grid { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+.cams.l-big { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); grid-template-rows: repeat(var(--n), minmax(0, 1fr)); }
+.cams.l-big .cam.main { grid-row: 1 / -1; }
+.cams.l-big .cam:only-child { grid-column: 1 / -1; }
+.cams.l-row { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.cams.l-column { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); }
+.cams.l-one { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.cam.main { box-shadow: inset 0 0 0 2px transparent; }
+
+/* tryb nakładki: tylko obraz kamer na czarnym tle, narzędzia po najechaniu */
+.app.overlay-mode { background: #000; }
+.app.overlay-mode main.stream { padding: 0; gap: 0; }
+.app.overlay-mode main.stream > section { padding: 0; border-radius: 0; background: #000; }
+.app.overlay-mode .cams { gap: 2px; }
+.app.overlay-mode .cam { border-radius: 0; }
+.app.overlay-mode .cam-label { font-size: 11px; padding: 2px 7px; left: 6px; bottom: 6px; }
+.ov-tools { position: fixed; top: 8px; right: 8px; z-index: 5; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 10px;
+  background: rgba(15, 17, 21, .88); box-shadow: 0 6px 20px rgba(0, 0, 0, .5); opacity: 0; transition: opacity .15s; }
+.app.overlay-mode:hover .ov-tools, .ov-tools:focus-within { opacity: 1; }
+.ov-tools .iconbtn { color: #b8c0cf; }
+.ov-tools .iconbtn.on { color: var(--accent); background: var(--accent-soft); }
+.ov-tools .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
+
+/* ================= okno „Wczytaj nabożeństwo” ================= */
+.svc-modal { width: min(600px, 100%); display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
+.svc-modal .modal-head .sync { padding: 5px 10px; font-size: 12px; }
+.svc-modal .note { margin: 6px 0 0; }
+.svc-modal .svc-list { overflow-y: auto; margin: 16px -4px 8px; padding: 4px; }
+.svc-list li { gap: 14px; padding: 12px 14px; background: var(--panel2); border-color: transparent; }
+.svc-list li.next { border-color: rgba(61, 220, 151, .7); background: rgba(61, 220, 151, .06); }
+.svc-list li.active { border-color: var(--accent); background: var(--accent-soft); }
+.svc-list li.past { opacity: .6; }
+.svc-list li.past:hover { opacity: 1; }
+.svc-list .date { flex: none; display: grid; place-items: center; width: 48px; height: 52px; border-radius: 10px; background: var(--bg); line-height: 1.1; }
+.svc-list .date b { font-size: 20px; }
+.svc-list .date small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.svc-list .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.svc-list .title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.svc-list .kind { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.svc-list .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.svc-list .chip { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
+.svc-list .chip .icon { width: 13px; height: 13px; }
+.svc-list .badge { margin: 0; }
+.badge.loaded { background: var(--accent); color: #fff; }
+.badge.loaded .icon { width: 11px; height: 11px; }
+.svc-list li > button { flex: none; min-width: 120px; }
+.svc-list li > button .spinner { width: 14px; height: 14px; }
+.svc-modal .more { align-self: center; background: none; border: 0; color: var(--muted); font-size: 13px; }
+.svc-modal .more:hover:not(:disabled) { color: var(--text); background: none; }
+.modal-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.modal-foot .spacer { flex: 1; }
+.ghostbtn { background: transparent; border-color: transparent; color: var(--muted); }
+.ghostbtn:hover:not(:disabled) { color: var(--text); }
+
+/* tryb nakładki: bez marginesów i ramek */
+.app.overlay-mode main { padding: 0 !important; gap: 0; }
+.app.overlay-mode .cam { border: 0; }
+.app.overlay-mode .cams { flex: 1; height: 100%; }

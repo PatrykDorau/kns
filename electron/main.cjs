@@ -887,6 +887,23 @@ app.whenReady().then(() => {
   ipcMain.handle('backup:import', () => importBackup())
   ipcMain.handle('remote:set', (e, on, token) => setRemote(on, token))
   // Podpis autora zmian w nabożeństwie, gdy komputer nie jest zalogowany do Google.
+  // Stream jako nakładka w OBS: małe okno (bez minimalnego rozmiaru panelu) i opcjonalnie zawsze na wierzchu.
+  let normalBounds = null
+  ipcMain.handle('window:compact', (e, on) => {
+    if (!control || control.isDestroyed()) return
+    if (on) {
+      if (control.isMaximized()) control.unmaximize()
+      if (!normalBounds) normalBounds = control.getBounds()
+      control.setMinimumSize(240, 140)
+      const b = control.getBounds()
+      control.setBounds({ x: b.x + b.width - 660, y: b.y + 40, width: 640, height: 400 })
+    } else {
+      control.setMinimumSize(1000, 640)
+      if (normalBounds) control.setBounds(normalBounds)
+      normalBounds = null
+    }
+  })
+  ipcMain.handle('window:onTop', (e, on) => { if (control && !control.isDestroyed()) control.setAlwaysOnTop(!!on, 'floating') })
   ipcMain.handle('app:user', () => { try { return os.userInfo().username + ' (' + os.hostname() + ')' } catch { return os.hostname() } })
   ipcMain.handle('cue:set', (e, on, token) => setCue(on, token))
   ipcMain.handle('cue:send', (e, state) => sendCue(state))

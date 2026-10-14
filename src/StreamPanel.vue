@@ -14,6 +14,35 @@ const service = computed(() => services.value.find(s => s.id === serviceId.value
 const copied = ref('')
 const showInfo = ref(true) // boczny panel z danymi nabożeństwa można schować, żeby kamery miały całe okno
 
+// Układy kamer. Główna kamera (do układów „duża + małe” i „jedna”) to kliknięta albo pierwsza.
+const LAYOUTS = [['grid', 'grid', 'Siatka'], ['big', 'layoutBig', 'Duża + małe'], ['row', 'layoutRow', 'Obok siebie'], ['column', 'layoutColumn', 'Jedna pod drugą'], ['one', 'layoutOne', 'Tylko jedna']]
+const mainId = computed(() => (cams.value.some(c => c.id === focusId.value) ? focusId.value : cams.value[0]?.id))
+const shown = computed(() => {
+  if (settings.camLayout === 'one') return cams.value.filter(c => c.id === mainId.value)
+  if (settings.camLayout === 'big') return [...cams.value].sort((a, b) => (b.id === mainId.value) - (a.id === mainId.value))
+  return cams.value
+})
+const cols = computed(() => Math.ceil(Math.sqrt(shown.value.length || 1)))
+let before = null // układ sprzed powiększenia kamery kliknięciem
+function clickCam(cam) {
+  const zoomed = settings.camLayout === 'big' || settings.camLayout === 'one'
+  if (!zoomed) { before = settings.camLayout; focusId.value = cam.id; settings.camLayout = 'big'; return }
+  if (cam.id !== mainId.value) { focusId.value = cam.id; return }
+  if (before) { settings.camLayout = before; before = null }
+}
+function setLayout(id) { settings.camLayout = id; before = null }
+
+// Nakładka: samo okno z kamerami, małe — do przechwycenia w OBS („Przechwytywanie okna”).
+const overlay = ref(false)
+function toggleOverlay() {
+  overlay.value = !overlay.value
+  api.setCompact(overlay.value)
+}
+function toggleOnTop() {
+  settings.camOnTop = !settings.camOnTop
+  api.setOnTop(settings.camOnTop)
+}
+
 // Sygnały dla kamerzysty: jego telefon (ze słuchawką) ma otwarty ekran „Kamera” w aplikacji na telefon
 // (przez internet) albo stronę z tego komputera (ta sama sieć) i dostaje sygnał dźwiękowy przy każdej zmianie stanu.
 const CUES = [['live', 'NA WIZJI', '1'], ['ready', 'PRZYGOTUJ SIĘ', '2'], ['off', 'POZA WIZJĄ', '3']]
@@ -96,6 +125,7 @@ onMounted(() => {
   offCue = () => { offClients(); offRemote() }
   window.addEventListener('keydown', onCueKey)
   if (settings.cue) applyCue()
+  if (settings.camOnTop) api.setOnTop(true)
   refresh()
   navigator.mediaDevices.addEventListener('devicechange', refresh)
 })
@@ -103,27 +133,40 @@ onBeforeUnmount(() => {
   offCue?.()
   window.removeEventListener('keydown', onCueKey)
   api.setCue(false, '')
+  // Poza streamem okno wraca do zwykłego rozmiaru i zwykłego zachowania.
+  if (overlay.value) api.setCompact(false)
+  api.setOnTop(false)
   navigator.mediaDevices.removeEventListener('devicechange', refresh)
   cams.value.forEach(stop)
 })
 </script>
 
 <template>
-  <div class="app">
-    <header>
+  <div class="app" :class="{ 'overlay-mode': overlay }">
+    <!-- W trybie nakładki: tylko kamery, a przyciski pojawiają się po najechaniu myszką. -->
+    <div v-if="overlay" class="ov-tools">
+      <button v-for="[id, icon, name] in LAYOUTS" :key="id" class="iconbtn" :class="{ on: settings.camLayout === id }" :title="name" :aria-label="name" :aria-pressed="settings.camLayout === id" @click="setLayout(id)"><Icon :name="icon" /></button>
+      <span class="sep"></span>
+      <button class="iconbtn" :class="{ on: settings.camLabels }" title="Podpisy kamer" aria-label="Podpisy kamer" :aria-pressed="settings.camLabels" @click="settings.camLabels = !settings.camLabels"><Icon name="tag" /></button>
+      <button class="iconbtn" :class="{ on: settings.camOnTop }" :title="settings.camOnTop ? 'Zawsze na wierzchu — włączone' : 'Zawsze na wierzchu'" aria-label="Zawsze na wierzchu" :aria-pressed="settings.camOnTop" @click="toggleOnTop"><Icon name="pin" /></button>
+      <button class="iconbtn" title="Wyjdź z trybu nakładki" aria-label="Wyjdź z trybu nakładki" @click="toggleOverlay"><Icon name="expand" /></button>
+    </div>
+    <header v-if="!overlay">
       <button class="iconbtn" title="Zmień służbę" aria-label="Zmień służbę" @click="role = null"><Icon name="left" /></button>
       <Brand />
       <h1>Stream</h1>
       <span class="spacer"></span>
+      <button :class="{ on: settings.camOnTop }" :aria-pressed="settings.camOnTop" title="Okno zawsze nad innymi programami (np. nad OBS)" @click="toggleOnTop"><Icon name="pin" />Zawsze na wierzchu</button>
+      <button title="Małe okno z samymi kamerami — do ustawienia w OBS jako nakładka" @click="toggleOverlay"><Icon name="shrink" />Tryb nakładki</button>
       <button @click="refresh"><Icon name="camera" />Odśwież kamery</button>
       <button :aria-pressed="showInfo" :title="showInfo ? 'Chowa panel z danymi nabożeństwa' : 'Pokazuje panel z danymi nabożeństwa'" @click="showInfo = !showInfo">
         <Icon :name="showInfo ? 'right' : 'left'" />{{ showInfo ? 'Schowaj panel' : 'Pokaż panel' }}
       </button>
     </header>
 
-    <main class="stream" :class="{ wide: !showInfo }">
+    <main class="stream" :class="{ wide: !showInfo || overlay }">
       <section>
-        <div class="cue">
+        <div v-if="!overlay" class="cue">
           <div class="cue-head">
             <h2>Sygnały dla kamerzysty</h2>
             <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue"> Włączone</label>
@@ -152,19 +195,26 @@ onBeforeUnmount(() => {
           <p v-else class="note">Kamerzysta zakłada słuchawkę podłączoną do telefonu. Gdy zmienisz tu stan, usłyszy sygnał: dwa krótkie wysokie — na wizji, jeden średni — przygotuj się, jeden długi niski — poza wizją.</p>
         </div>
 
-        <h2>Kamery <span v-if="cams.length" class="pill">{{ cams.length }}</span></h2>
+        <div v-if="!overlay" class="cams-head">
+          <h2>Kamery <span v-if="cams.length" class="pill">{{ cams.length }}</span></h2>
+          <span class="spacer"></span>
+          <div class="seg" role="group" aria-label="Układ kamer">
+            <button v-for="[id, icon, name] in LAYOUTS" :key="id" :class="{ on: settings.camLayout === id }" :title="name" :aria-pressed="settings.camLayout === id" @click="setLayout(id)"><Icon :name="icon" /><span>{{ name }}</span></button>
+          </div>
+          <label class="check"><input v-model="settings.camLabels" type="checkbox"> Podpisy</label>
+        </div>
         <div v-if="status" class="empty">{{ status }}</div>
-        <div class="cams" :class="{ focused: focusId && cams.some(c => c.id === focusId) }">
-          <button v-for="cam in cams" :key="cam.id" class="cam" :class="{ big: cam.id === focusId }"
-                  :title="cam.id === focusId ? 'Kliknij, aby wrócić do siatki' : 'Kliknij, aby powiększyć'" @click="focusId = cam.id === focusId ? null : cam.id">
+        <div class="cams" :class="'l-' + settings.camLayout" :style="{ '--cols': cols, '--n': Math.max(shown.length - 1, 1) }">
+          <button v-for="cam in shown" :key="cam.id" class="cam" :class="{ main: cam.id === mainId }"
+                  :title="settings.camLayout === 'big' || settings.camLayout === 'one' ? (cam.id === mainId ? 'Kliknij, aby wrócić do poprzedniego układu' : 'Kliknij, aby ta kamera była duża') : 'Kliknij, aby powiększyć'" @click="clickCam(cam)">
             <video v-if="cam.stream" :ref="el => attach(el, cam)" autoplay muted playsinline></video>
             <span v-else class="placeholder">{{ cam.error }}</span>
-            <span class="cam-label">{{ cam.label }}</span>
+            <span v-if="settings.camLabels" class="cam-label">{{ cam.label }}</span>
           </button>
         </div>
       </section>
 
-      <section v-if="showInfo" class="props">
+      <section v-if="showInfo && !overlay" class="props">
         <div class="panel-head"><h2>Nabożeństwo</h2><SyncButton status /></div>
         <div v-if="!services.length" class="empty">Nie ma zaplanowanego nabożeństwa. Tworzy je służba „Organizacja nabożeństw”.</div>
         <template v-else>

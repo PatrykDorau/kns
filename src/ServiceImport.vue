@@ -1,12 +1,22 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
 import SyncButton from './SyncButton.vue'
-import { applyService, importService, nearestService, prettyDate, serviceModal, settings, sortedServices } from './store.js'
+import { applyService, importService, missingInfo, nearestService, serviceModal, services, settings, today } from './store.js'
 
 // Rzutnik: wczytanie zaplanowanego nabożeństwa — pieśni i załączniki ładują się same.
 const message = ref('')
 const busyId = ref(null)
+const showPast = ref(false)
+
+// Nadchodzące od najbliższego; wcześniejsze schowane, od najnowszego.
+const upcoming = computed(() => services.value.filter(s => s.date >= today()).sort((a, b) => a.date.localeCompare(b.date)))
+const past = computed(() => services.value.filter(s => s.date < today()).sort((a, b) => b.date.localeCompare(a.date)))
+const list = computed(() => (showPast.value ? [...upcoming.value, ...past.value] : upcoming.value))
+const asDate = d => new Date(d + 'T12:00')
+const day = d => asDate(d).getDate()
+const month = d => asDate(d).toLocaleDateString('pl', { month: 'short' }).replace('.', '')
+const weekday = d => asDate(d).toLocaleDateString('pl', { weekday: 'long' })
 
 async function load(svc) {
   busyId.value = svc.id
@@ -21,34 +31,46 @@ async function fromFolder() {
 
 <template>
   <div class="overlay" @click.self="serviceModal = false" @keydown.esc.stop="serviceModal = false">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Wczytaj nabożeństwo">
+    <div class="modal svc-modal" role="dialog" aria-modal="true" aria-label="Wczytaj nabożeństwo">
       <div class="modal-head">
         <h3>Wczytaj nabożeństwo</h3>
+        <span class="spacer"></span>
+        <SyncButton />
         <button class="iconbtn" aria-label="Zamknij" @click="serviceModal = false"><Icon name="x" /></button>
       </div>
-      <p class="note">Lista pieśni zostanie zastąpiona pieśniami z nabożeństwa, a załączniki (np. prezentacja kaznodziei) trafią do materiałów.</p>
+      <p class="note">Pieśni z nabożeństwa zastąpią obecną listę pieśni, a załączniki (np. prezentacja kaznodziei) trafią do materiałów.</p>
 
-      <div v-if="!sortedServices.length" class="empty">Nie ma zaplanowanych nabożeństw. Tworzy je służba „Organizacja nabożeństw”.</div>
+      <div v-if="!list.length" class="empty">
+        {{ past.length ? 'Nie ma nadchodzących nabożeństw.' : 'Nie ma zaplanowanych nabożeństw. Tworzy je służba „Organizacja nabożeństw”.' }}
+      </div>
       <ul class="svc-list">
-        <li v-for="svc in sortedServices" :key="svc.id" :class="{ next: svc.id === nearestService?.id }">
+        <li v-for="svc in list" :key="svc.id" :class="{ next: svc.id === nearestService?.id && svc.date >= today(), active: svc.id === settings.activeService, past: svc.date < today() }">
+          <span class="date"><b>{{ day(svc.date) }}</b><small>{{ month(svc.date) }}</small></span>
           <span class="meta">
-            <span class="name">{{ prettyDate(svc.date) }}<span v-if="svc.id === nearestService?.id" class="badge next">NAJBLIŻSZE</span></span>
-            <span class="kind">{{ svc.sermonTitle || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> · {{ svc.speaker }}</template></span>
-            <span class="kind">Pieśni: {{ svc.songs.length }} · Załączniki: {{ svc.files.length }}</span>
+            <span class="title">{{ svc.sermonTitle || 'Bez tytułu kazania' }}</span>
+            <span class="kind">{{ weekday(svc.date) }}<template v-if="svc.speaker"> · {{ svc.speaker }}</template><template v-if="svc.passage"> · {{ svc.passage }}</template></span>
+            <span class="chips">
+              <span v-if="svc.id === settings.activeService" class="badge loaded"><Icon name="check" />WCZYTANE</span>
+              <span v-else-if="svc.id === nearestService?.id && svc.date >= today()" class="badge next">NAJBLIŻSZE</span>
+              <span v-if="svc.date >= today() && missingInfo(svc).length" class="badge bad" :title="'Brakuje: ' + missingInfo(svc).join(', ')"><Icon name="missing" />BRAKI</span>
+              <span class="chip"><Icon name="music" />{{ svc.songs.length }}</span>
+              <span class="chip"><Icon name="image" />{{ svc.files.length }}</span>
+            </span>
           </span>
-          <button :class="{ primary: svc.id === nearestService?.id }" :disabled="busyId !== null" @click="load(svc)">
+          <button :class="{ primary: svc.id === nearestService?.id && svc.id !== settings.activeService }" :disabled="busyId !== null" @click="load(svc)">
+            <span v-if="busyId === svc.id" class="spinner" aria-hidden="true"></span>
             {{ busyId === svc.id ? 'Wczytuję…' : svc.id === settings.activeService ? 'Wczytaj ponownie' : 'Wczytaj' }}
           </button>
         </li>
       </ul>
+      <button v-if="past.length" class="more" @click="showPast = !showPast">{{ showPast ? 'Ukryj wcześniejsze' : `Pokaż wcześniejsze (${past.length})` }}</button>
 
-      <div class="btnrow">
-        <button title="Nabożeństwo zapisane jako folder na innym komputerze" :disabled="busyId !== null" @click="fromFolder"><Icon name="folder" />Wczytaj z folderu…</button>
-        <SyncButton status />
+      <p v-if="message" class="url">{{ message }}</p>
+      <div class="modal-foot">
+        <button class="ghostbtn" title="Nabożeństwo zapisane jako folder na innym komputerze" :disabled="busyId !== null" @click="fromFolder"><Icon name="folder" />Wczytaj z folderu…</button>
         <span class="spacer"></span>
         <button @click="serviceModal = false">Pomiń</button>
       </div>
-      <p v-if="message" class="url">{{ message }}</p>
     </div>
   </div>
 </template>

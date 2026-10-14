@@ -101,5 +101,5 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
     </li>
   </ul>
 
-  <button class="wide browse" @click="managerOpen = true"><Icon name="pencil" />Baza pieśni ({{ songs.length }}) — dodawanie i edycja</button>
+  <button class="wide browse" @click="managerOpen = true"><Icon name="pencil" />Baza pieśni ({{ songs.length }})</button>
 </template>
