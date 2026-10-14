@@ -290,6 +290,10 @@
     <textarea id="band" v-model="current.band" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
     <label for="notes">Dodatkowe informacje</label>
     <textarea id="notes" v-model="current.notes" placeholder="np. chrzest po kazaniu, błogosławieństwo dzieci, rocznica…"></textarea>
+    <p v-if="current.createdBy || current.updatedBy" class="note">
+      <template v-if="current.createdBy">Utworzył(a): {{ current.createdBy }}</template>
+      <template v-if="current.updatedBy"><br>Ostatnia zmiana: {{ current.updatedBy }}<template v-if="current.updated">, {{ new Date(current.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
+    </p>
     <p v-if="current.files.length" class="note">Załączniki ({{ current.files.length }}): {{ current.files.map(f => f.name).join(', ') }} — dodaje się je i usuwa na komputerze.</p>
 
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
@@ -322,7 +326,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '1.5 · 14.10.2026'
+const VERSION = '1.6 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -492,8 +496,12 @@ createApp({
       query.value = ''; status.value = ''; confirmDelete.value = false; picking.value = false
       scrollTo(0, 0)
     }
+    // Na jeden dzień jest jedno nabożeństwo: „nowe” na zajęty dzień otwiera istniejące.
     function create(date) {
-      open({ id: uid(), date: typeof date === 'string' ? date : nextSunday(), sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [] })
+      const day = typeof date === 'string' ? date : nextSunday()
+      const existing = services.value.find(s => s.date === day)
+      if (existing) { open(existing); status.value = 'Na ten dzień jest już nabożeństwo — otwarto je.'; return }
+      open({ id: uid(), date: day, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: drive.account() || 'telefon' })
       saved.value = '' // nowe nabożeństwo od razu jest „do zapisania”
     }
     const fix = () => (alert.value.service ? open(alert.value.service) : create(alert.value.date))
@@ -512,6 +520,9 @@ createApp({
 
     const save = (force = false) => guard(async () => {
       const svc = current.value
+      if (services.value.some(s => s.id !== svc.id && s.date === svc.date) &&
+          !confirm('Na ten dzień jest już inne nabożeństwo. Zapisać mimo to? Komputer połączy je w jedno.')) return
+      svc.updatedBy = drive.account() || 'telefon'
       // Teksty pieśni jadą razem z nabożeństwem — komputer, który ich nie ma, dopisze je do swojej bazy.
       const texts = svc.songs.map(e => songs.value.find(sameSong(e))).filter(Boolean).map(({ number, title, text }) => ({ number: number || '', title, text }))
       const payload = { service: { ...JSON.parse(JSON.stringify(svc)), updated: Date.now(), shared: true }, songs: texts }

@@ -872,6 +872,8 @@ app.whenReady().then(() => {
   ipcMain.handle('backup:export', () => exportBackup())
   ipcMain.handle('backup:import', () => importBackup())
   ipcMain.handle('remote:set', (e, on, token) => setRemote(on, token))
+  // Podpis autora zmian w nabożeństwie, gdy komputer nie jest zalogowany do Google.
+  ipcMain.handle('app:user', () => { try { return os.userInfo().username + ' (' + os.hostname() + ')' } catch { return os.hostname() } })
   ipcMain.handle('cue:set', (e, on, token) => setCue(on, token))
   ipcMain.handle('cue:send', (e, state) => sendCue(state))
 

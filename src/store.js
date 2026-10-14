@@ -572,10 +572,45 @@ export const planReady = computed(() => {
   return service ? { service, text: `Nabożeństwo na niedzielę ${prettyDate(service.date).replace(/^niedziela, /, '')} jest gotowe.` } : null
 })
 
+// Kto zmienia nabożeństwa na tym komputerze: konto Google, a bez niego użytkownik Windows i nazwa komputera.
+const computerUser = ref('')
+export const me = () => sharedAccount.value?.email || computerUser.value || 'ten komputer'
+
+// Na jeden dzień jest jedno nabożeństwo: „nowe” na zajęty dzień otwiera istniejące.
 export function newService(date = today()) {
-  const svc = { id: uid(), date, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [] }
+  const existing = services.value.find(s => s.date === date)
+  if (existing) return existing
+  const svc = { id: uid(), date, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: me() }
   services.value.push(svc)
   return svc
+}
+
+// Dwa nabożeństwa na ten sam dzień (np. utworzone niezależnie na komputerze i na telefonie) są łączone:
+// zostaje nowsze, puste pola uzupełnia drugie, pieśni i załączniki są sumowane, a drugie znika wszędzie.
+// Wybór jest taki sam na każdym komputerze, więc łączenie w kilku miejscach naraz daje ten sam wynik.
+function mergeSameDay() {
+  const byDate = new Map()
+  for (const svc of services.value) byDate.set(svc.date, [...(byDate.get(svc.date) || []), svc])
+  let merged = 0
+  for (const group of byDate.values()) {
+    if (group.length < 2) continue
+    group.sort((a, b) => (b.updated || 0) - (a.updated || 0) || (a.id < b.id ? -1 : 1))
+    const [keep, ...rest] = group
+    for (const other of rest) {
+      for (const key of ['sermonTitle', 'passage', 'speaker', 'band', 'notes', 'createdBy']) {
+        if (!String(keep[key] || '').trim() && String(other[key] || '').trim()) keep[key] = other[key]
+      }
+      const sameSong = e => x => x.title === e.title && (x.number || '') === (e.number || '')
+      for (const e of other.songs) if (!keep.songs.some(sameSong(e))) keep.songs.push(e)
+      for (const f of other.files) if (!keep.files.some(x => x.name === f.name)) keep.files.push(f)
+      if (settings.activeService === other.id) settings.activeService = keep.id
+      services.value.splice(services.value.indexOf(other), 1)
+      synced.delete(other.id)
+      if (other.shared && settings.sharedDir) api.sharedRemove(settings.sharedDir, other.id)
+      merged++
+    }
+  }
+  if (merged) flash(merged === 1 ? 'Połączono dwa nabożeństwa z tego samego dnia.' : `Połączono nabożeństwa z tych samych dni (${merged}).`)
 }
 export function removeService(svc) {
   services.value.splice(services.value.indexOf(svc), 1)
@@ -688,6 +723,7 @@ async function runSync() {
     else services.value.push(svc)
     synced.set(id, snapshot(services.value.find(x => x.id === id)))
   }
+  mergeSameDay()
   // Nabożeństwo usunięte na innym komputerze znika też tutaj.
   for (const svc of [...services.value]) {
     if (svc.shared && !seen.has(svc.id)) { services.value.splice(services.value.indexOf(svc), 1); synced.delete(svc.id) }
@@ -724,6 +760,37 @@ function changeSongId(song, id) {
   if (selectedId.value === old) selectedId.value = id
   if (liveId.value === old) liveId.value = id
 }
+// Ta sama pieśń dwa razy (np. raz z numerem z bazy wspólnej, raz bez numeru z tego komputera):
+// zostaje ta z numerem, z nowszym tekstem, a odwołania w nabożeństwach przechodzą na nią.
+// Pieśni o tym samym tytule, ale różnych numerach, to różne pieśni — zostają obie.
+function mergeTwinSongs(deleted) {
+  const groups = new Map()
+  for (const s of songs.value) {
+    const key = plain(String(s.title || '')).replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+    if (key) groups.set(key, [...(groups.get(key) || []), s])
+  }
+  let merged = 0
+  for (const group of groups.values()) {
+    if (group.length < 2 || new Set(group.map(s => s.number).filter(Boolean)).size > 1) continue
+    group.sort((a, b) => (b.number ? 1 : 0) - (a.number ? 1 : 0) || (b.updated || 0) - (a.updated || 0) || (a.id < b.id ? -1 : 1))
+    const [keep, ...rest] = group
+    for (const other of rest) {
+      if ((other.updated || 0) > (keep.updated || 0) && other.text !== keep.text) keep.text = other.text
+      const old = other.id
+      for (const e of settings.service) if (e.songId === old) e.songId = keep.id
+      for (const svc of services.value) for (const e of svc.songs) if (e.songId === old) e.songId = keep.id
+      if (selectedId.value === old) selectedId.value = keep.id
+      if (liveId.value === old) liveId.value = keep.id
+      songs.value.splice(songs.value.indexOf(other), 1)
+      songSeen.delete(old)
+      const at = Date.now()
+      if (settings.sharedDir) settings.deletedSongs[old] = at
+      if (deleted) deleted[old] = at
+      merged++
+    }
+  }
+  return merged
+}
 async function syncSongs(dir) {
   stampSongs()
   const remote = await api.sharedSongsRead(dir, songsDirty ? 0 : songsMtime)
@@ -751,6 +818,7 @@ async function syncSongs(dir) {
     } else continue
     songSeen.set(own.id, songBody(own))
   }
+  if (mergeTwinSongs(deleted)) stampSongs()
   for (const s of [...songs.value]) {
     if (!(deleted[s.id] >= (s.updated || 0))) continue
     if (s.id === liveId.value) hide()
@@ -786,6 +854,7 @@ async function pushShared() {
     for (const svc of services.value) {
       if (synced.get(svc.id) === snapshot(svc)) continue
       svc.updated = Date.now()
+      svc.updatedBy = me()
       const res = await api.sharedWrite(dir, servicePayload(svc))
       if (res.error) { sharedStatus.value = res.error; return }
       // Załączniki leżą odtąd w folderze wspólnym — lokalna kopia nie jest już potrzebna.
@@ -916,6 +985,9 @@ export async function init() {
   items.value = ((await api.loadStore('library')) || []).map(migrate)
   songs.value = (await api.loadStore('songs')) || []
   services.value = (await api.loadStore('services')) || []
+  computerUser.value = await api.userName()
+  mergeTwinSongs()
+  mergeSameDay()
   // Układ folderu wspólnego się zmienił (podfoldery „nabozenstwa” i „piesni”) — nabożeństwa z tego
   // komputera zostaną zapisane od nowa w nowym miejscu zamiast zniknąć jako „usunięte gdzie indziej”.
   if (settings.sharedLayout !== 2) {

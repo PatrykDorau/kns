@@ -13,6 +13,8 @@ import {
 const currentId = ref(nearestService.value?.id ?? null)
 const current = computed(() => services.value.find(s => s.id === currentId.value) || null)
 watch(current, svc => { plannerTarget.value = svc }, { immediate: true })
+const clash = computed(() => current.value && services.value.some(s => s !== current.value && s.date === current.value.date))
+const when = t => (t ? new Date(t).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '')
 const songOf = entry => songs.value.find(s => s.id === entry.songId)
 // Podgląd i edycja pieśni: otwiera bazę pieśni od razu na wskazanej.
 function openSong(songId) {
@@ -114,7 +116,12 @@ async function importIt() {
             <div><label for="pPassage">Fragment *</label><input id="pPassage" v-model="current.passage" type="text" placeholder="np. J 3,16–21" :class="{ invalid: blank('passage') }"></div>
           </div>
 
+          <p v-if="clash" class="note bad">Na ten dzień jest już inne nabożeństwo — przy synchronizacji zostaną połączone w jedno.</p>
           <p class="note">* pola wymagane — bez nich nabożeństwo jest oznaczone jako niekompletne.</p>
+          <p v-if="current.createdBy || current.updatedBy" class="note">
+            <template v-if="current.createdBy">Utworzył(a): <b>{{ current.createdBy }}</b></template>
+            <template v-if="current.updatedBy"><template v-if="current.createdBy"> · </template>ostatnia zmiana: <b>{{ current.updatedBy }}</b><template v-if="current.updated">, {{ when(current.updated) }}</template></template>
+          </p>
 
           <label for="pBand">Skład zespołu (opcjonalnie)</label>
           <textarea id="pBand" v-model="current.band" class="short" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>

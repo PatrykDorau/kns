@@ -58,6 +58,7 @@ contextBridge.exposeInMainWorld('api', {
   sendCue: invoke('cue:send'),
   onCueClients: on('cue:clients'),
   onCueRemote: on('cue:remote'),
+  userName: invoke('app:user'),
 
   // pilot w telefonie
   setRemote: invoke('remote:set'),
