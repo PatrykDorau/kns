@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1115">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Nabożeństwa">
-<title>Nabożeństwa — Kościół Na Skale</title>
+<meta name="apple-mobile-web-app-title" content="KNS Nabo">
+<title>KNS Nabo — Kościół Na Skale</title>
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -509,7 +509,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.8 · 14.10.2026'
+const VERSION = '2.9 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -687,7 +687,7 @@ createApp({
     const start = () => guard(async () => { await drive.signIn(); await fetchAll(); ready.value = true })
     // Konto bez dostępu do folderu: zapominamy je i od razu pokazujemy wybór konta.
     const otherAccount = () => guard(async () => { drive.forget(); await drive.signIn(true); await fetchAll(); ready.value = true })
-    const appUrl = window.KNS_CONFIG?.appUrl || 'https://kns-nabozenstwa.netlify.app'
+    const appUrl = window.KNS_CONFIG?.appUrl || 'https://kns-nabo.netlify.app'
     const origin = location.origin
     const wrongOrigin = !demo && origin !== new URL(appUrl).origin
     const reload = () => guard(fetchAll)

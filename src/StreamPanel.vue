@@ -184,7 +184,7 @@ onBeforeUnmount(() => {
             <span class="cue-info" tabindex="0" aria-label="Jak połączyć telefon kamerzysty">
               <Icon name="info" />
               <span class="cue-tip" role="tooltip">
-                Na telefonie kamerzysty: aplikacja <b>Nabożeństwa</b> → <b>Kamera</b> (działa w każdej sieci, przez internet).
+                Na telefonie kamerzysty: aplikacja <b>KNS Nabo</b> → <b>Kamera</b> (działa w każdej sieci, przez internet).
                 <template v-if="cueUrl"><br>Albo w tej samej sieci Wi-Fi: <b>{{ cueUrl }}</b></template>
                 <br>Sygnały: na wizji — dwa krótkie wysokie, przygotuj się — jeden średni, poza wizją — jeden długi niski.
               </span>

@@ -25,7 +25,7 @@ export function vapidKeys(privateB64) {
 }
 
 // Nagłówek autoryzacji VAPID (RFC 8292): JWT podpisany ES256 dla serwera powiadomień przeglądarki.
-export function vapidAuth(endpoint, keys, subject = 'https://kns-nabozenstwa.netlify.app') {
+export function vapidAuth(endpoint, keys, subject = 'https://kns-nabo.netlify.app') {
   const head = b64u(JSON.stringify({ typ: 'JWT', alg: 'ES256' }))
   const claims = b64u(JSON.stringify({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: subject }))
   const sig = crypto.sign('sha256', Buffer.from(head + '.' + claims), { key: keys.privateKey, dsaEncoding: 'ieee-p1363' })

@@ -2,7 +2,7 @@
 window.KNS_CONFIG = {
   // Identyfikator klienta OAuth z Google Cloud Console (typ: aplikacja internetowa).
   // Adres strony — tylko pod nim działa logowanie Google (Authorized JavaScript origins w Google Cloud).
-  appUrl: 'https://kns-nabozenstwa.netlify.app',
+  appUrl: 'https://kns-nabo.netlify.app',
 
   clientId: '828184441520-7rkg5bloroj1dnujscio9irspa51c5is.apps.googleusercontent.com',
 

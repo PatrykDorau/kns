@@ -1,6 +1,6 @@
 {
-  "name": "Nabożeństwa — Kościół Na Skale",
-  "short_name": "Nabożeństwa",
+  "name": "KNS Nabo — Kościół Na Skale",
+  "short_name": "KNS Nabo",
   "description": "Organizacja nabożeństw Kościoła Na Skale",
   "lang": "pl",
   "start_url": "./",
@@ -39,7 +39,7 @@
   "related_applications": [
     {
       "platform": "webapp",
-      "url": "https://kns-nabozenstwa.netlify.app/manifest.webmanifest"
+      "url": "https://kns-nabo.netlify.app/manifest.webmanifest"
     }
   ]
 }

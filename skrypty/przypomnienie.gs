@@ -13,9 +13,9 @@ const CONFIG = {
   folderName: 'Aplikacja KNS Nabo', // folder aplikacji (ten sam co w aplikacji)
   servicesFolder: 'nabozenstwa',
   recipients: ['wpisz.adres@gmail.com'], // kto dostaje maila — można kilka adresów
-  pushUrl: 'https://kns-nabozenstwa.netlify.app/api/push', // funkcja wysyłająca powiadomienia na telefony
+  pushUrl: 'https://kns-nabo.netlify.app/api/push', // funkcja wysyłająca powiadomienia na telefony
   pushSecret: 'WPISZ-HASLO-PUSH_SECRET', // z: node skrypty/klucze-powiadomien.cjs
-  appUrl: 'https://kns-nabozenstwa.netlify.app',
+  appUrl: 'https://kns-nabo.netlify.app',
   day: ScriptApp.WeekDay.FRIDAY,
   hour: 19,
 }
