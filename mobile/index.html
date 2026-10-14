@@ -509,7 +509,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.9 · 14.10.2026'
+const VERSION = '2.10 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -904,7 +904,12 @@ createApp({
         push.on = true
         reg.showNotification('Powiadomienia włączone', { body: 'W piątek wieczorem dam znać, jeśli na niedzielę czegoś brakuje.', icon: 'icon-192.png', badge: 'icon-192.png' })
       } catch (e) {
-        push.error = e.message || String(e)
+        // Brave (i niektóre przeglądarki) domyślnie wyłącza usługę powiadomień — wtedy zapis kończy się tym błędem.
+        const brave = !!navigator.brave
+        push.error = /push service|registration failed|AbortError/i.test(String(e.message || e) + e.name)
+          ? (brave ? 'Brave blokuje powiadomienia: otwórz brave://settings/privacy, włącz „Use Google services for push messaging”, uruchom Brave ponownie i spróbuj jeszcze raz.'
+            : 'Ta przeglądarka nie przyjęła zapisu na powiadomienia. Spróbuj w Chrome albo Edge, albo sprawdź, czy powiadomienia nie są wyłączone w jej ustawieniach.')
+          : e.message || String(e)
         if (e.auth) ready.value = false
       } finally { push.busy = false }
     }
