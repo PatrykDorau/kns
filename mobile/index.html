@@ -136,6 +136,7 @@
   .getapp .primary svg.i, .getapp a.button svg.i { width: 18px; height: 18px; }
   .getapp button.icon { min-width: 34px; min-height: 34px; padding: 6px; }
   .getapp .ga-help { flex-basis: 100%; padding: 4px 4px 2px; color: var(--muted); font-size: 13px; }
+  .getapp .ga-help b { color: var(--text); }
   .install { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
   .install img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
   .install { flex-wrap: wrap; }
@@ -290,7 +291,7 @@
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
     <!-- Instrukcja tylko wtedy, gdy instalacja jednym dotknięciem nie jest możliwa. -->
     <div v-if="showHelp" class="ga-help">
-      <template v-if="ios">Na iPhonie: dotknij „Udostępnij” (kwadrat ze strzałką na dole Safari) → „Do ekranu początkowego” → „Dodaj”.</template>
+      <template v-if="ios">Na iPhonie w Safari: dotknij <b>≡</b> albo <b>⋯</b> obok adresu strony (w starszym Safari — kwadrat ze strzałką na dole) → <b>Udostępnij</b> → przewiń w dół → <b>Do ekranu początkowego</b> → <b>Dodaj</b>.</template>
       <template v-else>Przeglądarka jeszcze nie pozwala na instalację jednym dotknięciem. Otwórz tę stronę w Chrome, odczekaj chwilę i dotknij „Pobierz” ponownie (albo menu ⋮ → „Zainstaluj aplikację”).</template>
     </div>
   </div>
@@ -584,7 +585,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.24 · 14.10.2026'
+const VERSION = '2.25 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
