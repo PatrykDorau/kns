@@ -904,7 +904,8 @@ export async function init() {
     if (settings.sharedDir === dir) sharedAccount.value = account
   }, { immediate: true })
   setInterval(syncShared, 15000)
-  window.addEventListener('focus', syncShared)
+  // Powrót do okna: synchronizacja, a bez połączonego folderu — ponowne szukanie go (np. po dodaniu skrótu).
+  window.addEventListener('focus', () => (settings.sharedDir ? syncShared() : findSharedDir()))
   watch(settings, () => saveSoon('settings'), { deep: true })
   watch(() => settings.remote, async on => {
     const res = await api.setRemote(on, settings.remoteToken)
