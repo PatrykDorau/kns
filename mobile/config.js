@@ -1,6 +1,9 @@
 // Ustawienia strony nabożeństw na telefon.
 window.KNS_CONFIG = {
   // Identyfikator klienta OAuth z Google Cloud Console (typ: aplikacja internetowa).
+  // Adres strony — tylko pod nim działa logowanie Google (Authorized JavaScript origins w Google Cloud).
+  appUrl: 'https://kns-nabozenstwa.netlify.app',
+
   clientId: '828184441520-7rkg5bloroj1dnujscio9irspa51c5is.apps.googleusercontent.com',
 
   // Folder aplikacji na Dysku Google — w „Mój dysk” konta kościoła albo udostępniony zalogowanemu kontu.

@@ -120,7 +120,9 @@ export function createDrive(config) {
     demo: false,
     signedIn: () => !!token,
     account: () => email,
-    signIn: () => new Promise((resolve, reject) => {
+    // choose — pokaż wybór konta (pierwsze logowanie, „inne konto”); bez niego Google loguje po cichu
+    // ostatnim kontem, co jest wygodne przy odnawianiu sesji.
+    signIn: (choose = false) => new Promise((resolve, reject) => {
       if (!window.google?.accounts?.oauth2) return reject(new Error('Nie udało się wczytać logowania Google — sprawdź internet.'))
       client = client || google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: SCOPE, callback: () => {} })
       client.callback = async res => {
@@ -131,9 +133,11 @@ export function createDrive(config) {
         writeAuth({ token, expires, email })
         resolve()
       }
-      client.error_callback = () => reject(new Error('Logowanie przerwane.'))
-      client.requestAccessToken({ prompt: '', login_hint: email || undefined })
+      client.error_callback = e => reject(new Error(e?.type === 'popup_closed' ? 'Logowanie przerwane — okno Google zostało zamknięte.' : e?.type === 'popup_failed_to_open' ? 'Przeglądarka zablokowała okno logowania — zezwól na wyskakujące okna dla tej strony.' : 'Logowanie przerwane.'))
+      client.requestAccessToken(choose || !email ? { prompt: 'select_account' } : { prompt: '', login_hint: email })
     }),
+    // Zapomina konto — następne logowanie pokaże wybór konta.
+    forget() { token = ''; email = ''; writeAuth({}) },
     signOut() {
       if (token && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(token, () => {})
       token = ''; email = ''

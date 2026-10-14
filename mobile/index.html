@@ -172,6 +172,9 @@
   .remind .bell { width: 28px; height: 28px; color: var(--accent); flex: none; margin: 0 8px; }
   .remind a.button { margin-left: auto; background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
   .remind .topic { word-break: break-all; font-size: 12px; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+  .origin-warn { margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: var(--bad-soft); border: 1px solid rgba(240, 72, 62, .4); font-size: 14px; color: var(--bad-text); display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .origin-warn b { color: var(--text); }
+  button.ghost.link { min-height: 0; padding: 0; font-size: inherit; display: inline; }
   .countdown { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
   .cd-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .cd-digits { display: flex; align-items: baseline; gap: 3px; font-variant-numeric: tabular-nums; }
@@ -243,7 +246,8 @@
   </div>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
   <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
-  <p v-if="error" class="error" role="alert">{{ error }}</p>
+  <p v-if="error" class="error" role="alert">{{ error }}
+    <button v-if="/konta|konto/.test(error) && !drive.demo" class="ghost link" :disabled="busy" @click="otherAccount">Zaloguj innym kontem</button></p>
 
   <!-- brak konfiguracji / logowanie -->
   <div v-if="!configured" class="center">
@@ -263,8 +267,13 @@
   <div v-else-if="!ready" class="center">
     <img src="logo.png" alt="Kościół Na Skale">
     <p class="note">Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.</p>
+    <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
+    <div v-if="wrongOrigin" class="origin-warn">
+      <b>Ta strona jest otwarta pod innym adresem</b> ({{ origin }}) — Google nie pozwoli tu się zalogować.
+      <a class="button primary" :href="appUrl">Otwórz {{ appUrl.replace('https://', '') }}</a>
+    </div>
     <button class="primary" :disabled="busy" @click="start">{{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj kontem Google' }}</button>
-    <p v-if="drive.account()" class="note">jako {{ drive.account() }}</p>
+    <p v-if="drive.account()" class="note">jako {{ drive.account() }} · <button class="ghost link" :disabled="busy" @click="otherAccount">inne konto</button></p>
   </div>
 
   <!-- lista -->
@@ -500,7 +509,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.7 · 14.10.2026'
+const VERSION = '2.8 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -676,6 +685,11 @@ createApp({
       songs.value = data.songs
     }
     const start = () => guard(async () => { await drive.signIn(); await fetchAll(); ready.value = true })
+    // Konto bez dostępu do folderu: zapominamy je i od razu pokazujemy wybór konta.
+    const otherAccount = () => guard(async () => { drive.forget(); await drive.signIn(true); await fetchAll(); ready.value = true })
+    const appUrl = window.KNS_CONFIG?.appUrl || 'https://kns-nabozenstwa.netlify.app'
+    const origin = location.origin
+    const wrongOrigin = !demo && origin !== new URL(appUrl).origin
     const reload = () => guard(fetchAll)
     function logout() {
       drive.signOut()
@@ -939,7 +953,7 @@ createApp({
       drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, alert, current, dirty,
       query, picking, results, confirmDelete,
       pretty, day, month, weekday, missing, upcoming, songTitle, firstLine, inBase, chosen, lines,
-      start, reload, open, create, fix, back, addSong, move, save, remove,
+      start, otherAccount, appUrl, origin, wrongOrigin, reload, open, create, fix, back, addSong, move, save, remove,
       showServices, songView, song, songQuery, songResults, songDirty, slideCount, numberTaken, openSongs, openSong, newSong, closeSong, saveSong, deleteSong,
       KIND, ACCEPT, fileType, uploading, progress, fromPhone, picker, pickQuery, pickFound, pickBusy, openPicker, searchSoon, fromDrive,
     }
