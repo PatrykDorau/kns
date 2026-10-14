@@ -1,8 +1,8 @@
 // Pozwala zainstalować stronę jako aplikację i otworzyć ją bez zasięgu (z ostatnio pobranej wersji).
 // Pliki strony: najpierw sieć (żeby zawsze była najnowsza wersja), a bez internetu — kopia.
 // Dane z Dysku Google nigdy nie są tu zapisywane — zawsze idą prosto do Google.
-const CACHE = 'kns-nabo-v26'
-const SHELL = ['./', './index.html', './drive.js', './config.js', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png']
+const CACHE = 'kns-nabo-v27'
+const SHELL = ['./', './index.html', './drive.js', './config.js', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png', './badge.png']
 const LIBRARY = 'https://cdnjs.cloudflare.com/'
 
 self.addEventListener('install', event => {
@@ -41,7 +41,7 @@ self.addEventListener('push', event => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { data = { body: event.data?.text() } }
   event.waitUntil(self.registration.showNotification(data.title || 'Nabożeństwa', {
-    body: data.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'kns-przypomnienie', renotify: true, data: { url: data.url || './' },
+    body: data.body || '', icon: 'icon-192.png', badge: 'badge.png', tag: 'kns-przypomnienie', renotify: true, data: { url: data.url || './' },
   }))
 })
 // Dotknięcie powiadomienia otwiera aplikację (albo przełącza na już otwartą).

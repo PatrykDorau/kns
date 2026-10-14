@@ -165,6 +165,9 @@
   .remind.on { border-color: rgba(61, 220, 151, .4); }
   .remind.on .bell { color: var(--ok); }
   .remind .error { display: block; margin-top: 6px; }
+  .remind .when { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; color: var(--text); }
+  .remind .when select { width: auto; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; }
+  .remind .saved-when { display: block; margin-top: 4px; color: var(--ok); }
   .remind .slow { display: block; margin-top: 6px; color: var(--accent); }
   .remind .primary { margin-left: auto; }
   .push-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
@@ -373,7 +376,14 @@
       <svg class="i bell"><use href="#bell"/></svg>
       <div>
         <b>{{ push.on ? 'Powiadomienia włączone' : 'Powiadomienia o brakach' }}</b>
-        <template v-if="push.on">W piątek wieczorem dostaniesz powiadomienie, jeśli na niedzielę czegoś brakuje.</template>
+        <template v-if="push.on">Dostaniesz powiadomienie, jeśli na najbliższą niedzielę czegoś brakuje:
+          <span class="when">
+            <select v-model.number="push.day" aria-label="Dzień przypomnienia" :disabled="push.busy" @change="saveSchedule"><option v-for="(name, i) in DAYS" :key="i" :value="i">{{ name }}</option></select>
+            <span>o</span>
+            <select v-model.number="push.hour" aria-label="Godzina przypomnienia" :disabled="push.busy" @change="saveSchedule"><option v-for="h in HOURS" :key="h" :value="h">{{ h }}:00</option></select>
+          </span>
+          <small v-if="push.saved" class="saved-when">Zapisano ✓</small>
+        </template>
         <template v-else-if="push.otherBrowser">Ta przeglądarka ({{ push.otherBrowser }}) nie obsługuje powiadomień. Otwórz stronę w <b>Chrome</b> i zainstaluj aplikację stamtąd (menu ⋮ → „Zainstaluj aplikację”).</template>
         <template v-else-if="push.needsInstall">Na iPhonie najpierw zainstaluj aplikację (przycisk „Pobierz” wyżej) i otwórz ją z ekranu głównego.</template>
         <template v-else-if="push.denied">Powiadomienia są zablokowane w ustawieniach telefonu dla tej strony — odblokuj je tam i spróbuj ponownie.</template>
@@ -524,7 +534,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.15 · 14.10.2026'
+const VERSION = '2.16 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -907,14 +917,20 @@ createApp({
     const pushUrl = window.KNS_CONFIG?.pushUrl || ''
     const { reactive } = Vue
     const push = reactive({
-      supported: !!pushUrl && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window || (ios && !!pushUrl),
+      // Tylko telefony i tablety — na komputerze przypomnienia przychodzą mailem.
+      supported: !!pushUrl && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) && ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window || ios),
       needsInstall: ios && !installed.value,
       // Android: aplikacja Google, przeglądarka Xiaomi, Samsung Internet i przeglądarki wbudowane w aplikacje nie obsługują powiadomień.
       otherBrowser: !/android/i.test(navigator.userAgent) ? '' : /GSA\//.test(navigator.userAgent) ? 'wyszukiwarka Google' : /MiuiBrowser|XiaoMi/i.test(navigator.userAgent) ? 'przeglądarka Xiaomi'
         : /; wv\)/.test(navigator.userAgent) ? 'przeglądarka wbudowana w aplikację' : '',
       denied: 'Notification' in window && Notification.permission === 'denied',
-      on: false, busy: false, error: '', slow: '',
+      on: false, busy: false, error: '', slow: '', day: 5, hour: 19, saved: false,
     })
+    const DAYS = ['w niedzielę', 'w poniedziałek', 'we wtorek', 'w środę', 'w czwartek', 'w piątek', 'w sobotę']
+    const HOURS = Array.from({ length: 17 }, (_, i) => i + 6) // 6:00–22:00
+    let when = { day: 5, hour: 19 }
+    try { when = { ...when, ...JSON.parse(localStorage.getItem('kns-push-when') || '{}') } } catch { /* brak zapisu */ }
+    push.day = when.day; push.hour = when.hour; push.saved = false
     let pushId = ''
     try { pushId = localStorage.getItem('kns-push-id') || ''; if (!pushId) { pushId = uid() + uid(); localStorage.setItem('kns-push-id', pushId) } } catch { pushId = uid() + uid() }
     const keyBytes = b64 => Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4)), c => c.charCodeAt(0))
@@ -947,9 +963,9 @@ createApp({
             await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
           }
         }
-        await drive.savePush(pushId, { subscription: sub.toJSON(), account: drive.account(), device: navigator.userAgent.slice(0, 120), created: Date.now() })
+        await drive.savePush(pushId, pushRecord(sub))
         push.on = true
-        reg.showNotification('Powiadomienia włączone', { body: 'W piątek wieczorem dam znać, jeśli na niedzielę czegoś brakuje.', icon: 'icon-192.png', badge: 'icon-192.png' })
+        reg.showNotification('Powiadomienia włączone', { body: 'Dam znać, jeśli na niedzielę czegoś brakuje. Termin przypomnienia zmienisz w aplikacji.', icon: 'icon-192.png', badge: 'badge.png' })
       } catch (e) {
         // Brave (i niektóre przeglądarki) domyślnie wyłącza usługę powiadomień — wtedy zapis kończy się tym błędem.
         const brave = !!navigator.brave
@@ -981,6 +997,19 @@ createApp({
         if (!res.ok || !out.sent) throw new Error(out.error || 'Nie udało się wysłać — spróbuj wyłączyć i włączyć powiadomienia.')
       } catch (e) { push.error = e.message || String(e) } finally { push.busy = false }
     }
+    // Plik telefonu na Dysku: adres powiadomień i wybrany termin (skrypt przypomnienia sprawdza co godzinę).
+    const pushRecord = sub => ({ subscription: sub.toJSON(), schedule: { day: push.day, hour: push.hour }, account: drive.account(), device: navigator.userAgent.slice(0, 120), updated: Date.now() })
+    async function saveSchedule() {
+      push.busy = true; push.error = ''; push.saved = false
+      try {
+        try { localStorage.setItem('kns-push-when', JSON.stringify({ day: push.day, hour: push.hour })) } catch { /* tryb prywatny */ }
+        const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription()
+        if (!sub) { push.on = false; return }
+        await drive.savePush(pushId, pushRecord(sub))
+        push.saved = true
+        setTimeout(() => { push.saved = false }, 2500)
+      } catch (e) { push.error = e.message || String(e) } finally { push.busy = false }
+    }
     async function disablePush() {
       push.busy = true; push.error = ''
       try {
@@ -1006,7 +1035,7 @@ createApp({
     else if (clientId && drive.signedIn()) guard(async () => { await fetchAll(); ready.value = true })
 
     return {
-      showTabs, countdown, push, enablePush, disablePush, testPush,
+      showTabs, countdown, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,
