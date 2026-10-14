@@ -373,6 +373,7 @@
       <div>
         <b>{{ push.on ? 'Powiadomienia włączone' : 'Powiadomienia o brakach' }}</b>
         <template v-if="push.on">W piątek wieczorem dostaniesz powiadomienie, jeśli na niedzielę czegoś brakuje.</template>
+        <template v-else-if="push.otherBrowser">Ta przeglądarka ({{ push.otherBrowser }}) nie obsługuje powiadomień. Otwórz stronę w <b>Chrome</b> i zainstaluj aplikację stamtąd (menu ⋮ → „Zainstaluj aplikację”).</template>
         <template v-else-if="push.needsInstall">Na iPhonie najpierw zainstaluj aplikację (przycisk „Pobierz” wyżej) i otwórz ją z ekranu głównego.</template>
         <template v-else-if="push.denied">Powiadomienia są zablokowane w ustawieniach telefonu dla tej strony — odblokuj je tam i spróbuj ponownie.</template>
         <template v-else>W piątek wieczorem, gdy na niedzielę czegoś brakuje.</template>
@@ -382,6 +383,7 @@
         <button :disabled="push.busy" title="Wysyła powiadomienie na ten telefon, żeby zobaczyć, jak wygląda" @click="testPush">{{ push.busy ? 'Wysyłam…' : 'Wyślij próbne' }}</button>
         <button :disabled="push.busy" @click="disablePush">Wyłącz</button>
       </span>
+      <a v-else-if="push.otherBrowser" class="button primary" :href="chromeLink">Otwórz w Chrome</a>
       <button v-else-if="!push.needsInstall" class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button>
     </div>
 
@@ -520,7 +522,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.11 · 14.10.2026'
+const VERSION = '2.12 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -905,6 +907,9 @@ createApp({
     const push = reactive({
       supported: !!pushUrl && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window || (ios && !!pushUrl),
       needsInstall: ios && !installed.value,
+      // Android: aplikacja Google, przeglądarka Xiaomi, Samsung Internet i przeglądarki wbudowane w aplikacje nie obsługują powiadomień.
+      otherBrowser: !/android/i.test(navigator.userAgent) ? '' : /GSA\//.test(navigator.userAgent) ? 'wyszukiwarka Google' : /MiuiBrowser|XiaoMi/i.test(navigator.userAgent) ? 'przeglądarka Xiaomi'
+        : /; wv\)/.test(navigator.userAgent) ? 'przeglądarka wbudowana w aplikację' : '',
       denied: 'Notification' in window && Notification.permission === 'denied',
       on: false, busy: false, error: '',
     })
