@@ -326,7 +326,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '1.6 · 14.10.2026'
+const VERSION = '1.7 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -390,6 +390,8 @@ function createCamera() {
     keepAwake()
   }
   function close() {
+    // Komputer przestaje liczyć ten telefon.
+    if (source) fetch(CUE_URL + '-ok', { method: 'POST', body: JSON.stringify({ phone: phoneId, bye: true }) }).catch(() => {})
     source?.close(); source = null
     wake?.release().catch(() => {}); wake = null
     document.body.classList.remove('locked')

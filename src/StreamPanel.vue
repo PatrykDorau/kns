@@ -20,8 +20,10 @@ const CUES = [['live', 'NA WIZJI', '1'], ['ready', 'PRZYGOTUJ SIĘ', '2'], ['off
 const cueUrl = ref('')
 const cueError = ref('')
 const cueClients = ref(0)
-const cueRemote = ref({ phones: 0, error: '' })
+const cueRemote = ref({ phones: 0, got: 0, error: '' })
+// Strona w sieci lokalnej nie potwierdza odbioru — jej telefony liczą się jako „mają sygnał”.
 const phones = computed(() => cueRemote.value.phones + cueClients.value)
+const got = computed(() => cueRemote.value.got + cueClients.value)
 const cueState = ref('off')
 let offCue = null
 async function applyCue() {
@@ -30,7 +32,7 @@ async function applyCue() {
   cueUrl.value = res.url || ''
   cueError.value = res.error || ''
   cueState.value = 'off'
-  cueRemote.value = { phones: 0, error: '' }
+  cueRemote.value = { phones: 0, got: 0, error: '' }
 }
 async function sendCue(state) {
   if (!settings.cue) return
@@ -125,7 +127,10 @@ onBeforeUnmount(() => {
           <div class="cue-head">
             <h2>Sygnały dla kamerzysty</h2>
             <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue"> Włączone</label>
-            <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones }">{{ phones ? 'Telefony z aktualnym sygnałem: ' + phones : 'Żaden telefon nie potwierdził sygnału' }}</span>
+            <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones || got < phones }">
+              <template v-if="!phones">Żaden telefon nie jest połączony</template>
+              <template v-else>Telefony: {{ phones }} · {{ got === phones ? 'sygnał odebrany ✓' : 'odebrało ' + got + ' z ' + phones + '…' }}</template>
+            </span>
           </div>
           <p v-if="cueRemote.error" class="note bad">{{ cueRemote.error }}</p>
           <template v-if="settings.cue">

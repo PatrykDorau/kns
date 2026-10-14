@@ -569,15 +569,20 @@ const cueNotify = () => toControl('cue:clients', cue ? cue.clients.size : 0)
 // KNS_CUE_BASE: tylko do testów automatycznych (podstawiony serwer zamiast ntfy.sh).
 const CUE_TOPIC = require('./google-config.cjs').cueTopic || ''
 const CUE_RELAY = (process.env.KNS_CUE_BASE || 'https://ntfy.sh') + '/' + CUE_TOPIC
-let relay = null // { ctrl, last: id ostatniego sygnału, phones: Set }
-const relayNotify = (error = '') => toControl('cue:remote', { phones: relay ? relay.phones.size : 0, error })
+let relay = null // { ctrl, last: id ostatniego sygnału, phones: Map telefon → id ostatnio potwierdzonego sygnału }
+// phones — telefony z otwartym ekranem „Kamera”, got — ile z nich potwierdziło ostatni sygnał.
+const relayNotify = (error = '') => toControl('cue:remote', {
+  phones: relay ? relay.phones.size : 0,
+  got: relay ? [...relay.phones.values()].filter(id => id === relay.last).length : 0,
+  error,
+})
 async function relayCue(state, quiet = false) {
   if (!CUE_TOPIC) return
   try {
     const res = await fetch(CUE_RELAY, { method: 'POST', headers: { Firebase: 'no' }, body: JSON.stringify({ state, quiet }) })
     if (!res.ok) throw new Error(String(res.status))
     const { id } = await res.json()
-    if (relay) { relay.last = id; relay.phones.clear() }
+    if (relay) relay.last = id
     relayNotify()
   } catch {
     relayNotify('Sygnał nie poszedł przez internet — sprawdź połączenie komputera.')
@@ -588,13 +593,16 @@ function watchRelay(on) {
   relay = null
   if (!on || !CUE_TOPIC) return
   const ctrl = new AbortController()
-  relay = { ctrl, last: '', phones: new Set() }
+  relay = { ctrl, last: '', phones: new Map() }
   const take = line => {
     try {
       const msg = JSON.parse(line)
       if (msg.event !== 'message' || !relay) return
       const ack = JSON.parse(msg.message)
-      if (ack.id && ack.id === relay.last && ack.phone) { relay.phones.add(ack.phone); relayNotify() }
+      if (!ack.phone) return
+      if (ack.bye) relay.phones.delete(ack.phone)
+      else relay.phones.set(ack.phone, ack.id)
+      relayNotify()
     } catch { /* nie nasza wiadomość */ }
   }
   ;(async () => {
