@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld('api', {
   loadStore: invoke('store:load'),
   saveStore: invoke('store:save'),
   pickSongFiles: invoke('songs:pick'),
+  songsFromDrive: invoke('songs:fromDrive'),
+  onSongsDriveProgress: on('songs:driveProgress'),
   exportSongs: invoke('songs:export'),
   exportService: invoke('service:export'),
   importService: invoke('service:import'),

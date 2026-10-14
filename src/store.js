@@ -563,6 +563,29 @@ export function addSong() {
 }
 
 // Wczytuje pieśni z plików lub folderu, ale ich nie zapisuje — trafiają do wersji roboczej w oknie bazy.
+// Pieśni z folderu na Dysku Google (np. cała baza z OpenSong).
+export async function songsFromDrive(link) {
+  const off = api.onSongsDriveProgress(p => { busy.value = `Pobieram pieśni z Dysku Google: ${p.done} z ${p.total}…` })
+  busy.value = 'Szukam pieśni w folderze na Dysku Google…'
+  try {
+    const res = await api.songsFromDrive(link)
+    if (res.error) return { error: res.error, songs: [], skipped: 0 }
+    return parseSongFiles(res.files)
+  } finally { off(); busy.value = '' }
+}
+async function parseSongFiles(files) {
+  const found = []
+  let skipped = 0
+  if (files.length) {
+    const { parseSongFile } = await import('./songImport.js')
+    for (const f of files) {
+      const list = parseSongFile(f.name, f.content)
+      if (!list.length) skipped++
+      found.push(...list.map(x => ({ id: uid(), type: 'song', ...x })))
+    }
+  }
+  return { songs: found, skipped }
+}
 export async function pickSongs(folder) {
   const files = await api.pickSongFiles(folder)
   const found = []

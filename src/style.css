@@ -771,3 +771,7 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
 .service-head { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .service-head h2 { flex: 1; min-width: 0; margin: 0; }
 .service-head button.small { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; }
+
+.drive-import { display: flex; gap: 8px; margin: -4px 0 12px; }
+.drive-import input { flex: 1; }
+.mgr-tools button.on { border-color: var(--accent); color: var(--accent); }

@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import {
-  addToService, api, applySongChanges, managerOpen, matchSongs, pickSongs, plannerTarget, role, search, selectedId, settings,
+  addToService, api, applySongChanges, managerOpen, matchSongs, pickSongs, songsFromDrive, plannerTarget, role, search, selectedId, settings,
   songs, sortSongs, tab, uid, verseKey, verses,
 } from './store.js'
 
@@ -129,12 +129,26 @@ function removeChecked() {
   checked.value = new Set()
   confirm.value = ''
 }
+// Pieśni, które już są w bazie (ten sam numer i tytuł, bez względu na wielkość liter i znaki), nie dublują się.
+const songKey = s => (s.number || '').trim() + '|' + String(s.title || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+function addImported(res) {
+  if (res.error) { message.value = res.error; return }
+  const have = new Set(draft.value.map(songKey))
+  const fresh = res.songs.filter(s => { const k = songKey(s); if (have.has(k)) return false; have.add(k); return true })
+  if (fresh.length) add(fresh)
+  const dup = res.songs.length - fresh.length
+  message.value = `Wczytano pieśni: ${fresh.length}.` + (dup ? ` Już były w bazie: ${dup}.` : '') + (res.skipped ? ` Pominięto plików: ${res.skipped} (nierozpoznany format).` : '') + (fresh.length ? ' Zapisz, żeby dodać je do bazy.' : '')
+}
 async function runImport(folder) {
-  const res = await pickSongs(folder)
-  if (res.songs.length) add(res.songs)
-  if (res.songs.length || res.skipped) {
-    message.value = `Wczytano pieśni: ${res.songs.length}.` + (res.skipped ? ` Pominięto plików: ${res.skipped} (nierozpoznany format).` : '') + ' Zapisz, żeby dodać je do bazy.'
-  }
+  addImported(await pickSongs(folder))
+}
+// Import z folderu na Dysku Google — link wklejany w polu pod przyciskami.
+const driveLink = ref('')
+const driveOpen = ref(false)
+async function importDrive() {
+  if (!driveLink.value.trim()) return
+  addImported(await songsFromDrive(driveLink.value))
+  driveOpen.value = false
 }
 async function exportAll() {
   const res = await api.exportSongs(draft.value.map(({ number, title, text }) => ({ number, title, text })))
@@ -188,8 +202,14 @@ function use() {
         <button @click="create"><Icon name="plus" />Nowa</button>
         <button @click="runImport(false)"><Icon name="import" />Import plików</button>
         <button @click="runImport(true)"><Icon name="folder" />Import folderu</button>
+        <button :class="{ on: driveOpen }" title="Pieśni (np. z OpenSong) z folderu na Dysku Google" @click="driveOpen = !driveOpen"><Icon name="import" />Z Dysku Google</button>
         <button :disabled="!draft.length" title="Zapisuje całą bazę do jednego pliku, który można potem zaimportować" @click="exportAll"><Icon name="export" />Eksport</button>
       </div>
+
+      <form v-if="driveOpen" class="drive-import" @submit.prevent="importDrive">
+        <input v-model="driveLink" type="text" placeholder="Wklej link do folderu na Dysku Google (np. z pieśniami z OpenSong)" aria-label="Link do folderu na Dysku Google">
+        <button class="primary" type="submit" :disabled="!driveLink.trim()">Importuj</button>
+      </form>
 
       <div class="mgr-body">
         <!-- lista -->

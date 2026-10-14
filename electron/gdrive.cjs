@@ -284,6 +284,36 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
     return { fetched }
   }
 
+  /* ---------- import pieśni z folderu na Dysku (np. pieśni z OpenSong) ---------- */
+  // Wszystkie zwykłe pliki z folderu i jego podfolderów: [{ name, data: Buffer }]. Pliki Google (Dokumenty itp.)
+  // i duże pliki są pomijane. progress(done, total) — do paska postępu.
+  async function folderFiles(folderId, progress = () => {}) {
+    const found = []
+    const queue = [folderId]
+    const seen = new Set()
+    while (queue.length) {
+      const id = queue.shift()
+      if (seen.has(id)) continue
+      seen.add(id)
+      for (const f of await list(`${q(id)} in parents and trashed=false`)) {
+        if (f.mimeType === FOLDER) queue.push(f.id)
+        else if (!f.mimeType.startsWith('application/vnd.google-apps') && Number(f.size || 0) <= 3 * 1024 * 1024) found.push(f)
+      }
+    }
+    const out = []
+    let done = 0
+    // Po kilka naraz — setki małych plików pobierają się szybko, a Dysk nie odrzuca zapytań.
+    const worker = async () => {
+      while (found.length) {
+        const f = found.shift()
+        try { out.push({ name: f.name, data: Buffer.from(await (await call(`${API}/files/${f.id}?alt=media&supportsAllDrives=true`)).arrayBuffer()) }) } catch (e) { if (e.needLogin) throw e }
+        progress(++done, done + found.length)
+      }
+    }
+    await Promise.all(Array.from({ length: 6 }, worker))
+    return out
+  }
+
   /* ---------- baza pieśni ---------- */
   let songsFileId = ''
   async function readSongs(known) {
@@ -301,5 +331,5 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
     return { mtime: res.modifiedTime }
   }
 
-  return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs }
+  return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles }
 }

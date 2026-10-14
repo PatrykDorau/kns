@@ -897,6 +897,14 @@ app.whenReady().then(() => {
   ipcMain.handle('store:load', (e, name) => loadStore(name))
   ipcMain.handle('store:save', (e, name, data) => saveStore(name, data))
   ipcMain.handle('songs:pick', (e, folder) => pickSongFiles(!!folder))
+  // Pieśni z folderu na Dysku Google (link albo identyfikator folderu) — przez logowanie Google aplikacji.
+  ipcMain.handle('songs:fromDrive', (e, link) => viaGoogle(async () => {
+    const id = /folders\/([\w-]+)/.exec(String(link))?.[1] || /[?&]id=([\w-]+)/.exec(String(link))?.[1] || (/^[\w-]{20,}$/.test(String(link).trim()) ? String(link).trim() : '')
+    if (!id) throw new Error('To nie wygląda na link do folderu na Dysku Google.')
+    if (!gdrive.status().loggedIn) throw Object.assign(new Error('Najpierw zaloguj się kontem Google na ekranie startowym aplikacji.'), { needLogin: true })
+    const files = await gdrive.folderFiles(id, (done, total) => toControl('songs:driveProgress', { done, total }))
+    return { files: files.map(f => ({ name: f.name, content: decodeText(f.data) })) }
+  }))
   ipcMain.handle('songs:export', async (e, list) => {
     const res = await dialog.showSaveDialog(control, { title: 'Zapisz bazę pieśni', defaultPath: 'piesni.json', filters: [{ name: 'Baza pieśni', extensions: ['json'] }] })
     if (res.canceled) return {}
