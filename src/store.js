@@ -577,11 +577,11 @@ const computerUser = ref('')
 export const me = () => sharedAccount.value?.email || computerUser.value || 'ten komputer'
 
 // Na jeden dzień jest jedno nabożeństwo: „nowe” na zajęty dzień otwiera istniejące.
-export function newService(date = today()) {
+export function newService(date = today(), add = true) {
   const existing = services.value.find(s => s.date === date)
   if (existing) return existing
   const svc = { id: uid(), date, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: me() }
-  services.value.push(svc)
+  if (add) services.value.push(svc)
   return svc
 }
 
@@ -701,10 +701,22 @@ const snapshot = svc => JSON.stringify({ ...svc, updated: 0 })
 const clock = () => new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' })
 
 export const syncing = ref(false)
-export async function syncShared() {
-  if (syncing.value) return
+let syncRun = null
+// Trwająca synchronizacja nie jest uruchamiana drugi raz — wywołujący czeka na jej koniec.
+export function syncShared() {
+  if (syncRun) return syncRun
   syncing.value = true
-  try { await runSync() } finally { syncing.value = false }
+  syncRun = runSync().finally(() => { syncing.value = false; syncRun = null })
+  return syncRun
+}
+// Sprawdzanie zmian z innych komputerów i telefonów: co 2 minuty, po powrocie do okna (nie częściej
+// niż co 30 s) i od razu po zapisie. Zapis nabożeństwa wysyła je od razu.
+const SYNC_EVERY = 2 * 60000
+let lastSync = 0
+function syncIfStale() {
+  if (Date.now() - lastSync < 30000) return
+  lastSync = Date.now()
+  syncShared()
 }
 async function runSync() {
   const dir = settings.sharedDir
@@ -1007,9 +1019,9 @@ export async function init() {
     const account = dir ? await api.sharedAccount(dir) : null
     if (settings.sharedDir === dir) sharedAccount.value = account
   }, { immediate: true })
-  setInterval(syncShared, 15000)
+  setInterval(() => { lastSync = Date.now(); syncShared() }, SYNC_EVERY)
   // Powrót do okna: synchronizacja, a bez połączonego folderu — ponowne szukanie go (np. po dodaniu skrótu).
-  window.addEventListener('focus', () => (settings.sharedDir ? syncShared() : findSharedDir()))
+  window.addEventListener('focus', () => (settings.sharedDir ? syncIfStale() : findSharedDir()))
   watch(settings, () => saveSoon('settings'), { deep: true })
   watch(() => settings.remote, async on => {
     const res = await api.setRemote(on, settings.remoteToken)
