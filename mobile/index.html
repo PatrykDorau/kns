@@ -219,7 +219,8 @@
   </div>
 
   <!-- Instalacja na telefonie jako aplikacja (ikona na ekranie głównym, bez paska przeglądarki). -->
-  <div v-if="!installed && !current && !hideInstall" class="install">
+  <!-- Karta znika dopiero po zainstalowaniu aplikacji — nie da się jej zamknąć wcześniej. -->
+  <div v-if="!installed && !current" class="install">
     <img src="icon-192.png" alt="">
     <div>
       <b>Aplikacja na telefon</b>
@@ -228,7 +229,6 @@
       <template v-else>Ikona na ekranie głównym, otwiera się jak zwykła aplikacja.</template>
     </div>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
-    <button class="icon" aria-label="Ukryj" @click="dismissInstall"><svg class="i"><use href="#x"/></svg></button>
   </div>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
   <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
@@ -476,7 +476,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.3 · 14.10.2026'
+const VERSION = '2.4 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -819,22 +819,19 @@ createApp({
     const chromeLink = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;end'
     let promptEvent = null
     const canPrompt = ref(false)
-    let hidden = false
-    try { hidden = localStorage.getItem('kns-install-hidden') === '1' } catch { /* tryb prywatny */ }
-    const hideInstall = ref(hidden)
+    // Zainstalowana aplikacja otwarta w zwykłej przeglądarce: pamiętamy instalację, a Chrome potrafi ją też wykryć.
+    try { if (localStorage.getItem('kns-installed') === '1') installed.value = true } catch { /* tryb prywatny */ }
+    const markInstalled = () => { installed.value = true; try { localStorage.setItem('kns-installed', '1') } catch { /* tryb prywatny */ } }
+    navigator.getInstalledRelatedApps?.().then(apps => { if (apps.length) markInstalled() }).catch(() => {})
     const showHelp = ref(false)
     addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvent = e; canPrompt.value = true })
-    addEventListener('appinstalled', () => { installed.value = true })
+    addEventListener('appinstalled', markInstalled)
     async function install() {
       if (!promptEvent) { showHelp.value = true; return }
       promptEvent.prompt()
       const choice = await promptEvent.userChoice
-      if (choice.outcome === 'accepted') installed.value = true
+      if (choice.outcome === 'accepted') markInstalled()
       promptEvent = null; canPrompt.value = false
-    }
-    function dismissInstall() {
-      hideInstall.value = true
-      try { localStorage.setItem('kns-install-hidden', '1') } catch { /* tryb prywatny */ }
     }
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {})
 
@@ -855,7 +852,7 @@ createApp({
       countdown, reminderTopic, showRemindHelp,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
-      installed, ios, canPrompt, showHelp, hideInstall, install, dismissInstall,
+      installed, ios, canPrompt, showHelp, install,
       version: VERSION, offline, showPast, coming, past, shown, logout,
       drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, alert, current, dirty,
       query, picking, results, confirmDelete,

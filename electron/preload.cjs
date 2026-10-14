@@ -62,6 +62,9 @@ contextBridge.exposeInMainWorld('api', {
   setCompact: invoke('window:compact'),
   setOnTop: invoke('window:onTop'),
   biblePick: invoke('bible:pick'),
+  updateState: invoke('update:state'),
+  installUpdate: invoke('update:install'),
+  onUpdate: on('update:state'),
 
   // pilot w telefonie
   setRemote: invoke('remote:set'),

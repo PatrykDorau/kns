@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker, shell } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -751,6 +751,38 @@ function createControl() {
   control.on('closed', () => { control = null; app.quit() })
 }
 
+/* ---------- aktualizacje ---------- */
+// Instalator: nowa wersja z GitHub Releases pobiera się w tle, a po „Uruchom ponownie” od razu instaluje.
+// Wersja przenośna (portable) nie umie się podmienić — dostaje tylko wiadomość z linkiem do pobrania.
+const RELEASES = 'https://api.github.com/repos/PatrykDorau/kns/releases/latest'
+let update = null // { version, ready } albo { version, url }
+let updater = null
+const newer = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false }
+function setUpdate(next) { update = next; toControl('update:state', update) }
+async function checkPortable() {
+  try {
+    const res = await (await fetch(RELEASES, { headers: { 'User-Agent': 'KosciolNaSkale' } })).json()
+    const version = String(res.tag_name || '').replace(/^v/, '')
+    if (version && newer(version, app.getVersion())) setUpdate({ version, url: res.html_url })
+  } catch { /* bez internetu — spróbujemy później */ }
+}
+function setupUpdates() {
+  if (!app.isPackaged || process.env.RZUTNIK_HIDDEN) return
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    checkPortable()
+    setInterval(checkPortable, 6 * 3600e3)
+    return
+  }
+  updater = require('electron-updater').autoUpdater
+  updater.autoDownload = true
+  updater.autoInstallOnAppQuit = true
+  updater.on('update-downloaded', info => setUpdate({ version: info.version, ready: true }))
+  updater.on('error', () => { /* bez internetu albo brak wydania — spróbujemy później */ })
+  const check = () => updater.checkForUpdates().catch(() => {})
+  check()
+  setInterval(check, 6 * 3600e3)
+}
+
 function displays() {
   const all = screen.getAllDisplays()
   const current = control ? screen.getDisplayMatching(control.getBounds()).id : null
@@ -914,6 +946,12 @@ app.whenReady().then(() => {
     try { text = new TextDecoder(enc).decode(buf) } catch { text = buf.toString('utf8') }
     return { name: path.basename(res.filePaths[0]), text }
   })
+  ipcMain.handle('update:state', () => ({ current: app.getVersion(), ...(update || {}) }))
+  ipcMain.handle('update:install', () => {
+    if (update?.ready && updater) updater.quitAndInstall(false, true)
+    else if (update?.url) shell.openExternal(update.url)
+  })
+  setupUpdates()
   ipcMain.handle('window:onTop', (e, on) => { if (control && !control.isDestroyed()) control.setAlwaysOnTop(!!on, 'floating') })
   ipcMain.handle('app:user', () => { try { return os.userInfo().username + ' (' + os.hostname() + ')' } catch { return os.hostname() } })
   ipcMain.handle('cue:set', (e, on, token) => setCue(on, token))

@@ -29,6 +29,8 @@ export const settings = reactive({
   deletedSongs: {}, // id → czas usunięcia; żeby pieśń usunięta tutaj zniknęła też na innych komputerach
   songStyle: { ...TEXT_STYLE, fs: 14, shadow: true, valign: 'top' }, // pieśni domyślnie od góry ekranu
 })
+// Aktualizacja aplikacji: { current, version?, ready?, url? } — z procesu głównego.
+export const appUpdate = ref({ current: '' })
 export const role = ref(null) // wybrana służba: 'display' | 'stream' | 'planner'
 export const services = ref([]) // zaplanowane nabożeństwa
 export const serviceModal = ref(false) // okno „Wczytaj nabożeństwo”
@@ -1069,6 +1071,8 @@ export async function init() {
   })
   api.onVideoState(state => { video.value = state })
   api.onPptxProgress(p => { busy.value = `${p.name}: slajd ${p.done} z ${p.count}…` })
+  api.updateState().then(s => { appUpdate.value = s })
+  api.onUpdate(s => { appUpdate.value = { ...appUpdate.value, ...s } })
   api.onRemoteCmd(cmd => (cmd === 'hide' ? toggleHidden() : stepBy(cmd === 'next' ? 1 : -1, true)))
   wire()
   setInterval(() => { now.value = Date.now() }, 1000)

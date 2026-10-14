@@ -707,3 +707,9 @@ table.sermons { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.sermons td { padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
 table.sermons td:first-child { color: var(--muted); white-space: nowrap; }
 .kind.sung { color: var(--accent); }
+
+/* nowa wersja aplikacji */
+.update-bar { position: fixed; left: 16px; bottom: 16px; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border-radius: 12px;
+  background: var(--panel2); border: 1px solid var(--accent); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); font-size: 13px; }
+.update-bar .icon { color: var(--accent); }
+.app-version { margin: 10px 0 0; color: var(--muted); font-size: 12px; opacity: .7; }

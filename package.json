@@ -1,6 +1,6 @@
 {
   "name": "rzutnik",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Aplikacja służb Kościoła Na Skale: rzutnik, stream i organizacja nabożeństw",
   "author": "Patryk Dorau",
   "private": true,
@@ -37,7 +37,14 @@
     },
     "portable": {
       "artifactName": "KosciolNaSkale-portable-${version}.exe"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "PatrykDorau",
+        "repo": "kns"
+      }
+    ]
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.10",
@@ -51,5 +58,8 @@
     "vite": "^8.3.4",
     "vue": "^3.5.44",
     "wait-on": "^9.5.1"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

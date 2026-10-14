@@ -8,7 +8,7 @@ import Countdown from './Countdown.vue'
 import StreamPanel from './StreamPanel.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
-import { busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
+import { api, appUpdate, busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
 
 // Na starcie użytkownik wybiera służbę — każda ma swój widok, a łączy je wspólne nabożeństwo.
 const ready = ref(false)
@@ -81,10 +81,18 @@ function choose(next) {
         <button class="small" title="Dla komputera z programem „Dysk Google na komputer”" @click="pickSharedDir">lub wskaż folder…</button>
       </template>
     </div>
+    <p v-if="appUpdate.current" class="app-version">wersja {{ appUpdate.current }}</p>
   </div>
   <Control v-else-if="role === 'display'" />
   <StreamPanel v-else-if="role === 'stream'" />
   <PlannerPanel v-else />
+
+  <!-- Nowa wersja aplikacji: pobrana w tle (instalator) albo do pobrania (wersja przenośna). -->
+  <div v-if="appUpdate.version" class="update-bar" role="status">
+    <Icon name="import" />
+    <span>Nowa wersja <b>{{ appUpdate.version }}</b>{{ appUpdate.ready ? ' jest gotowa.' : ' jest dostępna.' }}</span>
+    <button class="small primary" @click="api.installUpdate()">{{ appUpdate.ready ? 'Uruchom ponownie i zaktualizuj' : 'Pobierz' }}</button>
+  </div>
 
   <!-- Komunikat o trwającej pracy (np. import prezentacji) — widoczny w każdej służbie. -->
   <div v-if="busy" class="toast" role="status"><span class="spinner" aria-hidden="true"></span>{{ busy }}</div>
