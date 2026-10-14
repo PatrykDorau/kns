@@ -4,6 +4,8 @@ import Icon from './Icon.vue'
 import SyncButton from './SyncButton.vue'
 import SongManager from './SongManager.vue'
 import Brand from './Brand.vue'
+import StatsPanel from './StatsPanel.vue'
+import { ago, songHistory } from './stats.js'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
   removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE,
@@ -48,6 +50,10 @@ function openSong(songId) {
   managerOpen.value = true
 }
 const query = ref('')
+const showStats = ref(false)
+// Przy wyszukiwaniu pieśni: ile razy i kiedy ostatnio była śpiewana — żeby nie powtarzać wciąż tych samych.
+const history = computed(() => songHistory(services.value.filter(s => s.date && s.date <= today()), songs.value))
+const sung = song => { const h = history.value.get(song.id); return h ? `śpiewana ${h.count}× · ostatnio ${ago(h.dates[0], today())}` : 'jeszcze nieśpiewana' }
 const results = computed(() => findSongs(query.value))
 const confirmDelete = ref(false)
 const message = ref('')
@@ -153,6 +159,7 @@ load(nearestService.value)
       <span class="spacer"></span>
       <SyncButton status />
       <span v-if="!settings.sharedDir" class="note">Bez folderu wspólnego — tylko ten komputer</span>
+      <button title="Pieśni i kazania: ile razy, kiedy, z jakich ksiąg" @click="showStats = true"><Icon name="chart" />Statystyki</button>
       <button title="Przeglądanie i edycja wszystkich pieśni" @click="openSong(null)"><Icon name="music" />Baza pieśni</button>
       <button title="Wczytuje nabożeństwo zapisane na innym komputerze" @click="importIt"><Icon name="import" />Wczytaj z folderu</button>
       <button class="primary" @click="create"><Icon name="plus" />Nowe nabożeństwo</button>
@@ -228,7 +235,7 @@ load(nearestService.value)
             <ul v-if="query.trim()" class="results">
               <li v-if="!results.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta — uzupełnia ją służba rzutnika.' }}</li>
               <li v-for="song in results" :key="song.id">
-                <button @click="addSong(song)"><Icon name="plus" /><span class="meta"><span class="name">{{ songTitle(song) }}</span><span class="kind">{{ firstLine(song) }}</span></span></button>
+                <button @click="addSong(song)"><Icon name="plus" /><span class="meta"><span class="name">{{ songTitle(song) }}</span><span class="kind">{{ firstLine(song) }}</span><span class="kind sung">{{ sung(song) }}</span></span></button>
               </li>
             </ul>
           </div>
@@ -287,6 +294,7 @@ load(nearestService.value)
     </main>
 
     <SongManager v-if="managerOpen" />
+    <StatsPanel v-if="showStats" @close="showStats = false" />
 
     <!-- Ktoś zapisał to nabożeństwo w międzyczasie: porównanie przed nadpisaniem. -->
     <div v-if="conflict" class="overlay">
