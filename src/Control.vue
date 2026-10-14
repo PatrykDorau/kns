@@ -166,7 +166,7 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
             <div v-if="!selected" class="placeholder">Wybierz coś z listy po lewej</div>
             <div v-else-if="selected.missing" class="placeholder">Nie znaleziono pliku:<br>{{ selected.path }}</div>
             <div v-else-if="!canGo" class="placeholder">{{ selected.type === 'song' ? 'Pieśń nie ma jeszcze tekstu' : 'Pętla jest pusta — dodaj slajdy po prawej' }}</div>
-            <Stage v-else ref="previewStage" :item="selectedView" :mirror="mirroring" :follow-step="followStep" @video="onPreviewVideo" @step="onPreviewStep" />
+            <Stage v-else ref="previewStage" instant :item="selectedView" :mirror="mirroring" :follow-step="followStep" @video="onPreviewVideo" @step="onPreviewStep" />
           </div>
         </div>
 

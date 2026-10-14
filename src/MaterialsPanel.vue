@@ -93,7 +93,8 @@ function drop(it) {
         <button @click="confirmId = null">Nie</button>
       </span>
       <span v-else class="actions">
-        <button class="iconbtn" title="Zmień nazwę (F2)" :aria-label="'Zmień nazwę: ' + label(it)" @click="startRename(it)"><Icon name="pencil" /></button>
+        <button class="iconbtn" :class="{ on: renamingId === it.id }" :title="renamingId === it.id ? 'Zapisz nazwę' : 'Zmień nazwę (F2)'" :aria-label="'Zmień nazwę: ' + label(it)" :aria-pressed="renamingId === it.id"
+                @mousedown.prevent @click="renamingId === it.id ? commitRename(it) : startRename(it)"><Icon name="pencil" /></button>
         <button class="iconbtn danger" title="Usuń" :aria-label="'Usuń: ' + label(it)" @click="confirmId = it.id"><Icon name="trash" /></button>
       </span>
     </li>

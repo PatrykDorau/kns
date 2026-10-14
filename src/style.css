@@ -756,3 +756,5 @@ table.sermons td:first-child { color: var(--muted); white-space: nowrap; }
 .badge.rel { background: var(--panel3); color: var(--text); text-transform: none; }
 .badge.rel.soon { background: var(--accent-soft); color: var(--accent); }
 main.planner .tags .badge.past { display: none; }
+
+.iconbtn.on { color: var(--accent); }

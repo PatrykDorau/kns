@@ -5,7 +5,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // mirror: podgląd tylko odwzorowuje film grający na rzutniku, bez własnych przycisków.
 // followStep: podgląd pętli idzie za rzutnikiem zamiast liczyć slajdy samodzielnie.
 // frozen: wszystko staje w miejscu — film pauzuje, pętla nie przechodzi dalej.
-const props = defineProps({ item: Object, live: Boolean, mirror: Boolean, frozen: Boolean, followStep: { type: Number, default: null } })
+// instant: zmiana na inny materiał bez przenikania (podgląd w panelu) — przejścia między slajdami pętli zostają.
+const props = defineProps({ item: Object, live: Boolean, mirror: Boolean, frozen: Boolean, instant: Boolean, followStep: { type: Number, default: null } })
 const emit = defineEmits(['video', 'step'])
 const root = ref(null)
 const video = ref(null)
@@ -42,7 +43,14 @@ watch([() => current.value?.id, step, () => current.value?.seconds, () => slides
 
 // Czas przejścia zapamiętujemy, żeby ukrycie obrazu też wygasało płynnie.
 const fadeMs = ref(0)
-watch(() => props.item?.fadeMs, ms => { if (props.item) fadeMs.value = ms ?? 0 }, { immediate: true })
+let switching = null
+watch(() => props.item?.fadeMs, ms => { if (props.item && !switching) fadeMs.value = ms ?? 0 }, { immediate: true })
+watch(() => props.item?.id, (id, old) => {
+  if (!props.instant || old === undefined || id === old) return
+  fadeMs.value = 0
+  clearTimeout(switching)
+  switching = setTimeout(() => { switching = null; fadeMs.value = props.item?.fadeMs ?? 0 }, 60)
+})
 
 const mediaUrl = p => 'media://local/' + encodeURIComponent(p)
 const layerStyle = computed(() => {
