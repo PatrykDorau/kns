@@ -4,9 +4,15 @@ import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
 import TextStyle from './TextStyle.vue'
 import {
-  KIND, entrySlide, frozenAt, itemById, items, label, pickFiles, removeEntry, selected, selectedIndex, selectedStep, setLoopStep, setVerse, settings, textPopup, uid, verseKey, verses,
+  COUNTDOWN, liveId, nextServiceStart, sendText, KIND, entrySlide, frozenAt, itemById, items, label, pickFiles, removeEntry, selected, selectedIndex, selectedStep, setLoopStep, setVerse, settings, textPopup, uid, verseKey, verses,
 } from './store.js'
 
+const startLabel = computed(() => new Date(nextServiceStart.value).toLocaleString('pl', { weekday: 'long', hour: '2-digit', minute: '2-digit' }))
+// „Za N minut” liczy się od kliknięcia; wyświetlany tekst od razu dostaje nowy czas.
+function startCountdown() {
+  selected.value.target = Date.now() + Math.max(1, +selected.value.minutes || 5) * 60000
+  if (selected.value.id === liveId.value) sendText()
+}
 const loopCandidates = computed(() => items.value.filter(i => i.type !== 'scene' && !i.hidden))
 const secondsLabel = ms => (ms / 1000).toLocaleString('pl', { maximumFractionDigits: 2 }) + ' s'
 
@@ -37,6 +43,21 @@ function dropEntry(i) {
       <button class="small" title="Otwórz tekst w dużym oknie" @click="textPopup = selected"><Icon name="expand" />Powiększ</button>
     </div>
     <textarea id="tText" v-model="selected.text" placeholder="Wpisz tekst…"></textarea>
+    <div v-if="selected.text.includes(COUNTDOWN)" class="cd-box">
+      <label for="cdMode">Odliczanie do</label>
+      <select id="cdMode" v-model="selected.countMode">
+        <option value="service">najbliższego nabożeństwa{{ nextServiceStart ? ' (' + startLabel + ')' : '' }}</option>
+        <option value="minutes">za podaną liczbę minut</option>
+      </select>
+      <div v-if="selected.countMode === 'minutes'" class="row2">
+        <div><label for="cdMin">Minut</label><input id="cdMin" v-model.number="selected.minutes" type="number" min="1" max="600"></div>
+        <div><label>&nbsp;</label><button class="wide" @click="startCountdown"><Icon name="play" />{{ selected.target ? 'Od nowa' : 'Start' }}</button></div>
+      </div>
+      <p v-if="selected.countMode === 'service' && !nextServiceStart" class="note bad">Nie ma zaplanowanego nabożeństwa — odliczanie pokaże kreski.</p>
+      <label for="cdEnd">Tekst po zakończeniu</label>
+      <input id="cdEnd" v-model="selected.endText" type="text" placeholder="np. Zaraz zaczynamy!">
+    </div>
+    <p v-else class="note">Wpisz <b>{{ COUNTDOWN }}</b> w treść, żeby pokazać odliczanie czasu.</p>
     <TextStyle :model="selected" />
   </template>
 

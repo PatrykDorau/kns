@@ -114,6 +114,9 @@ export function view(it, index = 0) {
     const i = clamp(index, 0, Math.max(0, all.length - 1))
     return { ...settings.songStyle, id: it.id, type: 'text', text: all[i] || '', slideKey: i, fadeMs: settings.fadeMs }
   }
+  if (it.type === 'text' && it.text?.includes(COUNTDOWN)) {
+    return { ...it, fadeMs: settings.fadeMs, target: it.countMode === 'minutes' ? it.target || 0 : nextServiceStart.value || 0 }
+  }
   return { ...it, fadeMs: settings.fadeMs }
 }
 
@@ -425,6 +428,16 @@ export function addText() {
   selectedId.value = it.id
 }
 
+// Odliczanie na rzutniku: zwykły tekst ze znacznikiem {odliczanie}, który scena zamienia na pozostały czas.
+// Cel: najbliższe nabożeństwo albo „za N minut” od kliknięcia Start.
+export const COUNTDOWN = '{odliczanie}'
+export function addCountdown() {
+  const it = { ...TEXT_STYLE, id: uid(), type: 'text', name: 'Odliczanie', fs: 14,
+    text: 'Nabożeństwo rozpocznie się za\n' + COUNTDOWN, endText: 'Zaraz zaczynamy!', countMode: 'service', minutes: 5, target: 0 }
+  items.value.push(it)
+  selectedId.value = it.id
+}
+
 export function addLoop() {
   const n = items.value.filter(i => i.type === 'scene').length + 1
   const it = { id: uid(), type: 'scene', name: 'Pętla ' + n, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, entries: [] }
@@ -560,6 +573,11 @@ export const serviceTime = svc => svc?.time || DEFAULT_TIME
 export const servicePlace = svc => svc?.place || DEFAULT_PLACE
 const startsAt = svc => new Date(svc.date + 'T' + serviceTime(svc)).getTime()
 
+// Początek najbliższego nabożeństwa — zegar co pół minuty wystarcza, a rzutnik nie dostaje zmian co sekundę.
+const nowCoarse = ref(Date.now())
+export const nextServiceStart = computed(() => services.value
+  .filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.date || '')).map(startsAt).filter(t => t > nowCoarse.value - 60000).sort((a, b) => a - b)[0] || 0)
+
 // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu pokazuje „trwa”).
 export const now = ref(Date.now())
 const RUNS = 2 * 3600e3
@@ -655,28 +673,31 @@ export function detachFromService(svc, i) {
 }
 
 // Rzutnik: lista pieśni i załączniki nabożeństwa trafiają do panelu wyświetlania.
-export async function applyService(svc) {
-  settings.service = svc.songs.filter(e => songs.value.some(x => x.id === e.songId)).map(e => ({ key: uid(), songId: e.songId }))
+// parts — co wczytać: pieśni (zastępują listę), załączniki (trafiają do materiałów) albo jedno i drugie.
+export async function applyService(svc, parts = { songs: true, files: true }) {
+  if (parts.songs) settings.service = svc.songs.filter(e => songs.value.some(x => x.id === e.songId)).map(e => ({ key: uid(), songId: e.songId }))
   settings.activeService = svc.id
+  const files = parts.files ? svc.files : []
   // Przy logowaniu do Dysku Google załączniki pobierane są dopiero teraz, gdy są potrzebne.
-  if (settings.sharedDir === 'google' && svc.files.length) {
+  if (settings.sharedDir === 'google' && files.length) {
     busy.value = 'Pobieram załączniki z Dysku Google…'
-    const got = await api.sharedEnsure(svc.files.map(f => f.path))
+    const got = await api.sharedEnsure(files.map(f => f.path))
     busy.value = ''
     if (got.error) flash(got.error)
   }
-  for (const f of svc.files) {
+  for (const f of files) {
     const source = svc.id + ':' + f.key
     if (items.value.some(i => i.source === source)) continue // już wczytane wcześniej
     const before = items.value.length
     await addFiles([f.path])
     for (const it of items.value.slice(before)) it.source = source
   }
-  tab.value = 'songs'
-  selectedId.value = serviceList.value[0]?.song.id ?? selectedId.value
+  tab.value = parts.songs ? 'songs' : 'materials'
+  if (parts.songs) selectedId.value = serviceList.value[0]?.song.id ?? selectedId.value
   serviceModal.value = false
-  const missing = svc.songs.length - settings.service.length
-  flash(`Wczytano nabożeństwo: pieśni ${settings.service.length}, załączników ${svc.files.length}.` + (missing ? ` Brak w bazie: ${missing}.` : ''))
+  const missing = parts.songs ? svc.songs.length - settings.service.length : 0
+  const what = [parts.songs && `pieśni ${settings.service.length}`, parts.files && `załączników ${files.length}`].filter(Boolean).join(', ')
+  flash(`Wczytano z nabożeństwa: ${what}.` + (missing ? ` Brak w bazie: ${missing}.` : ''))
 }
 
 // Nabożeństwo wędruje między komputerami razem z tekstami pieśni, bo każdy komputer ma własną
@@ -1009,6 +1030,7 @@ export async function init() {
   api.onRemoteCmd(cmd => (cmd === 'hide' ? toggleHidden() : stepBy(cmd === 'next' ? 1 : -1, true)))
   wire()
   setInterval(() => { now.value = Date.now() }, 1000)
+  setInterval(() => { nowCoarse.value = Date.now() }, 30000)
   setDisplays(await api.getDisplays())
 
   const saved = await api.loadStore('settings')

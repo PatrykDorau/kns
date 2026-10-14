@@ -81,6 +81,28 @@ watch(() => [layerKey.value, current.value?.text, current.value?.fs], () => next
 onBeforeUnmount(() => { clearTimeout(timer); resize.disconnect() })
 
 const VALIGN = { top: 'flex-start', center: 'center', bottom: 'flex-end' }
+
+// Odliczanie: {odliczanie} w tekście to pozostały czas; po zerze — tekst końcowy (gdy jest).
+const TOKEN = '{odliczanie}'
+const tick = ref(Date.now())
+const ticker = setInterval(() => { if (current.value?.text?.includes(TOKEN)) tick.value = Date.now() }, 250)
+onBeforeUnmount(() => clearInterval(ticker))
+const two = n => String(n).padStart(2, '0')
+function left(ms) {
+  const s = Math.ceil(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60
+  if (d) return `${d} ${d === 1 ? 'dzień' : 'dni'} ${two(h)}:${two(m)}:${two(s % 60)}`
+  return h ? `${h}:${two(m)}:${two(s % 60)}` : `${m}:${two(s % 60)}`
+}
+const shown = computed(() => {
+  const c = current.value
+  if (!c?.text?.includes(TOKEN)) return c?.text
+  if (!c.target) return c.text.replaceAll(TOKEN, '–:––')
+  const ms = c.target - tick.value
+  if (ms <= 0) return c.endText?.trim() ? c.endText : c.text.replaceAll(TOKEN, '0:00')
+  return c.text.replaceAll(TOKEN, left(ms))
+})
+// Tekst dopasowuje się od nowa tylko, gdy zmieni się jego długość (nie co sekundę).
+watch(() => shown.value?.length, () => nextTick(fit), { flush: 'post' })
 let resume = false
 watch(() => props.frozen, on => {
   const v = video.value
@@ -116,7 +138,7 @@ function onEnded(e) {
           @play="onVideo" @pause="onVideo" @ended="onEnded"
         />
         <div v-else class="txt" :class="{ shadow: current.shadow }" :data-fs="current.fs" :style="{ color: current.color, textShadow: textShadow(current), alignItems: VALIGN[current.valign] || 'center' }">
-          <div :style="{ textAlign: current.align }">{{ current.text }}</div>
+          <div :style="{ textAlign: current.align }">{{ shown }}</div>
         </div>
       </div>
     </Transition>

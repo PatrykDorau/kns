@@ -18,9 +18,9 @@ const day = d => asDate(d).getDate()
 const month = d => asDate(d).toLocaleDateString('pl', { month: 'short' }).replace('.', '')
 const weekday = d => asDate(d).toLocaleDateString('pl', { weekday: 'long' })
 
-async function load(svc) {
+async function load(svc, parts) {
   busyId.value = svc.id
-  try { await applyService(svc) } finally { busyId.value = null }
+  try { await applyService(svc, parts) } finally { busyId.value = null }
 }
 async function fromFolder() {
   const res = await importService()
@@ -38,7 +38,7 @@ async function fromFolder() {
         <SyncButton />
         <button class="iconbtn" aria-label="Zamknij" @click="serviceModal = false"><Icon name="x" /></button>
       </div>
-      <p class="note">Pieśni z nabożeństwa zastąpią obecną listę pieśni, a załączniki (np. prezentacja kaznodziei) trafią do materiałów.</p>
+      <p class="note">Pieśni z nabożeństwa zastąpią obecną listę pieśni, a załączniki (np. prezentacja kaznodziei) trafią do materiałów. Można też wczytać tylko jedno z nich.</p>
 
       <div v-if="!list.length" class="empty">
         {{ past.length ? 'Nie ma nadchodzących nabożeństw.' : 'Nie ma zaplanowanych nabożeństw. Tworzy je służba „Organizacja nabożeństw”.' }}
@@ -57,10 +57,16 @@ async function fromFolder() {
               <span class="chip"><Icon name="image" />{{ svc.files.length }}</span>
             </span>
           </span>
-          <button :class="{ primary: svc.id === nearestService?.id && svc.id !== settings.activeService }" :disabled="busyId !== null" @click="load(svc)">
-            <span v-if="busyId === svc.id" class="spinner" aria-hidden="true"></span>
-            {{ busyId === svc.id ? 'Wczytuję…' : svc.id === settings.activeService ? 'Wczytaj ponownie' : 'Wczytaj' }}
-          </button>
+          <span class="loadbox">
+            <button :class="{ primary: svc.id === nearestService?.id && svc.id !== settings.activeService }" :disabled="busyId !== null" title="Pieśni i załączniki" @click="load(svc)">
+              <span v-if="busyId === svc.id" class="spinner" aria-hidden="true"></span>
+              {{ busyId === svc.id ? 'Wczytuję…' : svc.id === settings.activeService ? 'Wczytaj ponownie' : 'Wczytaj wszystko' }}
+            </button>
+            <span class="only">
+              <button class="small" :disabled="busyId !== null || !svc.songs.length" title="Tylko pieśni — materiały zostają bez zmian" @click="load(svc, { songs: true })"><Icon name="music" />Pieśni</button>
+              <button class="small" :disabled="busyId !== null || !svc.files.length" title="Tylko załączniki — lista pieśni zostaje bez zmian" @click="load(svc, { files: true })"><Icon name="image" />Materiały</button>
+            </span>
+          </span>
         </li>
       </ul>
       <button v-if="past.length" class="more" @click="showPast = !showPast">{{ showPast ? 'Ukryj wcześniejsze' : `Pokaż wcześniejsze (${past.length})` }}</button>

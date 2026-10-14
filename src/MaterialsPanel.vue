@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
 import {
-  addLoop, addText, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
+  addLoop, addCountdown, addText, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
   renameValue, renamingId, search, selectedId, startRename, visibleItems,
 } from './store.js'
 
@@ -41,6 +41,7 @@ function drop(it) {
     <button @click="pickFiles(null)"><Icon name="image" />Zdjęcie / film</button>
     <button title="PowerPoint lub PDF — każdy slajd osobno, przełączane ręcznie" @click="pickDeck"><Icon name="slides" />Prezentacja</button>
     <button @click="addText"><Icon name="text" />Tekst</button>
+    <button title="Odliczanie do nabożeństwa albo przez podaną liczbę minut" @click="addCountdown"><Icon name="timer" />Odliczanie</button>
     <button @click="addLoop"><Icon name="loop" />Pętla</button>
   </div>
   <div class="searchrow">

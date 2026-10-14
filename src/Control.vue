@@ -11,13 +11,24 @@ import SongManager from './SongManager.vue'
 import TextPopup from './TextPopup.vue'
 import ServiceImport from './ServiceImport.vue'
 import {
-  addFiles, api, busy, canGo, displayId, displays, followStep, frozen, frozenLabel, goLive, jumpToKey, role, loopPlaying, loopStep, selectedStep, stepLoop, hidden, init, label, liveId, liveIsVideo,
+  view, addFiles, api, busy, canGo, displayId, displays, followStep, frozen, frozenLabel, goLive, jumpToKey, role, loopPlaying, loopStep, selectedStep, stepLoop, hidden, init, label, liveId, liveIsVideo,
   managerOpen, mirroring, notice, output, selected, selectedId, selectedIndex, selectedView, previewVideo, selectedFrozen, sendText, serviceList, serviceModal, startRename, stepBy, tab, textPopup, toggleFrozen, toggleHidden,
   textDirty, toggleOutput, verses, video, volume,
 } from './store.js'
 
 const previewStage = ref(null)
 const showSettings = ref(false)
+// Następny slajd pieśni albo pętli — mały podgląd pod przyciskami, żeby wiedzieć, co będzie dalej.
+const nextView = computed(() => {
+  const it = selected.value
+  if (!it || !canGo.value) return null
+  if (it.type === 'song') return selectedIndex.value + 1 < verses(it).length ? view(it, selectedIndex.value + 1) : null
+  if (it.type === 'scene') {
+    const all = selectedView.value?.slides || []
+    return all.length > 1 ? { ...all[(selectedStep.value + 1) % all.length], fadeMs: 0 } : null
+  }
+  return null
+})
 const dragging = ref(false)
 const seekValue = ref(null) // ustawione tylko w trakcie przeciągania suwaka
 
@@ -196,6 +207,11 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
             <Icon name="freeze" />{{ selectedFrozen ? 'Odmroź' : 'Zamroź' }}
           </button>
           <span class="notice" role="status">{{ busy || notice }}</span>
+        </div>
+
+        <div v-if="nextView" class="nextslide">
+          <span class="nl">Następny slajd</span>
+          <div class="mini"><Stage :item="nextView" /></div>
         </div>
 
         <p class="keys">
