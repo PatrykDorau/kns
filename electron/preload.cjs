@@ -58,6 +58,7 @@ contextBridge.exposeInMainWorld('api', {
   sendCue: invoke('cue:send'),
   onCueClients: on('cue:clients'),
   onCueRemote: on('cue:remote'),
+  onCueQuota: on('cue:quota'),
   userName: invoke('app:user'),
   setCompact: invoke('window:compact'),
   setOnTop: invoke('window:onTop'),

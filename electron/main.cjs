@@ -588,9 +588,22 @@ async function relayCue(state, quiet = false) {
     const { id } = await res.json()
     if (relay) relay.last = id
     relayNotify()
+    relayQuota()
   } catch {
     relayNotify('Sygnał nie poszedł przez internet — sprawdź połączenie komputera.')
   }
+}
+// Ile wiadomości wysłano dziś przez ntfy z tego łącza internetowego i jaki jest limit (darmowe konto: 250 dziennie).
+// Liczą się sygnały z komputera i potwierdzenia z telefonów w tej samej sieci.
+let quotaTimer = null
+function relayQuota() {
+  clearTimeout(quotaTimer)
+  quotaTimer = setTimeout(async () => {
+    try {
+      const res = await (await fetch((process.env.KNS_CUE_BASE || 'https://ntfy.sh') + '/v1/account')).json()
+      toControl('cue:quota', { used: res.stats?.messages ?? null, limit: res.limits?.messages ?? null, left: res.stats?.messages_remaining ?? null })
+    } catch { /* bez internetu — zostaje poprzednia wartość */ }
+  }, 1500)
 }
 function watchRelay(on) {
   relay?.ctrl.abort()
@@ -598,6 +611,7 @@ function watchRelay(on) {
   if (!on || !CUE_TOPIC) return
   const ctrl = new AbortController()
   relay = { ctrl, last: '', phones: new Map() }
+  relayQuota()
   const take = line => {
     try {
       const msg = JSON.parse(line)

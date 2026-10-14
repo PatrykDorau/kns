@@ -59,6 +59,7 @@ const cueRemote = ref({ phones: 0, got: 0, error: '' })
 // Strona w sieci lokalnej nie potwierdza odbioru — jej telefony liczą się jako „mają sygnał”.
 const phones = computed(() => cueRemote.value.phones + cueClients.value)
 const got = computed(() => cueRemote.value.got + cueClients.value)
+const quota = ref(null) // { used, limit, left } — darmowy limit wiadomości ntfy na dziś
 const cueState = ref('off')
 let offCue = null
 async function applyCue() {
@@ -129,7 +130,8 @@ const fields = computed(() => {
 onMounted(() => {
   const offClients = api.onCueClients(n => { cueClients.value = n })
   const offRemote = api.onCueRemote(r => { cueRemote.value = r })
-  offCue = () => { offClients(); offRemote() }
+  const offQuota = api.onCueQuota(q => { quota.value = q })
+  offCue = () => { offClients(); offRemote(); offQuota() }
   window.addEventListener('keydown', onCueKey)
   if (settings.cue) applyCue()
   if (settings.camOnTop) api.setOnTop(true)
@@ -186,6 +188,10 @@ onBeforeUnmount(() => {
                 <template v-if="cueUrl"><br>Albo w tej samej sieci Wi-Fi: <b>{{ cueUrl }}</b></template>
                 <br>Sygnały: na wizji — dwa krótkie wysokie, przygotuj się — jeden średni, poza wizją — jeden długi niski.
               </span>
+            </span>
+            <span v-if="settings.cue && quota?.limit" class="cue-quota" :class="{ low: quota.left < 30 }"
+                  title="Darmowa usługa przesyłania sygnałów (ntfy) ma dzienny limit wiadomości na jedno łącze internetowe. Liczą się sygnały i potwierdzenia z telefonów w tej samej sieci.">
+              Wysłane dziś: {{ quota.used }} / {{ quota.limit }} · zostało {{ quota.left }}
             </span>
             <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones || got < phones }">
               <template v-if="!phones">Żaden telefon nie jest połączony</template>

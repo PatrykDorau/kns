@@ -166,6 +166,8 @@
   .remind.on .bell { color: var(--ok); }
   .remind .error { display: block; margin-top: 6px; }
   .remind .primary { margin-left: auto; }
+  .push-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+  .note.who { margin-top: 18px; }
   .remind .steps b { display: inline; font-size: inherit; }
   .remind .bell { width: 28px; height: 28px; color: var(--accent); flex: none; margin: 0 8px; }
   .remind a.button { margin-left: auto; background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
@@ -356,7 +358,10 @@
         <template v-else>W piątek wieczorem, gdy na niedzielę czegoś brakuje.</template>
         <span v-if="push.error" class="error">{{ push.error }}</span>
       </div>
-      <button v-if="push.on" :disabled="push.busy" @click="disablePush">Wyłącz</button>
+      <span v-if="push.on" class="push-actions">
+        <button :disabled="push.busy" title="Wysyła powiadomienie na ten telefon, żeby zobaczyć, jak wygląda" @click="testPush">{{ push.busy ? 'Wysyłam…' : 'Wyślij próbne' }}</button>
+        <button :disabled="push.busy" @click="disablePush">Wyłącz</button>
+      </span>
       <button v-else-if="!push.needsInstall" class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button>
     </div>
 
@@ -414,10 +419,6 @@
     <textarea id="band" v-model="current.band" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
     <label for="notes">Dodatkowe informacje</label>
     <textarea id="notes" v-model="current.notes" placeholder="np. chrzest po kazaniu, błogosławieństwo dzieci, rocznica…"></textarea>
-    <p v-if="current.createdBy || current.updatedBy" class="note">
-      <template v-if="current.createdBy">Utworzył(a): {{ current.createdBy }}</template>
-      <template v-if="current.updatedBy"><br>Ostatnia zmiana: {{ current.updatedBy }}<template v-if="current.updated">, {{ new Date(current.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
-    </p>
     <label>Załączniki dla rzutnika</label>
     <p class="note" style="margin-top:0">Np. prezentacja kaznodziei, PDF, zdjęcia, filmy. Rzutnik dostanie je razem z pieśniami.</p>
     <div v-for="(f, i) in current.files" :key="f.key" class="song file">
@@ -434,6 +435,11 @@
       <button :disabled="!!uploading || offline" @click="openPicker"><svg class="i"><use href="#drive"/></svg>Z Dysku Google</button>
     </div>
     <input ref="phoneFile" type="file" multiple :accept="ACCEPT" hidden @change="fromPhone">
+    <p v-if="current.createdBy || current.updatedBy" class="note who">
+      <template v-if="current.createdBy">Utworzył(a): {{ current.createdBy }}</template>
+      <template v-if="current.updatedBy"><br>Ostatnia zmiana: {{ current.updatedBy }}<template v-if="current.updated">, {{ new Date(current.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
+    </p>
+
 
     <!-- wybór pliku z Dysku Google -->
     <div v-if="picker" class="sheet">
@@ -494,7 +500,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.6 · 14.10.2026'
+const VERSION = '2.7 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -888,6 +894,18 @@ createApp({
         if (e.auth) ready.value = false
       } finally { push.busy = false }
     }
+    // Próbne powiadomienie: prawdziwa wysyłka przez serwer, tylko na ten telefon.
+    async function testPush() {
+      push.busy = true; push.error = ''
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (!sub) { push.on = false; return }
+        const res = await fetch(pushUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ test: true, subscription: sub.toJSON() }) })
+        const out = await res.json().catch(() => ({}))
+        if (!res.ok || !out.sent) throw new Error(out.error || 'Nie udało się wysłać — spróbuj wyłączyć i włączyć powiadomienia.')
+      } catch (e) { push.error = e.message || String(e) } finally { push.busy = false }
+    }
     async function disablePush() {
       push.busy = true; push.error = ''
       try {
@@ -913,7 +931,7 @@ createApp({
     else if (clientId && drive.signedIn()) guard(async () => { await fetchAll(); ready.value = true })
 
     return {
-      showTabs, countdown, push, enablePush, disablePush,
+      showTabs, countdown, push, enablePush, disablePush, testPush,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install,

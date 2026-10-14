@@ -1,5 +1,7 @@
 // Powiadomienia na telefon (Web Push) dla strony nabożeństw — funkcja Netlify, bez dodatkowych bibliotek.
 //   GET  /api/push → { publicKey }  — klucz publiczny, którym telefon zapisuje się na powiadomienia
+//   POST /api/push { test: true, subscription } → próbne powiadomienie tylko na ten jeden telefon (bez hasła,
+//                    zawsze ta sama treść — nie da się nim wysłać niczego innego)
 //   POST /api/push → wysyła powiadomienie do podanych telefonów (wywołuje skrypt przypomnienia z Google);
 //                    body: { secret, title, body, url, subscriptions: [{ id, subscription }] } → { sent, gone: [id] }
 // Zmienne środowiskowe w Netlify (Project configuration → Environment variables):
@@ -71,6 +73,13 @@ export default async function handler(req) {
 
   let data
   try { data = await req.json() } catch { return json({ error: 'Niepoprawne dane.' }, 400) }
+  if (data.test === true) {
+    if (!data.subscription?.endpoint || !data.subscription?.keys) return json({ error: 'Brak danych telefonu.' }, 400)
+    const status = await sendPush(data.subscription, {
+      title: 'Nabożeństwo — próba', body: 'Tak wygląda przypomnienie. W piątek wieczorem przyjdzie takie, jeśli na niedzielę czegoś brakuje.', url: '/',
+    }, keys).catch(() => 0)
+    return json(status && status < 300 ? { sent: 1 } : { sent: 0, error: status === 404 || status === 410 ? 'Ten telefon nie jest już zapisany — wyłącz i włącz powiadomienia.' : 'Serwer powiadomień nie przyjął wiadomości.' })
+  }
   if (!process.env.PUSH_SECRET || !same(data.secret, process.env.PUSH_SECRET)) return json({ error: 'Brak dostępu.' }, 403)
   const payload = { title: String(data.title || 'Nabożeństwa'), body: String(data.body || ''), url: String(data.url || '/') }
   let sent = 0
