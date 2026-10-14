@@ -741,7 +741,9 @@ const toOutput = (channel, data) => { if (output && !output.isDestroyed()) outpu
 function createControl() {
   control = new BrowserWindow({
     width: 1360, height: 840, minWidth: 1000, minHeight: 640,
-    backgroundColor: '#0f1115', title: 'Kościół Na Skale', autoHideMenuBar: true, webPreferences, ...icon,
+    backgroundColor: '#0f1115', title: 'Kościół Na Skale', autoHideMenuBar: true, ...icon,
+    // Testy automatyczne: okno renderowane poza ekranem (da się robić zrzuty, nic się nie pokazuje).
+    webPreferences: process.env.RZUTNIK_HIDDEN ? { ...webPreferences, offscreen: true } : webPreferences,
     show: !process.env.RZUTNIK_HIDDEN, // testy automatyczne działają bez pokazywania okna
   })
   load(control)

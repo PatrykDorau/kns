@@ -198,7 +198,10 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
           <span class="notice" role="status">{{ busy || notice }}</span>
         </div>
 
-        <p class="keys"><kbd>Enter</kbd> wyświetl <kbd>H</kbd> ukryj <kbd>F</kbd> zamroź <kbd>←</kbd><kbd>→</kbd><kbd>↓</kbd><kbd>↑</kbd> slajd pieśni / pętli <kbd>1</kbd>–<kbd>9</kbd> slajd pieśni <kbd>Spacja</kbd> pauza filmu</p>
+        <p class="keys">
+          <span><kbd>Enter</kbd> wyświetl</span><span><kbd>H</kbd> ukryj</span><span><kbd>F</kbd> zamroź</span>
+          <span><kbd>←</kbd><kbd>→</kbd> slajd</span><span><kbd>1</kbd>–<kbd>9</kbd> slajd pieśni</span><span><kbd>Spacja</kbd> pauza filmu</span>
+        </p>
       </section>
 
       <section class="props">

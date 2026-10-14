@@ -486,3 +486,72 @@ button[aria-pressed=true].small { border-color: var(--accent); color: var(--acce
 .cue-buttons .off.current { border-color: var(--text); }
 .note.bad, .shared .bad { color: #ff8a82; }
 .shared button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+
+/* ================= dopracowanie wyglądu ================= */
+/* ekran wyboru służby */
+.brand-full { max-height: min(190px, 24vh); }
+.roles .next { font-size: 14px; margin-top: 2px; }
+.role-cards { grid-template-columns: repeat(3, 260px); margin-top: 14px; }
+.role-cards button { min-height: 200px; padding: 26px 22px 24px; }
+.role-cards b { font-size: 18px; letter-spacing: -.01em; }
+.role-cards span { font-size: 13px; line-height: 1.5; }
+.role-cards .alert-text { margin-top: 2px; }
+.shared { width: calc(3 * 260px + 2 * 16px); max-width: 100%; margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); line-height: 1.55; }
+.shared > .icon { align-self: flex-start; margin-top: 2px; }
+.shared > span { flex: 1; min-width: 0; }
+.shared button.small { padding: 6px 12px; font-size: 13px; }
+
+/* podgląd rzutnika: największy obraz 16:9, a przyciski tuż pod nim (bez pustych pasów) */
+.center { container-type: size; }
+.center .frame { flex: 0 0 auto; display: block; container-type: normal; }
+.center .preview { width: min(100cqw, calc((100cqh - 220px) * 16 / 9)); min-width: 240px; margin: 0 auto; }
+.center > .bar { width: min(100cqw, calc((100cqh - 220px) * 16 / 9)); min-width: 240px; margin: 0 auto; }
+.center .keys { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); column-gap: 14px; row-gap: 6px; }
+.center .keys span { display: inline-flex; align-items: center; gap: 5px; }
+.keys kbd { margin-left: 0; }
+
+/* lista pieśni na rzutniku: wczytane nabożeństwo */
+.svc-line { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--bg); }
+.svc-line button.small { padding: 4px 10px; }
+
+/* kolory w ustawieniach tekstu — zaokrąglone próbki zamiast gołych pasków */
+.props input[type=color] { -webkit-appearance: none; appearance: none; height: 38px; padding: 4px; cursor: pointer; }
+.props input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.props input[type=color]::-webkit-color-swatch { border: 0; border-radius: 7px; }
+
+/* organizacja: lista nabożeństw — data, opis, a oznaczenie pod spodem */
+main.planner .list { gap: 6px; }
+main.planner .list .pick { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; }
+main.planner .list .pick .meta { width: 100%; }
+main.planner .list .pick .name { font-weight: 600; }
+main.planner .list .badge { margin: 2px 0 0; }
+main.planner .row { border-color: var(--line); background: var(--panel2); }
+main.planner .row:hover { background: var(--panel3); }
+main.planner .row.selected { background: var(--accent-soft); border-color: var(--accent); }
+main.planner .row.danger { border-color: rgba(240, 72, 62, .6); }
+
+/* rzutnik: panele boczne węższe na mniejszych ekranach — więcej miejsca na podgląd */
+main { grid-template-columns: clamp(270px, 22vw, 340px) minmax(0, 1fr) clamp(290px, 23vw, 360px); }
+/* numer pieśni ze śpiewnika — oddzielony od pozycji na liście */
+.nr { margin-left: 8px; padding: 1px 6px; border-radius: 6px; background: var(--panel3); color: var(--muted); font-size: 11px; font-weight: 600; vertical-align: 1px; }
+
+/* ekran startowy: ikona w pasku połączenia na środku wiersza */
+.shared > .icon { align-self: center; margin-top: 0; }
+/* rzutnik: przyciski dodawania w jednym wierszu */
+.add.four button { white-space: nowrap; padding: 10px; gap: 8px; }
+/* organizacja: stan nabożeństwa — obwódka i ikonka w rogu jak na ekranie startowym */
+main.planner .list { padding-top: 10px; padding-right: 12px; }
+main.planner .row.danger { border: 2px solid var(--live); background: rgba(240, 72, 62, .07); }
+main.planner .row.good { border: 2px solid rgba(61, 220, 151, .75); background: rgba(61, 220, 151, .06); }
+main.planner .row.selected { box-shadow: 0 0 0 3px var(--accent-soft); }
+main.planner .row.selected:not(.danger):not(.good) { border-color: var(--accent); }
+main.planner .row.past { opacity: .62; }
+main.planner .row.past:hover, main.planner .row.past.selected { opacity: 1; }
+main.planner .corner { position: absolute; top: -8px; right: -8px; z-index: 1; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 3px var(--panel); }
+main.planner .corner .icon { width: 13px; height: 13px; }
+main.planner .corner.bad { background: var(--live); color: #fff; }
+main.planner .corner.ok { background: var(--ok); color: #0c1a14; }
+main.planner .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+main.planner .tags .badge { margin: 0; text-transform: none; }
+main.planner .tags .badge.bad { white-space: normal; }
+.badge.past { background: var(--panel3); color: var(--muted); }

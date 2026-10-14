@@ -188,7 +188,7 @@ function use() {
         <button @click="create"><Icon name="plus" />Nowa</button>
         <button @click="runImport(false)"><Icon name="import" />Import plików</button>
         <button @click="runImport(true)"><Icon name="folder" />Import folderu</button>
-        <button :disabled="!draft.length" title="Zapisuje całą bazę do jednego pliku, który można potem zaimportować" @click="exportAll"><Icon name="up" />Eksport</button>
+        <button :disabled="!draft.length" title="Zapisuje całą bazę do jednego pliku, który można potem zaimportować" @click="exportAll"><Icon name="export" />Eksport</button>
       </div>
 
       <div class="mgr-body">

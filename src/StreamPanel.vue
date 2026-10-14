@@ -83,7 +83,7 @@ async function copy(name, text) {
 const fields = computed(() => {
   const s = service.value
   if (!s) return []
-  const list = s.songs.map((e, i) => `${i + 1}. ${e.number ? e.number + '. ' : ''}${e.title}`).join('\n')
+  const list = s.songs.map((e, i) => `${i + 1}. ${e.title}${e.number ? ` (nr ${e.number})` : ''}`).join('\n')
   return [
     ['Tytuł kazania', s.sermonTitle], ['Fragment', s.passage], ['Mówca', s.speaker],
     ['Skład zespołu', s.band], ['Dodatkowe informacje', s.notes], ['Pieśni', list],

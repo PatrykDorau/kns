@@ -175,14 +175,20 @@ load(nearestService.value)
         <ul class="list">
           <li v-if="isNew && current" class="row selected"><button class="pick"><span class="meta"><span class="name">{{ prettyDate(current.date) }}</span><span class="kind">Nowe — jeszcze niezapisane</span></span></button></li>
           <li v-if="!services.length && !isNew" class="empty"><Icon name="calendar" />Nie ma jeszcze żadnego nabożeństwa.<br>Kliknij „Nowe nabożeństwo”.</li>
-          <li v-for="svc in sortedServices" :key="svc.id" class="row" :class="{ selected: svc.id === currentId, danger: svc.date >= today() && missingInfo(svc).length }">
+          <!-- Nadchodzące: czerwona obwódka (braki) albo zielona (komplet), z ikonką w rogu; minione — przygaszone. -->
+          <li v-for="svc in sortedServices" :key="svc.id" class="row"
+              :class="{ selected: svc.id === currentId, danger: svc.date >= today() && missingInfo(svc).length, good: svc.date >= today() && !missingInfo(svc).length, past: svc.date < today() }">
+            <span v-if="svc.date >= today()" class="corner" :class="missingInfo(svc).length ? 'bad' : 'ok'" aria-hidden="true"><Icon :name="missingInfo(svc).length ? 'missing' : 'check'" /></span>
             <button class="pick" @click="select(svc)">
               <span class="meta">
                 <span class="name">{{ prettyDate(svc.date) }}</span>
                 <span class="kind">{{ svc.sermonTitle || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> · {{ svc.speaker }}</template></span>
               </span>
-              <span v-if="svc.date >= today() && missingInfo(svc).length" class="badge bad" :title="'Brakuje: ' + missingInfo(svc).join(', ')"><Icon name="missing" />BRAKI</span>
-              <span v-else-if="svc.id === nearestService?.id" class="badge next">NAJBLIŻSZE</span>
+              <span class="tags">
+                <span v-if="svc.id === nearestService?.id && svc.date >= today()" class="badge next">NAJBLIŻSZE</span>
+                <span v-if="svc.date >= today() && missingInfo(svc).length" class="badge bad" :title="'Brakuje: ' + missingInfo(svc).join(', ')"><Icon name="missing" />BRAKI: {{ missingInfo(svc).join(', ') }}</span>
+                <span v-if="svc.date < today()" class="badge past">MINIONE</span>
+              </span>
             </button>
           </li>
         </ul>
@@ -228,7 +234,7 @@ load(nearestService.value)
             <li v-for="(entry, i) in current.songs" :key="entry.key">
               <span class="num">{{ i + 1 }}</span>
               <span class="meta">
-                <span class="name">{{ songTitle(entry) }}</span>
+                <span class="name">{{ entry.title }}<span v-if="entry.number" class="nr">nr {{ entry.number }}</span></span>
                 <span v-if="songOf(entry)" class="kind">{{ firstLine(songOf(entry)) }} · slajdów: {{ verses(songOf(entry)).length }}</span>
                 <span v-else class="kind warnText">Tej pieśni nie ma już w bazie</span>
               </span>
