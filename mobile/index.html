@@ -5,74 +5,150 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1115">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nabożeństwa">
 <title>Nabożeństwa — Kościół Na Skale</title>
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Nabożeństwa">
 <style>
-  :root { --bg: #0f1115; --panel: #171a21; --panel2: #1f232c; --line: #2a2f3a; --text: #eef0f4; --muted: #8f98a8; --accent: #5b8cff; --bad: #f0483e; --ok: #3ddc97; color-scheme: dark; }
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1f232c; --line: #2a2f3a; --text: #eef0f4; --muted: #8f98a8;
+    --accent: #5b8cff; --accent-soft: rgba(91, 140, 255, .14); --bad: #f0483e; --bad-soft: rgba(240, 72, 62, .12); --bad-text: #ff8f87;
+    --ok: #3ddc97; --ok-soft: rgba(61, 220, 151, .12);
+    color-scheme: dark;
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
-  body { background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); }
+  body { background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
   [v-cloak] { display: none; }
   #app { max-width: 640px; margin: 0 auto; }
-  header { display: flex; align-items: center; gap: 12px; padding: 14px 0; }
-  header img { height: 34px; }
-  header h1 { font-size: 18px; margin: 0; flex: 1; }
+  svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   button, input, textarea { font: inherit; color: inherit; }
-  button { min-height: 44px; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); }
+  button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); cursor: pointer; }
   button:disabled { opacity: .45; }
   button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
   button.danger { background: var(--bad); border-color: transparent; color: #fff; font-weight: 600; }
-  button.link { background: none; border: 0; color: var(--accent); padding: 10px 4px; }
+  button.ghost { background: none; border-color: transparent; color: var(--accent); padding: 10px 8px; }
+  button.icon { min-width: 40px; min-height: 40px; padding: 8px; background: none; border-color: transparent; color: var(--muted); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  input, textarea { width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
-  input.invalid { border-color: var(--bad); }
+  input, textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); outline: none; }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  input.invalid { border-color: rgba(240, 72, 62, .7); }
   textarea { min-height: 96px; resize: vertical; }
   label { display: block; color: var(--muted); font-size: 14px; margin: 16px 0 6px; }
-  h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 26px 0 10px; }
-  .card { display: block; width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
-  .card.bad { border-color: var(--bad); }
-  .card.good { border-color: var(--ok); }
-  .card b { display: block; }
-  .card span { color: var(--muted); font-size: 14px; }
-  .tag { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
-  .tag.bad { background: var(--bad); color: #fff; }
-  .tag.good { background: var(--ok); color: #0c1a14; }
-  .alert { padding: 12px 14px; border-radius: 14px; margin-bottom: 14px; border: 2px solid var(--bad); background: rgba(240, 72, 62, .1); }
-  .alert.good { border-color: var(--ok); background: rgba(61, 220, 151, .1); }
+  label .req { color: var(--bad-text); }
+  .error { color: var(--bad-text); }
   .note { color: var(--muted); font-size: 14px; }
-  .error { color: #ff8a82; }
+
+  /* nagłówek */
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 0 10px; }
+  header img { height: 34px; }
+  header h1 { font-size: 18px; margin: 0; flex: 1; }
+
+  /* karta stanu najbliższej niedzieli */
+  .status { display: flex; gap: 14px; align-items: flex-start; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--bad-soft); border: 1px solid rgba(240, 72, 62, .35); }
+  .status.good { background: var(--ok-soft); border-color: rgba(61, 220, 151, .35); }
+  .status .badge { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--bad); color: #fff; flex: none; }
+  .status.good .badge { background: var(--ok); color: #0c1a14; }
+  .status .body { flex: 1; min-width: 0; }
+  .status b { display: block; }
+  .status p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  .status button { margin-top: 12px; }
+
+  /* lista nabożeństw */
+  .section { display: flex; align-items: center; justify-content: space-between; margin: 26px 0 10px; }
+  .section h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+  .card .date { display: grid; place-items: center; width: 48px; height: 52px; border-radius: 12px; background: var(--panel2); flex: none; line-height: 1.1; }
+  .card .date b { font-size: 20px; }
+  .card .date small { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .card .body { flex: 1; min-width: 0; }
+  .card .title { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .sub { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .card .sub svg.i { width: 15px; height: 15px; }
+  .card .chev { color: var(--muted); }
+  .card.past { opacity: .6; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--bad-soft); color: var(--bad-text); }
+  .chip svg.i { width: 13px; height: 13px; }
+  .chip.good { background: var(--ok-soft); color: var(--ok); }
+
+  /* edycja */
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; min-width: 0; }
+  .finder { position: relative; }
+  .searchbox { position: relative; }
+  .searchbox svg.i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .searchbox input { padding-left: 42px; }
+  .suggest { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 6px); max-height: 290px; overflow-y: auto; overscroll-behavior: contain; padding: 4px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--accent); box-shadow: 0 16px 36px rgba(0, 0, 0, .55); }
+  .suggest button { display: flex; width: 100%; justify-content: flex-start; text-align: left; gap: 10px; min-height: 56px; padding: 8px 10px; border: 0; background: none; border-radius: 10px; }
+  .suggest button:active { background: var(--accent-soft); }
+  .suggest .num { flex: none; min-width: 34px; padding: 2px 6px; border-radius: 8px; background: var(--panel); text-align: center; font-weight: 700; font-size: 14px; }
+  .suggest .meta { flex: 1; min-width: 0; }
+  .suggest .meta b, .suggest .meta small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .suggest .meta small { color: var(--muted); font-weight: 400; }
+  .suggest .added { color: var(--ok); }
+  .suggest .none { padding: 14px; color: var(--muted); font-size: 14px; }
+  .songs { margin-top: 12px; }
+  .song { display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 12px; margin-bottom: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .song .pos { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; }
+  .song .meta { flex: 1; min-width: 0; }
+  .song .meta b, .song .meta small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song .meta small { color: var(--muted); }
+  .song .meta small.missing { color: var(--bad-text); }
+  .empty { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 14px; border: 1px dashed rgba(240, 72, 62, .5); color: var(--bad-text); font-size: 14px; }
+  .bar { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); margin-top: 18px; }
+  .bar button.primary { flex: 1; }
+  .saved { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--ok); font-size: 14px; min-height: 1.4em; margin-top: 12px; }
+  .saved svg.i { width: 16px; height: 16px; }
+
+  /* logowanie, instalacja, tryb pokazowy */
   .center { text-align: center; padding: 40px 0; }
   .center img { height: 120px; margin-bottom: 18px; }
-  .row { display: flex; gap: 10px; align-items: center; }
-  .row > * { flex: 1; }
-  .song { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--panel); }
-  .song .meta { flex: 1; min-width: 0; }
-  .song small, .result small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .song button { min-height: 40px; min-width: 40px; padding: 6px; flex: none; }
-  .result { display: block; width: 100%; text-align: left; margin-bottom: 6px; }
-  .bar { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); margin-top: 18px; }
-  .bar button { flex: 1; }
-  .saved { color: var(--ok); font-size: 14px; text-align: center; min-height: 1.4em; }
-  .install { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--accent); }
+  .install { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
   .install img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
-  .install div { flex: 1; font-size: 14px; }
-  .install b { display: block; font-size: 15px; }
-  .install button { flex: none; }
-  .steps { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+  .install { flex-wrap: wrap; }
+  .install div { flex: 1 1 180px; font-size: 14px; color: var(--muted); }
+  .install .primary { margin-left: 56px; }
+  .install b { display: block; font-size: 15px; color: var(--text); }
+  .steps { margin: 6px 0 0; padding-left: 18px; }
+  .account { display: flex; align-items: center; gap: 8px; margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  .account span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .version { margin-top: 18px; text-align: center; color: var(--muted); font-size: 12px; opacity: .7; }
+  .offline { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 12px; border-radius: 12px; background: var(--panel2); color: var(--muted); font-size: 14px; }
+  .more { width: 100%; margin-top: 4px; color: var(--muted); }
   .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
 </style>
 </head>
 <body>
+<!-- Ikony (kreskowe 24×24), używane przez <svg class="i"><use href="#..."></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="warn" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5h.01M10.3 3.9 2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><path d="M17 11a6 6 0 1 1-12 0 6 6 0 0 1 12 0ZM20 20l-4.5-4.5"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><path d="M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+  <symbol id="download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></symbol>
+  <symbol id="logout" viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/></symbol>
+  <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
+</svg>
+
 <div id="app" v-cloak>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : 'Organizacja nabożeństw' }}</h1>
-    <button v-if="current" class="link" @click="back">‹ Lista</button>
-    <button v-else-if="ready" class="link" :disabled="busy" @click="reload">Odśwież</button>
+    <h1>{{ current ? 'Nabożeństwo' : 'Nabożeństwa' }}</h1>
+    <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>Lista</button>
+    <button v-else-if="ready" class="ghost" :disabled="busy" @click="reload"><svg class="i"><use href="#refresh"/></svg>Odśwież</button>
   </header>
+
   <!-- Instalacja na telefonie jako aplikacja (ikona na ekranie głównym, bez paska przeglądarki). -->
   <div v-if="!installed && !current && !hideInstall" class="install">
     <img src="icon-192.png" alt="">
@@ -82,10 +158,11 @@
       <template v-else-if="showHelp">Przeglądarka jeszcze nie pozwala na instalację jednym dotknięciem. Otwórz tę stronę w Chrome, odczekaj chwilę i dotknij przycisku ponownie.</template>
       <template v-else>Ikona na ekranie głównym, otwiera się jak zwykła aplikacja.</template>
     </div>
-    <button class="primary" @click="install">Pobierz</button>
-    <button class="link" aria-label="Ukryj" @click="dismissInstall">✕</button>
+    <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
+    <button class="icon" aria-label="Ukryj" @click="dismissInstall"><svg class="i"><use href="#x"/></svg></button>
   </div>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
+  <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
 
   <!-- brak konfiguracji / logowanie -->
@@ -97,70 +174,106 @@
   <div v-else-if="!ready" class="center">
     <img src="logo.png" alt="Kościół Na Skale">
     <p class="note">Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.</p>
-    <button class="primary" :disabled="busy" @click="start">{{ busy ? 'Wczytuję…' : 'Zaloguj kontem Google' }}</button>
+    <button class="primary" :disabled="busy" @click="start">{{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj kontem Google' }}</button>
+    <p v-if="drive.account()" class="note">jako {{ drive.account() }}</p>
   </div>
 
   <!-- lista -->
   <template v-else-if="!current">
-    <div v-if="alert" class="alert" :class="{ good: alert.good }" role="status">
-      <b>{{ alert.good ? 'Gotowe' : 'Uwaga' }}:</b> {{ alert.text }}
-      <div v-if="!alert.good" style="margin-top:10px"><button class="danger" @click="fix">{{ alert.service ? 'Uzupełnij' : 'Utwórz nabożeństwo na tę niedzielę' }}</button></div>
+    <div class="status" :class="{ good: alert.good }" role="status">
+      <span class="badge"><svg class="i"><use :href="alert.good ? '#check' : '#warn'"/></svg></span>
+      <div class="body">
+        <b>{{ alert.title }}</b>
+        <p>{{ alert.text }}</p>
+        <div v-if="alert.missing?.length" class="chips">
+          <span v-for="m in alert.missing" :key="m" class="chip">{{ m }}</span>
+        </div>
+        <button v-if="!alert.good" class="danger" @click="fix">{{ alert.service ? 'Uzupełnij' : 'Utwórz nabożeństwo' }}</button>
+      </div>
     </div>
-    <button class="primary" style="width:100%" @click="create()">+ Nowe nabożeństwo</button>
-    <h2>Nabożeństwa</h2>
-    <p v-if="!services.length" class="note">Nie ma jeszcze żadnego nabożeństwa.</p>
-    <button v-for="svc in sorted" :key="svc.id" class="card" :class="{ bad: upcoming(svc) && missing(svc).length, good: upcoming(svc) && !missing(svc).length }" @click="open(svc)">
-      <b>{{ pretty(svc.date) }}</b>
-      <span>{{ svc.sermonTitle || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> · {{ svc.speaker }}</template></span><br>
-      <span>Pieśni: {{ svc.songs.length }}</span>
-      <template v-if="upcoming(svc)">
-        <br><span v-if="missing(svc).length" class="tag bad">BRAKI: {{ missing(svc).join(', ') }}</span>
-        <span v-else class="tag good">KOMPLET</span>
-      </template>
+
+    <button class="primary" style="width:100%" @click="create()"><svg class="i"><use href="#plus"/></svg>Nowe nabożeństwo</button>
+
+    <div class="section"><h2>Nadchodzące</h2></div>
+    <p v-if="!coming.length" class="note">Nie ma zaplanowanych nabożeństw.</p>
+    <button v-for="svc in shown" :key="svc.id" class="card" :class="{ past: !upcoming(svc) }" @click="open(svc)">
+      <span class="date"><b>{{ day(svc.date) }}</b><small>{{ month(svc.date) }}</small></span>
+      <span class="body">
+        <span class="title">{{ svc.sermonTitle || 'Bez tytułu kazania' }}</span>
+        <span class="sub">{{ weekday(svc.date) }}<template v-if="svc.speaker"> · <svg class="i"><use href="#user"/></svg>{{ svc.speaker }}</template></span>
+        <span v-if="upcoming(svc)" class="chips">
+          <span v-if="!missing(svc).length" class="chip good"><svg class="i"><use href="#check"/></svg>Komplet</span>
+          <span v-for="m in missing(svc)" :key="m" class="chip"><svg class="i"><use href="#warn"/></svg>brak: {{ m }}</span>
+        </span>
+        <span v-else class="sub"><svg class="i"><use href="#music"/></svg>pieśni: {{ svc.songs.length }}</span>
+      </span>
+      <svg class="i chev"><use href="#chev"/></svg>
     </button>
+    <button v-if="past.length" class="more" @click="showPast = !showPast">{{ showPast ? 'Ukryj wcześniejsze' : `Pokaż wcześniejsze (${past.length})` }}</button>
+
+    <div class="account">
+      <svg class="i"><use href="#user"/></svg><span>{{ drive.account() || 'Zalogowano' }}</span>
+      <button v-if="!drive.demo" class="ghost" @click="logout"><svg class="i"><use href="#logout"/></svg>Wyloguj</button>
+    </div>
   </template>
 
   <!-- edycja -->
   <template v-else>
     <div class="row">
-      <div><label for="date">Data *</label><input id="date" v-model="current.date" type="date"></div>
-      <div><label for="speaker">Mówca *</label><input id="speaker" v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off"></div>
+      <div><label for="date">Data <span class="req">*</span></label><input id="date" v-model="current.date" type="date"></div>
+      <div><label for="speaker">Mówca <span class="req">*</span></label><input id="speaker" v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off"></div>
     </div>
-    <label for="title">Tytuł kazania *</label>
+    <label for="title">Tytuł kazania <span class="req">*</span></label>
     <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
-    <label for="passage">Fragment *</label>
+    <label for="passage">Fragment <span class="req">*</span></label>
     <input id="passage" v-model="current.passage" :class="{ invalid: !current.passage.trim() }" placeholder="np. J 3,16–21" autocomplete="off">
-    <label for="band">Skład zespołu (opcjonalnie)</label>
+
+    <label for="find">Pieśni <span class="req">*</span></label>
+    <div class="finder">
+      <div class="searchbox">
+        <svg class="i"><use href="#search"/></svg>
+        <input id="find" v-model="query" type="search" :placeholder="`Wybierz z bazy (${songs.length})`" autocomplete="off"
+               @focus="picking = true" @blur="picking = false" @keydown.esc="picking = false; $event.target.blur()">
+      </div>
+      <!-- Lista otwiera się po dotknięciu pola; widać ok. 5 pozycji, resztę się przewija. -->
+      <div v-if="picking" class="suggest" @mousedown.prevent>
+        <div v-if="!results.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta.' }}</div>
+        <button v-for="song in results" :key="song.id" @click="addSong(song)">
+          <span class="num">{{ song.number || '♪' }}</span>
+          <span class="meta"><b>{{ song.title }}</b><small>{{ lines(song.text) }}</small></span>
+          <svg v-if="chosen(song)" class="i added"><use href="#check"/></svg>
+          <svg v-else class="i"><use href="#plus"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="songs">
+      <div v-if="!current.songs.length" class="empty"><svg class="i"><use href="#music"/></svg>Dotknij pola powyżej i wybierz pieśni na to nabożeństwo.</div>
+      <div v-for="(entry, i) in current.songs" :key="entry.key" class="song">
+        <span class="pos">{{ i + 1 }}</span>
+        <div class="meta"><b>{{ songTitle(entry) }}</b><small :class="{ missing: !inBase(entry) }">{{ firstLine(entry) }}</small></div>
+        <button class="icon" :disabled="i === 0" aria-label="Wyżej" @click="move(i, -1)"><svg class="i"><use href="#up"/></svg></button>
+        <button class="icon" :disabled="i === current.songs.length - 1" aria-label="Niżej" @click="move(i, 1)"><svg class="i"><use href="#down"/></svg></button>
+        <button class="icon" aria-label="Usuń pieśń z nabożeństwa" @click="current.songs.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
+      </div>
+    </div>
+
+    <label for="band">Skład zespołu</label>
     <textarea id="band" v-model="current.band" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
-
-    <h2 :style="{ color: current.songs.length ? '' : '#ff8a82' }">Pieśni *</h2>
-    <div v-for="(entry, i) in current.songs" :key="entry.key" class="song">
-      <div class="meta"><b>{{ i + 1 }}. {{ songTitle(entry) }}</b><small>{{ firstLine(entry) }}</small></div>
-      <button :disabled="i === 0" aria-label="Wyżej" @click="move(i, -1)">↑</button>
-      <button :disabled="i === current.songs.length - 1" aria-label="Niżej" @click="move(i, 1)">↓</button>
-      <button aria-label="Usuń pieśń z nabożeństwa" @click="current.songs.splice(i, 1)">✕</button>
-    </div>
-    <p v-if="!current.songs.length" class="note error">Nabożeństwo musi mieć pieśni.</p>
-    <label for="find">Dodaj pieśń z bazy ({{ songs.length }})</label>
-    <input id="find" v-model="query" type="search" placeholder="Numer, tytuł lub fragment tekstu" autocomplete="off">
-    <div v-if="query.trim()" style="margin-top:8px">
-      <p v-if="!results.length" class="note">Nie ma takiej pieśni w bazie.</p>
-      <button v-for="song in results" :key="song.id" class="result" @click="addSong(song)">
-        + {{ songTitle(song) }}<small>{{ lines(song.text) }}</small>
-      </button>
-    </div>
-
     <label for="notes">Dodatkowe informacje</label>
     <textarea id="notes" v-model="current.notes" placeholder="np. chrzest po kazaniu, błogosławieństwo dzieci, rocznica…"></textarea>
     <p v-if="current.files.length" class="note">Załączniki ({{ current.files.length }}): {{ current.files.map(f => f.name).join(', ') }} — dodaje się je i usuwa na komputerze.</p>
 
-    <p class="saved" role="status">{{ status }}</p>
+    <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div class="bar">
       <button v-if="confirmDelete" class="danger" :disabled="busy" @click="remove">Na pewno usuń</button>
-      <button v-else :disabled="busy" @click="confirmDelete = true">Usuń</button>
-      <button class="primary" :disabled="busy || !dirty" @click="save">{{ busy ? 'Zapisuję…' : dirty ? 'Zapisz' : 'Zapisane' }}</button>
+      <button v-else :disabled="busy" aria-label="Usuń nabożeństwo" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
+      <button class="primary" :disabled="busy || !dirty" @click="save">
+        <svg v-if="!dirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : dirty ? 'Zapisz' : 'Zapisane' }}
+      </button>
     </div>
   </template>
+
+  <p class="version">wersja {{ version }}</p>
 </div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -178,37 +291,55 @@ const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString()
 const today = () => localDate(new Date())
 const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return localDate(d) }
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').slice(0, 2).join(' / ')
+const asDate = date => new Date((date || today()) + 'T12:00')
+// Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
+const VERSION = '1.4 · 14.10.2026'
+const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 createApp({
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     const services = ref([]), songs = ref([])
-    const current = ref(null), saved = ref(''), query = ref(''), confirmDelete = ref(false)
+    const current = ref(null), saved = ref(''), query = ref(''), picking = ref(false), confirmDelete = ref(false)
+    const showPast = ref(false), offline = ref(!navigator.onLine)
+    let base = 0 // znacznik wersji nabożeństwa w chwili otwarcia — do wykrywania równoczesnej edycji
 
-    const pretty = date => (date ? new Date(date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'bez daty')
+    const pretty = date => (date ? asDate(date).toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'bez daty')
+    const day = date => asDate(date).getDate()
+    const month = date => asDate(date).toLocaleDateString('pl', { month: 'short' }).replace('.', '')
+    const weekday = date => asDate(date).toLocaleDateString('pl', { weekday: 'long' })
     const missing = svc => [
-      ...[['sermonTitle', 'tytułu kazania'], ['passage', 'fragmentu'], ['speaker', 'mówcy']].filter(([k]) => !String(svc[k] || '').trim()).map(([, n]) => n),
+      ...[['sermonTitle', 'tytuł kazania'], ['passage', 'fragment'], ['speaker', 'mówca']].filter(([k]) => !String(svc[k] || '').trim()).map(([, n]) => n),
       ...(svc.songs?.length ? [] : ['pieśni']),
     ]
     const upcoming = svc => svc.date >= today()
-    const sorted = computed(() => [...services.value].sort((a, b) => b.date.localeCompare(a.date)))
+    // Nadchodzące od najbliższego; wcześniejsze schowane, od najnowszego.
+    const coming = computed(() => services.value.filter(upcoming).sort((a, b) => a.date.localeCompare(b.date)))
+    const past = computed(() => services.value.filter(s => !upcoming(s)).sort((a, b) => b.date.localeCompare(a.date)))
+    const shown = computed(() => (showPast.value ? [...coming.value, ...past.value] : coming.value))
+    // Stan najbliższej niedzieli — na samej górze listy.
     const alert = computed(() => {
       const date = nextSunday(), short = pretty(date).replace(/^niedziela, /, '')
       const service = services.value.find(s => s.date === date)
-      if (!service) return { date, text: `Nie ma nabożeństwa na niedzielę ${short}.` }
+      if (!service) return { date, title: 'Brak nabożeństwa', text: `Na niedzielę ${short} nic jeszcze nie zaplanowano.` }
       const m = missing(service)
-      return m.length ? { service, text: `Nabożeństwo na niedzielę nie ma: ${m.join(', ')}.` } : { good: true, text: `Nabożeństwo na niedzielę ${short} jest gotowe.` }
+      return m.length
+        ? { service, title: 'Nabożeństwo niekompletne', text: `Niedziela ${short} — brakuje:`, missing: m }
+        : { good: true, title: 'Wszystko gotowe', text: `Nabożeństwo na niedzielę ${short} jest kompletne.` }
     })
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     const songTitle = s => (s.number ? s.number + '. ' : '') + s.title
     const sameSong = e => s => s.title === e.title && (s.number || '') === (e.number || '')
+    const inBase = entry => songs.value.some(sameSong(entry))
     const firstLine = entry => lines(songs.value.find(sameSong(entry))?.text) || 'Tej pieśni nie ma w bazie'
+    const chosen = song => current.value?.songs.some(sameSong(song))
+    // Podpowiedzi: bez wpisanego tekstu cała baza po numerach, z tekstem — najpierw numer i tytuł, potem treść.
     const results = computed(() => {
       const q = plain(query.value.trim())
-      if (!q) return []
-      const byTitle = songs.value.filter(s => s.number === q || plain(s.title).includes(q))
-      const byText = songs.value.filter(s => !byTitle.includes(s) && plain(s.text).includes(q))
-      return [...byTitle, ...byText].slice(0, 8)
+      const all = [...songs.value].sort(byNumber)
+      if (!q) return all
+      const byTitle = all.filter(s => s.number === q || plain(s.title).includes(q))
+      return [...byTitle, ...all.filter(s => !byTitle.includes(s) && plain(s.text).includes(q))]
     })
 
     async function guard(job) {
@@ -225,15 +356,20 @@ createApp({
     }
     const start = () => guard(async () => { await drive.signIn(); await fetchAll(); ready.value = true })
     const reload = () => guard(fetchAll)
+    function logout() {
+      drive.signOut()
+      ready.value = false; services.value = []; current.value = null
+    }
 
     function open(svc) {
       current.value = JSON.parse(JSON.stringify(svc))
       saved.value = JSON.stringify(current.value)
-      query.value = ''; status.value = ''; confirmDelete.value = false
+      base = svc.updated || 0
+      query.value = ''; status.value = ''; confirmDelete.value = false; picking.value = false
       scrollTo(0, 0)
     }
     function create(date) {
-      open({ id: uid(), date: typeof date === 'string' ? date : today(), sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [] })
+      open({ id: uid(), date: typeof date === 'string' ? date : nextSunday(), sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [] })
       saved.value = '' // nowe nabożeństwo od razu jest „do zapisania”
     }
     const fix = () => (alert.value.service ? open(alert.value.service) : create(alert.value.date))
@@ -241,19 +377,38 @@ createApp({
       if (dirty.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
       current.value = null
     }
+    // Dotknięcie pieśni dodaje ją albo — gdy już jest — zdejmuje; lista zostaje otwarta, żeby wybrać kilka.
     function addSong(song) {
-      current.value.songs.push({ key: uid(), songId: null, title: song.title, number: song.number || '' })
-      query.value = ''
+      const list = current.value.songs
+      const at = list.findIndex(sameSong(song))
+      if (at >= 0) list.splice(at, 1)
+      else list.push({ key: uid(), songId: null, title: song.title, number: song.number || '' })
     }
     function move(i, by) { const list = current.value.songs; list.splice(i + by, 0, ...list.splice(i, 1)) }
 
-    const save = () => guard(async () => {
+    const save = (force = false) => guard(async () => {
       const svc = current.value
-      svc.updated = Date.now()
-      svc.shared = true
       // Teksty pieśni jadą razem z nabożeństwem — komputer, który ich nie ma, dopisze je do swojej bazy.
       const texts = svc.songs.map(e => songs.value.find(sameSong(e))).filter(Boolean).map(({ number, title, text }) => ({ number: number || '', title, text }))
-      await drive.save({ service: JSON.parse(JSON.stringify(svc)), songs: texts })
+      const payload = { service: { ...JSON.parse(JSON.stringify(svc)), updated: Date.now(), shared: true }, songs: texts }
+      try {
+        await drive.save(payload, base, force === true)
+      } catch (e) {
+        if (!e.conflict) throw e
+        // Ktoś (inny telefon albo komputer) zapisał to nabożeństwo, odkąd je otwarto.
+        if (confirm('Ktoś inny zmienił to nabożeństwo, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) {
+          await drive.save(payload, base, true)
+        } else {
+          await fetchAll()
+          const fresh = services.value.find(s => s.id === svc.id)
+          if (fresh) open(fresh)
+          status.value = 'Wczytano najnowszą wersję'
+          return
+        }
+      }
+      svc.updated = payload.service.updated
+      svc.shared = true
+      base = svc.updated
       const i = services.value.findIndex(s => s.id === svc.id)
       const copy = JSON.parse(JSON.stringify(svc))
       if (i >= 0) services.value[i] = copy
@@ -275,11 +430,9 @@ createApp({
     let hidden = false
     try { hidden = localStorage.getItem('kns-install-hidden') === '1' } catch { /* tryb prywatny */ }
     const hideInstall = ref(hidden)
+    const showHelp = ref(false)
     addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvent = e; canPrompt.value = true })
     addEventListener('appinstalled', () => { installed.value = true })
-    const showHelp = ref(false)
-    // Android/Chrome: jedno dotknięcie otwiera systemowe okno instalacji. Gdzie się nie da (iPhone,
-    // przeglądarka bez tej funkcji), ten sam przycisk pokazuje najkrótszą drogę.
     async function install() {
       if (!promptEvent) { showHelp.value = true; return }
       promptEvent.prompt()
@@ -295,10 +448,24 @@ createApp({
 
     // Zamknięcie karty z niezapisanymi zmianami wymaga potwierdzenia.
     addEventListener('beforeunload', e => { if (dirty.value) e.preventDefault() })
+    addEventListener('online', () => { offline.value = false })
+    addEventListener('offline', () => { offline.value = true })
+    // Powrót do aplikacji (np. z innej) odświeża listę — widać zmiany innych osób.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && ready.value && !current.value && !busy.value && drive.signedIn()) reload()
+    })
+    // Zapamiętane logowanie: po przeładowaniu strony od razu wczytujemy dane.
     if (demo) start()
+    else if (clientId && drive.signedIn()) guard(async () => { await fetchAll(); ready.value = true })
 
-    return { installed, ios, canPrompt, showHelp, hideInstall, install, dismissInstall, drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, sorted, alert, current, dirty, query, results, confirmDelete,
-      pretty, missing, upcoming, songTitle, firstLine, lines, start, reload, open, create, fix, back, addSong, move, save, remove }
+    return {
+      installed, ios, canPrompt, showHelp, hideInstall, install, dismissInstall,
+      version: VERSION, offline, showPast, coming, past, shown, logout,
+      drive, configured: demo || !!clientId, ready, busy, error, status, services, songs, alert, current, dirty,
+      query, picking, results, confirmDelete,
+      pretty, day, month, weekday, missing, upcoming, songTitle, firstLine, inBase, chosen, lines,
+      start, reload, open, create, fix, back, addSong, move, save, remove,
+    }
   },
 }).mount('#app')
 </script>

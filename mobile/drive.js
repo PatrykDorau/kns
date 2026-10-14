@@ -19,16 +19,24 @@ export function folderName(svc) {
 /* ---------- Dysk Google ---------- */
 const quote = s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"
 
+// Logowanie jest pamiętane w telefonie (Google wydaje dostęp na około godzinę), więc przeładowanie
+// strony nie wylogowuje. Po wygaśnięciu wystarczy jedno dotknięcie — konto jest już podpowiedziane.
+const AUTH_KEY = 'kns-auth'
+function readAuth() { try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || {} } catch { return {} } }
+function writeAuth(auth) { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)) } catch { /* tryb prywatny */ } }
+
 export function createDrive(config) {
   const clientId = config.clientId
-  let token = ''
+  const saved = readAuth()
+  let token = saved.expires > Date.now() + 60000 ? saved.token : ''
+  let email = saved.email || ''
   let client = null
   let baseId = '' // podfolder z nabożeństwami
   const folders = new Map() // id nabożeństwa → { folderId, fileId, name }
 
   async function call(url, options = {}) {
     const res = await fetch(url, { ...options, headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } })
-    if (res.status === 401) { token = ''; throw Object.assign(new Error('Sesja wygasła — zaloguj się ponownie.'), { auth: true }) }
+    if (res.status === 401) { token = ''; writeAuth({ email }); throw Object.assign(new Error('Sesja wygasła — zaloguj się ponownie.'), { auth: true }) }
     if (!res.ok) throw new Error('Dysk Google odpowiedział błędem ' + res.status + '.')
     return res
   }
@@ -47,13 +55,26 @@ export function createDrive(config) {
   return {
     demo: false,
     signedIn: () => !!token,
+    account: () => email,
     signIn: () => new Promise((resolve, reject) => {
       if (!window.google?.accounts?.oauth2) return reject(new Error('Nie udało się wczytać logowania Google — sprawdź internet.'))
       client = client || google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: SCOPE, callback: () => {} })
-      client.callback = res => (res.error ? reject(new Error('Logowanie nie powiodło się.')) : (token = res.access_token, resolve()))
+      client.callback = async res => {
+        if (res.error) return reject(new Error('Logowanie nie powiodło się.'))
+        token = res.access_token
+        const expires = Date.now() + (Number(res.expires_in) || 3600) * 1000
+        try { email = (await (await call(`${API}/about?fields=user(emailAddress)`)).json()).user.emailAddress } catch { /* adres to tylko podpowiedź */ }
+        writeAuth({ token, expires, email })
+        resolve()
+      }
       client.error_callback = () => reject(new Error('Logowanie przerwane.'))
-      client.requestAccessToken({ prompt: '' })
+      client.requestAccessToken({ prompt: '', login_hint: email || undefined })
     }),
+    signOut() {
+      if (token && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(token, () => {})
+      token = ''; email = ''
+      writeAuth({})
+    },
     async load() {
       // Folder aplikacji: po identyfikatorze z config.js, a gdy go nie ma — po nazwie.
       let rootId = config.folderId
@@ -87,10 +108,16 @@ export function createDrive(config) {
       }))
       return { services, songs }
     },
-    async save(payload) {
+    // base — znacznik „updated” wersji, od której zaczęła się edycja. Gdy na Dysku jest nowsza
+    // (ktoś zapisał w międzyczasie), zapis jest wstrzymywany, chyba że force.
+    async save(payload, base = 0, force = false) {
       const svc = payload.service
       const name = folderName(svc)
       let entry = folders.get(svc.id)
+      if (entry && !force) {
+        const remote = await read(entry.fileId)
+        if ((remote.service?.updated || 0) > base) throw Object.assign(new Error('Ktoś inny zmienił to nabożeństwo w międzyczasie.'), { conflict: true })
+      }
       if (!entry) {
         const folder = await create({ name, mimeType: FOLDER, parents: [baseId] })
         const file = await create({ name: 'nabozenstwo.json', parents: [folder.id] }, payload)
@@ -127,7 +154,9 @@ export function createDemo() {
   return {
     demo: true,
     signedIn: () => true,
+    account: () => 'tryb pokazowy',
     signIn: async () => {},
+    signOut() {},
     load: async () => JSON.parse(JSON.stringify(data)),
     async save(payload) {
       const i = data.services.findIndex(s => s.id === payload.service.id)
