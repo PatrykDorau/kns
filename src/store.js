@@ -816,6 +816,7 @@ function forgetShared() {
   for (const svc of services.value) delete svc.shared
 }
 export const sharedSuggestions = ref([]) // znalezione na tym komputerze foldery aplikacji
+export const googleError = ref('') // ostatni błąd logowania — zostaje widoczny, bo użytkownik jest wtedy w przeglądarce
 export const googleExpired = ref(false) // logowanie do Dysku Google wygasło (tryb testowy Google: co 7 dni)
 
 // Logowanie do Dysku Google: aplikacja sama czyta i zapisuje folder „Aplikacja KNS Nabo” — bez programu
@@ -823,8 +824,9 @@ export const googleExpired = ref(false) // logowanie do Dysku Google wygasło (t
 export async function loginGoogle() {
   busy.value = 'Dokończ logowanie w przeglądarce, która się otworzyła…'
   try {
+    googleError.value = ''
     const res = await api.googleLogin()
-    if (res.error) { flash(res.error); return }
+    if (res.error) { googleError.value = 'Logowanie nie powiodło się: ' + res.error; return }
     googleExpired.value = false
     sharedAccount.value = res.email ? { provider: 'Dysk Google', email: res.email } : sharedAccount.value
     if (settings.sharedDir !== 'google') connectSharedDir('google')

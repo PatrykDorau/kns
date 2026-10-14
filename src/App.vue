@@ -7,7 +7,7 @@ import PlannerPanel from './PlannerPanel.vue'
 import StreamPanel from './StreamPanel.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
-import { busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir, googleExpired, loginGoogle, logoutGoogle } from './store.js'
+import { busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
 
 // Na starcie użytkownik wybiera służbę — każda ma swój widok, a łączy je wspólne nabożeństwo.
 const ready = ref(false)
@@ -77,7 +77,8 @@ function choose(next) {
       <template v-else>
         <Icon name="missing" />
         <span><b>Ten komputer nie jest połączony z danymi kościoła.</b> Nabożeństwa i pieśni zapisują się tylko tutaj.
-          Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo” — będą wspólne dla wszystkich komputerów i telefonów.</span>
+          Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo” — będą wspólne dla wszystkich komputerów i telefonów.
+          <b v-if="googleError" class="bad"><br>{{ googleError }}</b></span>
         <button class="small primary" @click="loginGoogle">Zaloguj kontem Google</button>
         <button class="small" title="Dla komputera z programem „Dysk Google na komputer”" @click="pickSharedDir">lub wskaż folder…</button>
       </template>
