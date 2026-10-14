@@ -10,7 +10,12 @@ Aplikacja dla służb kościoła (Windows): rzutnik, stream i organizacja naboż
 
 ## Wspólne dane
 
-Nabożeństwa i baza pieśni synchronizują się między komputerami przez **folder wspólny** (np. Dysk Google lub OneDrive) — ustawia się go na ekranie wyboru służby. Pozostałe dane (materiały, ustawienia) są lokalne.
+Nabożeństwa i baza pieśni synchronizują się przez **folder aplikacji** na Dysku Google (np. „Aplikacja KNS Nabo”), który wskazuje się na ekranie wyboru służby:
+
+- `nabozenstwa/` — po jednym podfolderze na nabożeństwo (`<data> <tytuł kazania> (<id>)`),
+- `piesni/baza-piesni.json` — wspólna baza pieśni.
+
+Pozostałe dane (materiały, ustawienia) są lokalne na każdym komputerze.
 
 ## Uruchomienie
 
@@ -38,5 +43,5 @@ Instalator i wersja przenośna powstają w folderze `release`.
 Folder `mobile` to osobna strona internetowa (bez budowania) do planowania nabożeństw z telefonu. Czyta i zapisuje te same pliki w folderze wspólnym na Dysku Google, po zalogowaniu kontem Google.
 
 - Wystawiona na Netlify — plik `netlify.toml` wskazuje folder `mobile`, więc po połączeniu repozytorium z Netlify każda zmiana publikuje się sama.
-- W `mobile/config.js` trzeba wpisać identyfikator klienta OAuth z Google Cloud Console (z adresem strony jako autoryzowanym źródłem JavaScript).
+- `mobile/config.js`: identyfikator klienta OAuth z Google Cloud Console oraz folder aplikacji na Dysku (identyfikator albo nazwa) i nazwy podfolderów.
 - `?demo` na końcu adresu włącza tryb pokazowy bez logowania.

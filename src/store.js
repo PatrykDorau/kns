@@ -799,17 +799,24 @@ function pushSoon() {
   pushTimer = setTimeout(pushShared, 1500)
 }
 
-export async function pickSharedDir() {
-  const dir = await api.sharedPick()
-  if (dir) settings.sharedDir = dir
-}
-export function leaveSharedDir() {
-  settings.sharedDir = ''
-  sharedStatus.value = ''
+// Po zmianie folderu wszystko, co jest na tym komputerze, trafia do nowego folderu — a nie zostaje
+// uznane za „usunięte gdzie indziej”, bo w nowym folderze jeszcze tego nie ma.
+function forgetShared() {
   synced.clear()
   songsMtime = 0
   songsDirty = true
   for (const svc of services.value) delete svc.shared
+}
+export async function pickSharedDir() {
+  const dir = await api.sharedPick()
+  if (!dir || dir === settings.sharedDir) return
+  forgetShared()
+  settings.sharedDir = dir
+}
+export function leaveSharedDir() {
+  settings.sharedDir = ''
+  sharedStatus.value = ''
+  forgetShared()
 }
 
 /* ---------- zapis ---------- */
@@ -864,6 +871,12 @@ export async function init() {
   items.value = ((await api.loadStore('library')) || []).map(migrate)
   songs.value = (await api.loadStore('songs')) || []
   services.value = (await api.loadStore('services')) || []
+  // Układ folderu wspólnego się zmienił (podfoldery „nabozenstwa” i „piesni”) — nabożeństwa z tego
+  // komputera zostaną zapisane od nowa w nowym miejscu zamiast zniknąć jako „usunięte gdzie indziej”.
+  if (settings.sharedLayout !== 2) {
+    for (const svc of services.value) delete svc.shared
+    settings.sharedLayout = 2
+  }
   selectedId.value = visibleItems.value[0]?.id ?? null
   loaded.value = true
 

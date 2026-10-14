@@ -368,9 +368,11 @@ async function importService() {
 }
 
 /* ---------- folder wspólny z nabożeństwami ---------- */
-// <folder wspólny>/Rzutnik-nabozenstwa/<data> <tytuł kazania> (<id>)/nabozenstwo.json + pliki/
+// Folder aplikacji (np. „Aplikacja KNS Nabo” na Dysku Google):
+//   nabozenstwa/<data> <tytuł kazania> (<id>)/nabozenstwo.json + pliki/
+//   piesni/baza-piesni.json
 // — jeden podfolder na nabożeństwo, nazwany datą, żeby dało się go rozpoznać także w Eksploratorze.
-const sharedBase = dir => path.join(dir, 'Rzutnik-nabozenstwa')
+const sharedBase = dir => path.join(dir, 'nabozenstwa')
 const safeId = id => typeof id === 'string' && /^[a-z0-9]{4,20}$/i.test(id)
 const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase()
 function serviceFolderName(svc) {
@@ -446,7 +448,7 @@ async function sharedWrite(dir, payload) {
 }
 
 // Wspólna baza pieśni: jeden plik obok folderów nabożeństw.
-const songsFile = dir => path.join(sharedBase(dir), '_baza-piesni.json')
+const songsFile = dir => path.join(dir, 'piesni', 'baza-piesni.json')
 async function sharedSongsRead(dir, knownMtime) {
   if (typeof dir !== 'string' || !fs.existsSync(dir)) return { error: 'Folder wspólny jest teraz niedostępny.' }
   try {
@@ -460,7 +462,7 @@ async function sharedSongsRead(dir, knownMtime) {
 }
 async function sharedSongsWrite(dir, data) {
   if (typeof dir !== 'string' || !fs.existsSync(dir)) return { error: 'Folder wspólny jest teraz niedostępny.' }
-  await fs.promises.mkdir(sharedBase(dir), { recursive: true })
+  await fs.promises.mkdir(path.dirname(songsFile(dir)), { recursive: true })
   const file = songsFile(dir)
   await fs.promises.writeFile(file + '.tmp', JSON.stringify(data))
   await fs.promises.rename(file + '.tmp', file)
@@ -759,7 +761,7 @@ app.whenReady().then(() => {
   ipcMain.handle('service:export', (e, payload) => exportService(payload))
   ipcMain.handle('service:import', () => importService())
   ipcMain.handle('shared:pick', async () => {
-    const res = await dialog.showOpenDialog(control, { title: 'Wybierz folder wspólny (np. w OneDrive lub na Dysku Google)', properties: ['openDirectory', 'createDirectory'] })
+    const res = await dialog.showOpenDialog(control, { title: 'Wybierz folder aplikacji na Dysku Google (np. „Aplikacja KNS Nabo”)', properties: ['openDirectory', 'createDirectory'] })
     return res.canceled ? null : res.filePaths[0]
   })
   ipcMain.handle('shared:account', (e, dir) => sharedAccount(dir))

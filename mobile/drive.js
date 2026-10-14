@@ -1,11 +1,11 @@
-// Dostęp do folderu wspólnego na Dysku Google — te same pliki, z których korzysta aplikacja na komputerze:
-//   Rzutnik-nabozenstwa/<data> <tytuł> (<id>)/nabozenstwo.json   — jedno nabożeństwo
-//   Rzutnik-nabozenstwa/_baza-piesni.json                         — wspólna baza pieśni
+// Dostęp do folderu aplikacji na Dysku Google — te same pliki, z których korzysta aplikacja na komputerze:
+//   <folder aplikacji>/nabozenstwa/<data> <tytuł> (<id>)/nabozenstwo.json   — jedno nabożeństwo
+//   <folder aplikacji>/piesni/baza-piesni.json                              — wspólna baza pieśni
+// Folder aplikacji i nazwy podfolderów są w config.js.
 // W trybie pokazowym (?demo) zamiast Dysku jest pamięć przeglądarki — do oglądania strony bez logowania.
 
 const API = 'https://www.googleapis.com/drive/v3'
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3'
-const BASE_NAME = 'Rzutnik-nabozenstwa'
 const FOLDER = 'application/vnd.google-apps.folder'
 const SCOPE = 'https://www.googleapis.com/auth/drive'
 
@@ -17,10 +17,13 @@ export function folderName(svc) {
 }
 
 /* ---------- Dysk Google ---------- */
-export function createDrive(clientId) {
+const quote = s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"
+
+export function createDrive(config) {
+  const clientId = config.clientId
   let token = ''
   let client = null
-  let baseId = ''
+  let baseId = '' // podfolder z nabożeństwami
   const folders = new Map() // id nabożeństwa → { folderId, fileId, name }
 
   async function call(url, options = {}) {
@@ -52,15 +55,27 @@ export function createDrive(clientId) {
       client.requestAccessToken({ prompt: '' })
     }),
     async load() {
-      const bases = await list(`name='${BASE_NAME}' and mimeType='${FOLDER}' and trashed=false`)
-      if (!bases.length) throw new Error(`Na tym Dysku nie ma folderu „${BASE_NAME}”. Najpierw ustaw folder wspólny w aplikacji na komputerze i zapisz w niej jedno nabożeństwo.`)
-      baseId = bases[0].id
-      const children = await list(`'${baseId}' in parents and trashed=false`)
-      const songsFile = children.find(f => f.name === '_baza-piesni.json')
+      // Folder aplikacji: po identyfikatorze z config.js, a gdy go nie ma — po nazwie.
+      let rootId = config.folderId
+      if (rootId) {
+        try { await call(`${API}/files/${rootId}?fields=id&supportsAllDrives=true`) } catch (e) {
+          if (e.auth) throw e
+          throw new Error('To konto nie ma dostępu do folderu aplikacji z ustawień. Poproś o jego udostępnienie (jako Edytor).')
+        }
+      } else {
+        const roots = await list(`name=${quote(config.folderName)} and mimeType='${FOLDER}' and trashed=false`)
+        if (!roots.length) throw new Error(`Na Dysku tego konta nie ma folderu „${config.folderName}”. Musi być w „Mój dysk” albo udostępniony temu kontu.`)
+        rootId = roots[0].id
+      }
+      const subfolder = async name => (await list(`${quote(rootId)} in parents and name=${quote(name)} and mimeType='${FOLDER}' and trashed=false`))[0]?.id
+      baseId = await subfolder(config.servicesFolder) || (await create({ name: config.servicesFolder, mimeType: FOLDER, parents: [rootId] })).id
+      const songsDir = await subfolder(config.songsFolder)
+      const songsFile = songsDir ? (await list(`${quote(songsDir)} in parents and name='baza-piesni.json' and trashed=false`))[0] : null
       const songs = songsFile ? (await read(songsFile.id)).songs || [] : []
+      const children = await list(`${quote(baseId)} in parents and mimeType='${FOLDER}' and trashed=false`)
       folders.clear()
       const services = []
-      await Promise.all(children.filter(f => f.name !== '_baza-piesni.json').map(async folder => {
+      await Promise.all(children.map(async folder => {
         try {
           const [file] = await list(`'${folder.id}' in parents and name='nabozenstwo.json' and trashed=false`)
           if (!file) return

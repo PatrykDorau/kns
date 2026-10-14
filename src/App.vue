@@ -62,7 +62,7 @@ function choose(next) {
       </template>
       <template v-else>
         <Icon name="missing" />
-        <span>Nabożeństwa są widoczne tylko na tym komputerze. Wskaż folder wspólny (OneDrive, Dysk Google, dysk sieciowy), żeby widziały je wszystkie służby.</span>
+        <span>Nabożeństwa są widoczne tylko na tym komputerze. Wskaż folder aplikacji na Dysku Google (np. „Aplikacja KNS Nabo”), żeby widziały je wszystkie służby i telefony.</span>
         <button class="small" @click="pickSharedDir">Ustaw folder wspólny</button>
       </template>
     </div>

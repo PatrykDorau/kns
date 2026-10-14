@@ -96,7 +96,7 @@
   </div>
   <div v-else-if="!ready" class="center">
     <img src="logo.png" alt="Kościół Na Skale">
-    <p class="note">Zaloguj się kontem Google, na którym jest folder wspólny z nabożeństwami.</p>
+    <p class="note">Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.</p>
     <button class="primary" :disabled="busy" @click="start">{{ busy ? 'Wczytuję…' : 'Zaloguj kontem Google' }}</button>
   </div>
 
@@ -172,7 +172,7 @@ const { createApp, ref, computed } = Vue
 
 const demo = new URLSearchParams(location.search).has('demo')
 const clientId = window.KNS_CONFIG?.clientId || ''
-const drive = demo ? createDemo() : createDrive(clientId)
+const drive = demo ? createDemo() : createDrive(window.KNS_CONFIG)
 const plain = s => String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l')
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const today = () => localDate(new Date())
