@@ -1,7 +1,7 @@
 // Pozwala zainstalować stronę jako aplikację i otworzyć ją bez zasięgu (z ostatnio pobranej wersji).
 // Pliki strony: najpierw sieć (żeby zawsze była najnowsza wersja), a bez internetu — kopia.
 // Dane z Dysku Google nigdy nie są tu zapisywane — zawsze idą prosto do Google.
-const CACHE = 'kns-nabo-v24'
+const CACHE = 'kns-nabo-v25'
 const SHELL = ['./', './index.html', './drive.js', './config.js', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png']
 const LIBRARY = 'https://cdnjs.cloudflare.com/'
 

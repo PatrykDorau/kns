@@ -522,7 +522,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.13 · 14.10.2026'
+const VERSION = '2.14 · 14.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -955,7 +955,7 @@ createApp({
           ? 'Telefon blokuje powiadomienia Chrome. Ustawienia telefonu → Aplikacje → Chrome → Powiadomienia → włącz (także kategorię dla strony / KNS Nabo), potem spróbuj ponownie.'
           : 'Powiadomienia są zablokowane w ustawieniach przeglądarki albo systemu — odblokuj je i spróbuj ponownie.'
         else if (/push service|registration failed|AbortError/i.test(raw)) hint = android
-          ? 'Usługa powiadomień Google na tym telefonie nie odpowiada. Sprawdź: 1) Ustawienia → Aplikacje → Chrome → Oszczędzanie baterii → „Bez ograniczeń”, 2) to samo dla „Usługi Google Play”, 3) czy Usługi Google Play i Chrome są zaktualizowane w Sklepie Play. Potem zamknij Chrome i spróbuj ponownie.'
+          ? 'Telefon nie połączył się z usługą powiadomień Google. Sprawdź: 1) czy nie jest włączony prywatny DNS, VPN albo blokowanie reklam (Ustawienia → Połączenie i udostępnianie → Prywatny DNS → Wyłączony), 2) spróbuj na danych komórkowych zamiast Wi-Fi, 3) zaktualizuj „Usługi Google Play” i Chrome w Sklepie Play. Potem zamknij Chrome i spróbuj ponownie.'
           : 'Ta przeglądarka nie przyjęła zapisu na powiadomienia. Spróbuj w Chrome albo Edge.'
         push.error = hint ? hint + ' (szczegóły: ' + raw + ')' : raw
         if (e.auth) ready.value = false
