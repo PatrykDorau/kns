@@ -61,6 +61,18 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
   return {
     account: () => (person ? { provider: 'Baza danych', email: person.email } : null),
     person: () => person,
+    // Kim jest zalogowany i co mu wolno (rangi z bazy) — do odblokowania służb na komputerze.
+    access: () => safe(async () => {
+      const s = await session()
+      const [[p], ranks] = await Promise.all([
+        sb.from('people').select('email,status,roles').eq('id', s.user.id).then(check),
+        sb.from('ranks').select('*').then(check),
+      ])
+      if (!p) throw new Error('Konta nie ma jeszcze w bazie — zaloguj się ponownie.')
+      person = p
+      const flag = f => (p.roles || []).some(r => ranks.some(x => x.id === r && x[f]))
+      return { email: p.email, status: p.status, roles: p.roles || [], names: (p.roles || []).map(r => ranks.find(x => x.id === r)?.name).filter(Boolean), edit: flag('can_edit'), manage: flag('manage') }
+    }),
     // Pierwsze połączenie (po zalogowaniu Google): od razu sprawdza konto.
     connect: () => safe(async () => { await active(); return { ok: true, email: person.email } }),
     signOut: () => sb.auth.signOut({ scope: 'local' }).catch(() => {}),

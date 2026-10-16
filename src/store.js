@@ -1045,6 +1045,43 @@ export const sharedSuggestions = ref([]) // znalezione na tym komputerze foldery
 export const googleError = ref('') // ostatni błąd logowania — zostaje widoczny, bo użytkownik jest wtedy w przeglądarce
 export const googleExpired = ref(false) // logowanie do Dysku Google wygasło (tryb testowy Google: co 7 dni)
 
+/* ---------- dostęp do służb (konto i rangi z bazy) ---------- */
+// Bez zalogowania nic nie działa. Rzutnik i Stream — służba techniczna (ranga „technika”) i administrator;
+// Organizacja — rangi z prawem edycji. Bez internetu (np. w kościele) liczy się ostatnie udane sprawdzenie
+// z tego komputera, jeśli było w ciągu 30 dni — żeby rzutnik nie stanął w trakcie nabożeństwa.
+export const access = reactive({ checked: false, status: '', email: '', roles: [], names: [], edit: false, manage: false, offline: false, error: '' })
+const ACCESS_KEY = 'kns-dostep', ACCESS_DAYS = 30
+function applyAccess(a, offline = false) {
+  Object.assign(access, { status: a.status || '', email: a.email || '', roles: a.roles || [], names: a.names || [], edit: !!a.edit, manage: !!a.manage, offline, error: '' })
+}
+export async function refreshAccess() {
+  if (!cloud) return
+  const r = await cloud.access()
+  access.checked = true
+  if (!r.error) {
+    applyAccess(r)
+    try { localStorage.setItem(ACCESS_KEY, JSON.stringify({ ...r, at: Date.now() })) } catch { /* bez zapisu */ }
+    return
+  }
+  let saved = null
+  try { saved = JSON.parse(localStorage.getItem(ACCESS_KEY) || 'null') } catch { /* brak */ }
+  if (/połączenia|fetch|network/i.test(r.error) && saved && Date.now() - saved.at < ACCESS_DAYS * 86400000) { applyAccess(saved, true); return }
+  applyAccess({})
+  access.error = r.needLogin ? '' : r.error
+}
+export function canUse(which) {
+  if (access.status !== 'active') return false
+  if (which === 'planner') return access.edit
+  return access.roles.includes('technika') || access.manage
+}
+export function accessReason(which) {
+  if (!access.status) return 'Zaloguj się kontem Google'
+  if (access.status === 'pending') return 'Konto czeka na zatwierdzenie'
+  if (access.status !== 'active') return 'Brak dostępu'
+  if (canUse(which)) return ''
+  return which === 'planner' ? 'Tylko dla osób z prawem edycji' : 'Tylko dla służby technicznej'
+}
+
 // Logowanie do Dysku Google: aplikacja sama czyta i zapisuje folder „Aplikacja KNS Nabo” — bez programu
 // „Dysk Google na komputer” i bez wskazywania folderu. W ustawieniach zamiast ścieżki jest wtedy „google”.
 export async function loginGoogle() {
@@ -1061,6 +1098,7 @@ export async function loginGoogle() {
       if (c.error && !/czeka na zatwierdzenie|nie ma dostępu/.test(c.error)) { googleError.value = c.error; return }
       if (c.error) sharedStatus.value = c.error
       sharedAccount.value = cloud.account()
+      await refreshAccess()
       if (settings.sharedDir !== BAZA) connectSharedDir(BAZA)
       else syncShared()
       return
@@ -1075,6 +1113,9 @@ export async function loginGoogle() {
 export async function logoutGoogle() {
   await api.googleLogout()
   await cloud?.signOut()
+  try { localStorage.removeItem(ACCESS_KEY) } catch { /* bez zapisu */ }
+  applyAccess({})
+  role.value = null
   googleExpired.value = false
   leaveSharedDir()
 }
@@ -1173,8 +1214,9 @@ export async function init() {
   watch(items, () => saveSoon('library'), { deep: true })
   watch(songs, () => { saveSoon('songs'); songsChanged() }, { deep: true })
   watch(services, () => { saveSoon('services'); pushSoon() }, { deep: true })
-  // Komputery połączone dotąd z Dyskiem Google przechodzą na bazę danych (tam są teraz nabożeństwa i pieśni).
-  if (cloud && settings.sharedDir === 'google') connectSharedDir(BAZA)
+  // Komputery połączone dotąd z Dyskiem Google (albo folderem) przechodzą na bazę danych — tam są teraz nabożeństwa i pieśni.
+  if (cloud && settings.sharedDir !== BAZA) connectSharedDir(BAZA)
+  refreshAccess()
   findSharedDir()
   watch(() => settings.sharedDir, async dir => {
     sharedAccount.value = null

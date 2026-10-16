@@ -786,3 +786,7 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
 .prog li.done { opacity: .45; }
 .prog li.now { background: var(--accent-soft); color: var(--text); }
 .prog li em { font-style: normal; font-size: 11px; font-weight: 800; color: var(--live); letter-spacing: .06em; }
+
+/* Ekran startowy: służba niedostępna dla tego konta */
+.role-cards button small.locked { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--warn); font-size: 12px; }
+.role-cards button small.locked .icon { width: 14px; height: 14px; }
