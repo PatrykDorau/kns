@@ -97,6 +97,20 @@ assert.deepEqual(pub.events.map(e => e.title), ['Studenci'])
 assert.deepEqual(pub.announcements.map(a => a.title), ['Piknik'])
 assert.deepEqual(pub.types.map(t => t.id), ['studenckie'])
 
+// 8b. Kalendarz Google: klucz osoby → nabożeństwa i wydarzenia; spotkania rady tylko dla rady; zły klucz → nic.
+const tokAnia = (await as('ania', 'select my_calendar_token() as t')).rows[0].t
+const tokRada = (await as('rada', 'select my_calendar_token() as t')).rows[0].t
+let feed = (await as('anon', 'select calendar_feed($1) as f', [tokAnia])).rows[0].f
+assert.equal(feed.services.length, 1)
+assert.deepEqual(feed.events.map(e => e.title).sort(), ['Członkowskie', 'Studenci'])
+feed = (await as('anon', 'select calendar_feed($1) as f', [tokRada])).rows[0].f
+assert.ok(feed.events.some(e => e.title === 'Rada'))
+assert.equal((await as('anon', 'select calendar_feed(gen_random_uuid()) as f')).rows[0].f, null)
+const renewed = (await as('ania', 'select my_calendar_token(true) as t')).rows[0].t
+assert.notEqual(renewed, tokAnia)
+assert.equal((await as('anon', 'select calendar_feed($1) as f', [tokAnia])).rows[0].f, null)
+await fails(as('anon', 'select my_calendar_token()'), /permission denied/)
+
 // 9. Odebranie dostępu — znowu nic nie widzi.
 await as('admin', `select set_person('ania@kns.pl', 'rejected', null)`)
 assert.equal((await as('ania', `select * from services`)).rows.length, 0)

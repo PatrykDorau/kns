@@ -74,6 +74,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
         const p = check(await sb.rpc('set_person', { person_email: data.email, new_status: data.status ?? null, new_roles: Array.isArray(data.roles) ? data.roles : null }))
         return { person: view(p) }
       }
+      if (action === 'calendarToken') return { token: check(await sb.rpc('my_calendar_token', { renew: !!data.renew })) }
       if (action === 'setNewsletter') return { person: view(check(await sb.rpc('set_newsletter', { enabled: !!data.on }))) }
       throw new Error('Nieznane polecenie.')
     },

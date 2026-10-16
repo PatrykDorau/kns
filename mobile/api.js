@@ -56,6 +56,7 @@ export function createDemoApi() {
       announcements: [{ id: 'p1', title: 'Piknik kościelny', text: 'W sobotę po nabożeństwie wspólny piknik w parku.', important: false, date: Date.now() }],
       types: [{ id: 'nabozenstwo', name: 'Nabożeństwo', color: '#5b8cff' }, { id: 'studenckie', name: 'Spotkanie studenckie', color: '#3ddc97' }],
     }),
+    calendarToken: () => ({ token: '00000000-0000-4000-8000-000000000000' }),
     setNewsletter({ on }) { people[0].newsletter = !!on; persist(); return { person: people[0] } },
     people: () => ({ people, ranks: RANKS }),
     setPerson({ email, status, roles }) {

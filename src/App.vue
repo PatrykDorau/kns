@@ -29,8 +29,8 @@ function choose(next) {
 const TILES = [
   ['display', 'monitor', 'Rzutnik', 'Pieśni, zdjęcia, filmy i teksty'],
   ['stream', 'camera', 'Stream', 'Kamery i sygnały dla kamerzysty'],
-  ['planner', 'pencil', 'Nabożeństwa', 'Kazanie, pieśni, program, załączniki'],
-  ['calendar', 'calendar', 'Kalendarz', 'Nabożeństwa i inne wydarzenia'],
+  ['planner', 'pencil', 'Nabożeństwa', 'Kazanie, pieśni, program'],
+  ['calendar', 'calendar', 'Kalendarz', 'Wszystkie wydarzenia'],
 ]
 </script>
 
@@ -62,11 +62,16 @@ const TILES = [
     </div>
 
     <div class="tiles">
-      <button v-for="[id, icon, name, desc] in TILES" :key="id" class="tile" :disabled="!ready || !canUse(id)" :title="accessReason(id)"
-              :class="{ danger: id === 'planner' && ready && planAlert && canUse(id), success: id === 'planner' && ready && planReady && canUse(id) }" @click="choose(id)">
-        <Icon :name="icon" />
-        <span class="tile-text"><b>{{ name }}</b><span>{{ desc }}</span>
-          <small v-if="ready && accessReason(id)" class="locked"><Icon name="missing" />{{ accessReason(id) }}</small></span>
+      <button v-for="[id, icon, name, desc] in TILES" :key="id" class="tile" :disabled="!ready || !canUse(id)" :title="accessReason(id)" @click="choose(id)">
+        <span class="tile-ic"><Icon :name="icon" /></span>
+        <span class="tile-text">
+          <span class="tile-name">{{ name }}
+            <em v-if="id === 'planner' && ready && canUse(id) && planAlert" class="pill bad">Braki</em>
+            <em v-else-if="id === 'planner' && ready && canUse(id) && planReady" class="pill ok">Komplet</em></span>
+          <span class="tile-desc">{{ ready && accessReason(id) ? accessReason(id) : desc }}</span>
+        </span>
+        <Icon v-if="ready && canUse(id)" name="right" class="tile-go" />
+        <Icon v-else name="missing" class="tile-go" />
       </button>
     </div>
 
@@ -101,15 +106,20 @@ const TILES = [
 .login-card p { margin: 0; color: var(--muted); }
 .login-card .bad { color: #ff8a82; }
 .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 1180px; }
-.tile { justify-content: flex-start; gap: 14px; padding: 16px 18px; border-radius: 16px; background: var(--panel); text-align: left; min-height: 92px; position: relative; }
+.tile { display: grid; grid-template-columns: 44px minmax(0, 1fr) 18px; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); text-align: left; }
 .tile:hover:not(:disabled) { border-color: var(--accent); background: var(--panel2); }
-.tile > .icon { width: 30px; height: 30px; color: var(--accent); flex: none; }
+.tile:disabled { opacity: 1; }
+.tile:disabled .tile-ic, .tile:disabled .tile-name { opacity: .45; }
+.tile-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.tile-ic .icon { width: 22px; height: 22px; }
 .tile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tile-text b { font-size: 16px; }
-.tile-text > span { color: var(--muted); font-size: 12px; }
-.tile .locked { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; color: var(--warn); font-size: 12px; }
-.tile .locked .icon { width: 13px; height: 13px; }
-.tile.danger { border: 2px solid var(--live); }
-.tile.success { border: 2px solid var(--ok); }
+.tile-name { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+.tile-desc { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile:disabled .tile-desc { color: var(--warn); }
+.tile-go { width: 16px; height: 16px; color: var(--muted); }
+.tile:disabled .tile-go { color: var(--warn); }
+.pill { font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+.pill.bad { background: rgba(240, 72, 62, .16); color: #ff8a82; }
+.pill.ok { background: rgba(61, 220, 151, .14); color: var(--ok); }
 .app-version { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
 </style>

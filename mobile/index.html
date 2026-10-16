@@ -390,6 +390,13 @@
   .more-list button small { color: var(--muted); font-size: 14px; }
   .more-list .count-pill { min-width: 22px; padding: 1px 7px; border-radius: 11px; background: var(--bad); color: #fff; font-weight: 700; text-align: center; }
   .more-list .chev { color: var(--muted); }
+  .gcal { display: flex; flex-direction: column; gap: 10px; }
+  .gcal p { margin: 0; }
+  .gcal a.button { width: 100%; gap: 8px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
+  .gcal a.button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+  .gcal label { margin-top: 10px; }
+  .gcal-url { display: flex; gap: 8px; }
+  .gcal-url input { font-size: 13px; }
   .desktop-mode { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bad-soft); color: var(--bad-text); font-size: 14px; }
   @media (min-width: 720px) { #app { max-width: 760px; } }
   /* konta: oczekiwanie na zatwierdzenie, osoby i rangi */
@@ -470,7 +477,7 @@
 <div id="app" v-cloak :class="{ tabbed: showTabs }">
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? 'Ogłoszenie' : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? 'Ogłoszenie' : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
     <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
     <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
@@ -480,7 +487,7 @@
     <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
-    <button v-else-if="songView || peopleView" class="ghost" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
+    <button v-else-if="songView || peopleView || gcalView" class="ghost" @click="songView = false; peopleView = false; gcalView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
       <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
@@ -919,6 +926,24 @@
     </div>
   </template>
 
+  <!-- Kalendarz kościoła w Kalendarzu Google (subskrypcja) -->
+  <template v-else-if="gcalView && !current">
+    <div class="gcal">
+      <p>Nabożeństwa i wydarzenia z aplikacji pojawią się w Twoim Kalendarzu Google (albo w kalendarzu iPhone'a) i będą się same uzupełniać.</p>
+      <p class="note">Google odświeża subskrybowane kalendarze sam — zwykle co kilka godzin, więc nowe wydarzenie trafi tam z opóźnieniem (w aplikacji od razu).</p>
+      <p v-if="gcal.error" class="error">{{ gcal.error }}</p>
+      <p v-if="!gcal.url" class="note">{{ gcal.busy ? 'Przygotowuję adres…' : '' }}</p>
+      <template v-else>
+        <a class="button primary" :href="gcal.google" target="_blank" rel="noopener"><svg class="i"><use href="#calendar"/></svg>Dodaj do Kalendarza Google</a>
+        <a class="button" :href="gcal.webcal"><svg class="i"><use href="#calendar"/></svg>iPhone, Outlook i inne</a>
+        <label for="gcalUrl">Adres kalendarza (prywatny — nie udostępniaj go)</label>
+        <div class="gcal-url"><input id="gcalUrl" :value="gcal.url" readonly @focus="$event.target.select()"><button @click="copyGcal">{{ gcal.copied ? 'Skopiowano' : 'Kopiuj' }}</button></div>
+        <p class="note">Na komputerze: Kalendarz Google → „Inne kalendarze” → <b>+</b> → „Z adresu URL” → wklej adres.</p>
+        <button class="ghost" :disabled="gcal.busy" @click="renewGcal">Utwórz nowy adres (stary przestanie działać)</button>
+      </template>
+    </div>
+  </template>
+
   <!-- Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) -->
   <template v-else-if="moreView && !current">
     <nav class="more-list" aria-label="Więcej">
@@ -927,6 +952,7 @@
       <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Protokoły</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg><span>Kalendarz Google</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     </nav>
     <div v-if="push.supported" class="push-card" :class="{ on: push.on }">
@@ -1242,7 +1268,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.33 · 17.10.2026'
+const VERSION = '2.34 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1583,7 +1609,7 @@ createApp({
     const songDirty = computed(() => !!song.value && JSON.stringify(song.value) !== songSaved)
     const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
     const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
-    function showServices() { songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; scrollTo(0, 0) }
+    function showServices() { songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -1752,7 +1778,7 @@ createApp({
       return visibleItems.value.filter(it => it.date >= todayStr.value && it.date <= until).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { songView.value = false; peopleView.value = false; moreView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -2025,7 +2051,23 @@ createApp({
     const eventIsPublic = ev => (ev.public === undefined ? !['czlonkowskie', 'rada'].includes(ev.type) : !!ev.public)
     /* ---------- Start i Więcej ---------- */
     const moreView = ref(false)
-    function openMore() { songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    /* ---------- Kalendarz Google (subskrypcja iCal z prywatnym kluczem) ---------- */
+    const gcalView = ref(false)
+    const gcal = Vue.reactive({ url: '', google: '', webcal: '', busy: false, error: '', copied: false })
+    async function loadGcal(renew = false) {
+      gcal.busy = true; gcal.error = ''
+      try {
+        const { token } = await api.call('calendarToken', { renew })
+        const host = (window.KNS_CONFIG?.appUrl || location.origin).replace(/^https?:\/\//, '')
+        gcal.url = 'https://' + host + '/api/kalendarz?t=' + token
+        gcal.webcal = 'webcal://' + host + '/api/kalendarz?t=' + token
+        gcal.google = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(gcal.webcal)
+      } catch (e) { gcal.error = e.message } finally { gcal.busy = false }
+    }
+    function openGcal() { gcalView.value = true; scrollTo(0, 0); if (!gcal.url) loadGcal() }
+    function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
+    async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
+    function openMore() { gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -2219,6 +2261,7 @@ createApp({
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,
+      gcalView, gcal, openGcal, renewGcal, copyGcal,
       moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,

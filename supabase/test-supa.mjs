@@ -76,6 +76,10 @@ assert.equal((await N.api.call('setNewsletter', { on: true })).person.newsletter
 await N.savePush('tel1', { subscription: {}, schedule: { day: 5, hour: 19 } })
 await N.removePush('tel1')
 
+// kalendarz Google: klucz dla zatwierdzonej osoby, gość nie dostanie
+const tok = (await N.api.call('calendarToken')).token
+assert.match(tok, /^[0-9a-f-]{36}$/)
+assert.notEqual((await N.api.call('calendarToken', { renew: true })).token, tok)
 // gość: tylko podgląd publiczny
 const pub = await G.api.call('public')
 assert.deepEqual(pub.events.map(e => e.title), ['Studenci'])
