@@ -1039,7 +1039,7 @@ async function pushShared() {
       }
       svc.shared = true
       synced.set(svc.id, snapshot(svc))
-      sharedStatus.value = 'Zapisano o ' + clock()
+      sharedStatus.value = res.warning || 'Zapisano o ' + clock()
     }
   } finally {
     pushing = false

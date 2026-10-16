@@ -8,6 +8,8 @@ const db = {
   services: [{ date: sunday, data: { id: 's1', date: sunday, sermonTitle: 'Światłość', passage: '', speaker: 'Jan', songs: [] } }],
   push_devices: [{ id: 'tel1', data: { subscription: { endpoint: 'x' }, schedule: { day: 5, hour: 19 } } }, { id: 'tel2', data: { subscription: { endpoint: 'y' } } }],
   people: [{ email: 'a@kns.pl' }],
+  allPeople: [{ email: 'Org@kns.pl', status: 'active', roles: ['czlonek', 'organizator'] }, { email: 'stary@kns.pl', status: 'active', roles: ['czlonek'] },
+    { email: 'czeka@kns.pl', status: 'pending', roles: [] }, { email: 'kosciol@kns.pl', status: 'active', roles: ['admin'] }],
 }
 const reply = (code, obj) => ({ getResponseCode: () => code, getContentText: () => (obj === undefined ? '' : JSON.stringify(obj)) })
 const UrlFetchApp = { fetch(url, opt) {
@@ -21,6 +23,8 @@ const UrlFetchApp = { fetch(url, opt) {
   if (m[1] === 'events') return reply(200, [{ data: { title: 'Studenci', date: sunday, time: '19:00' } }])
   if (m[1] === 'announcements') return reply(200, [{ data: { title: 'Piknik', text: 'Zapraszamy' }, important: true, until: null }])
   if (m[1] === 'templates') return reply(200, [])
+  if (m[1] === 'ranks') return reply(200, [{ id: 'organizator' }, { id: 'technika' }, { id: 'admin' }])
+  if (m[1] === 'people' && m[2].startsWith('select=email,status,roles')) return reply(200, db.allPeople)
   return reply(200, db[m[1]])
 } }
 const ctx = {
@@ -28,10 +32,25 @@ const ctx = {
   PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k === 'SUPABASE_SECRET' ? 'sb_secret_TEST' : null) }) },
   Session: { getScriptTimeZone: () => 'Europe/Warsaw' },
   Utilities: { formatDate: (d, tz, f) => (f === 'yyyy-MM-dd' ? iso(d) : f === 'u' ? String(d.getDay() || 7) : f === 'H' ? String(d.getHours()) : f === 'd.MM.yyyy' ? iso(d).split('-').reverse().join('.') : iso(d).slice(8, 10) + '.' + iso(d).slice(5, 7)) },
-  DriveApp: { getFoldersByName() { throw new Error('Dysk nie powinien być używany w trybie bazy') } },
+  DriveApp: { getFoldersByName(name) {
+    if (name !== 'Aplikacja KNS Nabo') throw new Error('Dysk nie powinien być używany do danych w trybie bazy: ' + name)
+    let used = false
+    return { hasNext: () => !used, next: () => { used = true; return folder } }
+  } },
 }
+// folder z załącznikami (udostępnianie według rang)
+const editorsSet = new Set(['kosciol@kns.pl', 'stary@kns.pl', 'reczny@kns.pl'])
+const shareLog = []
+const folder = {
+  getOwner: () => ({ getEmail: () => 'kosciol@kns.pl' }),
+  getEditors: () => [...editorsSet].map(e => ({ getEmail: () => e })),
+  addEditor: e => { shareLog.push('+' + e); editorsSet.add(e) },
+  removeEditor: e => { shareLog.push('-' + e); editorsSet.delete(e) },
+}
+const props = {}
+ctx.PropertiesService = { getScriptProperties: () => ({ getProperty: k => (k === 'SUPABASE_SECRET' ? 'sb_secret_TEST' : props[k] || null), setProperty: (k, v) => { props[k] = v } }) }
 vm.createContext(ctx)
-vm.runInContext(src + '\nthis.sprawdzTeraz = sprawdzTeraz; this.checkSunday = checkSunday; this.newsletterBazy = newsletterBazy;', ctx)
+vm.runInContext(src + '\nthis.sprawdzTeraz = sprawdzTeraz; this.checkSunday = checkSunday; this.newsletterBazy = newsletterBazy; this.bazaUdostepnij = bazaUdostepnij;', ctx)
 
 const check = ctx.checkSunday(new Date(), 'Europe/Warsaw')
 assert.equal(check.service.sermonTitle, 'Światłość')
@@ -46,4 +65,10 @@ assert.equal(mails[1].to, 'a@kns.pl')
 assert.match(mails[1].htmlBody, /Komunikat rady zboru: <\/b><b>Piknik/)
 assert.match(mails[1].htmlBody, /Studenci/)
 assert.match(mails[1].htmlBody, /Nabożeństwo: Światłość/)
+// udostępnianie: organizator dostaje edycję, stary (bez rangi z edycją) traci, ręcznie dodany i właściciel zostają
+ctx.bazaUdostepnij()
+assert.deepEqual(shareLog, ['+org@kns.pl', '-stary@kns.pl'])
+assert.deepEqual([...editorsSet].sort(), ['kosciol@kns.pl', 'org@kns.pl', 'reczny@kns.pl'])
+ctx.bazaUdostepnij() // bez zmian w bazie — nic nie robi
+assert.equal(shareLog.length, 2)
 console.log('baza.gs + przypomnienie.gs: wszystkie testy OK')

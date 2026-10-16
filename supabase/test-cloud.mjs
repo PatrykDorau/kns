@@ -105,4 +105,11 @@ r = await T.access()
 assert.deepEqual([r.edit, r.roles.includes('technika')], [true, true])
 await T.removeEvent('e9')
 assert.ok(!(await phone.load()).events.some(e => e.id === 'e9'))
+// bez dostępu do folderu na Dysku: nabożeństwo się zapisuje, stary załącznik zostaje, nowy — tylko lokalnie
+const noDrive = createCloud({ ...ipc('tech@kns.pl'), cloudStoreFiles: async () => ({ error: 'Konto nie ma dostępu do folderu' }) }, createFakeClient(db, null))
+r = await noDrive.sharedWrite('baza', { service: { id: 'k2', date: inDays(9), files: [
+  { key: 'a', name: 'stary.pdf', path: String.raw`C:\Users\x\AppData\Roaming\rzutnik\dysk-google\k2\stary.pdf` },
+  { key: 'b', name: 'nowy.pptx', path: String.raw`C:\Users\x\Desktop\nowy.pptx` }], songs: [], updated: 5 }, songs: [] })
+assert.match(r.warning, /\(1\) zostały tylko na tym komputerze/)
+assert.deepEqual((await phone.load()).services.find(s => s.id === 'k2').files.map(f => f.path), ['pliki/stary.pdf'])
 console.log('cloud.js: wszystkie testy OK')

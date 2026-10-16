@@ -3,11 +3,12 @@
 // SUPABASE_SECRET (klucz „secret” z Supabase → Project Settings → API Keys), przypomnienia czytają nabożeństwa
 // i telefony z bazy zamiast z Dysku. Klucz jest tylko tutaj (na koncie kościoła) — nigdy w aplikacji ani w repozytorium.
 // Cogodzinne przypomnienia zaglądają do bazy, więc darmowy projekt Supabase nie usypia.
+// Co godzinę skrypt udostępnia też folder „Aplikacja KNS Nabo” (załączniki) osobom z prawem edycji według rang z bazy.
 //
 // Instalacja (raz): „+” → Skrypt → nazwa „baza” → wklej ten plik; Ustawienia projektu → Właściwości skryptu →
 // Dodaj: SUPABASE_SECRET = klucz secret; potem uruchom „ustawNewsletterBazy” (newsletter co czwartek o 18:00).
 
-const BAZA = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co' }
+const BAZA = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', folder: 'Aplikacja KNS Nabo' }
 
 function bazaKlucz() { return PropertiesService.getScriptProperties().getProperty('SUPABASE_SECRET') || '' }
 function bazaWlaczona() { return !!bazaKlucz() }
@@ -35,6 +36,30 @@ function bazaTelefony() {
     const when = (r.data && r.data.schedule) || {}
     return { id: r.id, subscription: r.data && r.data.subscription, day: when.day ?? 5, hour: when.hour ?? 19, remove: () => baza('push_devices?id=eq.' + encodeURIComponent(r.id), 'delete') }
   })
+}
+
+/* ---------- folder z załącznikami: dostęp według rang ---------- */
+// Edytor folderu „Aplikacja KNS Nabo” = zatwierdzone osoby z rangą z prawem edycji (organizator, technika, lider,
+// rada, pastor, administrator). Kto rangę straci albo zostanie odrzucony — traci edycję. Osób spoza bazy
+// (np. udostępnionych ręcznie) skrypt nie rusza. Działa tylko, gdy coś się zmieniło od ostatniego razu.
+function bazaUdostepnij() {
+  const people = baza('people?select=email,status,roles')
+  const edit = baza('ranks?select=id&can_edit=is.true').map(r => r.id)
+  const lower = e => String(e || '').toLowerCase()
+  const want = people.filter(p => p.status === 'active' && (p.roles || []).some(r => edit.indexOf(r) >= 0)).map(p => lower(p.email)).sort()
+  const others = people.map(p => lower(p.email)).filter(e => want.indexOf(e) < 0).sort()
+  const sig = want.join(',') + '|' + others.join(',')
+  const props = PropertiesService.getScriptProperties()
+  if (props.getProperty('UDOSTEPNIENIE') === sig) return
+  const found = DriveApp.getFoldersByName(BAZA.folder)
+  if (!found.hasNext()) return
+  const dir = found.next()
+  const owner = dir.getOwner() ? lower(dir.getOwner().getEmail()) : ''
+  const editors = dir.getEditors().map(u => lower(u.getEmail()))
+  for (const e of want) if (e && e !== owner && editors.indexOf(e) < 0) dir.addEditor(e)
+  for (const e of others) if (e !== owner && editors.indexOf(e) >= 0) { try { dir.removeEditor(e) } catch (x) { /* dostęp odziedziczony */ } }
+  props.setProperty('UDOSTEPNIENIE', sig)
+  Logger.log('Folder: edytorzy ' + want.length)
 }
 
 /* ---------- newsletter z bazy ---------- */

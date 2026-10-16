@@ -37,6 +37,8 @@ function setup() {
 
 // Co godzinę: telefony z przypomnieniem ustawionym na teraz (dzień + godzina) i mail o swojej porze.
 function coGodzine() {
+  // Baza danych: najpierw dostęp do folderu z załącznikami według rang (gdy coś się zmieniło).
+  if (typeof bazaWlaczona === 'function' && bazaWlaczona()) { try { bazaUdostepnij() } catch (e) { Logger.log('Udostępnianie: ' + e.message) } }
   const tz = Session.getScriptTimeZone() || 'Europe/Warsaw'
   const now = new Date()
   const day = Number(Utilities.formatDate(now, tz, 'u')) % 7 // 1 pon … 7 niedz → 0 niedz

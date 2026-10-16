@@ -115,15 +115,22 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     sharedWrite: (dir, payload) => safe(async () => {
       const p = await active()
       const svc = payload.service
-      let files = [], kept = []
+      let files = [], kept = [], warning = ''
       if (svc.files?.length) {
         const res = await api.cloudStoreFiles(svc)
-        if (res.error) throw Object.assign(new Error('Załączniki: ' + res.error), { needLogin: res.needLogin })
-        files = res.files; kept = res.kept
+        if (!res.error) { files = res.files; kept = res.kept } else {
+          // Bez dostępu do folderu na Dysku nabożeństwo i tak się zapisuje: pliki, które już są na Dysku (kopie
+          // z „dysk-google”), zostają; nowe zostają tylko na tym komputerze.
+          const onDrive = f => /[\\/]dysk-google[\\/]/.test(f.path || '') || String(f.path || '').startsWith('pliki/')
+          const name = f => String(f.path).split(/[\\/]/).pop()
+          kept = svc.files.filter(onDrive).map(f => ({ ...f, path: 'pliki/' + name(f) }))
+          const left = svc.files.length - kept.length
+          warning = left ? `Zapisano, ale nowe załączniki (${left}) zostały tylko na tym komputerze — ${res.needLogin ? 'zaloguj się ponownie kontem Google' : 'to konto nie ma dostępu do folderu „Aplikacja KNS Nabo” na Dysku'}.` : ''
+        }
       }
       const data = { ...svc, files: kept }
       check(await sb.from('services').upsert({ id: svc.id, date: day(svc.date), data, updated: svc.updated || Date.now(), updated_by: svc.updatedBy || p.email }))
-      return { files }
+      return { files, warning }
     }),
     sharedRemove: (dir, id) => safe(async () => { await active(); check(await sb.from('services').delete().eq('id', id)); return {} }),
 
