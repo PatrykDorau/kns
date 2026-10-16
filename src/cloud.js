@@ -65,13 +65,13 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     access: () => safe(async () => {
       const s = await session()
       const [[p], ranks] = await Promise.all([
-        sb.from('people').select('email,status,roles').eq('id', s.user.id).then(check),
+        sb.from('people').select('email,name,status,roles').eq('id', s.user.id).then(check),
         sb.from('ranks').select('*').then(check),
       ])
       if (!p) throw new Error('Konta nie ma jeszcze w bazie — zaloguj się ponownie.')
       person = p
       const flag = f => (p.roles || []).some(r => ranks.some(x => x.id === r && x[f]))
-      return { email: p.email, status: p.status, roles: p.roles || [], names: (p.roles || []).map(r => ranks.find(x => x.id === r)?.name).filter(Boolean), edit: flag('can_edit'), manage: flag('manage') }
+      return { email: p.email, name: p.name || '', status: p.status, roles: p.roles || [], names: (p.roles || []).map(r => ranks.find(x => x.id === r)?.name).filter(Boolean), edit: flag('can_edit'), manage: flag('manage') }
     }),
     // Wydarzenia (kalendarz): zapis od razu w bazie; nowsza wersja w bazie wstrzymuje zapis.
     saveEvent: (ev, base = 0) => safe(async () => {

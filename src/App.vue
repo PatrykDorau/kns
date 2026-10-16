@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import Icon from './Icon.vue'
 import Brand from './Brand.vue'
 import Control from './Control.vue'
@@ -9,7 +9,7 @@ import CalendarView from './CalendarView.vue'
 import HomeBoard from './HomeBoard.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
-import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init, planAlert, planReady, role, serviceModal, services, sharedStatus, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
+import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init, planAlert, planReady, role, serviceModal, services, sharedStatus, syncShared, syncing, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
 
 // Strona startowa: konto, cztery służby (według rang) i tablica — komunikaty rady, newsletter,
 // najbliższe nabożeństwo i ten tydzień. Bez zalogowania wszystko jest zablokowane.
@@ -26,6 +26,11 @@ function choose(next) {
   // Służba rzutnika zaczyna od propozycji wczytania zaplanowanego nabożeństwa.
   if (next === 'display' && services.value.length) serviceModal.value = true
 }
+// Powitanie jak na pulpicie: pora dnia i imię z konta.
+const hour = new Date().getHours()
+const greeting = hour >= 5 && hour < 18 ? 'Dzień dobry' : 'Dobry wieczór'
+const firstName = computed(() => (access.name || access.email.split('@')[0] || '').split(/\s+/)[0])
+const initials = computed(() => (access.name || access.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''))
 const TILES = [
   ['display', 'monitor', 'Rzutnik', 'Pieśni, zdjęcia, filmy i teksty'],
   ['stream', 'camera', 'Stream', 'Kamery i sygnały dla kamerzysty'],
@@ -38,19 +43,28 @@ const TILES = [
   <div v-if="!role" class="home">
     <div class="home-top">
       <Brand />
+      <span class="home-name">Kościół Na Skale</span>
       <span class="spacer"></span>
       <template v-if="ready && access.status === 'active'">
-        <span class="home-account"><Icon :name="googleExpired ? 'missing' : 'database'" /><b>{{ access.email }}</b><template v-if="access.names.length"> · {{ access.names.join(', ') }}</template><template v-if="access.offline"> · bez internetu</template></span>
-        <span v-if="sharedStatus" class="home-status">{{ sharedStatus }}</span>
         <button v-if="googleExpired" class="small primary" @click="loginGoogle">Zaloguj ponownie</button>
-        <SyncButton v-else />
-        <button class="small" @click="logoutGoogle">Wyloguj</button>
+        <button v-else class="iconbtn sync-ic" :class="{ spin: syncing }" :disabled="syncing" :title="(access.offline ? 'Bez internetu — ostatnie sprawdzenie. ' : '') + (sharedStatus || 'Synchronizuj z bazą danych')" aria-label="Synchronizuj" @click="syncShared"><Icon name="refresh" /></button>
+        <span class="me-chip" :title="access.email">
+          <span class="me-av">{{ initials }}</span>
+          <span class="me-text"><b>{{ access.name || access.email }}</b><small>{{ access.names.filter(n => n !== 'Członek').join(', ') || 'Członek' }}</small></span>
+        </span>
+        <button class="iconbtn" title="Wyloguj" aria-label="Wyloguj" @click="logoutGoogle"><Icon name="logout" /></button>
       </template>
       <template v-else-if="ready && access.status">
-        <span class="home-account"><Icon name="missing" /><b>{{ access.email }}</b> — {{ access.status === 'pending' ? 'czeka na zatwierdzenie przez administratora (telefon → Więcej → Osoby)' : 'brak dostępu' }}</span>
+        <span class="me-chip warn"><span class="me-av">{{ initials }}</span><span class="me-text"><b>{{ access.email }}</b>
+          <small>{{ access.status === 'pending' ? 'czeka na zatwierdzenie (telefon → Więcej → Osoby)' : 'brak dostępu' }}</small></span></span>
         <button class="small" @click="refreshAccess">Sprawdź ponownie</button>
-        <button class="small" @click="logoutGoogle">Wyloguj</button>
+        <button class="iconbtn" title="Wyloguj" aria-label="Wyloguj" @click="logoutGoogle"><Icon name="logout" /></button>
       </template>
+    </div>
+
+    <div v-if="ready && access.status === 'active'" class="hello">
+      <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
+      <p>Oto co dzieje się w kościele.</p>
     </div>
 
     <div v-if="ready && !access.status" class="login-card">
@@ -97,11 +111,20 @@ const TILES = [
 <style scoped>
 .home { height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 16px 24px 24px; }
 .home-top { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 1180px; font-size: 13px; color: var(--muted); }
-.home-account { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-.home-account b { color: var(--text); }
-.home-account .icon { width: 16px; height: 16px; }
-.home-status { font-size: 12px; }
+.home-name { font: 600 16px Georgia, 'Times New Roman', serif; color: var(--text); }
+.me-chip { display: inline-flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); min-width: 0; max-width: 420px; }
+.me-chip.warn { border-color: rgba(245, 185, 66, .5); }
+.me-av { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
+.me-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.me-text b { color: var(--text); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-text small { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-top .iconbtn .icon { width: 18px; height: 18px; }
+.sync-ic.spin .icon { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .spacer { flex: 1; }
+.hello { width: 100%; max-width: 1180px; text-align: left; }
+.hello h1 { margin: 0; font: 600 30px/1.2 Georgia, 'Times New Roman', serif; letter-spacing: -.01em; text-transform: none; }
+.hello p { margin: 4px 0 0; color: var(--muted); }
 .login-card { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 560px; padding: 24px; border-radius: 18px; background: var(--panel); text-align: center; }
 .login-card p { margin: 0; color: var(--muted); }
 .login-card .bad { color: #ff8a82; }

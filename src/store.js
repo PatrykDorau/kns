@@ -1067,10 +1067,10 @@ export const googleExpired = ref(false) // logowanie do Dysku Google wygasło (t
 // Bez zalogowania nic nie działa. Rzutnik i Stream — służba techniczna (ranga „technika”) i administrator;
 // Organizacja — rangi z prawem edycji. Bez internetu (np. w kościele) liczy się ostatnie udane sprawdzenie
 // z tego komputera, jeśli było w ciągu 30 dni — żeby rzutnik nie stanął w trakcie nabożeństwa.
-export const access = reactive({ checked: false, status: '', email: '', roles: [], names: [], edit: false, manage: false, offline: false, error: '' })
+export const access = reactive({ checked: false, status: '', email: '', name: '', roles: [], names: [], edit: false, manage: false, offline: false, error: '' })
 const ACCESS_KEY = 'kns-dostep', ACCESS_DAYS = 30
 function applyAccess(a, offline = false) {
-  Object.assign(access, { status: a.status || '', email: a.email || '', roles: a.roles || [], names: a.names || [], edit: !!a.edit, manage: !!a.manage, offline, error: '' })
+  Object.assign(access, { status: a.status || '', email: a.email || '', name: a.name || '', roles: a.roles || [], names: a.names || [], edit: !!a.edit, manage: !!a.manage, offline, error: '' })
 }
 export async function refreshAccess() {
   if (!cloud) return
