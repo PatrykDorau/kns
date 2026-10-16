@@ -354,6 +354,44 @@
   .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
   .switch.on { background: var(--accent); box-shadow: none; }
   .switch.on::after { transform: translateX(20px); background: #fff; }
+  /* Start: komunikaty w bok, najbliższe nabożeństwo, ten tydzień, kartki z newslettera; Więcej */
+  .notices { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; margin: 0 -16px 14px; padding: 0 16px 4px; scrollbar-width: none; }
+  .notices::-webkit-scrollbar { display: none; }
+  .notices .notice { flex: 0 0 86%; margin: 0; scroll-snap-align: start; }
+  .notices.single .notice { flex-basis: 100%; }
+  .hero { display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 100%; text-align: left; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(91, 140, 255, .45); }
+  .hero.live { border-color: rgba(240, 72, 62, .6); }
+  .hero-top { display: flex; align-items: center; min-height: 22px; }
+  .hero-cd { color: var(--accent); font-size: 13px; font-weight: 600; }
+  .hero .cd-live { margin: 0; font-size: 13px; padding: 2px 10px; }
+  .hero-when { font-size: 20px; margin-top: 2px; }
+  .hero-place { color: var(--muted); font-size: 14px; }
+  .hero-sermon { font-size: 15px; margin-top: 6px; }
+  .hero .chips { margin-top: 10px; }
+  .empty-hero { border-style: dashed; }
+  .empty-hero .primary { margin-top: 12px; }
+  .week { border-radius: 16px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+  .week-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 10px 14px; border: 0; border-radius: 0; background: none; text-align: left; justify-content: flex-start; }
+  .week-row + .week-row { border-top: 1px solid var(--line); }
+  .week-day { flex: none; width: 66px; color: var(--muted); font-size: 13px; font-weight: 600; text-transform: capitalize; }
+  .week-day.today { color: var(--accent); }
+  .week-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+  .week-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .week-time { flex: none; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .news-card { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px; min-height: 120px; padding: 12px; border-radius: 14px; background: var(--panel); text-align: left; }
+  .news-card b { font-size: 15px; }
+  .news-card span { flex: 1; color: var(--muted); font-size: 13px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .news-card small { color: var(--muted); font-size: 12px; }
+  .more-list { display: flex; flex-direction: column; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; margin-bottom: 4px; }
+  .more-list button { justify-content: flex-start; gap: 14px; min-height: 56px; padding: 10px 14px; border: 0; border-radius: 0; background: none; text-align: left; }
+  .more-list button + button { border-top: 1px solid var(--line); }
+  .more-list button span { flex: 1; font-size: 16px; }
+  .more-list button small { color: var(--muted); font-size: 14px; }
+  .more-list .count-pill { min-width: 22px; padding: 1px 7px; border-radius: 11px; background: var(--bad); color: #fff; font-weight: 700; text-align: center; }
+  .more-list .chev { color: var(--muted); }
+  .desktop-mode { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bad-soft); color: var(--bad-text); font-size: 14px; }
+  @media (min-width: 720px) { #app { max-width: 760px; } }
   /* konta: oczekiwanie na zatwierdzenie, osoby i rangi */
   .gate h2 { font-size: 21px; margin: 0 0 6px; }
   .gate .note { max-width: 420px; margin: 0 auto 18px; }
@@ -423,6 +461,7 @@
   <symbol id="drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></symbol>
   <symbol id="list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol>
   <symbol id="mail" viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 7l9 6 9-6"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
@@ -431,16 +470,17 @@
 <div id="app" v-cloak :class="{ tabbed: showTabs }">
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? 'Ogłoszenie' : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? 'Ogłoszenie' : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
-    <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Start' }}</button>
-    <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Start</button>
+    <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
+    <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="currentProto" class="ghost" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Protokoły' }}</button>
     <button v-else-if="currentEvent" class="ghost" @click="closeEvent"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="tplType" class="ghost" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
-    <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
-    <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
+    <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
+    <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
+    <button v-else-if="songView || peopleView" class="ghost" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
       <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
@@ -476,6 +516,7 @@
       <template v-else>Przeglądarka jeszcze nie pozwala na instalację jednym dotknięciem. Otwórz tę stronę w Chrome, odczekaj chwilę i dotknij „Pobierz” ponownie (albo menu ⋮ → „Zainstaluj aplikację”).</template>
     </div>
   </div>
+  <p v-if="desktopMode" class="desktop-mode">Telefon wyświetla tę stronę jako „wersję na komputer” — dlatego wszystko jest drobne. W Chrome: menu ⋮ → odznacz „Wersja na komputer”.</p>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
   <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
   <p v-if="error" class="error" role="alert">{{ error }}
@@ -878,64 +919,16 @@
     </div>
   </template>
 
-  <template v-else-if="!current">
-    <!-- Komunikaty rady zboru: zawsze na samej górze strony głównej. -->
-    <button v-for="a in importantAnns" :key="a.id" class="notice" @click="openAnn(a)">
-      <span class="notice-tag"><svg class="i"><use href="#megaphone"/></svg>Komunikat rady zboru</span>
-      <b>{{ a.title }}</b>
-      <span class="notice-text">{{ a.text }}</span>
-    </button>
-    <div v-if="countdown" class="countdown">
-      <span v-if="countdown.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
-      <span v-else class="cd-label">Do nabożeństwa</span>
-      <span v-if="!countdown.live" class="cd-digits">
-        <template v-if="countdown.days"><b>{{ countdown.days }}</b><small>{{ countdown.days === 1 ? 'dzień' : 'dni' }}</small></template>
-        <b>{{ countdown.hours }}</b><small>godz</small><b>{{ countdown.minutes }}</b><small>min</small><b>{{ countdown.seconds }}</b><small>s</small>
-      </span>
-      <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
-    </div>
-    <div class="status" :class="{ good: alert.good }" role="status">
-      <span class="badge"><svg class="i"><use :href="alert.good ? '#check' : '#warn'"/></svg></span>
-      <div class="body">
-        <b>{{ alert.title }}</b>
-        <p>{{ alert.text }}</p>
-        <div v-if="alert.missing?.length" class="chips">
-          <span v-for="m in alert.missing" :key="m" class="chip">{{ m }}</span>
-        </div>
-        <button v-if="!alert.good && canEdit" class="danger" @click="fix">{{ alert.service ? 'Uzupełnij' : 'Utwórz nabożeństwo' }}</button>
-      </div>
-    </div>
-
-    <!-- Ogłoszenia: kilka najnowszych, reszta pod „Wszystkie”. -->
-    <div class="section"><h2>Ogłoszenia</h2><button class="ghost" @click="openAnns">{{ canAnnounce ? 'Wszystkie / dodaj' : 'Wszystkie' }}</button></div>
-    <p v-if="!homeAnns.length" class="note">Nie ma nowych ogłoszeń.</p>
-    <button v-for="a in homeAnns" :key="a.id" class="ann" @click="openAnn(a)">
-      <span class="ann-tags"><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span class="ann-tag">{{ shortDate(a.date) }}</span></span>
-      <b>{{ a.title }}</b>
-      <span class="ann-body">{{ a.text }}</span>
-    </button>
-
-    <button v-if="canEdit" class="primary" style="width:100%;margin-top:16px" @click="create()"><svg class="i"><use href="#plus"/></svg>Nowe nabożeństwo</button>
-
-    <div class="section"><h2>Nadchodzące</h2></div>
-    <p v-if="!coming.length" class="note">Nie ma zaplanowanych nabożeństw.</p>
-    <button v-for="svc in shown" :key="svc.id" class="card" :class="{ past: !upcoming(svc) }" @click="open(svc)">
-      <span class="date"><small class="wd">{{ wd(svc.date) }}</small><b>{{ day(svc.date) }}</b><small>{{ month(svc.date) }}</small></span>
-      <span class="body">
-        <span class="title">{{ svc.sermonTitle || 'Bez tytułu kazania' }}</span>
-        <span class="sub"><span class="rel">{{ relDay(svc.date) }}</span>{{ svc.time || DEFAULT_TIME }}<template v-if="svc.speaker"> · <svg class="i"><use href="#user"/></svg>{{ svc.speaker }}</template></span>
-        <span v-if="upcoming(svc)" class="chips">
-          <span v-if="!missing(svc).length" class="chip good"><svg class="i"><use href="#check"/></svg>Komplet</span>
-          <span v-for="m in missing(svc)" :key="m" class="chip"><svg class="i"><use href="#warn"/></svg>brak: {{ m }}</span>
-        </span>
-        <span v-else class="sub"><svg class="i"><use href="#music"/></svg>pieśni: {{ svc.songs.length }}</span>
-      </span>
-      <svg class="i chev"><use href="#chev"/></svg>
-    </button>
-    <button v-if="past.length" class="more" @click="showPast = !showPast">{{ showPast ? 'Ukryj wcześniejsze' : `Pokaż wcześniejsze (${past.length})` }}</button>
-
-    <!-- Powiadomienia: po zgodzie telefon sam dostaje przypomnienie w piątek wieczorem, gdy niedziela nie jest gotowa. -->
-    <!-- Powiadomienia: nagłówek, opis, termin (po włączeniu) i przyciski — wszystko w jednej kolumnie. -->
+  <!-- Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) -->
+  <template v-else-if="moreView && !current">
+    <nav class="more-list" aria-label="Więcej">
+      <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Protokoły</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+    </nav>
     <div v-if="push.supported" class="push-card" :class="{ on: push.on }">
       <div class="pc-head">
         <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
@@ -966,16 +959,65 @@
       <div v-else-if="push.otherBrowser" class="pc-actions"><a class="button primary" :href="chromeLink">Otwórz w Chrome</a></div>
       <div v-else-if="!push.needsInstall" class="pc-actions"><button class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz powiadomienia' }}</button></div>
     </div>
-
     <div v-if="api.enabled && me?.status === 'active'" class="newsletter">
       <span class="pc-icon"><svg class="i"><use href="#mail"/></svg></span>
       <div class="pc-text"><b>Newsletter e-mail</b><p>Co czwartek: kalendarz na dwa tygodnie i ogłoszenia — na {{ me.email }}.</p></div>
       <button class="switch" :class="{ on: me.newsletter }" role="switch" :aria-checked="!!me.newsletter" aria-label="Newsletter e-mail" :disabled="newsBusy" @click="toggleNewsletter"></button>
     </div>
-
     <div class="account">
       <svg class="i"><use href="#user"/></svg><span>{{ me?.email || drive.account() || 'Zalogowano' }}<template v-if="myRanks"> · <span class="roles">{{ myRanks }}</span></template></span>
       <button v-if="!drive.demo" class="ghost" @click="logout"><svg class="i"><use href="#logout"/></svg>Wyloguj</button>
+    </div>
+  </template>
+
+  <!-- Start: komunikaty rady, najbliższe nabożeństwo, ten tydzień, kartki z newslettera -->
+  <template v-else-if="!current">
+    <div v-if="importantAnns.length" class="notices" :class="{ single: importantAnns.length === 1 }" aria-label="Komunikaty rady zboru">
+      <button v-for="a in importantAnns" :key="a.id" class="notice" @click="openAnn(a)">
+        <span class="notice-tag"><svg class="i"><use href="#megaphone"/></svg>Komunikat rady zboru</span>
+        <b>{{ a.title }}</b>
+        <span class="notice-text">{{ a.text }}</span>
+      </button>
+    </div>
+
+    <button v-if="nextService" class="hero" :class="{ live: countdown?.live }" @click="open(nextService)">
+      <span class="hero-top">
+        <span v-if="countdown?.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
+        <span v-else class="hero-cd">Najbliższe nabożeństwo · {{ untilText }}</span>
+      </span>
+      <b class="hero-when">{{ pretty(nextService.date).replace(/ \d{4}$/, '').replace(/^./, c => c.toUpperCase()) }}, {{ nextService.time || DEFAULT_TIME }}</b>
+      <span class="hero-place">{{ nextService.place || DEFAULT_PLACE }}</span>
+      <span v-if="nextService.sermonTitle || nextService.passage" class="hero-sermon">{{ [nextService.sermonTitle, nextService.passage].filter(Boolean).join(' · ') }}<template v-if="nextService.speaker"> — {{ nextService.speaker }}</template></span>
+      <span v-if="canEdit" class="chips">
+        <span v-if="!missing(nextService).length" class="chip good"><svg class="i"><use href="#check"/></svg>Komplet</span>
+        <span v-for="m in missing(nextService)" :key="m" class="chip"><svg class="i"><use href="#warn"/></svg>brak: {{ m }}</span>
+      </span>
+    </button>
+    <div v-else-if="canEdit" class="hero empty-hero">
+      <b>Nie ma zaplanowanego nabożeństwa</b>
+      <span class="hero-place">Na niedzielę {{ pretty(nextSundayDate).replace(/^niedziela, /, '') }} nic jeszcze nie ma.</span>
+      <button class="primary" @click="create(nextSundayDate)"><svg class="i"><use href="#plus"/></svg>Utwórz nabożeństwo</button>
+    </div>
+
+    <div class="section"><h2>Ten tydzień</h2><button class="ghost" @click="openCalendar">Kalendarz</button></div>
+    <p v-if="!weekItems.length" class="note">W najbliższych dniach nic nie zaplanowano.</p>
+    <div v-else class="week">
+      <button v-for="it in weekItems" :key="it.kind + it.id" class="week-row" @click="openItem(it)">
+        <span class="week-day" :class="{ today: it.date === todayStr }">{{ dayLabel(it.date) }}</span>
+        <i class="week-dot" :style="{ background: typeOf(it.type).color }"></i>
+        <span class="week-title">{{ it.title }}</span>
+        <span class="week-time">{{ it.time }}</span>
+      </button>
+    </div>
+
+    <div class="section"><h2>Z newslettera</h2><button class="ghost" @click="openAnns">{{ canAnnounce ? 'Wszystkie / dodaj' : 'Wszystkie' }}</button></div>
+    <p v-if="!homeAnns.length" class="note">Nie ma nowych ogłoszeń.</p>
+    <div v-else class="news-grid">
+      <button v-for="a in homeAnns" :key="a.id" class="news-card" @click="openAnn(a)">
+        <b>{{ a.title }}</b>
+        <span>{{ a.text }}</span>
+        <small>{{ shortDate(a.date) }}</small>
+      </button>
     </div>
   </template>
 
@@ -1131,11 +1173,9 @@
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
   <nav v-if="showTabs" class="tabbar" aria-label="Części aplikacji">
-    <button :class="{ on: !songView && !peopleView && !calView }" :aria-current="!songView && !peopleView && !calView ? 'page' : null" @click="showServices"><svg class="i"><use href="#church"/></svg>Start</button>
-    <button :class="{ on: calView }" :aria-current="calView ? 'page' : null" :disabled="!ready" @click="openCalendar"><svg class="i"><use href="#calendar"/></svg>Kalendarz</button>
-    <button :class="{ on: songView }" :aria-current="songView ? 'page' : null" :disabled="!ready" @click="openSongs"><svg class="i"><use href="#music"/></svg>Pieśni</button>
-    <button v-if="canManage && ready" :class="{ on: peopleView }" :aria-current="peopleView ? 'page' : null" @click="openPeople"><svg class="i"><use href="#users"/></svg>Osoby<span v-if="pendingCount" class="count">{{ pendingCount }}</span></button>
-    <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg>Kamera</button>
+    <button :class="{ on: !calView && !moreView && !songView && !peopleView }" :aria-current="!calView && !moreView && !songView && !peopleView ? 'page' : null" @click="showServices"><svg class="i"><use href="#church"/></svg>Start</button>
+    <button :class="{ on: calView }" :aria-current="calView ? 'page' : null" @click="openCalendar"><svg class="i"><use href="#calendar"/></svg>Kalendarz</button>
+    <button :class="{ on: moreView || songView || peopleView }" :aria-current="moreView || songView || peopleView ? 'page' : null" @click="openMore"><svg class="i"><use href="#menu"/></svg>Więcej<span v-if="canManage && pendingCount" class="count">{{ pendingCount }}</span></button>
   </nav>
 </div>
 
@@ -1202,7 +1242,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.32 · 17.10.2026'
+const VERSION = '2.33 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1543,7 +1583,7 @@ createApp({
     const songDirty = computed(() => !!song.value && JSON.stringify(song.value) !== songSaved)
     const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
     const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
-    function showServices() { songView.value = false; peopleView.value = false; calView.value = false; scrollTo(0, 0) }
+    function showServices() { songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -1712,7 +1752,7 @@ createApp({
       return visibleItems.value.filter(it => it.date >= todayStr.value && it.date <= until).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { songView.value = false; peopleView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { songView.value = false; peopleView.value = false; moreView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -1916,7 +1956,7 @@ createApp({
     const activeAnns = computed(() => announcements.value.filter(isActive).sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || byNewest(a, b)))
     const oldAnns = computed(() => announcements.value.filter(a => !isActive(a)).sort((a, b) => (b.until || '').localeCompare(a.until || '')))
     const importantAnns = computed(() => activeAnns.value.filter(a => a.important && a.audience !== 'council'))
-    const homeAnns = computed(() => activeAnns.value.filter(a => !a.important).slice(0, 3))
+    const homeAnns = computed(() => activeAnns.value.filter(a => !a.important).slice(0, 4))
     const annView = ref(false), currentAnn = ref(null)
     let annSaved = '', annBase = 0, annAudience = ''
     const annDirty = computed(() => !!currentAnn.value && JSON.stringify(currentAnn.value) !== annSaved)
@@ -1983,6 +2023,28 @@ createApp({
     }
     loadPublic()
     const eventIsPublic = ev => (ev.public === undefined ? !['czlonkowskie', 'rada'].includes(ev.type) : !!ev.public)
+    /* ---------- Start i Więcej ---------- */
+    const moreView = ref(false)
+    function openMore() { songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
+    const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
+    const nextSundayDate = nextSunday()
+    const untilText = computed(() => {
+      const c = countdown.value
+      if (!c) return ''
+      return c.days ? `za ${c.days} ${c.days === 1 ? 'dzień' : 'dni'} ${+c.hours} godz` : `za ${+c.hours} godz ${+c.minutes} min`
+    })
+    // Ten tydzień: wszystko z kalendarza na najbliższe 7 dni (także nabożeństwa).
+    const weekItems = computed(() => {
+      const until = localDate(new Date(Date.now() + 6 * 86400000))
+      return calItems.value.filter(it => it.date >= todayStr.value && it.date <= until)
+    })
+    const dayLabel = d => {
+      const t = todayStr.value, next = localDate(new Date(asDate(t).getTime() + 86400000))
+      return d === t ? 'dziś' : d === next ? 'jutro' : wd(d) + ' ' + day(d)
+    }
+    // Chrome w trybie „wersja na komputer” udaje szeroki ekran — wtedy wszystko jest drobne.
+    const desktopMode = screen.width < 600 && innerWidth > 800
     // Instalacja: Android/Chrome podaje gotowe okno instalacji, iPhone wymaga dodania ręcznie z Safari.
     const installed = ref(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)
     // Komputer (Windows): zamiast instalacji strony — instalator aplikacji na komputer z najnowszego wydania na GitHubie.
@@ -2157,9 +2219,10 @@ createApp({
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,
+      moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
-      showTabs, countdown, wd, relDay, DEFAULT_TIME, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
+      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,
