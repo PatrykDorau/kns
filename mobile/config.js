@@ -26,4 +26,8 @@ window.KNS_CONFIG = {
   // Serwer aplikacji (skrypty/serwer.gs wdrożony jako aplikacja internetowa — adres kończy się na /exec).
   // Pilnuje kont i rang: nowa osoba czeka na zatwierdzenie. Pusty = bez kont (każdy z dostępem do folderu).
   apiUrl: '',
+
+  // Protokoły: osobne foldery na Dysku konta kościoła (tworzy je i udostępnia serwer według rang).
+  protocolsFolder: 'KNS Nabo — Protokoły', // spotkania członkowskie — czytają wszyscy zatwierdzeni
+  councilFolder: 'KNS Nabo — Rada', // rada zboru — tylko rada, pastor i administrator
 }

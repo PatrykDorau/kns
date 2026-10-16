@@ -3,6 +3,8 @@
 //   <folder aplikacji>/piesni/baza-piesni.json                              — wspólna baza pieśni
 //   <folder aplikacji>/wydarzenia/<data> <tytuł> (<id>)/wydarzenie.json      — inne wydarzenia (spotkania itd.)
 //   <folder aplikacji>/szablony/szablony.json                               — typy wydarzeń i ich szablony
+//   KNS Nabo — Protokoły/<data> <tytuł> (<id>)/protokol.json                 — protokoły spotkań członkowskich
+//   KNS Nabo — Rada/protokoly/<data> <tytuł> (<id>)/protokol.json            — protokoły rady zboru
 // Folder aplikacji i nazwy podfolderów są w config.js.
 // W trybie pokazowym (?demo) zamiast Dysku jest pamięć przeglądarki — do oglądania strony bez logowania.
 
@@ -61,6 +63,8 @@ export function createDrive(config) {
   const folders = new Map() // id nabożeństwa → { folderId, fileId, name }
   const eventFolders = new Map() // id wydarzenia → { folderId, fileId, name }
   let eventsDirId = '', templatesDirId = '', templatesFileId = ''
+  const protoDirs = {} // rodzaj ('czlonkowskie' | 'rada') → folder z protokołami
+  const protoIndex = new Map() // id protokołu → { folderId, fileId, name }
 
   async function call(url, options = {}) {
     const res = await fetch(url, { ...options, headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } })
@@ -143,6 +147,17 @@ export function createDrive(config) {
       } catch (e) { if (e.auth) throw e }
     }))
     return { events, templates: templates?.types || null, templatesUpdated: templates?.updated || 0 }
+  }
+  // Folder protokołów: osobny folder najwyższego poziomu konta kościoła, udostępniony według rang.
+  async function protocolsDir(kind) {
+    if (protoDirs[kind]) return protoDirs[kind]
+    const council = kind === 'rada'
+    const name = council ? config.councilFolder || 'KNS Nabo — Rada' : config.protocolsFolder || 'KNS Nabo — Protokoły'
+    const [found] = await list(`name=${quote(name)} and mimeType='${FOLDER}' and trashed=false`)
+    if (!found) throw Object.assign(new Error(council ? 'Nie masz dostępu do folderu rady zboru.' : `Nie ma jeszcze folderu „${name}” albo nie masz do niego dostępu.`), { noAccess: true })
+    let dir = found.id
+    if (council) dir = (await list(`${quote(dir)} in parents and name='protokoly' and mimeType='${FOLDER}' and trashed=false`))[0]?.id || (await create({ name: 'protokoly', mimeType: FOLDER, parents: [dir] })).id
+    return (protoDirs[kind] = dir)
   }
   const read = async id => (await call(`${API}/files/${id}?alt=media&supportsAllDrives=true`)).json()
   const write = (id, data) => call(`${UPLOAD}/files/${id}?uploadType=media&supportsAllDrives=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
@@ -247,6 +262,44 @@ export function createDrive(config) {
       const entry = eventFolders.get(id)
       if (entry) await patch(entry.folderId, { trashed: true })
       eventFolders.delete(id)
+    },
+    // Protokoły jednego rodzaju (wczytywane dopiero, gdy są potrzebne).
+    async loadProtocols(kind) {
+      const dir = await protocolsDir(kind)
+      const dirs = new Map((await list(`${quote(dir)} in parents and mimeType='${FOLDER}' and trashed=false`)).map(f => [f.id, f]))
+      const out = []
+      await Promise.all([...dirs.values()].map(async folder => {
+        try {
+          const [file] = await list(`'${folder.id}' in parents and name='protokol.json' and trashed=false`)
+          if (!file) return
+          const payload = await read(file.id)
+          if (!payload.protocol?.id) return
+          protoIndex.set(payload.protocol.id, { folderId: folder.id, fileId: file.id, name: folder.name })
+          out.push(payload.protocol)
+        } catch (e) { if (e.auth) throw e }
+      }))
+      return out
+    },
+    async saveProtocol(p, base = 0, force = false) {
+      const dir = await protocolsDir(p.kind)
+      const name = eventFolderName(p)
+      let entry = protoIndex.get(p.id)
+      if (entry?.fileId && !force) {
+        const remote = await read(entry.fileId)
+        if ((remote.protocol?.updated || 0) > base) throw Object.assign(new Error('Ktoś inny zmienił ten protokół w międzyczasie.'), { conflict: true })
+      }
+      if (!entry) {
+        entry = { folderId: (await create({ name, mimeType: FOLDER, parents: [dir] })).id, fileId: null, name }
+        protoIndex.set(p.id, entry)
+      }
+      if (entry.fileId) await write(entry.fileId, { protocol: p })
+      else entry.fileId = (await create({ name: 'protokol.json', parents: [entry.folderId] }, { protocol: p })).id
+      if (entry.name !== name) { await patch(entry.folderId, { name }); entry.name = name }
+    },
+    async removeProtocol(id) {
+      const entry = protoIndex.get(id)
+      if (entry) await patch(entry.folderId, { trashed: true })
+      protoIndex.delete(id)
     },
     // Szablony typów wydarzeń — jeden plik dla wszystkich.
     async saveTemplates(types, base = 0, force = false) {
@@ -396,6 +449,15 @@ export function createDemo() {
     },
     async removeEvent(id) { data.events = (data.events || []).filter(x => x.id !== id); persist() },
     async saveTemplates(types) { data.templates = types; persist(); return Date.now() },
+    loadProtocols: async kind => JSON.parse(JSON.stringify((data.protocols || []).filter(p => p.kind === kind))),
+    async saveProtocol(p) {
+      data.protocols = data.protocols || []
+      const i = data.protocols.findIndex(x => x.id === p.id)
+      if (i >= 0) data.protocols[i] = p
+      else data.protocols.push(p)
+      persist()
+    },
+    async removeProtocol(id) { data.protocols = (data.protocols || []).filter(x => x.id !== id); persist() },
     async save(payload) {
       const i = data.services.findIndex(s => s.id === payload.service.id)
       if (i >= 0) data.services[i] = payload.service

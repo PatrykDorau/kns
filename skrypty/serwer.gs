@@ -171,7 +171,8 @@ function applyAccess(p) {
   const app = folder('app')
   setAccess(app, p.email, active ? (has(p, 'edit') ? 'writer' : 'reader') : null)
   setAccess(subfolder(app, SERWER.pushFolder), p.email, active && !has(p, 'edit') ? 'writer' : null)
-  setAccess(folder('protokoly'), p.email, active ? (has(p, 'protocols') ? 'writer' : 'reader') : null)
+  // Protokoły spotkań członkowskich: pisze protokolant, zatwierdzają rada i pastor — oni też muszą móc zapisać.
+  setAccess(folder('protokoly'), p.email, active ? (has(p, 'protocols') || has(p, 'council') ? 'writer' : 'reader') : null)
   setAccess(folder('rada'), p.email, active && has(p, 'council') ? 'writer' : null)
 }
 

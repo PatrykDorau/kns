@@ -70,6 +70,9 @@ assert.ok(!byName('KNS Nabo — Administracja').viewers.has('ania@x.pl'))
 r = call('setPerson', 'tAdmin', { email: 'ania@x.pl', roles: ['czlonek', 'protokolant', 'rada'] })
 assert.ok(app.editors.has('ania@x.pl') && !app.viewers.has('ania@x.pl'))
 assert.ok(byName('KNS Nabo — Protokoły').editors.has('ania@x.pl') && byName('KNS Nabo — Rada').editors.has('ania@x.pl'))
+// sama rada (bez protokolanta) też pisze w protokołach — zatwierdza je
+r = call('setPerson', 'tAdmin', { email: 'ania@x.pl', roles: ['czlonek', 'rada'] })
+assert.ok(byName('KNS Nabo — Protokoły').editors.has('ania@x.pl'))
 // odebranie rangi — zostaje członkiem
 r = call('setPerson', 'tAdmin', { email: 'ania@x.pl', roles: ['czlonek'] })
 assert.ok(app.viewers.has('ania@x.pl') && !app.editors.has('ania@x.pl'))

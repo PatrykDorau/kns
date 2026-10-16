@@ -287,6 +287,49 @@
   .timeline .tl-body { flex: 1; min-width: 0; }
   .timeline .tl-body b { display: block; }
   .timeline .tl-body span { display: block; color: var(--muted); font-size: 14px; }
+  /* protokoły */
+  .seg { display: flex; gap: 4px; padding: 4px; margin-bottom: 12px; border-radius: 12px; background: var(--panel); }
+  .seg button { flex: 1; min-height: 38px; padding: 6px 8px; border: 0; background: none; color: var(--muted); font-size: 14px; }
+  .seg button.on { background: var(--panel2); color: var(--text); font-weight: 600; }
+  .proto-status { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; margin-bottom: 4px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  .proto-status b { color: var(--text); font-size: 15px; }
+  .proto-status.do-akceptacji { border-color: rgba(245, 165, 36, .5); }
+  .proto-status.do-akceptacji b { color: #f5a524; }
+  .proto-status.zatwierdzony { border-color: rgba(61, 220, 151, .45); background: var(--ok-soft); }
+  .proto-status.zatwierdzony b { color: var(--ok); }
+  .ev .tag.szkic { --c: #8f98a8; }
+  .ev .tag.do-akceptacji { --c: #f5a524; }
+  .ev .tag.zatwierdzony { --c: #3ddc97; }
+  .proto-item { display: flex; flex-direction: column; gap: 8px; padding: 10px; margin-bottom: 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .pi-head { display: flex; align-items: center; gap: 8px; }
+  .pi-head .pos { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; }
+  .pi-head input { font-weight: 600; }
+  .pi-head .icon { min-width: 36px; min-height: 36px; padding: 6px; }
+  textarea.pi-notes { min-height: 70px; }
+  .votes { display: flex; gap: 8px; align-items: flex-end; }
+  .votes span { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .votes input { padding: 8px 10px; text-align: center; }
+  .votes .icon { min-width: 36px; min-height: 40px; padding: 6px; }
+  button.add-vote { align-self: flex-start; min-height: 32px; padding: 4px 6px; font-size: 14px; }
+  button.add-item { width: 100%; }
+  .proto-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .proto-actions button { flex: 1 1 140px; }
+  label.check { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 15px; }
+  label.check input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+  .print-proto { display: none; }
+  @media print {
+    @page { margin: 18mm; }
+    html, body { background: #fff !important; color: #000; padding: 0; }
+    body > svg, #app > :not(.print-proto) { display: none !important; }
+    #app { max-width: none; padding: 0 !important; }
+    .print-proto { display: block; color: #000; font: 12pt/1.45 Georgia, "Times New Roman", serif; }
+    .print-proto h1 { font-size: 18pt; margin: 0 0 4pt; }
+    .print-proto h2 { font-size: 13pt; margin: 16pt 0 6pt; }
+    .print-proto p { margin: 0 0 6pt; white-space: pre-wrap; }
+    .print-proto ol { padding-left: 18pt; }
+    .print-proto li { margin-bottom: 10pt; }
+    .print-proto .sign { margin-top: 28pt; font-size: 10pt; color: #444; }
+  }
   /* konta: oczekiwanie na zatwierdzenie, osoby i rangi */
   .gate h2 { font-size: 21px; margin: 0 0 6px; }
   .gate .note { max-width: 420px; margin: 0 auto 18px; }
@@ -363,11 +406,13 @@
 <div id="app" v-cloak :class="{ tabbed: showTabs }">
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : currentEvent ? 'Wydarzenie' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : 'Nabożeństwa' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : 'Nabożeństwa' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
+    <button v-else-if="currentProto" class="ghost" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Protokoły' }}</button>
     <button v-else-if="currentEvent" class="ghost" @click="closeEvent"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="tplType" class="ghost" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
     <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
+    <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
     <template v-else>
       <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
@@ -388,13 +433,13 @@
   <!-- Karta znika dopiero po zainstalowaniu aplikacji — nie da się jej zamknąć wcześniej. -->
   <!-- Komputer z Windows: pełna aplikacja (rzutnik, stream, organizacja) z GitHub Releases. -->
   <!-- Instalacja: jeden niski pasek — ikona, tytuł, „Pobierz”. -->
-  <div v-if="desktop && !current && !currentEvent && !tplView && !hideDesktop" class="getapp">
+  <div v-if="desktop && !current && !currentEvent && !tplView && !currentProto && !protoView && !hideDesktop" class="getapp">
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Aplikacja na komputer</b><small>{{ desktopApp.error || 'Windows' + (desktopApp.version ? ' · ' + desktopApp.version : '') }}</small></span>
     <a v-if="desktopApp.url" class="button primary" :href="desktopApp.url"><svg class="i"><use href="#download"/></svg>Pobierz</a>
     <button class="icon" aria-label="Ukryj" title="Ukryj" @click="dismissDesktop"><svg class="i"><use href="#x"/></svg></button>
   </div>
-  <div v-else-if="!desktop && !installed && !current && !currentEvent && !tplView" class="getapp" :class="{ help: showHelp }">
+  <div v-else-if="!desktop && !installed && !current && !currentEvent && !tplView && !currentProto && !protoView" class="getapp" :class="{ help: showHelp }">
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Zainstaluj aplikację</b></span>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
@@ -495,6 +540,91 @@
     </div>
   </template>
 
+  <!-- protokół spotkania (członkowskiego albo rady) -->
+  <template v-else-if="currentProto">
+    <div class="proto-status" :class="currentProto.status">
+      <b>{{ STATUS[currentProto.status] }}</b>
+      <span v-if="currentProto.status === 'zatwierdzony'">Zatwierdził(a): {{ currentProto.approvedBy }}<template v-if="currentProto.approvedAt">, {{ dateTime(currentProto.approvedAt) }}</template></span>
+      <span v-else-if="currentProto.status === 'do-akceptacji'">Czeka na zatwierdzenie przez radę zboru albo pastora.</span>
+      <span v-else>Szkic — można go jeszcze zmieniać; oficjalny jest dopiero po zatwierdzeniu.</span>
+    </div>
+    <p v-if="!protoEditable" class="note readonly"><svg class="i"><use href="#eye"/></svg>{{ currentProto.status === 'zatwierdzony' ? 'Protokół jest zatwierdzony — zmiany dopiero po cofnięciu zatwierdzenia.' : 'Tylko podgląd — protokół pisze protokolant.' }}</p>
+    <fieldset class="plain" :disabled="!protoEditable">
+      <label for="prTitle">Spotkanie <span class="req">*</span></label>
+      <input id="prTitle" v-model="currentProto.title" :class="{ invalid: !currentProto.title.trim() }" autocomplete="off">
+      <div class="row">
+        <div><label for="prDate">Data</label><input id="prDate" v-model="currentProto.date" type="date"></div>
+        <div><label for="prPlace">Miejsce</label><input id="prPlace" v-model="currentProto.place" autocomplete="off"></div>
+      </div>
+      <div class="row">
+        <div><label for="prChair">Prowadzący</label><input id="prChair" v-model="currentProto.chair" autocomplete="off"></div>
+        <div><label for="prSec">Protokolant</label><input id="prSec" v-model="currentProto.secretary" autocomplete="off"></div>
+      </div>
+      <label for="prPresent">Obecni<template v-if="presentList.length"> ({{ presentList.length }})</template></label>
+      <textarea id="prPresent" v-model="currentProto.present" placeholder="Imiona i nazwiska — każde w osobnej linii albo po przecinku"></textarea>
+
+      <label>Porządek obrad</label>
+      <div v-for="(it, i) in currentProto.items" :key="it.key" class="proto-item">
+        <div class="pi-head">
+          <span class="pos">{{ i + 1 }}</span>
+          <input v-model="it.title" placeholder="Temat" aria-label="Temat punktu" autocomplete="off">
+          <button class="icon" type="button" aria-label="Usuń punkt obrad" @click="currentProto.items.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
+        </div>
+        <textarea v-model="it.notes" class="pi-notes" placeholder="Przebieg — co zostało powiedziane" aria-label="Przebieg"></textarea>
+        <input v-model="it.decision" placeholder="Ustalenie / uchwała" aria-label="Ustalenie albo uchwała" autocomplete="off">
+        <div v-if="it.vote" class="votes">
+          <span>Za<input v-model="it.vote.for" inputmode="numeric" aria-label="Głosy za"></span>
+          <span>Przeciw<input v-model="it.vote.against" inputmode="numeric" aria-label="Głosy przeciw"></span>
+          <span>Wstrzymało się<input v-model="it.vote.abstain" inputmode="numeric" aria-label="Wstrzymało się"></span>
+          <button class="icon" type="button" aria-label="Usuń głosowanie" @click="it.vote = null"><svg class="i"><use href="#x"/></svg></button>
+        </div>
+        <button v-else type="button" class="ghost add-vote" @click="it.vote = { for: '', against: '', abstain: '' }"><svg class="i"><use href="#plus"/></svg>Głosowanie</button>
+      </div>
+      <button type="button" class="add-item" @click="addProtoItem"><svg class="i"><use href="#plus"/></svg>Dodaj punkt obrad</button>
+      <label for="prOther">Inne uwagi</label>
+      <textarea id="prOther" v-model="currentProto.other" placeholder="Wolne wnioski, następne spotkanie…"></textarea>
+    </fieldset>
+    <p v-if="currentProto.createdBy || currentProto.updatedBy" class="note who">
+      <template v-if="currentProto.createdBy">Utworzył(a): {{ currentProto.createdBy }}</template>
+      <template v-if="currentProto.updatedBy"><br>Ostatnia zmiana: {{ currentProto.updatedBy }}<template v-if="currentProto.updated">, {{ dateTime(currentProto.updated) }}</template></template>
+    </p>
+    <div class="proto-actions">
+      <button @click="printProto"><svg class="i"><use href="#download"/></svg>PDF / drukuj</button>
+      <button v-if="protoEditable && protoSavedOnce && currentProto.status === 'szkic'" :disabled="busy" @click="setProtoStatus('do-akceptacji')">Prześlij do akceptacji</button>
+      <button v-if="canApprove && currentProto.status === 'do-akceptacji'" class="primary" :disabled="busy" @click="setProtoStatus('zatwierdzony')"><svg class="i"><use href="#check"/></svg>Zatwierdź</button>
+      <button v-if="canApprove && currentProto.status !== 'szkic' && protoSavedOnce" :disabled="busy" @click="setProtoStatus('szkic')">{{ currentProto.status === 'zatwierdzony' ? 'Cofnij zatwierdzenie' : 'Zwróć do poprawy' }}</button>
+    </div>
+    <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
+    <div v-if="protoEditable" class="bar">
+      <template v-if="protoSavedOnce">
+        <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeProto">Na pewno usuń</button>
+        <button v-else :disabled="busy" aria-label="Usuń protokół" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
+      </template>
+      <button class="primary" :disabled="busy || !protoDirty || !currentProto.title.trim()" @click="saveProto()">
+        <svg v-if="!protoDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : protoDirty ? 'Zapisz' : 'Zapisane' }}
+      </button>
+    </div>
+  </template>
+
+  <!-- lista protokołów -->
+  <template v-else-if="protoView">
+    <div class="seg" role="tablist">
+      <button role="tab" :aria-selected="protoKind === 'czlonkowskie'" :class="{ on: protoKind === 'czlonkowskie' }" @click="loadProtoKind('czlonkowskie')">Spotkania członkowskie</button>
+      <button v-if="hasCouncil" role="tab" :aria-selected="protoKind === 'rada'" :class="{ on: protoKind === 'rada' }" @click="loadProtoKind('rada')">Rada zboru</button>
+    </div>
+    <p v-if="protoBusy" class="note">Wczytuję protokoły…</p>
+    <p v-else-if="protoError" class="error">{{ protoError }}</p>
+    <template v-else>
+      <p v-if="!protocols.length" class="note">Nie ma jeszcze protokołów.</p>
+      <button v-for="p in protocols" :key="p.id" class="ev" :style="{ '--c': typeOf(p.kind).color }" @click="openProto(p)">
+        <span class="when"><small>{{ p.date ? wd(p.date) : '' }}</small><b>{{ p.date ? day(p.date) : '—' }}</b><small>{{ p.date ? month(p.date) + ' ' + p.date.slice(2, 4) : '' }}</small></span>
+        <span class="body"><b>{{ p.title }}</b><small>{{ p.secretary ? 'Protokolant: ' + p.secretary : 'punktów obrad: ' + p.items.length }}</small><span class="tag" :class="p.status">{{ STATUS[p.status] }}</span></span>
+        <svg class="i chev"><use href="#chev"/></svg>
+      </button>
+    </template>
+    <button v-if="canWriteProto(protoKind) && !protoError" class="primary" style="width:100%;margin-top:6px" @click="newProto(protoKind)"><svg class="i"><use href="#plus"/></svg>Nowy protokół</button>
+  </template>
+
   <!-- wydarzenie (spotkanie studenckie, członkowskie, rady…) -->
   <template v-else-if="currentEvent">
     <p v-if="!canEdit" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — wydarzenia zmieniają osoby z rangą z prawem edycji.</p>
@@ -516,6 +646,10 @@
     </fieldset>
     <label>Program</label>
     <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!canEdit" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
+    <template v-if="typeOf(currentEvent.type).protocol && eventSavedOnce && (currentEvent.type !== 'rada' || hasCouncil)">
+      <label>Protokół</label>
+      <button class="songsbtn" :disabled="busy" @click="protoForEvent(currentEvent)"><svg class="i"><use href="#list"/></svg>Protokół z tego spotkania<svg class="i chev"><use href="#chev"/></svg></button>
+    </template>
     <p v-if="currentEvent.createdBy || currentEvent.updatedBy" class="note who">
       <template v-if="currentEvent.createdBy">Utworzył(a): {{ currentEvent.createdBy }}</template>
       <template v-if="currentEvent.updatedBy"><br>Ostatnia zmiana: {{ currentEvent.updatedBy }}<template v-if="currentEvent.updated">, {{ new Date(currentEvent.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
@@ -544,6 +678,7 @@
       <div><label for="tTime">Domyślna godzina</label><input id="tTime" v-model="tplType.time" type="time"></div>
       <div><label for="tPlace">Domyślne miejsce</label><input id="tPlace" v-model="tplType.place" autocomplete="off"></div>
     </div>
+    <label v-if="tplType.id !== 'nabozenstwo' && tplType.id !== 'rada'" class="check"><input v-model="tplType.protocol" type="checkbox">Spotkanie z protokołem (pisze protokolant)</label>
     <label>Program</label>
     <p class="note" style="margin-top:0">Godziny punktów są liczone od godziny rozpoczęcia — gdy wydarzenie zacznie się o innej porze, cały program przesunie się razem z nią.</p>
     <program-editor :items="tplType.program" :start="tplType.time || '00:00'"></program-editor>
@@ -587,9 +722,10 @@
     <div class="filters" role="group" aria-label="Pokazywane rodzaje wydarzeń">
       <button v-for="t in types" :key="t.id" class="filter" :class="{ on: !hidden.includes(t.id) }" :aria-pressed="!hidden.includes(t.id)" @click="toggleType(t.id)"><i :style="{ background: t.color }"></i>{{ t.name }}</button>
     </div>
-    <div v-if="canEdit" class="cal-actions">
-      <button class="primary" @click="pickType = true"><svg class="i"><use href="#plus"/></svg>Nowe wydarzenie</button>
-      <button @click="openTemplates">Szablony</button>
+    <div class="cal-actions">
+      <button v-if="canEdit" class="primary" @click="pickType = true"><svg class="i"><use href="#plus"/></svg>Nowe wydarzenie</button>
+      <button v-if="canEdit" @click="openTemplates">Szablony</button>
+      <button @click="openProtocols">Protokoły</button>
     </div>
     <div class="section"><h2>{{ selDay ? pretty(selDay) : 'Najbliższe' }}</h2><button v-if="selDay" class="ghost" @click="selDay = ''">Wszystkie</button></div>
     <p v-if="!agenda.length" class="note">{{ selDay ? 'Tego dnia nic nie zaplanowano.' : 'Na najbliższe tygodnie nic nie zaplanowano.' }}</p>
@@ -847,6 +983,27 @@
     </div>
   </template>
 
+  <!-- Protokół do druku / PDF (widoczny tylko przy drukowaniu). -->
+  <article v-if="currentProto" class="print-proto">
+    <h1>Protokół — {{ currentProto.title }}</h1>
+    <p>{{ currentProto.date ? pretty(currentProto.date) : '' }}<template v-if="currentProto.place">, {{ currentProto.place }}</template></p>
+    <p v-if="currentProto.chair"><b>Prowadzący:</b> {{ currentProto.chair }}</p>
+    <p v-if="currentProto.secretary"><b>Protokolant:</b> {{ currentProto.secretary }}</p>
+    <p v-if="presentList.length"><b>Obecni ({{ presentList.length }}):</b> {{ presentList.join(', ') }}</p>
+    <h2>Porządek obrad</h2>
+    <ol>
+      <li v-for="it in currentProto.items" :key="it.key">
+        <b>{{ it.title || 'Punkt bez tytułu' }}</b>
+        <p v-if="it.notes">{{ it.notes }}</p>
+        <p v-if="it.decision"><b>Ustalenie:</b> {{ it.decision }}</p>
+        <p v-if="it.vote"><b>Głosowanie:</b> za {{ it.vote.for || 0 }}, przeciw {{ it.vote.against || 0 }}, wstrzymało się {{ it.vote.abstain || 0 }}</p>
+      </li>
+    </ol>
+    <template v-if="currentProto.other"><h2>Inne uwagi</h2><p>{{ currentProto.other }}</p></template>
+    <p class="sign">Status: {{ STATUS[currentProto.status] }}<template v-if="currentProto.status === 'zatwierdzony'"> — zatwierdził(a) {{ currentProto.approvedBy }}<template v-if="currentProto.approvedAt">, {{ dateTime(currentProto.approvedAt) }}</template></template>.
+      Kościół Na Skale · KNS Nabo</p>
+  </article>
+
   <p class="version">wersja {{ version }}</p>
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
@@ -916,7 +1073,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.27 · 16.10.2026'
+const VERSION = '2.28 · 16.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1089,7 +1246,7 @@ createApp({
     })
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
-    const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && (ready.value || (!!cueTopic && !gate.value)))
+    const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && (ready.value || (!!cueTopic && !gate.value)))
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
     let cachedTimes = []
@@ -1173,6 +1330,7 @@ createApp({
       drive.signOut()
       ready.value = false; services.value = []; current.value = null
       gate.value = ''; me.value = null; people.value = []; peopleView.value = false
+      currentProto.value = null; protoView.value = false; currentEvent.value = null; tplView.value = false; tplType.value = null; calView.value = false
     }
     /* ---------- osoby (administrator) ---------- */
     const peopleView = ref(false), people = ref([]), peopleBusy = ref(false)
@@ -1513,6 +1671,94 @@ createApp({
       types.value = list
       tplType.value = null
     })
+    /* ---------- protokoły ---------- */
+    // Członkowskie pisze protokolant, rady — rada zboru; zatwierdzają rada i pastor (dostępu i tak pilnuje Dysk).
+    const STATUS = { szkic: 'Szkic', 'do-akceptacji': 'Do akceptacji', zatwierdzony: 'Zatwierdzony' }
+    const hasCouncil = computed(() => hasFlag('council'))
+    const canApprove = computed(() => hasFlag('council'))
+    const canWriteProto = kind => (kind === 'rada' ? hasFlag('council') : hasFlag('protocols') || hasFlag('council'))
+    const dateTime = t => new Date(t).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+    const protoView = ref(false), protoKind = ref('czlonkowskie'), protocolsRaw = ref([]), protoBusy = ref(false), protoError = ref('')
+    const protocols = computed(() => [...protocolsRaw.value].sort((a, b) => (b.date || '').localeCompare(a.date || '')))
+    const normProto = p => ({ eventId: '', place: '', chair: '', secretary: '', present: '', items: [], other: '', status: 'szkic', ...p })
+    async function fetchProtocols(kind) {
+      const list = (await drive.loadProtocols(kind)).map(normProto)
+      if (protoKind.value === kind) protocolsRaw.value = list
+      return list
+    }
+    async function loadProtoKind(kind) {
+      protoKind.value = kind; protocolsRaw.value = []; protoError.value = ''; protoBusy.value = true
+      try { await fetchProtocols(kind) } catch (e) { protoError.value = e.message; if (e.auth) { ready.value = false; gate.value = '' } } finally { protoBusy.value = false }
+    }
+    function openProtocols() { protoView.value = true; scrollTo(0, 0); loadProtoKind(protoKind.value === 'rada' && !hasCouncil.value ? 'czlonkowskie' : protoKind.value) }
+
+    const currentProto = ref(null)
+    let protoSaved = '', protoBase = 0
+    const protoDirty = computed(() => !!currentProto.value && JSON.stringify(currentProto.value) !== protoSaved)
+    const protoSavedOnce = computed(() => !!currentProto.value && protoSaved !== '' && protoBase > 0)
+    const protoEditable = computed(() => !!currentProto.value && currentProto.value.status !== 'zatwierdzony' && (canWriteProto(currentProto.value.kind) || canApprove.value))
+    const presentList = computed(() => String(currentProto.value?.present || '').split(/[\n,;]+/).map(s => s.trim()).filter(Boolean))
+    function openProto(p) {
+      currentProto.value = normProto(JSON.parse(JSON.stringify(p)))
+      currentProto.value.items = currentProto.value.items.map(it => ({ key: uid(), title: '', notes: '', decision: '', vote: null, ...it }))
+      protoSaved = JSON.stringify(currentProto.value); protoBase = p.updated || 0
+      status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
+    }
+    // Nowy protokół — ze spotkania z kalendarza (tytuł, data, miejsce, punkty obrad z programu) albo pusty.
+    function newProto(kind, ev = null) {
+      const items = (ev?.program || []).filter(p => p.category === 'porzadek' && p.title).map(p => ({ key: uid(), title: p.title, notes: '', decision: '', vote: null }))
+      openProto({ id: uid(), eventId: ev?.id || '', kind, title: ev?.title || typeOf(kind).name, date: ev?.date || today(), place: ev?.place || '',
+        secretary: me.value?.name || '', items: items.length ? items : [{ key: uid(), title: '', notes: '', decision: '', vote: null }], createdBy: drive.account() || 'telefon' })
+      protoSaved = ''; protoBase = 0
+    }
+    const protoKindOf = ev => (ev.type === 'rada' ? 'rada' : 'czlonkowskie')
+    // Przycisk „Protokół” przy spotkaniu: istniejący protokół albo nowy (dla protokolanta).
+    const protoForEvent = ev => guard(async () => {
+      const kind = protoKindOf(ev)
+      protoKind.value = kind
+      const found = (await fetchProtocols(kind)).find(p => p.eventId === ev.id)
+      if (found) openProto(found)
+      else if (canWriteProto(kind)) newProto(kind, ev)
+      else throw new Error('Protokół z tego spotkania nie został jeszcze napisany.')
+    })
+    function addProtoItem() { currentProto.value.items.push({ key: uid(), title: '', notes: '', decision: '', vote: null }) }
+    function closeProto() {
+      if (protoDirty.value && protoSavedOnce.value && !confirm('Masz niezapisane zmiany w protokole. Wyjść bez zapisywania?')) return
+      currentProto.value = null
+      if (protoView.value) loadProtoKind(protoKind.value)
+    }
+    async function writeProto(changes = {}) {
+      const p = currentProto.value
+      p.title = p.title.trim()
+      const data = { ...JSON.parse(JSON.stringify(p)), ...changes, updated: Date.now(), updatedBy: drive.account() || 'telefon' }
+      try {
+        await drive.saveProtocol(data, protoBase)
+      } catch (e) {
+        if (!e.conflict) throw e
+        if (!confirm('Ktoś inny zmienił ten protokół, odkąd go otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) {
+          const fresh = (await fetchProtocols(p.kind)).find(x => x.id === p.id)
+          if (fresh) openProto(fresh)
+          status.value = 'Wczytano najnowszą wersję'
+          return false
+        }
+        await drive.saveProtocol(data, protoBase, true)
+      }
+      openProto(data)
+      return true
+    }
+    const saveProto = () => guard(async () => { if (await writeProto()) status.value = 'Zapisano o ' + clockNow() })
+    const setProtoStatus = next => guard(async () => {
+      if (next === 'zatwierdzony' && !confirm('Zatwierdzić protokół? Po zatwierdzeniu nie będzie można go zmieniać (chyba że ktoś cofnie zatwierdzenie).')) return
+      const changes = { status: next, ...(next === 'zatwierdzony' ? { approvedBy: me.value?.name || drive.account() || 'telefon', approvedAt: Date.now() } : { approvedBy: '', approvedAt: 0 }) }
+      if (await writeProto(changes)) status.value = next === 'zatwierdzony' ? 'Protokół zatwierdzony' : next === 'do-akceptacji' ? 'Przesłano do akceptacji' : 'Protokół wrócił do szkicu'
+    })
+    const removeProto = () => guard(async () => {
+      await drive.removeProtocol(currentProto.value.id)
+      currentProto.value = null
+      if (protoView.value) loadProtoKind(protoKind.value)
+    })
+    // PDF: wersja do druku (przeglądarka pozwala ją zapisać jako PDF).
+    function printProto() { setTimeout(() => print(), 50) }
     // Instalacja: Android/Chrome podaje gotowe okno instalacji, iPhone wymaga dodania ręcznie z Safari.
     const installed = ref(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)
     // Komputer (Windows): zamiast instalacji strony — instalator aplikacji na komputer z najnowszego wydania na GitHubie.
@@ -1663,13 +1909,13 @@ createApp({
     checkPush().catch(() => {})
 
     // Zamknięcie karty z niezapisanymi zmianami wymaga potwierdzenia.
-    addEventListener('beforeunload', e => { if (dirty.value || (eventDirty.value && eventSavedOnce.value) || tplDirty.value) e.preventDefault() })
+    addEventListener('beforeunload', e => { if (dirty.value || (eventDirty.value && eventSavedOnce.value) || tplDirty.value || (protoDirty.value && protoSavedOnce.value)) e.preventDefault() })
     addEventListener('online', () => { offline.value = false })
     addEventListener('offline', () => { offline.value = true })
     // Powrót do aplikacji (np. z innej) odświeża listę — widać zmiany innych osób.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && camera.value) { cam.resume(); return }
-      if (document.visibilityState === 'visible' && ready.value && !current.value && !currentEvent.value && !tplView.value && !busy.value && drive.signedIn()) reload()
+      if (document.visibilityState === 'visible' && ready.value && !current.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !busy.value && drive.signedIn()) reload()
     })
     // Zapamiętane logowanie: po przeładowaniu strony od razu wczytujemy dane.
     if (demo) start()
@@ -1679,6 +1925,8 @@ createApp({
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
+      STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
+      currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       api, me, gate, canEdit, canManage, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,

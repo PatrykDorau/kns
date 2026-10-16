@@ -20,7 +20,7 @@
 |---|---|---|
 | `Aplikacja KNS Nabo` (nabożeństwa, wydarzenia, pieśni, ogłoszenia) | zatwierdzeni | lider, organizator, technika, rada, pastor, admin |
 | `Aplikacja KNS Nabo/powiadomienia` | — | wszyscy zatwierdzeni (zapis własnego telefonu) |
-| `KNS Nabo — Protokoły` (spotkania członkowskie) | zatwierdzeni | protokolant, admin |
+| `KNS Nabo — Protokoły` (spotkania członkowskie) | zatwierdzeni | protokolant, rada, pastor, admin (zatwierdzają) |
 | `KNS Nabo — Rada` (protokoły i sprawy rady) | rada, pastor, admin | rada, pastor, admin |
 | `KNS Nabo — Administracja` (`osoby.json`) | tylko konto kościoła (przez skrypt) | — |
 
@@ -70,9 +70,9 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 - [x] Kalendarz i program w Organizacji na komputerze (`src/ChurchCalendar.vue`, `src/ProgramEditor.vue`; szablony i wydarzenia czyta synchronizacja z Dyskiem Google — `readChurch` w `gdrive.cjs`)
 
 ### 2. Protokoły
-- [ ] Protokół do spotkania członkowskiego (`KNS Nabo — Protokoły`) i rady (`KNS Nabo — Rada`)
-- [ ] Pisze protokolant (ranga), czytają uprawnieni; obecni, porządek obrad, ustalenia/uchwały, głosowania
-- [ ] Status: szkic → do akceptacji → zatwierdzony; eksport do PDF
+- [x] Protokół do spotkania członkowskiego (`KNS Nabo — Protokoły`) i rady (`KNS Nabo — Rada/protokoly`) — telefon 2.28: Kalendarz → Protokoły albo przycisk przy spotkaniu
+- [x] Pisze protokolant (ranga; protokoły rady — rada), czytają uprawnieni; obecni, porządek obrad, ustalenia/uchwały, głosowania
+- [x] Status: szkic → do akceptacji → zatwierdzony (zatwierdzają rada/pastor; zatwierdzony zablokowany); PDF przez drukowanie
 
 ### 3. Komunikacja
 - [ ] Strona główna: najważniejsze komunikaty rady zboru (przypięte, ważne do daty) — piszą rada/pastor
