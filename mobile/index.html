@@ -1089,7 +1089,7 @@
       <b>{{ a.title }}</b>
       <span class="notice-text">{{ a.text }}</span>
     </button>
-    <div class="section"><h2>Najbliżej w kościele</h2></div>
+    <div v-if="pubItems.length" class="section"><h2>Najbliżej w kościele</h2></div>
     <div v-for="it in pubItems" :key="it.key" class="ev static" :style="{ '--c': it.color }">
       <span class="when"><small>{{ wd(it.date) }}</small><b>{{ day(it.date) }}</b><small>{{ month(it.date) }}</small></span>
       <span class="body"><b>{{ it.title }}</b><small>{{ [it.time, it.place].filter(Boolean).join(' · ') }}</small><small v-if="it.sub">{{ it.sub }}</small></span>
@@ -1182,6 +1182,7 @@ const api = demo ? createDemoApi() : createApi(window.KNS_CONFIG || {}, drive)
 // Zatwierdzony członek: następne logowanie od razu prosi też o Dysk (bez dodatkowego kroku).
 const MEMBER_KEY = 'kns-member'
 const isMember = email => { try { return !!email && localStorage.getItem(MEMBER_KEY) === email } catch { return false } }
+const memberEmail = () => { try { return localStorage.getItem(MEMBER_KEY) || '' } catch { return '' } }
 const setMember = email => { try { email ? localStorage.setItem(MEMBER_KEY, email) : localStorage.removeItem(MEMBER_KEY) } catch { /* tryb prywatny */ } }
 const plain = s => String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l')
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
@@ -1190,7 +1191,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.29 · 16.10.2026'
+const VERSION = '2.30 · 16.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1435,7 +1436,9 @@ createApp({
     const start = (choose = false) => guard(async () => {
       if (choose) drive.forget()
       if (!api.enabled) { await drive.signIn(choose); await fetchAll(); ready.value = true; return }
-      await drive.signIn(choose, isMember(drive.account()) ? 'drive' : 'identity')
+      // Po wylogowaniu adres konta jest zapomniany — wtedy liczy się, czy na tym telefonie był już zatwierdzony członek.
+      const member = drive.account() ? isMember(drive.account()) : !!memberEmail()
+      await drive.signIn(choose, member && !choose ? 'drive' : 'identity')
       await enter()
     })
     // Konto bez dostępu do folderu: zapominamy je i od razu pokazujemy wybór konta.
