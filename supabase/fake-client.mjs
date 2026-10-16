@@ -45,12 +45,12 @@ export function createFakeClient(db, user = null) {
   }
 
   function from(table) {
-    const q = { table, op: 'select', cols: '*', where: [], order: null, range: null, rows: null, set: null }
+    const q = { table, op: 'select', cols: '*', where: [], order: null, desc: false, range: null, rows: null, set: null }
     const b = {
       select(cols = '*') { if (q.op === 'select') q.cols = cols; return b },
       eq(col, val) { q.where.push(['eq', col, val]); return b },
       or(expr) { q.where.push(['or', expr]); return b },
-      order(col) { q.order = col; return b },
+      order(col, opts) { q.order = col; q.desc = opts?.ascending === false; return b },
       range(a, z) { q.range = [a, z]; return b },
       upsert(rows) { q.op = 'upsert'; q.rows = Array.isArray(rows) ? rows : [rows]; return b },
       update(obj) { q.op = 'update'; q.set = obj; return b },
@@ -75,7 +75,7 @@ export function createFakeClient(db, user = null) {
       let sql
       if (q.op === 'select') {
         sql = `select ${q.cols === '*' ? '*' : q.cols.split(',').map(ident).join(',')} from public.${ident(table)}${where(params)}`
-        if (q.order) sql += ` order by ${ident(q.order)}`
+        if (q.order) sql += ` order by ${ident(q.order)}${q.desc ? ' desc' : ''}`
         if (q.range) sql += ` limit ${q.range[1] - q.range[0] + 1} offset ${q.range[0]}`
       } else if (q.op === 'upsert') {
         const cols = Object.keys(q.rows[0])
@@ -105,6 +105,13 @@ export function createFakeClient(db, user = null) {
     auth: {
       getSession: async () => ({ data: { session } }),
       onAuthStateChange(cb) { listeners.push(cb); return { data: { subscription: { unsubscribe() {} } } } },
+      // do testów: token tożsamości = adres e-mail istniejącego konta
+      async signInWithIdToken({ token }) {
+        const u = (await db.query('select id, email from auth.users where email = $1', [token])).rows[0]
+        if (!u) return { data: null, error: { message: 'Invalid token' } }
+        this.setUser(u)
+        return { data: { session }, error: null }
+      },
       async signInWithOAuth(opts) { this.lastOAuth = opts; return { error: null } },
       async signOut() { session = null; listeners.forEach(cb => cb('SIGNED_OUT', null)); return { error: null } },
       // do testów: zalogowanie jako inna osoba

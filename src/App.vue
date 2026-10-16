@@ -8,7 +8,7 @@ import Countdown from './Countdown.vue'
 import StreamPanel from './StreamPanel.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
-import { api, appUpdate, busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
+import { BAZA, api, appUpdate, busy, init, leaveSharedDir, nearestService, planAlert, planReady, pickSharedDir, prettyDate, role, serviceModal, services, settings, sharedAccount, sharedStatus, sharedSuggestions, connectSharedDir, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
 
 // Na starcie użytkownik wybiera służbę — każda ma swój widok, a łączy je wspólne nabożeństwo.
 const ready = ref(false)
@@ -51,10 +51,10 @@ function choose(next) {
       </button>
     </div>
     <div v-if="ready" class="shared">
-      <template v-if="settings.sharedDir === 'google'">
+      <template v-if="settings.sharedDir === 'google' || settings.sharedDir === BAZA">
         <Icon :name="googleExpired ? 'missing' : 'folder'" />
-        <span v-if="googleExpired"><b>Logowanie do Dysku Google wygasło.</b> Zmiany zapisują się na tym komputerze i zostaną wysłane po ponownym zalogowaniu.</span>
-        <span v-else>Dysk Google: <b>{{ sharedAccount?.email || 'zalogowano' }}</b><template v-if="sharedStatus"> · {{ sharedStatus }}</template></span>
+        <span v-if="googleExpired"><b>{{ settings.sharedDir === BAZA ? 'Zaloguj się kontem Google, żeby połączyć z bazą danych kościoła.' : 'Logowanie do Dysku Google wygasło.' }}</b> Zmiany zapisują się na tym komputerze i zostaną wysłane po zalogowaniu.</span>
+        <span v-else>{{ settings.sharedDir === BAZA ? 'Baza danych' : 'Dysk Google' }}: <b>{{ sharedAccount?.email || 'zalogowano' }}</b><template v-if="sharedStatus"> · {{ sharedStatus }}</template></span>
         <button v-if="googleExpired" class="small primary" @click="loginGoogle">Zaloguj ponownie</button>
         <SyncButton v-else />
         <button class="small" @click="logoutGoogle">Wyloguj</button>

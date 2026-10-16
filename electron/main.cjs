@@ -924,6 +924,10 @@ app.whenReady().then(() => {
   ipcMain.handle('google:login', () => viaGoogle(() => gdrive.login()))
   ipcMain.handle('google:logout', () => gdrive.logout())
   ipcMain.handle('google:status', () => gdrive.status())
+  // Baza danych (Supabase): logowanie tym samym kontem Google i załączniki na Dysku.
+  ipcMain.handle('cloud:idToken', () => viaGoogle(() => gdrive.idToken()))
+  ipcMain.handle('cloud:mapFiles', (e, list) => viaGoogle(() => gdrive.mapFiles(list)))
+  ipcMain.handle('cloud:storeFiles', (e, svc) => viaGoogle(() => gdrive.storeFiles(svc)))
   ipcMain.handle('shared:ensure', (e, paths) => viaGoogle(() => gdrive.ensureFiles(paths)))
   ipcMain.handle('shared:account', (e, dir) => {
     if (dir !== GOOGLE) return sharedAccount(dir)

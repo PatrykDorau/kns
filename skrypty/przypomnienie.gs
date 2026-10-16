@@ -9,6 +9,7 @@
 //   2. Uzupełnij poniżej adresy w „recipients” i hasło „pushSecret” (to samo co PUSH_SECRET w Netlify).
 //   3. Ustawienia projektu (ikona zębatki) → Strefa czasowa: (GMT+01:00) Warszawa.
 //   4. Wybierz funkcję „setup” na górze i kliknij „Uruchom” → zezwól na dostęp (Dysk, Gmail, połączenia).
+//   (baza danych) Gdy w projekcie jest też baza.gs z kluczem SUPABASE_SECRET — nabożeństwa i telefony są czytane z bazy.
 //   5. Dla próby uruchom „sprawdzTeraz” — przyjdzie mail i powiadomienie na wszystkie telefony, nawet gdy wszystko jest gotowe.
 
 const CONFIG = {
@@ -86,8 +87,9 @@ function sendMail(check) {
   })
 }
 
-// Telefony z włączonymi powiadomieniami: { id, file, subscription, day, hour }.
+// Telefony z włączonymi powiadomieniami: { id, subscription, day, hour, remove() }.
 function readPhones() {
+  if (typeof bazaWlaczona === 'function' && bazaWlaczona()) return bazaTelefony()
   const roots = DriveApp.getFoldersByName(CONFIG.folderName)
   if (!roots.hasNext()) return []
   const dirs = roots.next().getFoldersByName(CONFIG.pushFolder)
@@ -99,7 +101,7 @@ function readPhones() {
     try {
       const data = JSON.parse(f.getBlob().getDataAsString())
       const when = data.schedule || {}
-      out.push({ id: f.getId(), file: f, subscription: data.subscription, day: when.day ?? 5, hour: when.hour ?? 19 })
+      out.push({ id: f.getId(), subscription: data.subscription, day: when.day ?? 5, hour: when.hour ?? 19, remove: () => f.setTrashed(true) })
     } catch (e) { /* uszkodzony plik */ }
   }
   return out
@@ -121,12 +123,13 @@ function sendPush(phones, check) {
   })
   const out = JSON.parse(res.getContentText() || '{}')
   if (res.getResponseCode() !== 200) throw new Error('Powiadomienia: ' + (out.error || res.getResponseCode()))
-  for (const id of out.gone || []) { const p = phones.find(x => x.id === id); if (p) p.file.setTrashed(true) }
+  for (const id of out.gone || []) { const p = phones.find(x => x.id === id); if (p) p.remove() }
   Logger.log('Powiadomienia wysłane: ' + out.sent)
 }
 
 // Nabożeństwo na dany dzień: podfolder „<data> <tytuł> (<id>)” z plikiem nabozenstwo.json.
 function findService(date) {
+  if (typeof bazaWlaczona === 'function' && bazaWlaczona()) return bazaNabozenstwo(date)
   const roots = DriveApp.getFoldersByName(CONFIG.folderName)
   if (!roots.hasNext()) throw new Error('Nie widzę folderu „' + CONFIG.folderName + '” na tym koncie.')
   const sub = roots.next().getFoldersByName(CONFIG.servicesFolder)

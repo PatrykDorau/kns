@@ -1,4 +1,5 @@
 import { mergeTypes } from '../mobile/church.js'
+import { BAZA, createCloud } from './cloud.js'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { parseBibleXml, parseRef, passage, refLabel, toSlides } from './bible.js'
 export { parseBibleXml } // do testów
@@ -34,6 +35,10 @@ export const settings = reactive({
 export const appUpdate = ref({ current: '' })
 export const role = ref(null) // wybrana służba: 'display' | 'stream' | 'planner'
 export const services = ref([]) // zaplanowane nabożeństwa
+// Baza danych (Supabase) — „folder wspólny” o nazwie BAZA; inne foldery (dysk, Dysk Google) idą przez IPC.
+const cloud = typeof window !== 'undefined' && window.api ? createCloud(window.api) : null
+const shared = dir => (dir === BAZA ? cloud : api)
+export { BAZA }
 // Życie kościoła z Dysku Google (zapisywane na telefonie): rodzaje wydarzeń z szablonami i wydarzenia.
 export const churchTypes = ref(mergeTypes(null))
 export const churchEvents = ref([])
@@ -734,7 +739,7 @@ function mergeSameDay() {
       if (settings.activeService === other.id) settings.activeService = keep.id
       services.value.splice(services.value.indexOf(other), 1)
       synced.delete(other.id)
-      if (other.shared && settings.sharedDir) api.sharedRemove(settings.sharedDir, other.id)
+      if (other.shared && settings.sharedDir) shared(settings.sharedDir).sharedRemove(settings.sharedDir, other.id)
       merged++
     }
   }
@@ -742,7 +747,7 @@ function mergeSameDay() {
 }
 export function removeService(svc) {
   services.value.splice(services.value.indexOf(svc), 1)
-  if (svc.shared && settings.sharedDir) api.sharedRemove(settings.sharedDir, svc.id)
+  if (svc.shared && settings.sharedDir) shared(settings.sharedDir).sharedRemove(settings.sharedDir, svc.id)
   else for (const f of svc.files) dropFile(f.path)
   synced.delete(svc.id)
 }
@@ -770,7 +775,7 @@ export async function applyService(svc, parts = { songs: true, files: true }) {
   settings.activeService = svc.id
   const files = parts.files ? svc.files : []
   // Przy logowaniu do Dysku Google załączniki pobierane są dopiero teraz, gdy są potrzebne.
-  if (settings.sharedDir === 'google' && files.length) {
+  if ((settings.sharedDir === 'google' || settings.sharedDir === BAZA) && files.length) {
     busy.value = 'Pobieram załączniki z Dysku Google…'
     const got = await api.sharedEnsure(files.map(f => f.path))
     busy.value = ''
@@ -857,8 +862,9 @@ function syncIfStale() {
 async function runSync() {
   const dir = settings.sharedDir
   if (!dir || !loaded.value) return
-  const res = await api.sharedRead(dir)
+  const res = await shared(dir).sharedRead(dir)
   googleExpired.value = !!res.needLogin
+  if (dir === BAZA) sharedAccount.value = cloud.account() || sharedAccount.value
   if (res.error) { sharedStatus.value = res.error; return }
   if (res.templates !== undefined) churchTypes.value = mergeTypes(res.templates)
   if (Array.isArray(res.events)) churchEvents.value = res.events
@@ -944,7 +950,7 @@ function mergeTwinSongs(deleted) {
 }
 async function syncSongs(dir) {
   stampSongs()
-  const remote = await api.sharedSongsRead(dir, songsDirty ? 0 : songsMtime)
+  const remote = await shared(dir).sharedSongsRead(dir, songsDirty ? 0 : songsMtime)
   if (remote.error || remote.unchanged) return
   const remoteSongs = remote.songs || []
   const deleted = { ...remote.deleted }
@@ -983,7 +989,7 @@ async function syncSongs(dir) {
   const same = order(mine) === order(remoteSongs.map(({ id, number, title, text, updated }) => ({ id, number: number || '', title, text, updated: updated || 0 }))) &&
     JSON.stringify(deleted) === JSON.stringify(remote.deleted || {})
   if (same) { songsMtime = remote.mtime; songsDirty = false; return }
-  const res = await api.sharedSongsWrite(dir, { songs: mine, deleted })
+  const res = await shared(dir).sharedSongsWrite(dir, { songs: mine, deleted })
   if (res.error) { sharedStatus.value = res.error; return }
   songsMtime = res.mtime
   songsDirty = false
@@ -1006,7 +1012,7 @@ async function pushShared() {
       if (synced.get(svc.id) === snapshot(svc)) continue
       svc.updated = Date.now()
       svc.updatedBy = me()
-      const res = await api.sharedWrite(dir, servicePayload(svc))
+      const res = await shared(dir).sharedWrite(dir, servicePayload(svc))
       if (res.error) { sharedStatus.value = res.error; return }
       // Załączniki leżą odtąd w folderze wspólnym — lokalna kopia nie jest już potrzebna.
       for (const f of svc.files) {
@@ -1048,6 +1054,17 @@ export async function loginGoogle() {
     const res = await api.googleLogin()
     if (res.error) { googleError.value = 'Logowanie nie powiodło się: ' + res.error; return }
     googleExpired.value = false
+    if (cloud) {
+      // Dane kościoła są w bazie; to samo konto Google loguje do bazy (konto musi być zatwierdzone).
+      await cloud.signOut()
+      const c = await cloud.connect()
+      if (c.error && !/czeka na zatwierdzenie|nie ma dostępu/.test(c.error)) { googleError.value = c.error; return }
+      if (c.error) sharedStatus.value = c.error
+      sharedAccount.value = cloud.account()
+      if (settings.sharedDir !== BAZA) connectSharedDir(BAZA)
+      else syncShared()
+      return
+    }
     sharedAccount.value = res.email ? { provider: 'Dysk Google', email: res.email } : sharedAccount.value
     if (settings.sharedDir !== 'google') connectSharedDir('google')
     else syncShared()
@@ -1057,6 +1074,7 @@ export async function loginGoogle() {
 }
 export async function logoutGoogle() {
   await api.googleLogout()
+  await cloud?.signOut()
   googleExpired.value = false
   leaveSharedDir()
 }
@@ -1155,11 +1173,13 @@ export async function init() {
   watch(items, () => saveSoon('library'), { deep: true })
   watch(songs, () => { saveSoon('songs'); songsChanged() }, { deep: true })
   watch(services, () => { saveSoon('services'); pushSoon() }, { deep: true })
+  // Komputery połączone dotąd z Dyskiem Google przechodzą na bazę danych (tam są teraz nabożeństwa i pieśni).
+  if (cloud && settings.sharedDir === 'google') connectSharedDir(BAZA)
   findSharedDir()
   watch(() => settings.sharedDir, async dir => {
     sharedAccount.value = null
     syncShared()
-    const account = dir ? await api.sharedAccount(dir) : null
+    const account = dir === BAZA ? null : dir ? await api.sharedAccount(dir) : null
     if (settings.sharedDir === dir) sharedAccount.value = account
   }, { immediate: true })
   setInterval(() => { lastSync = Date.now(); syncShared() }, SYNC_EVERY)
