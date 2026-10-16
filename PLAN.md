@@ -75,10 +75,10 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 - [x] Status: szkic → do akceptacji → zatwierdzony (zatwierdzają rada/pastor; zatwierdzony zablokowany); PDF przez drukowanie
 
 ### 3. Komunikacja
-- [ ] Strona główna: najważniejsze komunikaty rady zboru (przypięte, ważne do daty) — piszą rada/pastor
-- [ ] Ogłoszenia: odbiorcy publiczni / członkowie / rada; `ogloszenia/ogloszenia.json` (+ rada w folderze rady)
-- [ ] Newsletter: cotygodniowy e-mail (skrypt Google, MailApp) z ogłoszeniami i kalendarzem; zapis/wypis w aplikacji
-- [ ] Publiczny podgląd (`public` w API) dla niezatwierdzonych i gości
+- [x] Strona główna (zakładka Start): komunikaty rady zboru (przypięte, ważne do daty) — piszą rada/pastor
+- [x] Ogłoszenia: odbiorcy publiczni / członkowie / rada; `ogloszenia/ogloszenia.json` (+ `KNS Nabo — Rada/ogloszenia.json`); dodają osoby z prawem edycji
+- [x] Newsletter: co czwartek 18:00 e-mail (`newsletter()` w serwer.gs, wyzwalacz z `ustawNewsletter()`) — kalendarz na 2 tygodnie (bez rady) i ogłoszenia; zapis/wypis przełącznikiem na stronie Start. Limit Gmaila: ok. 100 maili dziennie
+- [x] Publiczny podgląd (`public` w API, pamięć 10 min) dla niezatwierdzonych i gości: nabożeństwa, wydarzenia „widoczne dla gości”, ogłoszenia publiczne
 
 ### 4. Komputer
 - [ ] Rzutnik/Stream czytają program nabożeństwa (kolejne punkty, kto prowadzi); ogłoszenia jako pętla slajdów
@@ -91,7 +91,7 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 1. script.google.com (konto kościoła) → projekt z przypomnieniami → dodaj plik `serwer` → wklej `skrypty/serwer.gs`,
    uzupełnij `admins`.
 2. Wdróż → Aplikacja internetowa (Wykonaj jako: Ja; Dostęp: Każdy) → adres `…/exec` → do `mobile/config.js` (`apiUrl`).
-3. Uruchom `przeniesObecnych` (obecne osoby → członkowie).
+3. Uruchom `przeniesObecnych` (obecne osoby → członkowie) i `ustawNewsletter` (wyzwalacz newslettera).
 4. Google Cloud: ekran zgody — dodać zakresy `openid`, `email`, `profile` (są niewrażliwe).
 
 ## Stan projektu (dla kontynuacji)

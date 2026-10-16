@@ -47,8 +47,16 @@ export function createDemoApi() {
   people = people || start()
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(people)) } catch { /* tryb prywatny */ } }
   const copy = x => JSON.parse(JSON.stringify(x))
+  const inDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   const ACTIONS = {
     me: () => ({ person: people[0], ranks: RANKS }),
+    public: () => ({
+      services: [{ date: inDays(((7 - new Date().getDay()) % 7) || 7), time: '12:12', place: 'Hotel Forza', sermonTitle: 'Światłość świata', passage: 'J 8,12', speaker: 'Jan Zieliński' }],
+      events: [{ type: 'studenckie', title: 'Spotkanie studenckie', date: inDays(3), time: '19:00', place: 'Salka', description: 'Studium Ewangelii Jana' }],
+      announcements: [{ id: 'p1', title: 'Piknik kościelny', text: 'W sobotę po nabożeństwie wspólny piknik w parku.', important: false, date: Date.now() }],
+      types: [{ id: 'nabozenstwo', name: 'Nabożeństwo', color: '#5b8cff' }, { id: 'studenckie', name: 'Spotkanie studenckie', color: '#3ddc97' }],
+    }),
+    setNewsletter({ on }) { people[0].newsletter = !!on; persist(); return { person: people[0] } },
     people: () => ({ people, ranks: RANKS }),
     setPerson({ email, status, roles }) {
       const p = people.find(x => x.email === email)

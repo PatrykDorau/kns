@@ -3,6 +3,8 @@
 //   <folder aplikacji>/piesni/baza-piesni.json                              — wspólna baza pieśni
 //   <folder aplikacji>/wydarzenia/<data> <tytuł> (<id>)/wydarzenie.json      — inne wydarzenia (spotkania itd.)
 //   <folder aplikacji>/szablony/szablony.json                               — typy wydarzeń i ich szablony
+//   <folder aplikacji>/ogloszenia/ogloszenia.json                           — ogłoszenia (goście, członkowie)
+//   KNS Nabo — Rada/ogloszenia.json                                         — ogłoszenia tylko dla rady
 //   KNS Nabo — Protokoły/<data> <tytuł> (<id>)/protokol.json                 — protokoły spotkań członkowskich
 //   KNS Nabo — Rada/protokoly/<data> <tytuł> (<id>)/protokol.json            — protokoły rady zboru
 // Folder aplikacji i nazwy podfolderów są w config.js.
@@ -18,7 +20,7 @@ const IDENTITY = 'openid email profile'
 import { eventFolderName } from './church.js'
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
-const EVENTS = 'wydarzenia', TEMPLATES = 'szablony'
+const EVENTS = 'wydarzenia', TEMPLATES = 'szablony', NEWS = 'ogloszenia'
 // Wydarzenia starsze niż tyle dni nie są wczytywane (nazwa folderu zaczyna się od daty) — lista nie rośnie bez końca.
 const EVENTS_BACK = 120
 
@@ -65,6 +67,7 @@ export function createDrive(config) {
   let eventsDirId = '', templatesDirId = '', templatesFileId = ''
   const protoDirs = {} // rodzaj ('czlonkowskie' | 'rada') → folder z protokołami
   const protoIndex = new Map() // id protokołu → { folderId, fileId, name }
+  let newsDirId = '', councilRootId = null // null — jeszcze nie sprawdzano; '' — brak dostępu do folderu rady
 
   async function call(url, options = {}) {
     const res = await fetch(url, { ...options, headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } })
@@ -125,8 +128,14 @@ export function createDrive(config) {
   }
   // Wydarzenia (ostatnie EVENTS_BACK dni i przyszłe) oraz szablony.
   async function loadExtra(subfolder) {
-    const [eventsDir, templatesDir] = await Promise.all([subfolder(EVENTS), subfolder(TEMPLATES)])
-    eventsDirId = eventsDir || ''; templatesDirId = templatesDir || ''
+    const [eventsDir, templatesDir, newsDir, councilRoot] = await Promise.all([subfolder(EVENTS), subfolder(TEMPLATES), subfolder(NEWS), councilFolder()])
+    eventsDirId = eventsDir || ''; templatesDirId = templatesDir || ''; newsDirId = newsDir || ''
+    const newsFile = async (dir, audience) => {
+      const [file] = dir ? await list(`${quote(dir)} in parents and name='ogloszenia.json' and trashed=false`) : []
+      const data = file ? await read(file.id).catch(e => { if (e.auth) throw e; return null }) : null
+      return (data?.items || []).map(a => (audience ? { ...a, audience } : a))
+    }
+    const newsPromise = Promise.all([newsFile(newsDir), newsFile(councilRoot, 'council')])
     const since = new Date(Date.now() - EVENTS_BACK * 86400000).toISOString().slice(0, 10)
     const [eventDirs, templateFile] = await Promise.all([
       eventsDir ? list(`${quote(eventsDir)} in parents and mimeType='${FOLDER}' and trashed=false`) : [],
@@ -146,7 +155,34 @@ export function createDrive(config) {
         events.push(payload.event)
       } catch (e) { if (e.auth) throw e }
     }))
-    return { events, templates: templates?.types || null, templatesUpdated: templates?.updated || 0 }
+    const [news, councilNews] = await newsPromise
+    return { events, templates: templates?.types || null, templatesUpdated: templates?.updated || 0, announcements: [...news, ...councilNews] }
+  }
+  // Folder rady (osobny, najwyższego poziomu) — widzą go tylko rada, pastor i administrator.
+  async function councilFolder() {
+    if (councilRootId !== null) return councilRootId
+    const [found] = await list(`name=${quote(config.councilFolder || 'KNS Nabo — Rada')} and mimeType='${FOLDER}' and trashed=false`)
+    return (councilRootId = found?.id || '')
+  }
+  // Plik ogłoszeń, do którego trafia ogłoszenie: rada — w folderze rady, reszta — w folderze aplikacji.
+  async function newsTarget(audience) {
+    if (audience === 'council') {
+      const dir = await councilFolder()
+      if (!dir) throw new Error('Nie masz dostępu do folderu rady zboru.')
+      return dir
+    }
+    if (!newsDirId) newsDirId = (await create({ name: NEWS, mimeType: FOLDER, parents: [rootFolder] })).id
+    return newsDirId
+  }
+  // Zmiana jednego ogłoszenia: plik czytany na świeżo, żeby nie skasować ogłoszeń dodanych w międzyczasie.
+  async function changeNews(audience, change) {
+    const dir = await newsTarget(audience)
+    const [file] = await list(`${quote(dir)} in parents and name='ogloszenia.json' and trashed=false`)
+    const data = file ? await read(file.id) : { items: [] }
+    data.items = change(data.items || [])
+    data.updated = Date.now()
+    if (file) await write(file.id, data)
+    else await create({ name: 'ogloszenia.json', parents: [dir] }, data)
   }
   // Folder protokołów: osobny folder najwyższego poziomu konta kościoła, udostępniony według rang.
   async function protocolsDir(kind) {
@@ -301,6 +337,20 @@ export function createDrive(config) {
       if (entry) await patch(entry.folderId, { trashed: true })
       protoIndex.delete(id)
     },
+    // Ogłoszenie: zapis (base — czas zmiany w chwili otwarcia; nowsza wersja na Dysku wstrzymuje zapis).
+    // Zmiana odbiorców między radą a resztą przenosi ogłoszenie do drugiego pliku.
+    async saveAnnouncement(item, base = 0, force = false, oldAudience = '') {
+      const council = a => a === 'council'
+      const { audience, ...rest } = item
+      const stored = council(audience) ? rest : item
+      await changeNews(audience, items => {
+        const remote = items.find(x => x.id === item.id)
+        if (remote && !force && (remote.updated || 0) > base) throw Object.assign(new Error('Ktoś inny zmienił to ogłoszenie w międzyczasie.'), { conflict: true })
+        return [...items.filter(x => x.id !== item.id), stored]
+      })
+      if (oldAudience && council(oldAudience) !== council(audience)) await changeNews(oldAudience, items => items.filter(x => x.id !== item.id))
+    },
+    async removeAnnouncement(item) { await changeNews(item.audience, items => items.filter(x => x.id !== item.id)) },
     // Szablony typów wydarzeń — jeden plik dla wszystkich.
     async saveTemplates(types, base = 0, force = false) {
       if (!templatesDirId) templatesDirId = (await create({ name: TEMPLATES, mimeType: FOLDER, parents: [rootFolder] })).id
@@ -424,6 +474,11 @@ export function createDemo() {
       { id: 'demoev03', type: 'rada', title: 'Spotkanie rady zboru', date: inDays(6), time: '19:00', place: '', description: '', program: [], updated: 1 },
     ],
     templates: null,
+    announcements: [
+      { id: 'demoan01', title: 'Zmiana godziny nabożeństwa', text: 'Od listopada nabożeństwa zaczynają się o 10:00. Prosimy o punktualność — odprawa zespołu o 9:45.', audience: 'members', important: true, until: inDays(30), date: Date.now(), updated: 1, author: 'Rada zboru' },
+      { id: 'demoan02', title: 'Piknik kościelny', text: 'W sobotę po nabożeństwie wspólny piknik w parku. Każdy przynosi coś do jedzenia.', audience: 'public', date: Date.now() - 86400000, updated: 1, author: 'Ania' },
+      { id: 'demoan03', title: 'Rekolekcje rady', text: 'Wyjazd rady zboru 14–15 listopada.', audience: 'council', date: Date.now() - 2 * 86400000, updated: 1, author: 'Pastor' },
+    ],
   })
   function inDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   let data
@@ -449,6 +504,8 @@ export function createDemo() {
     },
     async removeEvent(id) { data.events = (data.events || []).filter(x => x.id !== id); persist() },
     async saveTemplates(types) { data.templates = types; persist(); return Date.now() },
+    async saveAnnouncement(item) { data.announcements = [...(data.announcements || []).filter(x => x.id !== item.id), item]; persist() },
+    async removeAnnouncement(item) { data.announcements = (data.announcements || []).filter(x => x.id !== item.id); persist() },
     loadProtocols: async kind => JSON.parse(JSON.stringify((data.protocols || []).filter(p => p.kind === kind))),
     async saveProtocol(p) {
       data.protocols = data.protocols || []
