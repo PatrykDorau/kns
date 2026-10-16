@@ -1456,7 +1456,8 @@ createApp({
     const otherAccount = () => { gate.value = ''; me.value = null; return start(true) }
     const appUrl = window.KNS_CONFIG?.appUrl || 'https://kns-nabo.netlify.app'
     const origin = location.origin
-    const wrongOrigin = !demo && origin !== new URL(appUrl).origin
+    // Logowanie przez bazę (Supabase) działa też pod innymi dozwolonymi adresami — ostrzeżenie tylko dla logowania wprost przez Google.
+    const wrongOrigin = !demo && !useSupa && origin !== new URL(appUrl).origin
     const reload = () => guard(fetchAll)
     function logout() {
       drive.signOut()
