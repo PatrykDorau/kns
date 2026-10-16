@@ -27,6 +27,11 @@ window.KNS_CONFIG = {
   // Pilnuje kont i rang: nowa osoba czeka na zatwierdzenie. Pusty = bez kont (każdy z dostępem do folderu).
   apiUrl: '',
 
+  // Baza danych Supabase (konta, rangi i wszystkie dane aplikacji). Gdy wpisana — zamiast plików JSON na Dysku
+  // i zamiast serwera kont (apiUrl). Klucz „publishable” jest publiczny; dostępu pilnują reguły w bazie.
+  supabaseUrl: 'https://igkjlgdpvgdeqfqctnnf.supabase.co',
+  supabaseKey: 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI',
+
   // Protokoły: osobne foldery na Dysku konta kościoła (tworzy je i udostępnia serwer według rang).
   protocolsFolder: 'KNS Nabo — Protokoły', // spotkania członkowskie — czytają wszyscy zatwierdzeni
   councilFolder: 'KNS Nabo — Rada', // rada zboru — tylko rada, pastor i administrator

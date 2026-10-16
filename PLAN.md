@@ -86,12 +86,18 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 
 ### 5. Baza danych (Supabase)
 - [x] Projekt Supabase `kns-nabo` (https://igkjlgdpvgdeqfqctnnf.supabase.co, region Europa, plan Free); klucz publiczny w repozytorium jest bezpieczny (sb_publishable_…), sekretnego nie używamy w aplikacjach
-- [x] Schemat `supabase/schema.sql` (rangi, osoby, nabożeństwa, pieśni, wydarzenia, szablony, protokoły, ogłoszenia, telefony; RLS według rang; `set_person`, `set_newsletter`, `public_preview`) — test: `npm i --no-save @electric-sql/pglite@0.2.17 && node supabase/test-schema.mjs`
-- [ ] Uruchomić schemat w Supabase (SQL Editor) z adresem administratora
-- [ ] Logowanie Google w Supabase (Authentication → Providers → Google; redirect URI w Google Cloud)
-- [ ] Telefon i komputer na Supabase (zamiast JSON na Dysku), migracja danych z Dysku, codzienne „szturchnięcie”
-- [ ] Supabase: tabele osób, rang, wydarzeń, programów, protokołów, ogłoszeń; uprawnienia w bazie (RLS);
-  logowanie Google; pliki zostają na Dysku; migracja z JSON na Dysku
+- [x] Schemat `supabase/schema.sql` (rangi, osoby, nabożeństwa, pieśni, wydarzenia, szablony, protokoły, ogłoszenia, telefony; RLS według rang; `set_person`, `set_newsletter`, `public_preview`) — test: `node supabase/test-schema.mjs`
+- [x] Schemat uruchomiony w Supabase (administratorzy: prywatny Gmail i konto kościoła); logowanie Google włączone
+- [x] Telefon na bazie (gałąź `supabase`): `mobile/supa.js` — logowanie Google przez Supabase, dane w bazie, załączniki dalej na Dysku,
+  przycisk „Przenieś dane z Dysku” (Osoby) — przenosi też wspólną bazę pieśni
+- [x] Komputer na bazie (gałąź `supabase`, wersja 1.3.0): `src/cloud.js` jako „folder wspólny” `baza`; logowanie Google na komputerze
+  (zakres `openid email`) daje też token do bazy; komputery z „Dyskiem Google” przechodzą na bazę same i wysyłają swoje pieśni
+- [x] Skrypty Google na bazie: `skrypty/baza.gs` (przypomnienia, telefony, newsletter; klucz SUPABASE_SECRET we Właściwościach skryptu)
+- [x] Testy: `node supabase/test-schema.mjs`, `test-supa.mjs`, `test-cloud.mjs` (PGlite, devDependency), `node skrypty/test-bazy-gs.cjs`;
+  cała aplikacja w przeglądarce: `bash skrypty/test-ui/przygotuj-baza.sh` + `npx vite "$TEMP/kns-stest" --port 5184`
+- [ ] Przełączenie (razem): Supabase → Google → Client IDs + identyfikator klienta komputerowego; baza.gs + SUPABASE_SECRET;
+  scalenie gałęzi `supabase` → Netlify; wydanie 1.3.0; „Przenieś dane z Dysku” na telefonie (administrator)
+- [ ] Po przełączeniu: serwer.gs niepotrzebny (konta są w bazie); foldery protokołów/rady na Dysku niepotrzebne
 
 ## Wdrożenie po stronie Patryka (kolejność ma znaczenie)
 1. script.google.com (konto kościoła `pliki.kns@gmail.com`) → projekt z przypomnieniami → „+” → Skrypt → nazwa `serwer` →

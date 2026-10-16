@@ -27,7 +27,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
   const needLogin = () => Object.assign(new Error('Logowanie do Google wygasło — zaloguj się ponownie.'), { needLogin: true })
 
   /* ---------- logowanie (zapamiętane, zaszyfrowane kontem Windows) ---------- */
-  let auth = null // { refresh, access, expires, email }
+  let auth = null // { refresh, access, expires, email, id, idExpires } — id: token tożsamości dla bazy danych
   function loadAuth() {
     try {
       const raw = fs.readFileSync(authFile())
@@ -65,8 +65,19 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
     }
     auth.access = data.access_token
     auth.expires = Date.now() + (Number(data.expires_in) || 3600) * 1000
+    if (data.id_token) { auth.id = data.id_token; auth.idExpires = auth.expires }
     saveAuth()
     return auth.access
+  }
+  // Token tożsamości Google — do zalogowania w bazie danych (Supabase) tym samym kontem.
+  // Logowanie sprzed bazy nie obejmowało tożsamości — wtedy trzeba zalogować się raz ponownie.
+  async function idToken() {
+    if (!auth?.refresh) throw needLogin()
+    if (auth.id && auth.idExpires > Date.now() + 5 * 60000) return { idToken: auth.id, email: auth.email }
+    auth.access = ''
+    await accessToken()
+    if (!auth.id) throw needLogin()
+    return { idToken: auth.id, email: auth.email }
   }
 
   async function call(url, options = {}, retry = true) {
@@ -111,7 +122,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
           port = server.address().port
           const params = new URLSearchParams({
             client_id: CONFIG.clientId, redirect_uri: `http://127.0.0.1:${port}`, response_type: 'code',
-            scope: 'https://www.googleapis.com/auth/drive', code_challenge: challenge, code_challenge_method: 'S256',
+            scope: 'openid email profile https://www.googleapis.com/auth/drive', code_challenge: challenge, code_challenge_method: 'S256',
             access_type: 'offline', prompt: 'consent', state, ...(auth?.email ? { login_hint: auth.email } : {}),
           })
           shell.openExternal('https://accounts.google.com/o/oauth2/v2/auth?' + params)
@@ -119,7 +130,8 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       }))
     }
     const data = await tokenRequest({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: redirect })
-    auth = { refresh: data.refresh_token, access: data.access_token, expires: Date.now() + (Number(data.expires_in) || 3600) * 1000, email: auth?.email || '' }
+    auth = { refresh: data.refresh_token, access: data.access_token, expires: Date.now() + (Number(data.expires_in) || 3600) * 1000, email: auth?.email || '',
+      id: data.id_token || '', idExpires: Date.now() + (Number(data.expires_in) || 3600) * 1000 }
     try { auth.email = (await (await call(`${API}/about?fields=user(emailAddress)`)).json()).user.emailAddress } catch { /* tylko informacja */ }
     saveAuth()
     ids = null
@@ -254,10 +266,35 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
     return { templates, events, announcements }
   }
 
-  async function writeService(payload) {
+  // Folder nabożeństwa na Dysku po identyfikatorze w nazwie „<data> <tytuł> (<id>)” (gdy dane są w bazie).
+  async function indexFolders() {
     const { services } = await folders()
-    const svc = payload.service
+    for (const f of await list(`${q(services)} in parents and mimeType='${FOLDER}' and trashed=false`)) {
+      const id = /\(([^()]+)\)$/.exec(f.name)?.[1]
+      if (id && !index.has(id)) index.set(id, { folderId: f.id, fileId: null, name: f.name })
+    }
+  }
+  // Baza danych: załączniki nabożeństw (ścieżki „pliki/…”) → lokalne kopie; pobierane dopiero przy wczytaniu.
+  async function mapFiles(list) {
+    await indexFolders()
+    return { services: (list || []).map(({ id, files }) => {
+      const entry = index.get(id)
+      return { id, files: (files || []).filter(f => typeof f.path === 'string' && f.path.startsWith('pliki/')).map(f => {
+        const local = localCopy(id, path.basename(f.path))
+        if (entry) remote.set(local, { folderId: entry.folderId, name: path.basename(f.path) })
+        return { ...f, path: local }
+      }) }
+    }) }
+  }
+  // Baza danych: wysyła załączniki nabożeństwa na Dysk; zwraca lokalne ścieżki i ścieżki „pliki/…” do bazy.
+  async function storeFiles(svc) {
     if (!safeId(svc?.id)) return { error: 'Nieprawidłowe nabożeństwo.' }
+    if (!index.has(svc.id)) await indexFolders()
+    const { files, kept } = await serviceFiles(svc)
+    return { files, kept }
+  }
+  async function serviceFiles(svc) {
+    const { services } = await folders()
     const name = serviceFolderName(svc)
     let entry = index.get(svc.id)
     if (!entry) { entry = { folderId: await createFolder(name, services), fileId: null, name }; index.set(svc.id, entry) }
@@ -287,6 +324,12 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       kept.push({ ...f, path: 'pliki/' + fileName })
     }
     for (const e of existing) if (!kept.some(k => path.basename(k.path) === e.name)) await patchMeta(e.id, { trashed: true })
+    return { entry, files, kept }
+  }
+  async function writeService(payload) {
+    const svc = payload.service
+    if (!safeId(svc?.id)) return { error: 'Nieprawidłowe nabożeństwo.' }
+    const { entry, files, kept } = await serviceFiles(svc)
     const data = { ...payload, service: { ...svc, files: kept } }
     if (entry.fileId) await writeJson(entry.fileId, data)
     else { entry.fileId = (await createMeta({ name: 'nabozenstwo.json', parents: [entry.folderId] })).id; index.set(svc.id, entry); await writeJson(entry.fileId, data) }
@@ -363,5 +406,5 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
     return { mtime: res.modifiedTime }
   }
 
-  return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles }
+  return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles, idToken, mapFiles, storeFiles }
 }

@@ -82,8 +82,10 @@ export function createDrive(config) {
   async function filesFolder(svc) {
     let entry = folders.get(svc.id)
     if (!entry) {
+      // Folder tego nabożeństwa mógł już powstać (na komputerze albo wcześniej) — szukamy po identyfikatorze w nazwie.
+      const found = (await list(`${quote(baseId)} in parents and name contains ${quote('(' + svc.id + ')')} and mimeType='${FOLDER}' and trashed=false`))[0]
       const name = folderName(svc)
-      entry = { folderId: (await create({ name, mimeType: FOLDER, parents: [baseId] })).id, fileId: null, name }
+      entry = found ? { folderId: found.id, fileId: null, name: found.name } : { folderId: (await create({ name, mimeType: FOLDER, parents: [baseId] })).id, fileId: null, name }
       folders.set(svc.id, entry)
     }
     if (!entry.filesId) {
@@ -242,6 +244,19 @@ export function createDrive(config) {
       if (token && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(token, () => {})
       token = ''; email = ''
       writeAuth({})
+    },
+    // Tylko foldery potrzebne do załączników (gdy dane są w bazie, a pliki na Dysku).
+    async prepareFiles() {
+      if (baseId) return
+      let rootId = config.folderId
+      if (!rootId) {
+        const [found] = await list(`name=${quote(config.folderName)} and mimeType='${FOLDER}' and trashed=false`)
+        if (!found) throw new Error(`To konto Google nie ma dostępu do folderu „${config.folderName}” na Dysku — załączniki trafiają właśnie tam.`)
+        rootId = found.id
+      }
+      rootFolder = rootId
+      baseId = (await list(`${quote(rootId)} in parents and name=${quote(config.servicesFolder)} and mimeType='${FOLDER}' and trashed=false`))[0]?.id ||
+        (await create({ name: config.servicesFolder, mimeType: FOLDER, parents: [rootId] })).id
     },
     async load() {
       // Folder aplikacji: po identyfikatorze z config.js, a gdy go nie ma — po nazwie.
@@ -494,6 +509,7 @@ export function createDemo() {
     forget() {},
     hasDrive: () => true,
     accessToken: () => 'demo',
+    prepareFiles: async () => {},
     load: async () => JSON.parse(JSON.stringify({ events: [], templates: null, ...data })),
     async saveEvent(ev) {
       data.events = data.events || []

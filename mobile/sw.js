@@ -1,9 +1,9 @@
 // Pozwala zainstalować stronę jako aplikację i otworzyć ją bez zasięgu (z ostatnio pobranej wersji).
 // Pliki strony: najpierw sieć (żeby zawsze była najnowsza wersja), a bez internetu — kopia.
-// Dane z Dysku Google nigdy nie są tu zapisywane — zawsze idą prosto do Google.
-const CACHE = 'kns-nabo-v41'
-const SHELL = ['./', './index.html', './drive.js', './api.js', './church.js', './config.js', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png', './badge.png', './favicon.png', './maskable-192.png', './maskable-512.png']
-const LIBRARY = 'https://cdnjs.cloudflare.com/'
+// Dane (Dysk Google, baza Supabase) nigdy nie są tu zapisywane — zawsze idą prosto do źródła.
+const CACHE = 'kns-nabo-v42'
+const SHELL = ['./', './index.html', './drive.js', './api.js', './church.js', './supa.js', './config.js', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png', './badge.png', './favicon.png', './maskable-192.png', './maskable-512.png']
+const LIBRARY = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net)\//
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()))
@@ -21,7 +21,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url)
   if (url.pathname.startsWith('/api/')) return // funkcje serwera — zawsze na żywo
   // Biblioteka Vue: wersja w adresie się nie zmienia, więc wystarczy raz ją pobrać.
-  if (request.url.startsWith(LIBRARY)) {
+  if (LIBRARY.test(request.url)) {
     event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(res => {
       const copy = res.clone()
       caches.open(CACHE).then(cache => cache.put(request, copy))
