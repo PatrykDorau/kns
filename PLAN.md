@@ -88,18 +88,30 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 - [ ] Supabase: tabele osób, rang, wydarzeń, programów, protokołów, ogłoszeń; uprawnienia w bazie (RLS);
   logowanie Google; pliki zostają na Dysku; migracja z JSON na Dysku
 
-## Wdrożenie po stronie Patryka (gdy skrypt i telefon będą gotowe)
-1. script.google.com (konto kościoła) → projekt z przypomnieniami → dodaj plik `serwer` → wklej `skrypty/serwer.gs`,
-   uzupełnij `admins`.
-2. Wdróż → Aplikacja internetowa (Wykonaj jako: Ja; Dostęp: Każdy) → adres `…/exec` → do `mobile/config.js` (`apiUrl`).
-3. Uruchom `przeniesObecnych` (obecne osoby → członkowie) i `ustawNewsletter` (wyzwalacz newslettera).
-4. Google Cloud: ekran zgody — dodać zakresy `openid`, `email`, `profile` (są niewrażliwe).
+## Wdrożenie po stronie Patryka (kolejność ma znaczenie)
+1. script.google.com (konto kościoła `pliki.kns@gmail.com`) → projekt z przypomnieniami → „+” → Skrypt → nazwa `serwer` →
+   wklej całe `skrypty/serwer.gs`, w `admins` wpisz swój adres Gmail → Zapisz.
+2. **Najpierw** uruchom `przeniesObecnych` (osoby, którym folder był już udostępniony → zatwierdzeni członkowie;
+   bez tego po włączeniu kont trafiłyby na „Czekasz na zatwierdzenie”), potem `ustawNewsletter`. Google zapyta o uprawnienia — zezwól.
+3. Wdróż → Nowe wdrożenie → Aplikacja internetowa (Wykonaj jako: Ja; Dostęp: Każdy) → skopiuj adres `…/exec`.
+4. Google Cloud → ekran zgody OAuth → zakresy: dodać `openid`, `email`, `profile` (niewrażliwe, bez weryfikacji).
+5. Przekaż adres `…/exec` — trafi do `mobile/config.js` (`apiUrl`); od tej chwili działają konta, rangi, protokoły z uprawnieniami,
+   newsletter i podgląd publiczny. Foldery „KNS Nabo — Protokoły / Rada / Administracja” skrypt tworzy sam przy pierwszym logowaniu administratora.
+6. Komputer: nowe funkcje (program, kalendarz, ogłoszenia w Rzutniku, program w Streamie) trafią na komputery po wydaniu 1.3.0
+   (instalator buduje się poprawnie — czeka na decyzję o wydaniu).
+
+## Co dalej
+- Po wdrożeniu serwera: raz sprawdzić logowanie na prawdziwym koncie (nowa osoba → zatwierdzenie → wejście), potem
+  logowanie przez serwer na komputerze (ranga decyduje o Organizacji/Rzutniku/Stream).
+- Etap 5 (Supabase) — gdy wszystko na Dysku będzie sprawdzone w użyciu.
 
 ## Stan projektu (dla kontynuacji)
 - Repozytorium: github.com/PatrykDorau/kns, folder lokalny `Pulpit\projekty\kns-nabo` (obok `portfolio` — osobny projekt).
-- Komputer: Electron + Vue (`src/`, `electron/`), wydania na GitHub Releases (ostatnie 1.2.3), automatyczne aktualizacje.
+- Komputer: Electron + Vue (`src/`, `electron/`), wydania na GitHub Releases (ostatnie 1.2.3; w repozytorium są już zmiany na 1.3.0), automatyczne aktualizacje.
   Budowanie: `npx vite build` → `npx electron-builder --win --publish never "-c.directories.output=%TEMP%/kns-out"`,
   kopia do `release/`, wydanie skryptem przez API GitHuba (logowanie z menedżera haseł Gita).
 - Telefon: `mobile/` (bez budowania, Vue z CDN), Netlify `kns-nabo.netlify.app` (publikuje się samo po `git push`),
   funkcja `netlify/functions/push.mjs` (powiadomienia Web Push, zmienne VAPID_PRIVATE i PUSH_SECRET w Netlify).
+- Testy: `node skrypty/test-serwera.cjs` (serwer na udawanym Apps Script), `node skrypty/test-telefonu.mjs` (drive.js na udawanym Dysku),
+  `bash skrypty/test-ui/przygotuj.sh` + `npx vite "$TEMP/kns-mtest" --port 5183` (cała aplikacja na udawanym Google).
 - Sekret klienta Google na komputer: `electron/google-secret.cjs` (poza repozytorium).
