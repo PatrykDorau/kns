@@ -4,7 +4,8 @@ import Icon from './Icon.vue'
 import SyncButton from './SyncButton.vue'
 import Brand from './Brand.vue'
 import Countdown from './Countdown.vue'
-import { api, servicePlace, serviceTime, nearestService, prettyDate, role, services, settings, songs, sortedServices, uid } from './store.js'
+import { api, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from './store.js'
+import { addMinutes, category } from '../mobile/church.js'
 
 // Stream: podgląd wszystkich kamer podłączonych do komputera i dane nabożeństwa pod ręką.
 const cams = ref([]) // { id, label, stream | error }
@@ -127,6 +128,25 @@ const fields = computed(() => {
   ].filter(([, value]) => value && value.trim())
 })
 
+// Program nabożeństwa; w dniu nabożeństwa zaznaczony jest punkt, który właśnie trwa.
+const program = computed(() => {
+  const s = service.value
+  if (!s?.program?.length) return []
+  const list = [...s.program].sort((a, b) => a.offset - b.offset).map(p => {
+    const time = addMinutes(s.time || DEFAULT_TIME, p.offset)
+    const sermon = p.category === 'kazanie' ? [p.title || s.sermonTitle, s.passage].filter(Boolean).join(', ') : p.title
+    return { key: p.key, time, name: category(p.category).name, detail: [sermon, p.person || (p.category === 'kazanie' ? s.speaker : '')].filter(Boolean).join(' — ') }
+  })
+  if (s.date === today()) {
+    const t = new Date(now.value).toTimeString().slice(0, 5)
+    let cur = -1
+    list.forEach((p, i) => { if (p.time <= t) cur = i })
+    list.forEach((p, i) => { p.now = i === cur; p.done = i < cur })
+  }
+  return list
+})
+const programText = computed(() => program.value.map(p => p.time + ' ' + p.name + (p.detail ? ' — ' + p.detail : '')).join('\n'))
+
 onMounted(() => {
   const offClients = api.onCueClients(n => { cueClients.value = n })
   const offRemote = api.onCueRemote(r => { cueRemote.value = r })
@@ -243,7 +263,16 @@ onBeforeUnmount(() => {
           <select v-model="serviceId" aria-label="Nabożeństwo">
             <option v-for="s in sortedServices" :key="s.id" :value="s.id">{{ prettyDate(s.date) }}{{ s.sermonTitle ? ' · ' + s.sermonTitle : '' }}</option>
           </select>
-          <div v-if="!fields.length" class="empty">To nabożeństwo nie ma jeszcze wpisanych informacji.</div>
+          <div v-if="!fields.length && !program.length" class="empty">To nabożeństwo nie ma jeszcze wpisanych informacji.</div>
+          <div v-if="program.length" class="info">
+            <div class="labelrow">
+              <label>Program</label>
+              <button class="small" @click="copy('Program', programText)"><Icon :name="copied === 'Program' ? 'check' : 'copy'" />{{ copied === 'Program' ? 'Skopiowano' : 'Kopiuj' }}</button>
+            </div>
+            <ol class="prog">
+              <li v-for="p in program" :key="p.key" :class="{ now: p.now, done: p.done }"><b>{{ p.time }}</b><span>{{ p.name }}<small v-if="p.detail">{{ p.detail }}</small></span><em v-if="p.now">TERAZ</em></li>
+            </ol>
+          </div>
           <div v-for="[name, value] in fields" :key="name" class="info">
             <div class="labelrow">
               <label>{{ name }}</label>

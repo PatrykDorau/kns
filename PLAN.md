@@ -81,7 +81,8 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 - [x] Publiczny podgląd (`public` w API, pamięć 10 min) dla niezatwierdzonych i gości: nabożeństwa, wydarzenia „widoczne dla gości”, ogłoszenia publiczne
 
 ### 4. Komputer
-- [ ] Rzutnik/Stream czytają program nabożeństwa (kolejne punkty, kto prowadzi); ogłoszenia jako pętla slajdów
+- [x] Stream: program nabożeństwa w panelu (w dniu nabożeństwa zaznaczony punkt „TERAZ”, kopiowanie)
+- [x] Rzutnik: przycisk „Ogłoszenia” — aktualne ogłoszenia (bez rady) jako pętla slajdów przełączanych co 12 s
 
 ### 5. Baza danych (później)
 - [ ] Supabase: tabele osób, rang, wydarzeń, programów, protokołów, ogłoszeń; uprawnienia w bazie (RLS);

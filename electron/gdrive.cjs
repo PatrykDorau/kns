@@ -232,7 +232,12 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       if (!c || c.modified !== file.modifiedTime) { c = { modified: file.modifiedTime, payload: await readJson(file.id) }; jsonCache.set(file.id, c) }
       return JSON.parse(JSON.stringify(c.payload))
     }
-    const [tplDir, evDir] = await Promise.all([subfolder(root, 'szablony'), subfolder(root, 'wydarzenia')])
+    const [tplDir, evDir, newsDir] = await Promise.all([subfolder(root, 'szablony'), subfolder(root, 'wydarzenia'), subfolder(root, 'ogloszenia')])
+    let announcements = []
+    if (newsDir) {
+      const [file] = await list(`${q(newsDir)} in parents and name='ogloszenia.json' and trashed=false`)
+      if (file) announcements = (await cached(file)).items || []
+    }
     let templates = null
     if (tplDir) {
       const [file] = await list(`${q(tplDir)} in parents and name='szablony.json' and trashed=false`)
@@ -246,7 +251,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       const jsons = dirs.size ? (await list(`name='wydarzenie.json' and trashed=false`)).filter(f => f.parents?.some(p => dirs.has(p))) : []
       await Promise.all(jsons.map(async f => { const ev = (await cached(f)).event; if (ev?.id) events.push(ev) }))
     }
-    return { templates, events }
+    return { templates, events, announcements }
   }
 
   async function writeService(payload) {

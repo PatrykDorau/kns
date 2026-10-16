@@ -37,6 +37,7 @@ export const services = ref([]) // zaplanowane nabożeństwa
 // Życie kościoła z Dysku Google (zapisywane na telefonie): rodzaje wydarzeń z szablonami i wydarzenia.
 export const churchTypes = ref(mergeTypes(null))
 export const churchEvents = ref([])
+export const churchAnnouncements = ref([])
 export const serviceModal = ref(false) // okno „Wczytaj nabożeństwo”
 export const plannerTarget = ref(null) // nabożeństwo edytowane w organizacji — tam trafia pieśń dodana z bazy
 export const tab = ref('materials')
@@ -481,6 +482,22 @@ export function addCountdown() {
   selectedId.value = it.id
 }
 
+// Ogłoszenia (z aplikacji na telefon) jako pętla slajdów przełączanych samoczynnie — np. przed nabożeństwem.
+// Komunikaty rady najpierw; ogłoszenia po terminie ważności i te tylko dla rady są pomijane.
+export const currentAnnouncements = computed(() => churchAnnouncements.value
+  .filter(a => a.audience !== 'council' && (!a.until || a.until >= today()) && a.title)
+  .sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || (b.date || 0) - (a.date || 0)))
+export function addAnnouncements() {
+  const list = currentAnnouncements.value
+  if (!list.length) return
+  const slides = list.map(a => ({ ...TEXT_STYLE, id: uid(), type: 'text', name: a.title, text: a.title + (a.text ? '\n\n' + a.text.trim() : ''), fs: a.text && a.text.length > 160 ? 7 : 9, hidden: true }))
+  const deck = { id: uid(), type: 'scene', name: 'Ogłoszenia', seconds: 12, volume: 0.25, transition: 'fade', fadeMs: 500, auto: true,
+    entries: slides.map(it => ({ key: uid(), ref: it.id, seconds: null })) }
+  items.value.push(...slides, deck)
+  tab.value = 'materials'
+  selectedId.value = deck.id
+}
+
 export function addLoop() {
   const n = items.value.filter(i => i.type === 'scene').length + 1
   const it = { id: uid(), type: 'scene', name: 'Pętla ' + n, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, entries: [] }
@@ -845,6 +862,7 @@ async function runSync() {
   if (res.error) { sharedStatus.value = res.error; return }
   if (res.templates !== undefined) churchTypes.value = mergeTypes(res.templates)
   if (Array.isArray(res.events)) churchEvents.value = res.events
+  if (Array.isArray(res.announcements)) churchAnnouncements.value = res.announcements
   const seen = new Set()
   for (const payload of res.list) {
     const id = payload.service.id
