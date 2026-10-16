@@ -73,6 +73,15 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       const flag = f => (p.roles || []).some(r => ranks.some(x => x.id === r && x[f]))
       return { email: p.email, status: p.status, roles: p.roles || [], names: (p.roles || []).map(r => ranks.find(x => x.id === r)?.name).filter(Boolean), edit: flag('can_edit'), manage: flag('manage') }
     }),
+    // Wydarzenia (kalendarz): zapis od razu w bazie; nowsza wersja w bazie wstrzymuje zapis.
+    saveEvent: (ev, base = 0) => safe(async () => {
+      const p = await active()
+      const [row] = check(await sb.from('events').select('updated').eq('id', ev.id))
+      if (row && (row.updated || 0) > base) throw new Error('Ktoś inny zmienił to wydarzenie w międzyczasie — kliknij „Synchronizuj” i spróbuj ponownie.')
+      check(await sb.from('events').upsert({ id: ev.id, type: ev.type || 'inne', date: day(ev.date), is_public: ev.public ?? null, data: ev, updated: ev.updated || Date.now(), updated_by: ev.updatedBy || p.email }))
+      return { ok: true }
+    }),
+    removeEvent: id => safe(async () => { await active(); check(await sb.from('events').delete().eq('id', id)); return { ok: true } }),
     // Pierwsze połączenie (po zalogowaniu Google): od razu sprawdza konto.
     connect: () => safe(async () => { await active(); return { ok: true, email: person.email } }),
     signOut: () => sb.auth.signOut({ scope: 'local' }).catch(() => {}),

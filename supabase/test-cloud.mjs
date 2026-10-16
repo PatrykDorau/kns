@@ -91,4 +91,18 @@ assert.equal((await db.query(`select count(*)::int n from services`)).rows[0].n,
 // komputer usuwa nabożeństwo
 await T.sharedRemove('baza', 'k1')
 assert.equal((await phone.load()).services.length, 0)
+// kalendarz z komputera: technika zapisuje wydarzenie, telefon je widzi; członek nie zapisze; konflikt wersji
+r = await T.saveEvent({ id: 'e9', type: 'inne', title: 'Próba zespołu', date: inDays(4), time: '18:00', program: [], updated: 100 }, 0)
+assert.equal(r.ok, true)
+assert.ok((await phone.load()).events.some(e => e.title === 'Próba zespołu'))
+r = await T.saveEvent({ id: 'e9', type: 'inne', title: 'Stara wersja', date: inDays(4), updated: 101 }, 50)
+assert.match(r.error, /w międzyczasie/)
+r = await M.saveEvent({ id: 'e10', type: 'inne', title: 'x', date: inDays(4), updated: 1 }, 0)
+assert.match(r.error, /uprawnień/)
+r = await (await M.access())
+assert.deepEqual([r.status, r.edit], ['active', false])
+r = await T.access()
+assert.deepEqual([r.edit, r.roles.includes('technika')], [true, true])
+await T.removeEvent('e9')
+assert.ok(!(await phone.load()).events.some(e => e.id === 'e9'))
 console.log('cloud.js: wszystkie testy OK')

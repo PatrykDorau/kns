@@ -43,6 +43,24 @@ export { BAZA }
 export const churchTypes = ref(mergeTypes(null))
 export const churchEvents = ref([])
 export const churchAnnouncements = ref([])
+// Przejścia między widokami: Kalendarz/Start otwierają nabożeństwo w Organizacji i odwrotnie.
+export const plannerRequest = ref(null) // { id } — otwórz nabożeństwo; { date } — nowe na ten dzień
+export const calendarRequest = ref(null) // { kind, id, date } — pokaż w kalendarzu
+export async function saveChurchEvent(ev, base = 0) {
+  if (!cloud) return { error: 'Brak połączenia z bazą danych.' }
+  const res = await cloud.saveEvent(ev, base)
+  if (res.error) return res
+  const i = churchEvents.value.findIndex(x => x.id === ev.id)
+  if (i >= 0) churchEvents.value[i] = ev
+  else churchEvents.value.push(ev)
+  return res
+}
+export async function removeChurchEvent(id) {
+  if (!cloud) return { error: 'Brak połączenia z bazą danych.' }
+  const res = await cloud.removeEvent(id)
+  if (!res.error) churchEvents.value = churchEvents.value.filter(x => x.id !== id)
+  return res
+}
 export const serviceModal = ref(false) // okno „Wczytaj nabożeństwo”
 export const plannerTarget = ref(null) // nabożeństwo edytowane w organizacji — tam trafia pieśń dodana z bazy
 export const tab = ref('materials')
@@ -1071,6 +1089,7 @@ export async function refreshAccess() {
 }
 export function canUse(which) {
   if (access.status !== 'active') return false
+  if (which === 'calendar') return true
   if (which === 'planner') return access.edit
   return access.roles.includes('technika') || access.manage
 }

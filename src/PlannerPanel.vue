@@ -6,12 +6,11 @@ import SongManager from './SongManager.vue'
 import Brand from './Brand.vue'
 import StatsPanel from './StatsPanel.vue'
 import ProgramEditor from './ProgramEditor.vue'
-import ChurchCalendar from './ChurchCalendar.vue'
 import { addMinutes, category, programFrom } from '../mobile/church.js'
 import { ago, songHistory } from './stats.js'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
-  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay, churchTypes,
+  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay, churchTypes, plannerRequest,
 } from './store.js'
 
 // Organizacja nabożeństw: plan, z którego korzystają potem rzutnik i stream.
@@ -82,7 +81,6 @@ function fillProgram() {
   if (current.value.program.length && !confirm('Zastąpić obecny program programem z szablonu?')) return
   current.value.program = programFrom(serviceType.value, uid)
 }
-const leftTab = ref('list') // lista nabożeństw albo kalendarz
 // Alarm prowadzi prosto do rzeczy: tworzy brakujące nabożeństwo albo otwiera to niekompletne.
 function fixAlert() {
   if (planAlert.value.service) select(planAlert.value.service)
@@ -161,7 +159,12 @@ async function importIt() {
   else if (res.service) { load(res.service); message.value = 'Wczytano nabożeństwo z folderu.' }
 }
 
-load(nearestService.value)
+// Z kalendarza albo strony startowej: konkretne nabożeństwo albo nowe na wybrany dzień.
+const request = plannerRequest.value
+plannerRequest.value = null
+if (request?.id && services.value.some(s => s.id === request.id)) load(services.value.find(s => s.id === request.id))
+else if (request && !request.id) { load(nearestService.value); create(request.date || undefined) }
+else load(nearestService.value)
 </script>
 
 <template>
@@ -193,12 +196,8 @@ load(nearestService.value)
 
     <main class="planner">
       <section>
-        <div class="tabs" role="tablist">
-          <button role="tab" :aria-selected="leftTab === 'list'" :class="{ on: leftTab === 'list' }" @click="leftTab = 'list'">Nabożeństwa</button>
-          <button role="tab" :aria-selected="leftTab === 'cal'" :class="{ on: leftTab === 'cal' }" @click="leftTab = 'cal'"><Icon name="calendar" />Kalendarz</button>
-        </div>
-        <ChurchCalendar v-if="leftTab === 'cal'" :selected="currentId || ''" @select="select" />
-        <ul v-else class="list">
+        <h2>Nabożeństwa</h2>
+        <ul class="list">
           <li v-if="isNew && current" class="row selected"><button class="pick"><span class="meta"><span class="name">{{ prettyDate(current.date) }}</span><span class="kind">Nowe — jeszcze niezapisane</span></span></button></li>
           <li v-if="!services.length && !isNew" class="empty"><Icon name="calendar" />Nie ma jeszcze żadnego nabożeństwa.<br>Kliknij „Nowe nabożeństwo”.</li>
           <!-- Nadchodzące: czerwona obwódka (braki) albo zielona (komplet), z ikonką w rogu; minione — przygaszone. -->
