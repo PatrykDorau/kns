@@ -1,6 +1,8 @@
 // Dostęp do folderu aplikacji na Dysku Google — te same pliki, z których korzysta aplikacja na komputerze:
 //   <folder aplikacji>/nabozenstwa/<data> <tytuł> (<id>)/nabozenstwo.json   — jedno nabożeństwo
 //   <folder aplikacji>/piesni/baza-piesni.json                              — wspólna baza pieśni
+//   <folder aplikacji>/wydarzenia/<data> <tytuł> (<id>)/wydarzenie.json      — inne wydarzenia (spotkania itd.)
+//   <folder aplikacji>/szablony/szablony.json                               — typy wydarzeń i ich szablony
 // Folder aplikacji i nazwy podfolderów są w config.js.
 // W trybie pokazowym (?demo) zamiast Dysku jest pamięć przeglądarki — do oglądania strony bez logowania.
 
@@ -11,7 +13,12 @@ const SCOPE = 'https://www.googleapis.com/auth/drive'
 // Sama tożsamość (adres e-mail, imię) — wystarcza osobie, która czeka na zatwierdzenie.
 const IDENTITY = 'openid email profile'
 
+import { eventFolderName } from './church.js'
+
 export const uid = () => Math.random().toString(36).slice(2, 10)
+const EVENTS = 'wydarzenia', TEMPLATES = 'szablony'
+// Wydarzenia starsze niż tyle dni nie są wczytywane (nazwa folderu zaczyna się od daty) — lista nie rośnie bez końca.
+const EVENTS_BACK = 120
 
 // Załączniki: te same rodzaje co na komputerze (zdjęcie, film, PDF, prezentacja).
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
@@ -52,6 +59,8 @@ export function createDrive(config) {
   let baseId = '' // podfolder z nabożeństwami
   let rootFolder = '', songsDirId = '', songsFileId = '' // baza pieśni: <folder aplikacji>/piesni/baza-piesni.json
   const folders = new Map() // id nabożeństwa → { folderId, fileId, name }
+  const eventFolders = new Map() // id wydarzenia → { folderId, fileId, name }
+  let eventsDirId = '', templatesDirId = '', templatesFileId = ''
 
   async function call(url, options = {}) {
     const res = await fetch(url, { ...options, headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } })
@@ -109,6 +118,31 @@ export function createDrive(config) {
     entry.filesId = dir
     const keep = new Set((files || []).map(f => String(f.path || '').replace(/^pliki\//, '')))
     for (const f of await list(`${quote(dir)} in parents and trashed=false`)) if (!keep.has(f.name)) await patch(f.id, { trashed: true })
+  }
+  // Wydarzenia (ostatnie EVENTS_BACK dni i przyszłe) oraz szablony.
+  async function loadExtra(subfolder) {
+    const [eventsDir, templatesDir] = await Promise.all([subfolder(EVENTS), subfolder(TEMPLATES)])
+    eventsDirId = eventsDir || ''; templatesDirId = templatesDir || ''
+    const since = new Date(Date.now() - EVENTS_BACK * 86400000).toISOString().slice(0, 10)
+    const [eventDirs, templateFile] = await Promise.all([
+      eventsDir ? list(`${quote(eventsDir)} in parents and mimeType='${FOLDER}' and trashed=false`) : [],
+      templatesDir ? list(`${quote(templatesDir)} in parents and name='szablony.json' and trashed=false`).then(f => f[0]) : null,
+    ])
+    templatesFileId = templateFile?.id || ''
+    const templates = templateFile ? await read(templateFile.id).catch(e => { if (e.auth) throw e; return null }) : null
+    eventFolders.clear()
+    const events = []
+    await Promise.all(eventDirs.filter(d => !/^\d{4}-\d{2}-\d{2}/.test(d.name) || d.name.slice(0, 10) >= since).map(async folder => {
+      try {
+        const [file] = await list(`'${folder.id}' in parents and name='wydarzenie.json' and trashed=false`)
+        if (!file) return
+        const payload = await read(file.id)
+        if (!payload.event?.id) return
+        eventFolders.set(payload.event.id, { folderId: folder.id, fileId: file.id, name: folder.name })
+        events.push(payload.event)
+      } catch (e) { if (e.auth) throw e }
+    }))
+    return { events, templates: templates?.types || null, templatesUpdated: templates?.updated || 0 }
   }
   const read = async id => (await call(`${API}/files/${id}?alt=media&supportsAllDrives=true`)).json()
   const write = (id, data) => call(`${UPLOAD}/files/${id}?uploadType=media&supportsAllDrives=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
@@ -177,7 +211,7 @@ export function createDrive(config) {
       const songsFile = songsDir ? (await list(`${quote(songsDir)} in parents and name='baza-piesni.json' and trashed=false`))[0] : null
       rootFolder = rootId; songsDirId = songsDir || ''; songsFileId = songsFile?.id || ''
       const songs = songsFile ? (await read(songsFile.id)).songs || [] : []
-      const children = await list(`${quote(baseId)} in parents and mimeType='${FOLDER}' and trashed=false`)
+      const [children, extra] = await Promise.all([list(`${quote(baseId)} in parents and mimeType='${FOLDER}' and trashed=false`), loadExtra(subfolder)])
       folders.clear()
       const services = []
       await Promise.all(children.map(async folder => {
@@ -190,7 +224,41 @@ export function createDrive(config) {
           services.push(payload.service)
         } catch (e) { if (e.auth) throw e }
       }))
-      return { services, songs }
+      return { services, songs, ...extra }
+    },
+    // Wydarzenie (spotkanie studenckie, członkowskie, rady…): jak nabożeństwo — folder z plikiem JSON.
+    async saveEvent(ev, base = 0, force = false) {
+      if (!eventsDirId) eventsDirId = (await create({ name: EVENTS, mimeType: FOLDER, parents: [rootFolder] })).id
+      const name = eventFolderName(ev)
+      let entry = eventFolders.get(ev.id)
+      if (entry?.fileId && !force) {
+        const remote = await read(entry.fileId)
+        if ((remote.event?.updated || 0) > base) throw Object.assign(new Error('Ktoś inny zmienił to wydarzenie w międzyczasie.'), { conflict: true })
+      }
+      if (!entry) {
+        entry = { folderId: (await create({ name, mimeType: FOLDER, parents: [eventsDirId] })).id, fileId: null, name }
+        eventFolders.set(ev.id, entry)
+      }
+      if (entry.fileId) await write(entry.fileId, { event: ev })
+      else entry.fileId = (await create({ name: 'wydarzenie.json', parents: [entry.folderId] }, { event: ev })).id
+      if (entry.name !== name) { await patch(entry.folderId, { name }); entry.name = name }
+    },
+    async removeEvent(id) {
+      const entry = eventFolders.get(id)
+      if (entry) await patch(entry.folderId, { trashed: true })
+      eventFolders.delete(id)
+    },
+    // Szablony typów wydarzeń — jeden plik dla wszystkich.
+    async saveTemplates(types, base = 0, force = false) {
+      if (!templatesDirId) templatesDirId = (await create({ name: TEMPLATES, mimeType: FOLDER, parents: [rootFolder] })).id
+      if (templatesFileId && !force) {
+        const remote = await read(templatesFileId)
+        if ((remote.updated || 0) > base) throw Object.assign(new Error('Ktoś inny zmienił szablony w międzyczasie.'), { conflict: true })
+      }
+      const data = { types, updated: Date.now(), updatedBy: email }
+      if (templatesFileId) await write(templatesFileId, data)
+      else templatesFileId = (await create({ name: 'szablony.json', parents: [templatesDirId] }, data)).id
+      return data.updated
     },
     // base — znacznik „updated” wersji, od której zaczęła się edycja. Gdy na Dysku jest nowsza
     // (ktoś zapisał w międzyczasie), zapis jest wstrzymywany, chyba że force.
@@ -297,7 +365,14 @@ export function createDemo() {
       { id: 'd3', number: '', title: 'Wśród nocnej ciszy', text: 'Wśród nocnej ciszy głos się rozchodzi\nWstańcie, pasterze' },
     ],
     services: [{ id: 'demo0001', date: sunday(), sermonTitle: 'Światłość świata', passage: 'J 8,12', speaker: '', band: '', notes: '', songs: [], files: [], updated: 1 }],
+    events: [
+      { id: 'demoev01', type: 'studenckie', title: 'Spotkanie studenckie', date: inDays(3), time: '19:00', place: 'Salka', description: 'Studium Ewangelii Jana, rozdział 10.', program: [], updated: 1 },
+      { id: 'demoev02', type: 'czlonkowskie', title: 'Spotkanie członkowskie', date: inDays(10), time: '18:00', place: 'Hotel Forza', description: '', program: [], updated: 1 },
+      { id: 'demoev03', type: 'rada', title: 'Spotkanie rady zboru', date: inDays(6), time: '19:00', place: '', description: '', program: [], updated: 1 },
+    ],
+    templates: null,
   })
+  function inDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   let data
   try { data = JSON.parse(localStorage.getItem(KEY)) } catch { /* brak zapisu */ }
   data = data || start()
@@ -311,7 +386,16 @@ export function createDemo() {
     forget() {},
     hasDrive: () => true,
     accessToken: () => 'demo',
-    load: async () => JSON.parse(JSON.stringify(data)),
+    load: async () => JSON.parse(JSON.stringify({ events: [], templates: null, ...data })),
+    async saveEvent(ev) {
+      data.events = data.events || []
+      const i = data.events.findIndex(x => x.id === ev.id)
+      if (i >= 0) data.events[i] = ev
+      else data.events.push(ev)
+      persist()
+    },
+    async removeEvent(id) { data.events = (data.events || []).filter(x => x.id !== id); persist() },
+    async saveTemplates(types) { data.templates = types; persist(); return Date.now() },
     async save(payload) {
       const i = data.services.findIndex(s => s.id === payload.service.id)
       if (i >= 0) data.services[i] = payload.service

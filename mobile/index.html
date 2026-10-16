@@ -225,6 +225,68 @@
   .cd-digits small { color: var(--muted); font-size: 12px; margin-right: 8px; }
   .cd-digits small:last-child { margin-right: 0; }
   .cd-when { color: var(--muted); font-size: 13px; }
+  /* kalendarz życia kościoła */
+  .cal-head { display: flex; align-items: center; gap: 6px; margin: 4px 0 10px; }
+  .cal-head b { flex: 1; text-align: center; font-size: 17px; text-transform: capitalize; }
+  .cal-head .icon { color: var(--text); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-grid .wd { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; padding-bottom: 2px; }
+  button.cal-day { flex-direction: column; justify-content: flex-start; gap: 4px; min-height: 52px; padding: 6px 2px; border-radius: 12px; border: 1px solid transparent; background: var(--panel); font-size: 15px; font-weight: 600; }
+  button.cal-day.out { background: none; color: var(--muted); font-weight: 400; opacity: .55; }
+  button.cal-day.today { border-color: var(--accent); color: var(--accent); }
+  button.cal-day.sel { background: var(--accent); color: #fff; border-color: transparent; }
+  .cal-dots { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; max-width: 34px; }
+  .cal-dots i { width: 6px; height: 6px; border-radius: 50%; }
+  button.cal-day.sel .cal-dots i { box-shadow: 0 0 0 1.5px #fff; }
+  .filters { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 4px; margin: 12px 0 0; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  button.filter { flex: none; min-height: 32px; padding: 4px 12px 4px 10px; border-radius: 999px; font-size: 13px; color: var(--muted); background: none; gap: 6px; }
+  button.filter i { width: 9px; height: 9px; border-radius: 50%; }
+  button.filter.on { color: var(--text); background: var(--panel2); border-color: var(--muted); }
+  .cal-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .cal-actions .primary { flex: 1; }
+  .ev { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c, var(--accent)); }
+  .ev .when { flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+  .ev .when b { font-size: 20px; }
+  .ev .when small { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+  .ev .body { flex: 1; min-width: 0; }
+  .ev .body b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev .body small { display: block; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev .tag { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); }
+  .ev .chev { color: var(--muted); }
+  .typepick { display: grid; gap: 8px; }
+  .typepick button { justify-content: flex-start; gap: 12px; min-height: 56px; background: var(--panel); text-align: left; }
+  .typepick button i { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+  .typepick button small { margin-left: auto; color: var(--muted); font-size: 13px; }
+  select.field { width: 100%; height: 48px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .swatches button { width: 36px; height: 36px; min-height: 0; padding: 0; border-radius: 50%; border: 2px solid transparent; background: var(--c); }
+  .swatches button.on { border-color: var(--text); box-shadow: inset 0 0 0 3px var(--bg); }
+  .typedot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-right: 8px; }
+
+  /* program (nabożeństwa i wydarzenia) */
+  .program { margin-top: 6px; }
+  .pg-row { padding: 10px; margin-bottom: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .pg-top { display: flex; gap: 8px; align-items: center; }
+  .pg-top input[type=time] { flex: 0 0 92px; padding: 8px; height: 40px; }
+  .pg-top select { flex: 1; min-width: 0; height: 40px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; }
+  .pg-top .icon { min-width: 34px; min-height: 34px; padding: 4px; }
+  .pg-fields { display: flex; gap: 8px; margin-top: 8px; }
+  .pg-fields input { padding: 9px 10px; font-size: 15px; }
+  .pg-fields input:first-child { flex: 3; }
+  .pg-fields input:last-child { flex: 2; }
+  .pg-sermon { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+  .pg-add { display: flex; gap: 8px; }
+  .pg-add button { flex: 1; }
+  .timeline { margin: 6px 0 0; padding: 0; list-style: none; }
+  .timeline li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .timeline li:last-child { border-bottom: 0; }
+  .timeline time { flex: none; width: 46px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .timeline .tl-ic { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); }
+  .timeline .tl-ic svg.i { width: 17px; height: 17px; }
+  .timeline .tl-body { flex: 1; min-width: 0; }
+  .timeline .tl-body b { display: block; }
+  .timeline .tl-body span { display: block; color: var(--muted); font-size: 14px; }
   /* konta: oczekiwanie na zatwierdzenie, osoby i rangi */
   .gate h2 { font-size: 21px; margin: 0 0 6px; }
   .gate .note { max-width: 420px; margin: 0 auto 18px; }
@@ -253,6 +315,7 @@
   .tabbar .count { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; }
   .tabbar button { position: relative; }
   fieldset.plain:disabled :is(input, textarea) { opacity: .75; }
+  fieldset.plain:disabled ::placeholder { color: transparent; }
   fieldset.plain:disabled :is(.icon, .attach, .finder) { display: none; }
   fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
   .readonly { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin: 0 0 6px; border-radius: 12px; background: var(--panel2); }
@@ -283,6 +346,15 @@
   <symbol id="drive" viewBox="0 0 24 24"><path d="M8 3h8l6 10-4 7H6l-4-7 6-10ZM8 3l6 10h8M2 13h12l-4 7"/></symbol>
   <symbol id="bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
   <symbol id="calendar" viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></symbol>
+  <symbol id="church" viewBox="0 0 24 24"><path d="M12 2v5M9.5 4.5h5M5 21V12l7-5 7 5v9M3 21h18M10 21v-4a2 2 0 0 1 4 0v4"/></symbol>
+  <symbol id="dot" viewBox="0 0 24 24"><path d="M12 12h.01M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
+  <symbol id="mic" viewBox="0 0 24 24"><path d="M15 6a3 3 0 0 0-6 0v5a3 3 0 0 0 6 0V6ZM5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="megaphone" viewBox="0 0 24 24"><path d="M3 10v4h3l8 5V5L6 10H3ZM18 9a4 4 0 0 1 0 6"/></symbol>
+  <symbol id="pray" viewBox="0 0 24 24"><path d="M12 3c-1.5 2-2 4-2 7l-4 5 2 6M12 3c1.5 2 2 4 2 7l4 5-2 6M12 3v9"/></symbol>
+  <symbol id="book" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-8-2v14c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2ZM12 6v14"/></symbol>
+  <symbol id="cup" viewBox="0 0 24 24"><path d="M6 3h12l-1 7a5 5 0 0 1-10 0L6 3ZM12 15v6M8 21h8"/></symbol>
+  <symbol id="drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
@@ -291,8 +363,11 @@
 <div id="app" v-cloak :class="{ tabbed: showTabs }">
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : 'Nabożeństwa' }}</h1>
-    <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>Lista</button>
+    <h1>{{ current ? 'Nabożeństwo' : currentEvent ? 'Wydarzenie' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : 'Nabożeństwa' }}</h1>
+    <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
+    <button v-else-if="currentEvent" class="ghost" @click="closeEvent"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
+    <button v-else-if="tplType" class="ghost" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
+    <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
     <template v-else>
       <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
@@ -313,13 +388,13 @@
   <!-- Karta znika dopiero po zainstalowaniu aplikacji — nie da się jej zamknąć wcześniej. -->
   <!-- Komputer z Windows: pełna aplikacja (rzutnik, stream, organizacja) z GitHub Releases. -->
   <!-- Instalacja: jeden niski pasek — ikona, tytuł, „Pobierz”. -->
-  <div v-if="desktop && !current && !hideDesktop" class="getapp">
+  <div v-if="desktop && !current && !currentEvent && !tplView && !hideDesktop" class="getapp">
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Aplikacja na komputer</b><small>{{ desktopApp.error || 'Windows' + (desktopApp.version ? ' · ' + desktopApp.version : '') }}</small></span>
     <a v-if="desktopApp.url" class="button primary" :href="desktopApp.url"><svg class="i"><use href="#download"/></svg>Pobierz</a>
     <button class="icon" aria-label="Ukryj" title="Ukryj" @click="dismissDesktop"><svg class="i"><use href="#x"/></svg></button>
   </div>
-  <div v-else-if="!desktop && !installed && !current" class="getapp" :class="{ help: showHelp }">
+  <div v-else-if="!desktop && !installed && !current && !currentEvent && !tplView" class="getapp" :class="{ help: showHelp }">
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Zainstaluj aplikację</b></span>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
@@ -417,6 +492,121 @@
       <button class="primary" :disabled="busy || !songDirty || !song.title.trim()" @click="saveSong()">
         <svg v-if="!songDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : songDirty ? 'Zapisz' : 'Zapisane' }}
       </button>
+    </div>
+  </template>
+
+  <!-- wydarzenie (spotkanie studenckie, członkowskie, rady…) -->
+  <template v-else-if="currentEvent">
+    <p v-if="!canEdit" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — wydarzenia zmieniają osoby z rangą z prawem edycji.</p>
+    <fieldset class="plain" :disabled="!canEdit">
+      <label for="evType">Rodzaj</label>
+      <select id="evType" v-model="currentEvent.type" class="field" @change="typeChanged">
+        <option v-for="t in eventTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+      </select>
+      <label for="evTitle">Nazwa <span class="req">*</span></label>
+      <input id="evTitle" v-model="currentEvent.title" :class="{ invalid: !currentEvent.title.trim() }" autocomplete="off">
+      <div class="row">
+        <div><label for="evDate">Data <span class="req">*</span></label><input id="evDate" v-model="currentEvent.date" type="date" :class="{ invalid: !currentEvent.date }"></div>
+        <div><label for="evTime">Godzina</label><input id="evTime" v-model="currentEvent.time" type="time"></div>
+      </div>
+      <label for="evPlace">Miejsce</label>
+      <input id="evPlace" v-model="currentEvent.place" autocomplete="off">
+      <label for="evDesc">Opis</label>
+      <textarea id="evDesc" v-model="currentEvent.description" placeholder="Co, dla kogo, co przygotować…"></textarea>
+    </fieldset>
+    <label>Program</label>
+    <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!canEdit" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
+    <p v-if="currentEvent.createdBy || currentEvent.updatedBy" class="note who">
+      <template v-if="currentEvent.createdBy">Utworzył(a): {{ currentEvent.createdBy }}</template>
+      <template v-if="currentEvent.updatedBy"><br>Ostatnia zmiana: {{ currentEvent.updatedBy }}<template v-if="currentEvent.updated">, {{ new Date(currentEvent.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
+    </p>
+    <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
+    <div v-if="canEdit" class="bar">
+      <template v-if="eventSavedOnce">
+        <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeEvent">Na pewno usuń</button>
+        <button v-else :disabled="busy" aria-label="Usuń wydarzenie" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
+      </template>
+      <button class="primary" :disabled="busy || !eventDirty || !currentEvent.title.trim() || !currentEvent.date" @click="saveEvent()">
+        <svg v-if="!eventDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : eventDirty ? 'Zapisz' : 'Zapisane' }}
+      </button>
+    </div>
+  </template>
+
+  <!-- szablon jednego rodzaju wydarzeń -->
+  <template v-else-if="tplType">
+    <label for="tName">Nazwa <span class="req">*</span></label>
+    <input id="tName" v-model="tplType.name" :class="{ invalid: !tplType.name.trim() }" :disabled="tplType.id === 'nabozenstwo'" autocomplete="off">
+    <label>Kolor w kalendarzu</label>
+    <div class="swatches" role="group" aria-label="Kolor">
+      <button v-for="c in COLORS" :key="c" type="button" :class="{ on: tplType.color === c }" :style="{ '--c': c }" :aria-label="'Kolor ' + c" :aria-pressed="tplType.color === c" @click="tplType.color = c"></button>
+    </div>
+    <div class="row">
+      <div><label for="tTime">Domyślna godzina</label><input id="tTime" v-model="tplType.time" type="time"></div>
+      <div><label for="tPlace">Domyślne miejsce</label><input id="tPlace" v-model="tplType.place" autocomplete="off"></div>
+    </div>
+    <label>Program</label>
+    <p class="note" style="margin-top:0">Godziny punktów są liczone od godziny rozpoczęcia — gdy wydarzenie zacznie się o innej porze, cały program przesunie się razem z nią.</p>
+    <program-editor :items="tplType.program" :start="tplType.time || '00:00'"></program-editor>
+    <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
+    <div class="bar">
+      <template v-if="tplType.id !== 'nabozenstwo' && types.some(t => t.id === tplType.id)">
+        <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeType">Na pewno usuń</button>
+        <button v-else :disabled="busy" aria-label="Usuń ten rodzaj" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
+      </template>
+      <button class="primary" :disabled="busy || !tplDirty || !tplType.name.trim()" @click="saveTemplate">
+        <svg v-if="!tplDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : tplDirty ? 'Zapisz' : 'Zapisane' }}
+      </button>
+    </div>
+  </template>
+
+  <!-- lista szablonów -->
+  <template v-else-if="tplView">
+    <p class="note" style="margin-top:0">Szablon podpowiada godzinę, miejsce i program nowego wydarzenia danego rodzaju. Zmiany widzą wszyscy.</p>
+    <button v-for="t in types" :key="t.id" class="ev" :style="{ '--c': t.color }" @click="openType(t)">
+      <span class="body"><b>{{ t.name }}</b><small>{{ t.time || 'bez godziny' }}<template v-if="t.place"> · {{ t.place }}</template> · punktów programu: {{ t.program.length }}</small></span>
+      <svg class="i chev"><use href="#chev"/></svg>
+    </button>
+    <button class="primary" style="width:100%;margin-top:6px" @click="newType"><svg class="i"><use href="#plus"/></svg>Nowy rodzaj wydarzenia</button>
+  </template>
+
+  <!-- kalendarz życia kościoła -->
+  <template v-else-if="calView">
+    <div class="cal-head">
+      <button class="icon" aria-label="Poprzedni miesiąc" @click="shiftMonth(-1)"><svg class="i"><use href="#back"/></svg></button>
+      <b>{{ monthLabel }}</b>
+      <button class="icon" aria-label="Następny miesiąc" @click="shiftMonth(1)"><svg class="i"><use href="#chev"/></svg></button>
+    </div>
+    <div class="cal-grid">
+      <span v-for="d in WEEK" :key="d" class="wd">{{ d }}</span>
+      <button v-for="c in calDays" :key="c.date" class="cal-day" :class="{ out: !c.inMonth, today: c.date === todayStr, sel: c.date === selDay }"
+              :aria-label="pretty(c.date) + (c.items.length ? ', wydarzeń: ' + c.items.length : '')" :aria-pressed="c.date === selDay" @click="selDay = selDay === c.date ? '' : c.date">
+        {{ c.day }}
+        <span class="cal-dots"><i v-for="(it, k) in c.items.slice(0, 4)" :key="k" :style="{ background: typeOf(it.type).color }"></i></span>
+      </button>
+    </div>
+    <div class="filters" role="group" aria-label="Pokazywane rodzaje wydarzeń">
+      <button v-for="t in types" :key="t.id" class="filter" :class="{ on: !hidden.includes(t.id) }" :aria-pressed="!hidden.includes(t.id)" @click="toggleType(t.id)"><i :style="{ background: t.color }"></i>{{ t.name }}</button>
+    </div>
+    <div v-if="canEdit" class="cal-actions">
+      <button class="primary" @click="pickType = true"><svg class="i"><use href="#plus"/></svg>Nowe wydarzenie</button>
+      <button @click="openTemplates">Szablony</button>
+    </div>
+    <div class="section"><h2>{{ selDay ? pretty(selDay) : 'Najbliższe' }}</h2><button v-if="selDay" class="ghost" @click="selDay = ''">Wszystkie</button></div>
+    <p v-if="!agenda.length" class="note">{{ selDay ? 'Tego dnia nic nie zaplanowano.' : 'Na najbliższe tygodnie nic nie zaplanowano.' }}</p>
+    <button v-for="it in agenda" :key="it.kind + it.id" class="ev" :style="{ '--c': typeOf(it.type).color }" @click="openItem(it)">
+      <span class="when"><small>{{ wd(it.date) }}</small><b>{{ day(it.date) }}</b><small>{{ month(it.date) }}</small></span>
+      <span class="body"><b>{{ it.title }}</b><small>{{ it.time || 'cały dzień' }}<template v-if="it.place"> · {{ it.place }}</template></small><span class="tag">{{ typeOf(it.type).name }}</span></span>
+      <svg class="i chev"><use href="#chev"/></svg>
+    </button>
+    <!-- wybór rodzaju nowego wydarzenia -->
+    <div v-if="pickType" class="sheet">
+      <div class="head">
+        <button class="ghost" aria-label="Zamknij" @click="pickType = false"><svg class="i"><use href="#back"/></svg></button>
+        <b>Nowe wydarzenie{{ selDay ? ' — ' + pretty(selDay) : '' }}</b>
+      </div>
+      <div class="typepick">
+        <button v-for="t in types" :key="t.id" @click="newEvent(t.id)"><i :style="{ background: t.color }"></i>{{ t.name }}<small>{{ t.time }}</small></button>
+      </div>
     </div>
   </template>
 
@@ -564,6 +754,11 @@
       <div><label for="time">Godzina</label><input id="time" v-model="current.time" type="time"></div>
       <div><label for="place">Miejsce</label><input id="place" v-model="current.place" autocomplete="off"></div>
     </div>
+    </fieldset>
+    <label>Program nabożeństwa</label>
+    <program-editor :items="current.program" :start="current.time || DEFAULT_TIME" :readonly="!canEdit" :template="typeOf('nabozenstwo').program"
+                    :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }" @fill="fillProgram(current, 'nabozenstwo')"></program-editor>
+    <fieldset class="plain" :disabled="!canEdit">
 
     <label for="find">Pieśni <span class="req">*</span></label>
     <div class="finder">
@@ -656,19 +851,52 @@
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
   <nav v-if="showTabs" class="tabbar" aria-label="Części aplikacji">
-    <button :class="{ on: !songView && !peopleView }" :aria-current="!songView && !peopleView ? 'page' : null" @click="showServices"><svg class="i"><use href="#calendar"/></svg>Nabożeństwa</button>
+    <button :class="{ on: !songView && !peopleView && !calView }" :aria-current="!songView && !peopleView && !calView ? 'page' : null" @click="showServices"><svg class="i"><use href="#church"/></svg>Nabożeństwa</button>
+    <button :class="{ on: calView }" :aria-current="calView ? 'page' : null" :disabled="!ready" @click="openCalendar"><svg class="i"><use href="#calendar"/></svg>Kalendarz</button>
     <button :class="{ on: songView }" :aria-current="songView ? 'page' : null" :disabled="!ready" @click="openSongs"><svg class="i"><use href="#music"/></svg>Pieśni</button>
     <button v-if="canManage && ready" :class="{ on: peopleView }" :aria-current="peopleView ? 'page' : null" @click="openPeople"><svg class="i"><use href="#users"/></svg>Osoby<span v-if="pendingCount" class="count">{{ pendingCount }}</span></button>
     <button v-if="cueTopic" @click="openCamera"><svg class="i"><use href="#camera"/></svg>Kamera</button>
   </nav>
 </div>
 
+<!-- Program wydarzenia: punkty z godziną, rodzajem, opisem i osobą. W podglądzie — oś czasu. -->
+<script type="text/x-template" id="program-editor">
+  <div class="program">
+    <ol v-if="readonly" class="timeline">
+      <li v-if="!items.length" class="note">Program nie jest jeszcze ułożony.</li>
+      <li v-for="p in sorted" :key="p.key">
+        <time>{{ timeOf(p) }}</time>
+        <span class="tl-ic"><svg class="i"><use :href="'#' + cat(p).icon"/></svg></span>
+        <span class="tl-body"><b>{{ cat(p).name }}</b><span v-if="label(p)">{{ label(p) }}</span></span>
+      </li>
+    </ol>
+    <template v-else>
+      <div v-for="(p, i) in items" :key="p.key" class="pg-row">
+        <div class="pg-top">
+          <input type="time" :value="timeOf(p)" aria-label="Godzina punktu" @change="setTime(p, $event.target.value)">
+          <select v-model="p.category" aria-label="Rodzaj punktu"><option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option></select>
+          <button class="icon" type="button" aria-label="Usuń punkt" @click="items.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
+        </div>
+        <div class="pg-fields">
+          <input v-model="p.title" :placeholder="p.category === 'kazanie' ? 'Tytuł (gdy inny niż wyżej)' : 'Opis, np. Pieśń / kolekta'" aria-label="Opis punktu" autocomplete="off">
+          <input v-model="p.person" placeholder="Kto" aria-label="Kto prowadzi ten punkt" autocomplete="off">
+        </div>
+        <p v-if="p.category === 'kazanie' && sermon && (sermon.title || sermon.passage)" class="pg-sermon">{{ [sermon.title, sermon.passage, sermon.speaker].filter(Boolean).join(' · ') }}</p>
+      </div>
+      <div class="pg-add">
+        <button type="button" @click="add"><svg class="i"><use href="#plus"/></svg>Dodaj punkt</button>
+        <button v-if="template && template.length" type="button" @click="$emit('fill')">Z szablonu</button>
+      </div>
+    </template>
+  </div>
+</script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.38/vue.global.prod.min.js"></script>
 <script src="config.js"></script>
 <script type="module">
 import { ACCEPT, createDemo, createDrive, fileType, uid } from './drive.js'
 import { createApi, createDemoApi } from './api.js'
+import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, mergeTypes, offsetOf, programFrom } from './church.js'
 const KIND = { image: 'Zdjęcie', video: 'Film', pdf: 'PDF', pptx: 'Prezentacja' }
 const { createApp, ref, computed } = Vue
 
@@ -688,7 +916,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.26 · 16.10.2026'
+const VERSION = '2.27 · 16.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -780,6 +1008,35 @@ const startsAt = s => new Date(s.date + 'T' + (s.time || DEFAULT_TIME)).getTime(
 const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
+// Program: punkty trzymają przesunięcie w minutach od początku, a pokazują godzinę.
+const ProgramEditor = {
+  template: '#program-editor',
+  props: { items: { type: Array, required: true }, start: { type: String, default: '00:00' }, readonly: Boolean, sermon: Object, template: Array },
+  emits: ['fill'],
+  setup(props) {
+    const timeOf = p => addMinutes(props.start || '00:00', p.offset)
+    const sorted = computed(() => [...props.items].sort((a, b) => a.offset - b.offset))
+    function setTime(p, t) {
+      if (!t) return
+      p.offset = offsetOf(props.start || '00:00', t)
+      props.items.sort((a, b) => a.offset - b.offset)
+    }
+    function add() {
+      const last = props.items[props.items.length - 1]
+      props.items.push({ key: uid(), offset: last ? last.offset + 10 : 0, category: 'inne', title: '', person: '', note: '' })
+    }
+    const cat = p => category(p.category)
+    const label = p => {
+      if (p.category === 'kazanie' && props.sermon) {
+        const title = [p.title || props.sermon.title, props.sermon.passage].filter(Boolean).join(', ')
+        return [title, p.person || props.sermon.speaker].filter(Boolean).join(' — ')
+      }
+      return [p.title, p.person].filter(Boolean).join(' — ')
+    }
+    return { categories: CATEGORIES, timeOf, sorted, setTime, add, cat, label }
+  },
+}
+
 createApp({
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
@@ -832,7 +1089,7 @@ createApp({
     })
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
-    const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && (ready.value || (!!cueTopic && !gate.value)))
+    const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && (ready.value || (!!cueTopic && !gate.value)))
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
     let cachedTimes = []
@@ -896,6 +1153,8 @@ createApp({
       // Terminy na odliczanie przed zalogowaniem (ekran logowania).
       try { localStorage.setItem('kns-times', JSON.stringify(services.value.filter(s => s.date >= today()).map(({ date, time, place }) => ({ date, time, place })))) } catch { /* tryb prywatny */ }
       songs.value = data.songs
+      events.value = (data.events || []).map(e => ({ type: 'inne', title: '', time: '', place: '', description: '', program: [], ...e }))
+      types.value = mergeTypes(data.templates); typesBase = data.templatesUpdated || 0
     }
     // Z serwerem kont nowa osoba loguje się najpierw samą tożsamością — o Dysk pytamy dopiero po zatwierdzeniu.
     const start = (choose = false) => guard(async () => {
@@ -932,7 +1191,7 @@ createApp({
       peopleBusy.value = true
       try { const res = await api.call('people'); people.value = res.people.map(withDraft); ranks.value = res.ranks || ranks.value } catch (e) { error.value = e.message } finally { peopleBusy.value = false }
     }
-    function openPeople() { songView.value = false; peopleView.value = true; scrollTo(0, 0); loadPeople() }
+    function openPeople() { songView.value = false; calView.value = false; peopleView.value = true; scrollTo(0, 0); loadPeople() }
     async function setPerson(p, status) {
       if (status === 'rejected' && p.status === 'active' && !confirm(`Odebrać dostęp osobie ${p.name || p.email}? Straci dostęp do folderów aplikacji na Dysku.`)) return
       p.busy = true; p.error = ''
@@ -944,8 +1203,8 @@ createApp({
     }
 
     function open(svc) {
-      songView.value = false; peopleView.value = false; song.value = null
-      current.value = { time: DEFAULT_TIME, place: DEFAULT_PLACE, ...JSON.parse(JSON.stringify(svc)) }
+      songView.value = false; peopleView.value = false; calView.value = false; song.value = null; fromCal = false
+      current.value = { time: DEFAULT_TIME, place: DEFAULT_PLACE, program: [], ...JSON.parse(JSON.stringify(svc)) }
       saved.value = JSON.stringify(current.value)
       base = svc.updated || 0
       query.value = ''; status.value = ''; confirmDelete.value = false; picking.value = false
@@ -956,13 +1215,15 @@ createApp({
       const day = typeof date === 'string' ? date : nextSunday()
       const existing = services.value.find(s => s.date === day)
       if (existing) { open(existing); status.value = 'Na ten dzień jest już nabożeństwo — otwarto je.'; return }
-      open({ id: uid(), date: day, time: DEFAULT_TIME, place: DEFAULT_PLACE, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: drive.account() || 'telefon' })
+      const tpl = typeOf('nabozenstwo')
+      open({ id: uid(), date: day, time: tpl.time || DEFAULT_TIME, place: tpl.place || DEFAULT_PLACE, program: programFrom(tpl, uid), sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: drive.account() || 'telefon' })
       saved.value = '' // nowe nabożeństwo od razu jest „do zapisania”
     }
     const fix = () => (alert.value.service ? open(alert.value.service) : create(alert.value.date))
     function back() {
       if (dirty.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
       current.value = null
+      if (fromCal) { fromCal = false; calView.value = true }
     }
     /* ---------- baza pieśni ---------- */
     const songView = ref(false), song = ref(null), songQuery = ref('')
@@ -977,8 +1238,8 @@ createApp({
     const songDirty = computed(() => !!song.value && JSON.stringify(song.value) !== songSaved)
     const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
     const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
-    function showServices() { songView.value = false; peopleView.value = false; scrollTo(0, 0) }
-    function openSongs() { songView.value = true; peopleView.value = false; songQuery.value = ''; scrollTo(0, 0) }
+    function showServices() { songView.value = false; peopleView.value = false; calView.value = false; scrollTo(0, 0) }
+    function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
       songSaved = JSON.stringify(song.value); songBase = s.updated || 0
@@ -1094,8 +1355,164 @@ createApp({
       await drive.remove(current.value.id)
       services.value = services.value.filter(s => s.id !== current.value.id)
       current.value = null
+      if (fromCal) { fromCal = false; calView.value = true }
     })
 
+    /* ---------- kalendarz, wydarzenia, szablony ---------- */
+    const events = ref([]), types = ref(mergeTypes(null))
+    let typesBase = 0
+    const typeOf = id => types.value.find(t => t.id === id) || { id, name: 'Inne', color: '#8f98a8', time: '', place: '', program: [] }
+    const eventTypes = computed(() => types.value.filter(t => t.id !== 'nabozenstwo'))
+    const clockNow = () => new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' })
+    function fillProgram(target, typeId) {
+      if (target.program.length && !confirm('Zastąpić obecny program programem z szablonu?')) return
+      target.program.splice(0, target.program.length, ...programFrom(typeOf(typeId), uid))
+    }
+    // Jeden kalendarz: nabożeństwa i pozostałe wydarzenia.
+    const calItems = computed(() => [
+      ...services.value.filter(s => s.date).map(s => ({ kind: 'service', id: s.id, type: 'nabozenstwo', date: s.date, time: s.time || DEFAULT_TIME, place: s.place || DEFAULT_PLACE, title: s.sermonTitle ? 'Nabożeństwo: ' + s.sermonTitle : 'Nabożeństwo', ref: s })),
+      ...events.value.filter(e => e.date).map(e => ({ kind: 'event', id: e.id, type: e.type, date: e.date, time: e.time || '', place: e.place || '', title: e.title || typeOf(e.type).name, ref: e })),
+    ].sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00'))))
+    let hiddenSaved = []
+    try { hiddenSaved = JSON.parse(localStorage.getItem('kns-cal-hidden') || '[]') } catch { /* brak zapisu */ }
+    const hidden = ref(hiddenSaved)
+    function toggleType(id) {
+      hidden.value = hidden.value.includes(id) ? hidden.value.filter(x => x !== id) : [...hidden.value, id]
+      try { localStorage.setItem('kns-cal-hidden', JSON.stringify(hidden.value)) } catch { /* tryb prywatny */ }
+    }
+    const visibleItems = computed(() => calItems.value.filter(it => !hidden.value.includes(it.type)))
+    const calView = ref(false), month0 = ref(today().slice(0, 7)), selDay = ref(''), pickType = ref(false)
+    const WEEK = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd']
+    const todayStr = computed(() => { now.value; return today() })
+    const monthLabel = computed(() => asDate(month0.value + '-01').toLocaleDateString('pl', { month: 'long', year: 'numeric' }))
+    function shiftMonth(by) { const d = asDate(month0.value + '-01'); d.setMonth(d.getMonth() + by); month0.value = localDate(d).slice(0, 7); selDay.value = '' }
+    // Siatka miesiąca od poniedziałku; dni z sąsiednich miesięcy wyszarzone.
+    const calDays = computed(() => {
+      const first = asDate(month0.value + '-01')
+      const d = new Date(first); d.setDate(1 - ((first.getDay() + 6) % 7))
+      const out = []
+      do {
+        for (let i = 0; i < 7; i++) {
+          const date = localDate(d)
+          out.push({ date, day: d.getDate(), inMonth: date.startsWith(month0.value), items: visibleItems.value.filter(it => it.date === date) })
+          d.setDate(d.getDate() + 1)
+        }
+      } while (localDate(d).startsWith(month0.value))
+      return out
+    })
+    // Pod kalendarzem: wybrany dzień albo najbliższe 60 dni.
+    const agenda = computed(() => {
+      if (selDay.value) return visibleItems.value.filter(it => it.date === selDay.value)
+      const until = localDate(new Date(Date.now() + 60 * 86400000))
+      return visibleItems.value.filter(it => it.date >= todayStr.value && it.date <= until).slice(0, 30)
+    })
+    let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
+    function openCalendar() { songView.value = false; peopleView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
+
+    const currentEvent = ref(null)
+    let eventSaved = '', eventBase = 0, eventType = ''
+    const eventDirty = computed(() => !!currentEvent.value && JSON.stringify(currentEvent.value) !== eventSaved)
+    const eventSavedOnce = computed(() => !!currentEvent.value && events.value.some(x => x.id === currentEvent.value.id))
+    function openEvent(ev) {
+      currentEvent.value = { type: 'inne', title: '', date: today(), time: '', place: '', description: '', program: [], ...JSON.parse(JSON.stringify(ev)) }
+      eventSaved = JSON.stringify(currentEvent.value); eventBase = ev.updated || 0; eventType = currentEvent.value.type
+      status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
+    }
+    function newEvent(typeId) {
+      pickType.value = false
+      if (typeId === 'nabozenstwo') { create(selDay.value || undefined); fromCal = true; return }
+      const t = typeOf(typeId)
+      openEvent({ id: uid(), type: typeId, title: t.name, date: selDay.value || today(), time: t.time || '', place: t.place || '', description: '', program: programFrom(t, uid), createdBy: drive.account() || 'telefon' })
+      eventSaved = '' // nowe wydarzenie od razu jest „do zapisania”
+    }
+    // Zmiana rodzaju: podpowiedzi z szablonu zastępują tylko to, czego nikt jeszcze nie zmienił.
+    function typeChanged() {
+      const ev = currentEvent.value, old = typeOf(eventType), t = typeOf(ev.type)
+      if (!ev.title.trim() || ev.title === old.name) ev.title = t.name
+      if (!ev.place || ev.place === old.place) ev.place = t.place || ''
+      if (!ev.time || ev.time === old.time) ev.time = t.time || ''
+      if (!ev.program.length) ev.program = programFrom(t, uid)
+      eventType = ev.type
+    }
+    function closeEvent() {
+      if (eventDirty.value && eventSavedOnce.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
+      currentEvent.value = null
+    }
+    const saveEvent = (force = false) => guard(async () => {
+      const ev = currentEvent.value
+      ev.title = ev.title.trim()
+      const data = { ...JSON.parse(JSON.stringify(ev)), updated: Date.now(), updatedBy: drive.account() || 'telefon' }
+      try {
+        await drive.saveEvent(data, eventBase, force === true)
+      } catch (e) {
+        if (!e.conflict) throw e
+        if (!confirm('Ktoś inny zmienił to wydarzenie, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) {
+          await fetchAll()
+          const fresh = events.value.find(x => x.id === ev.id)
+          if (fresh) openEvent(fresh)
+          status.value = 'Wczytano najnowszą wersję'
+          return
+        }
+        await drive.saveEvent(data, eventBase, true)
+      }
+      const i = events.value.findIndex(x => x.id === data.id)
+      if (i >= 0) events.value[i] = data
+      else events.value.push(data)
+      openEvent(data)
+      status.value = 'Zapisano o ' + clockNow()
+    })
+    const removeEvent = () => guard(async () => {
+      const id = currentEvent.value.id
+      await drive.removeEvent(id)
+      events.value = events.value.filter(x => x.id !== id)
+      currentEvent.value = null
+    })
+
+    const tplView = ref(false), tplType = ref(null)
+    let tplSaved = ''
+    const tplDirty = computed(() => !!tplType.value && JSON.stringify(tplType.value) !== tplSaved)
+    function openTemplates() { tplView.value = true; scrollTo(0, 0) }
+    function openType(t) {
+      tplType.value = { ...JSON.parse(JSON.stringify(t)), program: (t.program || []).map(p => ({ key: uid(), person: '', note: '', ...p })) }
+      tplSaved = JSON.stringify(tplType.value); status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
+    }
+    function newType() {
+      openType({ id: uid(), name: '', color: COLORS[types.value.length % COLORS.length], time: '18:00', place: '', program: [] })
+      tplSaved = ''
+    }
+    function closeType() {
+      if (tplDirty.value && tplType.value.name.trim() && !confirm('Masz niezapisane zmiany w szablonie. Wyjść bez zapisywania?')) return
+      tplType.value = null
+    }
+    const strip = t => ({ ...t, program: t.program.map(({ offset, category, title, person }) => ({ offset, category, title: title || '', person: person || '' })) })
+    // Zapis wszystkich szablonów; usunięte wbudowane rodzaje są zapamiętywane, żeby nie wróciły same.
+    async function writeTypes(list) {
+      const full = [...list, ...DEFAULT_TYPES.filter(d => !list.some(x => x.id === d.id)).map(d => ({ id: d.id, removed: true }))]
+      try {
+        typesBase = await drive.saveTemplates(full, typesBase)
+      } catch (e) {
+        if (!e.conflict) throw e
+        if (!confirm('Ktoś inny zmienił szablony w międzyczasie. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowsze szablony.')) { await fetchAll(); tplType.value = null; return false }
+        typesBase = await drive.saveTemplates(full, typesBase, true)
+      }
+      return true
+    }
+    const saveTemplate = () => guard(async () => {
+      const t = strip(JSON.parse(JSON.stringify(tplType.value)))
+      t.name = t.name.trim()
+      const list = types.value.some(x => x.id === t.id) ? types.value.map(x => (x.id === t.id ? t : x)) : [...types.value, t]
+      if (!(await writeTypes(list))) return
+      types.value = list
+      openType(t)
+      status.value = 'Zapisano o ' + clockNow()
+    })
+    const removeType = () => guard(async () => {
+      const list = types.value.filter(x => x.id !== tplType.value.id)
+      if (!(await writeTypes(list))) return
+      types.value = list
+      tplType.value = null
+    })
     // Instalacja: Android/Chrome podaje gotowe okno instalacji, iPhone wymaga dodania ręcznie z Safari.
     const installed = ref(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)
     // Komputer (Windows): zamiast instalacji strony — instalator aplikacji na komputer z najnowszego wydania na GitHubie.
@@ -1246,19 +1663,22 @@ createApp({
     checkPush().catch(() => {})
 
     // Zamknięcie karty z niezapisanymi zmianami wymaga potwierdzenia.
-    addEventListener('beforeunload', e => { if (dirty.value) e.preventDefault() })
+    addEventListener('beforeunload', e => { if (dirty.value || (eventDirty.value && eventSavedOnce.value) || tplDirty.value) e.preventDefault() })
     addEventListener('online', () => { offline.value = false })
     addEventListener('offline', () => { offline.value = true })
     // Powrót do aplikacji (np. z innej) odświeża listę — widać zmiany innych osób.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && camera.value) { cam.resume(); return }
-      if (document.visibilityState === 'visible' && ready.value && !current.value && !busy.value && drive.signedIn()) reload()
+      if (document.visibilityState === 'visible' && ready.value && !current.value && !currentEvent.value && !tplView.value && !busy.value && drive.signedIn()) reload()
     })
     // Zapamiętane logowanie: po przeładowaniu strony od razu wczytujemy dane.
     if (demo) start()
     else if (clientId && drive.signedIn()) guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } })
 
     return {
+      events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
+      openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
+      tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       api, me, gate, canEdit, canManage, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
@@ -1274,7 +1694,7 @@ createApp({
       KIND, ACCEPT, fileType, uploading, progress, fromPhone, picker, pickQuery, pickFound, pickBusy, openPicker, searchSoon, fromDrive,
     }
   },
-}).mount('#app')
+}).component('program-editor', ProgramEditor).mount('#app')
 </script>
 </body>
 </html>

@@ -59,14 +59,15 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
   - zakładka **Osoby** (tylko admin): oczekujący (zatwierdź z rangami / odrzuć), członkowie (rangi jako przełączniki)
   - tryb pokazowy (`?demo`): udawane API z kilkoma osobami
 - [ ] Komputer: logowanie przez to samo API (ranga decyduje o dostępie do Organizacji/Rzutnika/Stream)
-- [ ] Wydarzenia różnych typów: nabożeństwo, spotkanie studenckie, członkowskie, rady, inne (edytowalna lista typów)
+- [x] Wydarzenia różnych typów (telefon 2.27; `mobile/church.js`, zapis w `drive.js`, test: `node skrypty/test-telefonu.mjs`): nabożeństwo, spotkanie studenckie, członkowskie, rady, inne (edytowalna lista typów)
   - dane: `Aplikacja KNS Nabo/wydarzenia/<data> <tytuł> (<id>)/wydarzenie.json`; nabożeństwa zostają w `nabozenstwa/`
     (zgodność z rzutnikiem), z nowym polem `program`
-- [ ] Szablony (edytowalne) dla każdego typu: domyślna godzina, miejsce, program — `szablony/szablony.json`
-- [ ] Program nabożeństwa (jak w przykładzie): punkty `{ time, category, title, person, note }`;
+- [x] Szablony (edytowalne; usunięte wbudowane rodzaje zapamiętane jako `{ id, removed: true }`) dla każdego typu: domyślna godzina, miejsce, program — `szablony/szablony.json`
+- [x] Program nabożeństwa (jak w przykładzie): punkty `{ key, offset, category, title, person, note }` — offset = minuty od początku, program przesuwa się z godziną;
   kategorie z ikonami: Inne/Odprawa, Prowadzenie, Ogłoszenia, Uwielbienie, Modlitwa, Kazanie (tytuł + fragment), Pieśń/kolekta…
   Szablon nabożeństwa: 9:45 Odprawa, 10:00 Prowadzenie, 10:05 Ogłoszenia, 10:10 Uwielbienie, 10:40 Modlitwa, 10:50 Kazanie, 11:35 Pieśń/kolekta
-- [ ] Kalendarz życia kościoła: widok miesiąca + lista najbliższych, filtr typów; na telefonie (nowa zakładka) i w Organizacji na komputerze
+- [x] Kalendarz życia kościoła na telefonie: widok miesiąca + lista najbliższych (60 dni), filtr typów
+- [ ] Kalendarz i program w Organizacji na komputerze
 
 ### 2. Protokoły
 - [ ] Protokół do spotkania członkowskiego (`KNS Nabo — Protokoły`) i rady (`KNS Nabo — Rada`)
