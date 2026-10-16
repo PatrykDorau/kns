@@ -8,6 +8,8 @@ const API = 'https://www.googleapis.com/drive/v3'
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3'
 const FOLDER = 'application/vnd.google-apps.folder'
 const SCOPE = 'https://www.googleapis.com/auth/drive'
+// Sama tożsamość (adres e-mail, imię) — wystarcza osobie, która czeka na zatwierdzenie.
+const IDENTITY = 'openid email profile'
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
 
@@ -44,6 +46,8 @@ export function createDrive(config) {
   const saved = readAuth()
   let token = saved.expires > Date.now() + 60000 ? saved.token : ''
   let email = saved.email || ''
+  // Zakresy wydanego dostępu; starsze zapisy (sprzed kont) miały zawsze dostęp do Dysku.
+  let scope = saved.scope || SCOPE
   let client = null
   let baseId = '' // podfolder z nabożeństwami
   let rootFolder = '', songsDirId = '', songsFileId = '' // baza pieśni: <folder aplikacji>/piesni/baza-piesni.json
@@ -52,6 +56,7 @@ export function createDrive(config) {
   async function call(url, options = {}) {
     const res = await fetch(url, { ...options, headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } })
     if (res.status === 401) { token = ''; writeAuth({ email }); throw Object.assign(new Error('Sesja wygasła — zaloguj się ponownie.'), { auth: true }) }
+    if (res.status === 403 && (options.method || 'GET') !== 'GET') throw new Error('Nie masz uprawnień do zmian w folderze aplikacji — poproś administratora o odpowiednią rangę.')
     if (!res.ok) throw new Error('Dysk Google odpowiedział błędem ' + res.status + '.')
     return res
   }
@@ -120,21 +125,31 @@ export function createDrive(config) {
     demo: false,
     signedIn: () => !!token,
     account: () => email,
+    accessToken: () => token,
+    // Czy wydany dostęp obejmuje Dysk (osoba czekająca na zatwierdzenie loguje się tylko tożsamością).
+    hasDrive: () => !!token && scope.split(' ').includes(SCOPE),
     // choose — pokaż wybór konta (pierwsze logowanie, „inne konto”); bez niego Google loguje po cichu
     // ostatnim kontem, co jest wygodne przy odnawianiu sesji.
-    signIn: (choose = false) => new Promise((resolve, reject) => {
+    // access — 'drive' (Dysk; z serwerem kont także tożsamość), 'identity' (tylko adres i imię).
+    signIn: (choose = false, access = 'drive') => new Promise((resolve, reject) => {
       if (!window.google?.accounts?.oauth2) return reject(new Error('Nie udało się wczytać logowania Google — sprawdź internet.'))
-      client = client || google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: SCOPE, callback: () => {} })
+      const wanted = access === 'identity' ? IDENTITY : config.apiUrl ? IDENTITY + ' ' + SCOPE : SCOPE
+      client = client || google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: wanted, callback: () => {} })
       client.callback = async res => {
         if (res.error) return reject(new Error('Logowanie nie powiodło się.'))
         token = res.access_token
+        scope = res.scope || wanted
         const expires = Date.now() + (Number(res.expires_in) || 3600) * 1000
-        try { email = (await (await call(`${API}/about?fields=user(emailAddress)`)).json()).user.emailAddress } catch { /* adres to tylko podpowiedź */ }
-        writeAuth({ token, expires, email })
+        try {
+          email = scope.includes('email')
+            ? (await (await call('https://www.googleapis.com/oauth2/v3/userinfo')).json()).email
+            : (await (await call(`${API}/about?fields=user(emailAddress)`)).json()).user.emailAddress
+        } catch { /* adres to tylko podpowiedź */ }
+        writeAuth({ token, expires, email, scope })
         resolve()
       }
       client.error_callback = e => reject(new Error(e?.type === 'popup_closed' ? 'Logowanie przerwane — okno Google zostało zamknięte.' : e?.type === 'popup_failed_to_open' ? 'Przeglądarka zablokowała okno logowania — zezwól na wyskakujące okna dla tej strony.' : 'Logowanie przerwane.'))
-      client.requestAccessToken(choose || !email ? { prompt: 'select_account' } : { prompt: '', login_hint: email })
+      client.requestAccessToken({ scope: wanted, ...(choose || !email ? { prompt: 'select_account' } : { prompt: '', login_hint: email }) })
     }),
     // Zapomina konto — następne logowanie pokaże wybór konta.
     forget() { token = ''; email = ''; writeAuth({}) },
@@ -293,6 +308,9 @@ export function createDemo() {
     account: () => 'tryb pokazowy',
     signIn: async () => {},
     signOut() {},
+    forget() {},
+    hasDrive: () => true,
+    accessToken: () => 'demo',
     load: async () => JSON.parse(JSON.stringify(data)),
     async save(payload) {
       const i = data.services.findIndex(s => s.id === payload.service.id)

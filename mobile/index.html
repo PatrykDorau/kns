@@ -225,6 +225,38 @@
   .cd-digits small { color: var(--muted); font-size: 12px; margin-right: 8px; }
   .cd-digits small:last-child { margin-right: 0; }
   .cd-when { color: var(--muted); font-size: 13px; }
+  /* konta: oczekiwanie na zatwierdzenie, osoby i rangi */
+  .gate h2 { font-size: 21px; margin: 0 0 6px; }
+  .gate .note { max-width: 420px; margin: 0 auto 18px; }
+  .whoami { display: flex; align-items: center; gap: 12px; max-width: 360px; margin: 0 auto 18px; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); text-align: left; }
+  .whoami span { display: flex; flex-direction: column; min-width: 0; }
+  .whoami b, .whoami small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .whoami small { color: var(--muted); font-size: 13px; }
+  .gate-pending { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600; }
+  .gate-pending i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: cdpulse 1.4s ease-in-out infinite; }
+  .gate-links { display: flex; justify-content: center; gap: 4px; margin-top: 8px; }
+  .person { padding: 14px; margin-bottom: 10px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+  .person.pending { border-color: rgba(91, 140, 255, .45); }
+  .person.rejected { opacity: .7; }
+  .p-head { display: flex; align-items: center; gap: 12px; }
+  .avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; flex: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 15px; }
+  .p-head .meta { flex: 1; min-width: 0; }
+  .p-head .meta b, .p-head .meta small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-head .meta small { color: var(--muted); font-size: 13px; }
+  .ranks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  button.rank { min-height: 34px; padding: 4px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); background: none; }
+  button.rank.on { color: var(--accent); background: var(--accent-soft); border-color: rgba(91, 140, 255, .5); font-weight: 600; }
+  .p-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .p-actions > button { flex: 1; }
+  .p-actions .ghost { flex: 0 1 auto; color: var(--bad-text); }
+  .p-error { margin: 8px 0 0; font-size: 14px; color: var(--bad-text); }
+  .tabbar .count { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; }
+  .tabbar button { position: relative; }
+  fieldset.plain:disabled :is(input, textarea) { opacity: .75; }
+  fieldset.plain:disabled :is(.icon, .attach, .finder) { display: none; }
+  fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
+  .readonly { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin: 0 0 6px; border-radius: 12px; background: var(--panel2); }
+  .account .roles { color: var(--text); }
   .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
 </style>
 </head>
@@ -251,17 +283,19 @@
   <symbol id="drive" viewBox="0 0 24 24"><path d="M8 3h8l6 10-4 7H6l-4-7 6-10ZM8 3l6 10h8M2 13h12l-4 7"/></symbol>
   <symbol id="bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
   <symbol id="calendar" viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
+  <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
 </svg>
 
 <div id="app" v-cloak :class="{ tabbed: showTabs }">
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : 'Nabożeństwa' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : 'Nabożeństwa' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>Lista</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
     <template v-else>
-      <button v-if="ready" class="ghost" :disabled="busy" aria-label="Odśwież" title="Odśwież" @click="reload"><svg class="i"><use href="#refresh"/></svg></button>
+      <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
   </header>
 
@@ -315,6 +349,30 @@
     <a v-if="!ios" class="button primary" :href="chromeLink">Otwórz w Chrome</a>
     <p><button class="ghost" @click="embedded = false">Spróbuj mimo to</button></p>
   </div>
+  <!-- Konto bez zatwierdzenia (albo zatwierdzone, ale bez dostępu do Dysku). -->
+  <div v-else-if="!ready && gate && me" class="center gate">
+    <img src="logo.png" alt="Kościół Na Skale">
+    <template v-if="gate === 'pending'">
+      <span class="gate-pending"><i></i>Prośba wysłana</span>
+      <h2>Czekasz na zatwierdzenie</h2>
+      <p class="note">Administrator kościoła musi zatwierdzić Twoje konto. Potem zobaczysz nabożeństwa, pieśni i resztę aplikacji — wróć tu za jakiś czas.</p>
+    </template>
+    <template v-else-if="gate === 'rejected'">
+      <h2>Brak dostępu</h2>
+      <p class="note">To konto nie ma dostępu do aplikacji. Jeśli to pomyłka, porozmawiaj z pastorem albo kimś z rady zboru.</p>
+    </template>
+    <template v-else>
+      <h2>Dostęp zatwierdzony</h2>
+      <p class="note">Ostatni krok: pozwól aplikacji korzystać z Dysku Google — tam są nabożeństwa i pieśni kościoła.</p>
+    </template>
+    <div class="whoami"><svg class="i"><use href="#user"/></svg><span><b>{{ me.name || me.email }}</b><small>{{ me.email }}</small></span></div>
+    <button v-if="gate === 'approved'" class="primary" :disabled="busy" @click="continueToDrive">{{ busy ? 'Wczytuję…' : 'Wejdź do aplikacji' }}</button>
+    <button v-else-if="gate === 'pending'" class="primary" :disabled="busy" @click="recheck">{{ busy ? 'Sprawdzam…' : 'Sprawdź ponownie' }}</button>
+    <div class="gate-links">
+      <button class="ghost" :disabled="busy" @click="otherAccount">Inne konto</button>
+      <button class="ghost" :disabled="busy" @click="logout">Wyloguj</button>
+    </div>
+  </div>
   <div v-else-if="!ready" class="center">
     <img src="logo.png" alt="Kościół Na Skale">
     <div v-if="countdown" class="countdown login-cd">
@@ -326,19 +384,21 @@
       </span>
       <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
     </div>
-    <p class="note">Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.</p>
+    <p class="note">{{ api.enabled ? 'Zaloguj się kontem Google. Nowe konto czeka na zatwierdzenie przez administratora kościoła.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
     <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
     <div v-if="wrongOrigin" class="origin-warn">
       <b>Ta strona jest otwarta pod innym adresem</b> ({{ origin }}) — Google nie pozwoli tu się zalogować.
       <a class="button primary" :href="appUrl">Otwórz {{ appUrl.replace('https://', '') }}</a>
     </div>
-    <button class="primary" :disabled="busy" @click="start">{{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj kontem Google' }}</button>
+    <button class="primary" :disabled="busy" @click="start()">{{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj kontem Google' }}</button>
     <p v-if="drive.account()" class="note">jako {{ drive.account() }} · <button class="ghost link" :disabled="busy" @click="otherAccount">inne konto</button></p>
   </div>
 
   <!-- lista -->
   <!-- baza pieśni: edycja pojedynczej pieśni -->
   <template v-else-if="song">
+    <p v-if="!canEdit" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — pieśni zmieniają osoby z rangą z prawem edycji.</p>
+    <fieldset class="plain" :disabled="!canEdit">
     <div class="row">
       <div style="flex:0 0 96px"><label for="sNum">Numer</label><input id="sNum" v-model="song.number" inputmode="numeric" autocomplete="off"></div>
       <div><label for="sTitle">Tytuł <span class="req">*</span></label><input id="sTitle" v-model="song.title" :class="{ invalid: !song.title.trim() }" autocomplete="off"></div>
@@ -346,9 +406,10 @@
     <p v-if="numberTaken" class="note error">Numer {{ song.number }} ma już pieśń „{{ numberTaken.title }}”.</p>
     <label for="sText">Tekst</label>
     <textarea id="sText" v-model="song.text" class="songtext" spellcheck="false" placeholder="Pierwsza zwrotka…&#10;&#10;Refren…"></textarea>
+    </fieldset>
     <p class="note">Pusta linia = nowy slajd ({{ slideCount }}). Na początku slajdu można wpisać skrót, np. <b>[R]</b> — na rzutniku pokaże go klawisz.</p>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
-    <div class="bar">
+    <div v-if="canEdit" class="bar">
       <template v-if="!song.isNew">
         <button v-if="confirmDelete" class="danger" :disabled="busy" @click="deleteSong">Na pewno usuń</button>
         <button v-else :disabled="busy" aria-label="Usuń pieśń" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
@@ -359,13 +420,44 @@
     </div>
   </template>
 
+  <!-- osoby i rangi (administrator) -->
+  <template v-else-if="peopleView">
+    <p v-if="peopleBusy && !people.length" class="note">Wczytuję listę osób…</p>
+    <template v-for="group in peopleGroups" :key="group.id">
+      <div class="section"><h2>{{ group.title }} · {{ group.list.length }}</h2></div>
+      <div v-for="p in group.list" :key="p.email" class="person" :class="p.status">
+        <div class="p-head">
+          <span class="avatar">{{ initials(p) }}</span>
+          <span class="meta"><b>{{ p.name || p.email }}</b><small>{{ p.email }}<template v-if="p.status === 'pending' && p.requested"> · {{ ago(p.requested) }}</template></small></span>
+        </div>
+        <div v-if="p.status !== 'rejected'" class="ranks" role="group" :aria-label="'Rangi: ' + (p.name || p.email)">
+          <button v-for="r in ranks" :key="r.id" class="rank" :class="{ on: p.draft.includes(r.id) }" :aria-pressed="p.draft.includes(r.id)" :disabled="p.busy" @click="toggleRank(p, r.id)">{{ r.name }}</button>
+        </div>
+        <p v-if="p.error" class="p-error">{{ p.error }}</p>
+        <div class="p-actions">
+          <template v-if="p.status === 'pending'">
+            <button :disabled="p.busy" @click="setPerson(p, 'rejected')">Odrzuć</button>
+            <button class="primary" :disabled="p.busy" @click="setPerson(p, 'active')">{{ p.busy ? 'Zapisuję…' : 'Zatwierdź' }}</button>
+          </template>
+          <button v-else-if="p.status === 'rejected'" :disabled="p.busy" @click="setPerson(p, 'active')">{{ p.busy ? 'Zapisuję…' : 'Przywróć dostęp' }}</button>
+          <template v-else>
+            <button v-if="p.email !== me?.email" class="ghost" :disabled="p.busy" @click="setPerson(p, 'rejected')">Odbierz dostęp</button>
+            <button class="primary" :disabled="p.busy || !rolesChanged(p)" @click="setPerson(p)">{{ p.busy ? 'Zapisuję…' : rolesChanged(p) ? 'Zapisz rangi' : 'Zapisane' }}</button>
+          </template>
+        </div>
+      </div>
+    </template>
+    <p class="note" style="margin-top:18px">Zatwierdzenie od razu udostępnia foldery na Dysku Google: wszyscy widzą folder aplikacji i protokoły ze spotkań członkowskich;
+      lider, organizator, technika, rada i pastor mogą zmieniać nabożeństwa i pieśni; protokolant pisze protokoły; rada i pastor mają folder rady.</p>
+  </template>
+
   <!-- baza pieśni: lista -->
   <template v-else-if="songView">
     <div class="searchbox">
       <svg class="i"><use href="#search"/></svg>
       <input v-model="songQuery" type="search" :placeholder="`Szukaj: numer, tytuł, tekst (${songs.length})`" autocomplete="off">
     </div>
-    <button class="primary" style="width:100%;margin-top:12px" @click="newSong"><svg class="i"><use href="#plus"/></svg>Nowa pieśń</button>
+    <button v-if="canEdit" class="primary" style="width:100%;margin-top:12px" @click="newSong"><svg class="i"><use href="#plus"/></svg>Nowa pieśń</button>
     <div class="songs">
       <p v-if="!songResults.length" class="note">{{ songs.length ? 'Nie ma takiej pieśni.' : 'Baza pieśni jest pusta.' }}</p>
       <button v-for="s in songResults" :key="s.id" class="song pickable" @click="openSong(s)">
@@ -394,11 +486,11 @@
         <div v-if="alert.missing?.length" class="chips">
           <span v-for="m in alert.missing" :key="m" class="chip">{{ m }}</span>
         </div>
-        <button v-if="!alert.good" class="danger" @click="fix">{{ alert.service ? 'Uzupełnij' : 'Utwórz nabożeństwo' }}</button>
+        <button v-if="!alert.good && canEdit" class="danger" @click="fix">{{ alert.service ? 'Uzupełnij' : 'Utwórz nabożeństwo' }}</button>
       </div>
     </div>
 
-    <button class="primary" style="width:100%" @click="create()"><svg class="i"><use href="#plus"/></svg>Nowe nabożeństwo</button>
+    <button v-if="canEdit" class="primary" style="width:100%" @click="create()"><svg class="i"><use href="#plus"/></svg>Nowe nabożeństwo</button>
 
     <div class="section"><h2>Nadchodzące</h2></div>
     <p v-if="!coming.length" class="note">Nie ma zaplanowanych nabożeństw.</p>
@@ -451,13 +543,15 @@
     </div>
 
     <div class="account">
-      <svg class="i"><use href="#user"/></svg><span>{{ drive.account() || 'Zalogowano' }}</span>
+      <svg class="i"><use href="#user"/></svg><span>{{ me?.email || drive.account() || 'Zalogowano' }}<template v-if="myRanks"> · <span class="roles">{{ myRanks }}</span></template></span>
       <button v-if="!drive.demo" class="ghost" @click="logout"><svg class="i"><use href="#logout"/></svg>Wyloguj</button>
     </div>
   </template>
 
   <!-- edycja -->
   <template v-else>
+    <p v-if="!canEdit" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — nabożeństwa zmieniają osoby z rangą z prawem edycji.</p>
+    <fieldset class="plain" :disabled="!canEdit">
     <div class="row">
       <div><label for="date">Data <span class="req">*</span></label><input id="date" v-model="current.date" type="date"></div>
       <div><label for="speaker">Mówca <span class="req">*</span></label><input id="speaker" v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off"></div>
@@ -490,7 +584,7 @@
       </div>
     </div>
     <div class="songs">
-      <div v-if="!current.songs.length" class="empty"><svg class="i"><use href="#music"/></svg>Dotknij pola powyżej i wybierz pieśni na to nabożeństwo.</div>
+      <div v-if="!current.songs.length" class="empty"><svg class="i"><use href="#music"/></svg>{{ canEdit ? 'Dotknij pola powyżej i wybierz pieśni na to nabożeństwo.' : 'Pieśni nie są jeszcze wybrane.' }}</div>
       <div v-for="(entry, i) in current.songs" :key="entry.key" class="song">
         <span class="pos">{{ i + 1 }}</span>
         <div class="meta"><b>{{ songTitle(entry) }}</b><small :class="{ missing: !inBase(entry) }">{{ firstLine(entry) }}</small></div>
@@ -547,8 +641,9 @@
       </div>
     </div>
 
+    </fieldset>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
-    <div class="bar">
+    <div v-if="canEdit" class="bar">
       <button v-if="confirmDelete" class="danger" :disabled="busy" @click="remove">Na pewno usuń</button>
       <button v-else :disabled="busy" aria-label="Usuń nabożeństwo" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
       <button class="primary" :disabled="busy || !dirty" @click="save">
@@ -561,8 +656,9 @@
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
   <nav v-if="showTabs" class="tabbar" aria-label="Części aplikacji">
-    <button :class="{ on: !songView }" :aria-current="!songView ? 'page' : null" @click="showServices"><svg class="i"><use href="#calendar"/></svg>Nabożeństwa</button>
+    <button :class="{ on: !songView && !peopleView }" :aria-current="!songView && !peopleView ? 'page' : null" @click="showServices"><svg class="i"><use href="#calendar"/></svg>Nabożeństwa</button>
     <button :class="{ on: songView }" :aria-current="songView ? 'page' : null" :disabled="!ready" @click="openSongs"><svg class="i"><use href="#music"/></svg>Pieśni</button>
+    <button v-if="canManage && ready" :class="{ on: peopleView }" :aria-current="peopleView ? 'page' : null" @click="openPeople"><svg class="i"><use href="#users"/></svg>Osoby<span v-if="pendingCount" class="count">{{ pendingCount }}</span></button>
     <button v-if="cueTopic" @click="openCamera"><svg class="i"><use href="#camera"/></svg>Kamera</button>
   </nav>
 </div>
@@ -572,12 +668,19 @@
 <script src="config.js"></script>
 <script type="module">
 import { ACCEPT, createDemo, createDrive, fileType, uid } from './drive.js'
+import { createApi, createDemoApi } from './api.js'
 const KIND = { image: 'Zdjęcie', video: 'Film', pdf: 'PDF', pptx: 'Prezentacja' }
 const { createApp, ref, computed } = Vue
 
 const demo = new URLSearchParams(location.search).has('demo')
 const clientId = window.KNS_CONFIG?.clientId || ''
 const drive = demo ? createDemo() : createDrive(window.KNS_CONFIG)
+// Serwer kont (zatwierdzanie, rangi). Bez adresu w config.js aplikacja działa jak dawniej — dostępu pilnuje sam Dysk.
+const api = demo ? createDemoApi() : createApi(window.KNS_CONFIG || {}, drive)
+// Zatwierdzony członek: następne logowanie od razu prosi też o Dysk (bez dodatkowego kroku).
+const MEMBER_KEY = 'kns-member'
+const isMember = email => { try { return !!email && localStorage.getItem(MEMBER_KEY) === email } catch { return false } }
+const setMember = email => { try { email ? localStorage.setItem(MEMBER_KEY, email) : localStorage.removeItem(MEMBER_KEY) } catch { /* tryb prywatny */ } }
 const plain = s => String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l')
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const today = () => localDate(new Date())
@@ -585,7 +688,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.25 · 14.10.2026'
+const VERSION = '2.26 · 16.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -729,7 +832,7 @@ createApp({
     })
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
-    const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && (ready.value || !!cueTopic))
+    const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && (ready.value || (!!cueTopic && !gate.value)))
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
     let cachedTimes = []
@@ -762,9 +865,31 @@ createApp({
       busy.value = true; error.value = ''
       try { await job() } catch (e) {
         error.value = e.message || String(e)
-        if (e.auth) { ready.value = false; current.value = null }
+        if (e.auth) { ready.value = false; current.value = null; gate.value = '' }
       } finally { busy.value = false }
     }
+    /* ---------- konto i rangi ---------- */
+    // gate: '' (w aplikacji albo niezalogowany), 'pending', 'rejected', 'approved' (zatwierdzony, brak dostępu do Dysku)
+    const me = ref(null), ranks = ref([]), gate = ref('')
+    const hasFlag = flag => !api.enabled || (me.value?.roles || []).some(r => ranks.value.some(x => x.id === r && x[flag]))
+    const canEdit = computed(() => hasFlag('edit'))
+    const canManage = computed(() => api.enabled && hasFlag('manage'))
+    const myRanks = computed(() => (me.value?.roles || []).map(r => ranks.value.find(x => x.id === r)?.name).filter(Boolean).join(', '))
+    // Po zalogowaniu: kim jestem dla serwera; zatwierdzony z dostępem do Dysku od razu wchodzi do aplikacji.
+    async function enter() {
+      const data = drive.hasDrive() ? fetchAll().then(() => null, e => e) : null
+      const res = await api.call('me')
+      me.value = res.person; ranks.value = res.ranks || []
+      if (res.person.status !== 'active') { setMember(''); gate.value = res.person.status === 'rejected' ? 'rejected' : 'pending'; ready.value = false; return }
+      setMember(res.person.email)
+      if (!data) { gate.value = 'approved'; return }
+      const failed = await data
+      if (failed) throw failed
+      gate.value = ''; ready.value = true
+      if (canManage.value) loadPeople()
+    }
+    const recheck = () => guard(enter)
+    const continueToDrive = () => guard(async () => { await drive.signIn(false, 'drive'); await enter() })
     const fetchAll = async () => {
       const data = await drive.load()
       services.value = data.services.map(s => ({ band: '', notes: '', songs: [], files: [], ...s }))
@@ -772,9 +897,15 @@ createApp({
       try { localStorage.setItem('kns-times', JSON.stringify(services.value.filter(s => s.date >= today()).map(({ date, time, place }) => ({ date, time, place })))) } catch { /* tryb prywatny */ }
       songs.value = data.songs
     }
-    const start = () => guard(async () => { await drive.signIn(); await fetchAll(); ready.value = true })
+    // Z serwerem kont nowa osoba loguje się najpierw samą tożsamością — o Dysk pytamy dopiero po zatwierdzeniu.
+    const start = (choose = false) => guard(async () => {
+      if (choose) drive.forget()
+      if (!api.enabled) { await drive.signIn(choose); await fetchAll(); ready.value = true; return }
+      await drive.signIn(choose, isMember(drive.account()) ? 'drive' : 'identity')
+      await enter()
+    })
     // Konto bez dostępu do folderu: zapominamy je i od razu pokazujemy wybór konta.
-    const otherAccount = () => guard(async () => { drive.forget(); await drive.signIn(true); await fetchAll(); ready.value = true })
+    const otherAccount = () => { gate.value = ''; me.value = null; return start(true) }
     const appUrl = window.KNS_CONFIG?.appUrl || 'https://kns-nabo.netlify.app'
     const origin = location.origin
     const wrongOrigin = !demo && origin !== new URL(appUrl).origin
@@ -782,10 +913,38 @@ createApp({
     function logout() {
       drive.signOut()
       ready.value = false; services.value = []; current.value = null
+      gate.value = ''; me.value = null; people.value = []; peopleView.value = false
+    }
+    /* ---------- osoby (administrator) ---------- */
+    const peopleView = ref(false), people = ref([]), peopleBusy = ref(false)
+    const withDraft = p => ({ ...p, draft: p.status === 'pending' && !p.roles.length ? ['czlonek'] : [...p.roles], busy: false, error: '' })
+    const peopleGroups = computed(() => [
+      { id: 'pending', title: 'Czekają na zatwierdzenie', list: people.value.filter(p => p.status === 'pending').sort((a, b) => b.requested - a.requested) },
+      { id: 'active', title: 'Członkowie', list: people.value.filter(p => p.status === 'active').sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, 'pl')) },
+      { id: 'rejected', title: 'Bez dostępu', list: people.value.filter(p => p.status === 'rejected') },
+    ].filter(g => g.list.length))
+    const pendingCount = computed(() => people.value.filter(p => p.status === 'pending').length)
+    const initials = p => (p.name || p.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
+    const ago = t => { const h = Math.round((Date.now() - t) / 3600e3); return h < 1 ? 'przed chwilą' : h < 24 ? h + ' godz. temu' : Math.round(h / 24) + ' dni temu' }
+    const rolesChanged = p => [...p.draft].sort().join() !== [...p.roles].sort().join()
+    function toggleRank(p, id) { p.draft = p.draft.includes(id) ? p.draft.filter(r => r !== id) : [...p.draft, id] }
+    async function loadPeople() {
+      peopleBusy.value = true
+      try { const res = await api.call('people'); people.value = res.people.map(withDraft); ranks.value = res.ranks || ranks.value } catch (e) { error.value = e.message } finally { peopleBusy.value = false }
+    }
+    function openPeople() { songView.value = false; peopleView.value = true; scrollTo(0, 0); loadPeople() }
+    async function setPerson(p, status) {
+      if (status === 'rejected' && p.status === 'active' && !confirm(`Odebrać dostęp osobie ${p.name || p.email}? Straci dostęp do folderów aplikacji na Dysku.`)) return
+      p.busy = true; p.error = ''
+      try {
+        const res = await api.call('setPerson', { email: p.email, ...(status ? { status } : {}), roles: status === 'rejected' ? p.roles : p.draft })
+        Object.assign(p, withDraft(res.person))
+        if (p.email === me.value?.email) me.value = res.person
+      } catch (e) { p.error = e.message } finally { p.busy = false }
     }
 
     function open(svc) {
-      songView.value = false; song.value = null
+      songView.value = false; peopleView.value = false; song.value = null
       current.value = { time: DEFAULT_TIME, place: DEFAULT_PLACE, ...JSON.parse(JSON.stringify(svc)) }
       saved.value = JSON.stringify(current.value)
       base = svc.updated || 0
@@ -818,8 +977,8 @@ createApp({
     const songDirty = computed(() => !!song.value && JSON.stringify(song.value) !== songSaved)
     const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
     const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
-    function showServices() { songView.value = false; scrollTo(0, 0) }
-    function openSongs() { songView.value = true; songQuery.value = ''; scrollTo(0, 0) }
+    function showServices() { songView.value = false; peopleView.value = false; scrollTo(0, 0) }
+    function openSongs() { songView.value = true; peopleView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
       songSaved = JSON.stringify(song.value); songBase = s.updated || 0
@@ -1047,7 +1206,7 @@ createApp({
           ? 'Telefon nie połączył się z usługą powiadomień Google. Sprawdź: 1) czy nie jest włączony prywatny DNS, VPN albo blokowanie reklam (Ustawienia → Połączenie i udostępnianie → Prywatny DNS → Wyłączony), 2) spróbuj na danych komórkowych zamiast Wi-Fi, 3) zaktualizuj „Usługi Google Play” i Chrome w Sklepie Play. Potem zamknij Chrome i spróbuj ponownie.'
           : 'Ta przeglądarka nie przyjęła zapisu na powiadomienia. Spróbuj w Chrome albo Edge.'
         push.error = hint ? hint + ' (szczegóły: ' + raw + ')' : raw
-        if (e.auth) ready.value = false
+        if (e.auth) { ready.value = false; gate.value = '' }
       } finally { push.busy = false; clearTimeout(slowTimer); push.slow = '' }
     }
     // Próbne powiadomienie: prawdziwa wysyłka przez serwer, tylko na ten telefon.
@@ -1097,9 +1256,11 @@ createApp({
     })
     // Zapamiętane logowanie: po przeładowaniu strony od razu wczytujemy dane.
     if (demo) start()
-    else if (clientId && drive.signedIn()) guard(async () => { await fetchAll(); ready.value = true })
+    else if (clientId && drive.signedIn()) guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } })
 
     return {
+      api, me, gate, canEdit, canManage, myRanks, recheck, continueToDrive,
+      peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,

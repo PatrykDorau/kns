@@ -48,9 +48,9 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 
 ### 1. Fundament
 - [x] Plan (`PLAN.md`)
-- [x] Skrypt serwera: konta, prośby o dostęp, rangi, udostępnianie folderów (`skrypty/serwer.gs`) — **niewdrożony, nieprzetestowany**
-- [ ] Test skryptu na podstawionych usługach Google (jak `gstest.cjs` dla przypomnień)
-- [ ] Telefon (`mobile/`):
+- [x] Skrypt serwera: konta, prośby o dostęp, rangi, udostępnianie folderów (`skrypty/serwer.gs`) — **niewdrożony**
+- [x] Test skryptu na podstawionych usługach Google (`skrypty/test-serwera.cjs`: `node skrypty/test-serwera.cjs`)
+- [x] Telefon (`mobile/`, wersja 2.26) — działa w trybie pokazowym; prawdziwe logowanie dwuetapowe sprawdzić po wdrożeniu skryptu:
   - `config.js`: `apiUrl` (adres aplikacji internetowej skryptu, …/exec)
   - `drive.js`: logowanie w dwóch krokach — najpierw tylko tożsamość (`openid email profile`), dostęp do Dysku
     (`drive`) dopiero po zatwierdzeniu; zapamiętany członek → od razu oba zakresy; `accessToken()` dla API

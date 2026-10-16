@@ -22,4 +22,8 @@ window.KNS_CONFIG = {
 
   // Powiadomienia na telefon (przypomnienie w piątek wieczorem) — funkcja Netlify z netlify/functions/push.mjs.
   pushUrl: '/api/push',
+
+  // Serwer aplikacji (skrypty/serwer.gs wdrożony jako aplikacja internetowa — adres kończy się na /exec).
+  // Pilnuje kont i rang: nowa osoba czeka na zatwierdzenie. Pusty = bez kont (każdy z dostępem do folderu).
+  apiUrl: '',
 }

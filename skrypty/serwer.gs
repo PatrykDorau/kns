@@ -180,6 +180,7 @@ function przeniesObecnych() {
   const app = folder('app')
   const owner = app.getOwner() ? app.getOwner().getEmail().toLowerCase() : ''
   const found = []
+  let added = 0
   app.getEditors().forEach(u => found.push({ email: u.getEmail().toLowerCase(), name: u.getName(), edit: true }))
   app.getViewers().forEach(u => { const e = u.getEmail().toLowerCase(); if (!found.some(x => x.email === e)) found.push({ email: e, name: u.getName(), edit: false }) })
   withPeople(people => {
@@ -188,7 +189,8 @@ function przeniesObecnych() {
       const p = { email: f.email, name: f.name || '', status: 'active', roles: f.edit ? ['czlonek', 'organizator'] : ['czlonek'], requested: Date.now() }
       people.push(p)
       applyAccess(p)
+      added++
     }
   })
-  Logger.log('Przeniesiono osoby: ' + found.length)
+  Logger.log('Przeniesiono osoby: ' + added)
 }
