@@ -851,7 +851,13 @@
         </div>
       </div>
     </template>
-    <p class="note" style="margin-top:18px">Zatwierdzenie od razu udostępnia foldery na Dysku Google: wszyscy widzą folder aplikacji i protokoły ze spotkań członkowskich;
+    <div v-if="drive.backend === 'supabase'" class="newsletter migrate">
+      <span class="pc-icon"><svg class="i"><use href="#drive"/></svg></span>
+      <div class="pc-text"><b>Dane z Dysku Google</b><p>Jednorazowo: nabożeństwa, pieśni, kalendarz, szablony, ogłoszenia i protokoły z plików na Dysku do bazy. To, co w bazie jest nowsze, zostaje.</p>
+        <p v-if="migrated" class="pc-saved">{{ migrated }}</p></div>
+      <button :disabled="!!migrating" @click="migrate">{{ migrating || 'Przenieś' }}</button>
+    </div>
+    <p v-if="drive.backend !== 'supabase'" class="note" style="margin-top:18px">Zatwierdzenie od razu udostępnia foldery na Dysku Google: wszyscy widzą folder aplikacji i protokoły ze spotkań członkowskich;
       lider, organizator, technika, rada i pastor mogą zmieniać nabożeństwa i pieśni; protokolant pisze protokoły; rada i pastor mają folder rady.</p>
   </template>
 
@@ -1167,18 +1173,23 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.38/vue.global.prod.min.js"></script>
 <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script type="module">
 import { ACCEPT, createDemo, createDrive, fileType, uid } from './drive.js'
 import { createApi, createDemoApi } from './api.js'
+import { createSupa } from './supa.js'
 import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, mergeTypes, offsetOf, programFrom } from './church.js'
 const KIND = { image: 'Zdjęcie', video: 'Film', pdf: 'PDF', pptx: 'Prezentacja' }
 const { createApp, ref, computed } = Vue
 
 const demo = new URLSearchParams(location.search).has('demo')
 const clientId = window.KNS_CONFIG?.clientId || ''
-const drive = demo ? createDemo() : createDrive(window.KNS_CONFIG)
-// Serwer kont (zatwierdzanie, rangi). Bez adresu w config.js aplikacja działa jak dawniej — dostępu pilnuje sam Dysk.
-const api = demo ? createDemoApi() : createApi(window.KNS_CONFIG || {}, drive)
+// Dane: baza Supabase (gdy wpisana w config.js) albo — jak dawniej — pliki na Dysku Google.
+const CFG = window.KNS_CONFIG || {}
+const useSupa = !demo && !!CFG.supabaseUrl && !!window.supabase
+const drive = demo ? createDemo() : useSupa ? createSupa(CFG) : createDrive(CFG)
+// Konta (zatwierdzanie, rangi): baza albo serwer kont; bez żadnego z nich dostępu pilnuje sam Dysk.
+const api = demo ? createDemoApi() : useSupa ? drive.api : createApi(CFG, drive)
 // Zatwierdzony członek: następne logowanie od razu prosi też o Dysk (bez dodatkowego kroku).
 const MEMBER_KEY = 'kns-member'
 const isMember = email => { try { return !!email && localStorage.getItem(MEMBER_KEY) === email } catch { return false } }
@@ -1452,6 +1463,17 @@ createApp({
       ready.value = false; services.value = []; current.value = null
       gate.value = ''; me.value = null; people.value = []; peopleView.value = false; annView.value = false; currentAnn.value = null
       currentProto.value = null; protoView.value = false; currentEvent.value = null; tplView.value = false; tplType.value = null; calView.value = false
+    }
+    /* ---------- przeniesienie danych z Dysku do bazy (administrator, jednorazowo) ---------- */
+    const migrating = ref(''), migrated = ref('')
+    async function migrate() {
+      if (!confirm('Przenieść dane z plików na Dysku Google do bazy? Google zapyta o konto z dostępem do folderu „Aplikacja KNS Nabo”.')) return
+      migrating.value = 'Łączę…'; migrated.value = ''; error.value = ''
+      try {
+        const c = await drive.migrateFromDrive(step => { migrating.value = step })
+        migrated.value = `Przeniesiono: nabożeństwa ${c.services}, pieśni ${c.songs}, wydarzenia ${c.events}, szablony ${c.templates}, ogłoszenia ${c.announcements}, protokoły ${c.protocols}.`
+        await fetchAll()
+      } catch (e) { error.value = e.message } finally { migrating.value = '' }
     }
     /* ---------- osoby (administrator) ---------- */
     const peopleView = ref(false), people = ref([]), peopleBusy = ref(false)
@@ -2116,8 +2138,11 @@ createApp({
       if (document.visibilityState === 'visible' && ready.value && !current.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !busy.value && drive.signedIn()) reload()
     })
     // Zapamiętane logowanie: po przeładowaniu strony od razu wczytujemy dane.
-    if (demo) start()
-    else if (clientId && drive.signedIn()) guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } })
+    // Po powrocie z logowania Google baza najpierw odtwarza sesję (drive.ready).
+    Promise.resolve(drive.ready).then(() => {
+      if (demo) start()
+      else if (clientId && drive.signedIn()) guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } })
+    })
 
     return {
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
@@ -2127,6 +2152,7 @@ createApp({
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
+      migrating, migrated, migrate,
       api, me, gate, canEdit, canManage, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
