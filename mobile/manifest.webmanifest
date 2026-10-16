@@ -7,8 +7,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f1115",
-  "theme_color": "#0f1115",
+  "background_color": "#141210",
+  "theme_color": "#141210",
   "shortcuts": [
     {
       "name": "Kamera — sygnały od operatora",

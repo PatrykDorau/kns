@@ -24,13 +24,13 @@ export const category = id => CATEGORIES.find(c => c.id === id) || CATEGORIES[0]
 const item = (offset, category, title = '') => ({ offset, category, title })
 export const DEFAULT_TYPES = [
   {
-    id: 'nabozenstwo', name: 'Nabożeństwo', color: '#5b8cff', time: '12:12', place: 'Hotel Forza', builtin: true,
+    id: 'nabozenstwo', name: 'Nabożeństwo', color: '#e8a33d', time: '12:12', place: 'Hotel Forza', builtin: true,
     program: [
       item(-15, 'inne', 'Odprawa'), item(0, 'prowadzenie'), item(5, 'ogloszenia'), item(10, 'uwielbienie'),
       item(40, 'modlitwa'), item(50, 'kazanie'), item(95, 'uwielbienie', 'Pieśń / kolekta'),
     ],
   },
-  { id: 'studenckie', name: 'Spotkanie studenckie', color: '#3ddc97', time: '19:00', place: '', program: [] },
+  { id: 'studenckie', name: 'Spotkanie studenckie', color: '#74c69d', time: '19:00', place: '', program: [] },
   {
     id: 'czlonkowskie', name: 'Spotkanie członkowskie', color: '#f5a524', time: '18:00', place: '', protocol: true,
     program: [item(0, 'modlitwa', 'Modlitwa na rozpoczęcie'), item(10, 'porzadek', 'Sprawy bieżące'), item(80, 'modlitwa', 'Modlitwa na zakończenie')],
@@ -38,7 +38,7 @@ export const DEFAULT_TYPES = [
   { id: 'rada', name: 'Spotkanie rady zboru', color: '#e5484d', time: '19:00', place: '', protocol: true, program: [item(0, 'modlitwa'), item(10, 'porzadek', 'Sprawy bieżące')] },
   { id: 'inne', name: 'Inne', color: '#8f98a8', time: '18:00', place: '', program: [] },
 ]
-export const COLORS = ['#5b8cff', '#3ddc97', '#f5a524', '#e5484d', '#b07cff', '#2fc6d6', '#ff7ab6', '#8f98a8']
+export const COLORS = ['#e8a33d', '#74c69d', '#f5a524', '#e5484d', '#b07cff', '#2fc6d6', '#ff7ab6', '#8f98a8']
 
 // Godziny: '12:12' + 50 min → '13:02'; różnica w minutach w drugą stronę.
 const minutes = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0) }

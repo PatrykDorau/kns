@@ -142,7 +142,7 @@ const TILES = [
 .tile-go { width: 16px; height: 16px; color: var(--muted); }
 .tile:disabled .tile-go { color: var(--warn); }
 .pill { font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
-.pill.bad { background: rgba(240, 72, 62, .16); color: #ff8a82; }
-.pill.ok { background: rgba(61, 220, 151, .14); color: var(--ok); }
+.pill.bad { background: rgba(229, 83, 75, .16); color: #ff8a82; }
+.pill.ok { background: rgba(116, 198, 157, .14); color: var(--ok); }
 .app-version { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
 </style>

@@ -1,7 +1,7 @@
 :root {
-  --bg: #0f1115; --panel: #171a21; --panel2: #1f232c; --panel3: #2a2f3a; --line: #2a2f3a;
-  --text: #eef0f4; --muted: #8f98a8; --accent: #5b8cff; --accent-soft: rgba(91, 140, 255, .14);
-  --live: #f0483e; --ok: #3ddc97; --warn: #f5b942;
+  --bg: #141210; --panel: #1e1b18; --panel2: #262220; --panel3: #332d28; --line: #2c2824;
+  --text: #f4eee6; --muted: #a69c90; --accent: #e8a33d; --accent-soft: rgba(232, 163, 61, .14);
+  --live: #e5534b; --ok: #74c69d; --warn: #e8957d;
   --radius: 14px;
   color-scheme: dark;
 }
@@ -32,8 +32,8 @@ button:hover:not(:disabled) { background: var(--panel3); }
 button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: .4; cursor: default; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
-button.primary:hover:not(:disabled) { background: #6f9bff; }
+button.primary { background: var(--accent); border-color: transparent; color: #1f1608; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: #f0b456; }
 button.wide { width: 100%; }
 .iconbtn { padding: 6px; background: transparent; border-color: transparent; color: var(--muted); border-radius: 8px; }
 .iconbtn:hover:not(:disabled) { color: var(--text); }
@@ -48,14 +48,14 @@ kbd { background: var(--panel2); border: 1px solid var(--line); border-radius: 5
 /* ---------- nagłówek ---------- */
 .app { height: 100%; display: flex; flex-direction: column; }
 header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
-.logo { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #fff; }
+.logo { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #1f1608; }
 header h1 { font-size: 18px; font-weight: 650; margin: 0; letter-spacing: -.01em; }
 .spacer { flex: 1; }
 .screen { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .screen select { color: var(--text); max-width: 280px; }
 .power { border-radius: 999px; padding: 8px 16px 8px 14px; font-weight: 600; }
 .power .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
-.power.on { border-color: rgba(61, 220, 151, .5); background: rgba(61, 220, 151, .1); }
+.power.on { border-color: rgba(116, 198, 157, .5); background: rgba(116, 198, 157, .1); }
 .power.on .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
 .warn { display: flex; gap: 10px; align-items: center; margin: 0 16px 12px; padding: 10px 14px; border-radius: 12px; background: rgba(245, 185, 66, .1); color: var(--warn); }
 
@@ -138,7 +138,7 @@ h2 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: u
 
 .app.drag::after {
   content: "Upuść pliki, aby je dodać"; position: fixed; inset: 12px; display: grid; place-items: center;
-  background: rgba(91, 140, 255, .15); border: 2px dashed var(--accent); border-radius: 16px; font-size: 22px; pointer-events: none;
+  background: rgba(232, 163, 61, .15); border: 2px dashed var(--accent); border-radius: 16px; font-size: 22px; pointer-events: none;
 }
 
 /* ---------- warstwy sceny i przejścia ---------- */
@@ -243,7 +243,7 @@ label.check, .modal label.check { display: flex; align-items: center; gap: 8px; 
 .results .none { padding: 10px; color: var(--muted); font-size: 13px; }
 .service-head { display: flex; align-items: center; gap: 6px; margin: 14px 0 8px; }
 .service-head h2 { margin: 0 auto 0 0; }
-button.small { padding: 3px 10px; font-size: 12px; }
+button.small { padding: 6px 12px; font-size: 12px; }
 .list + .browse { margin: 10px 0 0; }
 
 /* ---------- duże okno edycji tekstu ---------- */
@@ -269,7 +269,7 @@ body.output .stage.blank { opacity: 0; }
 .preview.frozenlive { box-shadow: 0 0 0 3px #4cc9f0, 0 12px 32px rgba(0, 0, 0, .35); }
 .preview.hiddenlive .stage { opacity: .35; }
 .state { position: absolute; z-index: 3; left: 0; right: 0; top: 0; display: flex; flex-direction: column; pointer-events: none; }
-.state span { display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-weight: 800; letter-spacing: .06em; color: #10131a; background: var(--warn); }
+.state span { display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-weight: 800; letter-spacing: .06em; color: #1a140c; background: var(--warn); }
 .state span + span, .frozenlive:not(.hiddenlive) .state span { background: #4cc9f0; }
 .state small { font-weight: 500; letter-spacing: 0; }
 .state kbd { background: rgba(0, 0, 0, .15); border-color: rgba(0, 0, 0, .3); color: inherit; }
@@ -277,9 +277,9 @@ button.active { border-color: var(--warn); color: var(--warn); }
 
 /* Zamrożony element na listach: lodowa ramka i znaczek. */
 .row.frozen, .row.frozen.selected, .row.frozen.live { border-color: #4cc9f0; box-shadow: 0 0 0 1px #4cc9f0; }
-.badge.ice { display: inline-flex; align-items: center; gap: 3px; background: #4cc9f0; color: #10131a; }
+.badge.ice { display: inline-flex; align-items: center; gap: 3px; background: #4cc9f0; color: #1a140c; }
 .badge.ice .icon { width: 11px; height: 11px; }
-.badge.off { background: var(--warn); color: #10131a; }
+.badge.off { background: var(--warn); color: #1a140c; }
 .verses button.ice { border-color: #4cc9f0; box-shadow: 0 0 0 1px #4cc9f0; }
 .verses .badge { margin-left: auto; align-self: flex-start; }
 .badges { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
@@ -311,7 +311,7 @@ button.ice { border-color: #4cc9f0; color: #4cc9f0; }
 .role-cards .icon { width: 40px; height: 40px; color: var(--accent); }
 .role-cards b { font-size: 17px; }
 .role-cards span { color: var(--muted); font-size: 13px; }
-.badge.next { background: var(--ok); color: #0c1a14; margin-left: 8px; }
+.badge.next { background: var(--ok); color: #10201a; margin-left: 8px; }
 
 /* ---------- organizacja nabożeństw ---------- */
 main.planner { grid-template-columns: 340px minmax(0, 1fr); }
@@ -367,16 +367,16 @@ header .note { margin: 0; }
 
 /* ---------- alarm organizacji nabożeństw ---------- */
 .role-cards button { position: relative; }
-.role-cards button.danger { border: 2px solid var(--live); background: rgba(240, 72, 62, .08); }
-.role-cards button.danger:hover:not(:disabled) { border-color: var(--live); background: rgba(240, 72, 62, .14); }
+.role-cards button.danger { border: 2px solid var(--live); background: rgba(229, 83, 75, .08); }
+.role-cards button.danger:hover:not(:disabled) { border-color: var(--live); background: rgba(229, 83, 75, .14); }
 .alert-badge { position: absolute; top: -14px; right: -14px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 4px var(--bg); }
 .role-cards .alert-badge .icon { width: 20px; height: 20px; color: #fff; }
 .role-cards .alert-text { color: #ff8a82; font-weight: 600; }
-.danger-bar { display: flex; align-items: center; gap: 12px; margin: 0 16px 12px; padding: 10px 14px; border: 2px solid var(--live); border-radius: 12px; background: rgba(240, 72, 62, .1); }
+.danger-bar { display: flex; align-items: center; gap: 12px; margin: 0 16px 12px; padding: 10px 14px; border: 2px solid var(--live); border-radius: 12px; background: rgba(229, 83, 75, .1); }
 .danger-bar .icon { color: var(--live); width: 22px; height: 22px; }
 .danger-bar span { flex: 1; }
 .danger-bar button { background: var(--live); border-color: transparent; color: #fff; font-weight: 600; }
-.row.danger { border-color: rgba(240, 72, 62, .6); }
+.row.danger { border-color: rgba(229, 83, 75, .6); }
 .badge.bad { background: var(--live); color: #fff; }
 .badge.bad .icon { width: 11px; height: 11px; }
 .form input.invalid { border-color: var(--live); }
@@ -433,7 +433,7 @@ select {
 .thumb .loopmark { left: 3px; right: auto; }
 .thumb .loopmark .icon { fill: none; }
 h2.sub.bad { color: #ff8a82; }
-.empty.bad { border-color: rgba(240, 72, 62, .6); color: #ff8a82; }
+.empty.bad { border-color: rgba(229, 83, 75, .6); color: #ff8a82; }
 
 /* ---------- zaznaczanie wielu pozycji ---------- */
 .searchrow { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -446,12 +446,12 @@ button[aria-pressed=true].small { border-color: var(--accent); color: var(--acce
 
 
 /* Potwierdzenie: najbliższe nabożeństwo ma komplet informacji. */
-.role-cards button.success { border: 2px solid var(--ok); background: rgba(61, 220, 151, .08); }
-.role-cards button.success:hover:not(:disabled) { border-color: var(--ok); background: rgba(61, 220, 151, .14); }
+.role-cards button.success { border: 2px solid var(--ok); background: rgba(116, 198, 157, .08); }
+.role-cards button.success:hover:not(:disabled) { border-color: var(--ok); background: rgba(116, 198, 157, .14); }
 .alert-badge.ok { background: var(--ok); }
-.role-cards .alert-badge.ok .icon { color: #0c1a14; }
+.role-cards .alert-badge.ok .icon { color: #10201a; }
 .role-cards .alert-text.ok { color: var(--ok); }
-.danger-bar.ok-bar { border-color: var(--ok); background: rgba(61, 220, 151, .1); }
+.danger-bar.ok-bar { border-color: var(--ok); background: rgba(116, 198, 157, .1); }
 .danger-bar.ok-bar .icon { color: var(--ok); }
 .danger-bar.ok-bar button { background: var(--panel2); border-color: var(--line); color: var(--text); font-weight: 400; }
 
@@ -472,11 +472,11 @@ button[aria-pressed=true].small { border-color: var(--accent); color: var(--acce
 .diff th, .diff td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: pre-line; }
 .diff thead th { color: var(--muted); font-weight: 600; }
 .diff tbody th { color: var(--muted); font-weight: 600; width: 130px; }
-.diff tr.lost td:nth-of-type(1) { color: #ff8a82; background: rgba(240, 72, 62, .08); }
+.diff tr.lost td:nth-of-type(1) { color: #ff8a82; background: rgba(229, 83, 75, .08); }
 .cue-info { position: relative; display: inline-flex; color: var(--muted); cursor: help; outline: none; }
 .cue-info:hover, .cue-info:focus { color: var(--text); }
 .cue-tip { display: none; position: absolute; top: calc(100% + 8px); left: -10px; z-index: 20; width: 420px; max-width: 70vw; padding: 10px 12px;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--panel2, #1f232c); color: var(--text); font-size: 13px; line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel2, #262220); color: var(--text); font-size: 13px; line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
 .cue-info:hover .cue-tip, .cue-info:focus .cue-tip { display: block; }
 .cue-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
 .cue-buttons button { padding: 18px 10px; font-size: 17px; font-weight: 800; letter-spacing: .03em; border-width: 2px; }
@@ -485,7 +485,7 @@ button[aria-pressed=true].small { border-color: var(--accent); color: var(--acce
 .cue-buttons .ready.current { background: #c98a00; border-color: #c98a00; color: #fff; }
 .cue-buttons .off.current { border-color: var(--text); }
 .note.bad, .shared .bad { color: #ff8a82; }
-.shared button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+.shared button.primary { background: var(--accent); border-color: transparent; color: #1f1608; }
 
 /* ================= dopracowanie wyglądu ================= */
 /* ekran wyboru służby */
@@ -528,7 +528,7 @@ main.planner .list .badge { margin: 2px 0 0; }
 main.planner .row { border-color: var(--line); background: var(--panel2); }
 main.planner .row:hover { background: var(--panel3); }
 main.planner .row.selected { background: var(--accent-soft); border-color: var(--accent); }
-main.planner .row.danger { border-color: rgba(240, 72, 62, .6); }
+main.planner .row.danger { border-color: rgba(229, 83, 75, .6); }
 
 /* rzutnik: panele boczne węższe na mniejszych ekranach — więcej miejsca na podgląd */
 main { grid-template-columns: clamp(270px, 22vw, 340px) minmax(0, 1fr) clamp(290px, 23vw, 360px); }
@@ -541,8 +541,8 @@ main { grid-template-columns: clamp(270px, 22vw, 340px) minmax(0, 1fr) clamp(290
 .add.four button { white-space: nowrap; padding: 10px; gap: 8px; }
 /* organizacja: stan nabożeństwa — obwódka i ikonka w rogu jak na ekranie startowym */
 main.planner .list { padding-top: 10px; padding-right: 12px; }
-main.planner .row.danger { border: 2px solid var(--live); background: rgba(240, 72, 62, .07); }
-main.planner .row.good { border: 2px solid rgba(61, 220, 151, .75); background: rgba(61, 220, 151, .06); }
+main.planner .row.danger { border: 2px solid var(--live); background: rgba(229, 83, 75, .07); }
+main.planner .row.good { border: 2px solid rgba(116, 198, 157, .75); background: rgba(116, 198, 157, .06); }
 main.planner .row.selected { box-shadow: 0 0 0 3px var(--accent-soft); }
 main.planner .row.selected:not(.danger):not(.good) { border-color: var(--accent); }
 main.planner .row.past { opacity: .62; }
@@ -550,7 +550,7 @@ main.planner .row.past:hover, main.planner .row.past.selected { opacity: 1; }
 main.planner .corner { position: absolute; top: -8px; right: -8px; z-index: 1; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 3px var(--panel); }
 main.planner .corner .icon { width: 13px; height: 13px; }
 main.planner .corner.bad { background: var(--live); color: #fff; }
-main.planner .corner.ok { background: var(--ok); color: #0c1a14; }
+main.planner .corner.ok { background: var(--ok); color: #10201a; }
 main.planner .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 main.planner .tags .badge { margin: 0; text-transform: none; }
 main.planner .tags .badge.bad { white-space: normal; }
@@ -585,7 +585,7 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 .app.overlay-mode .cam { border-radius: 0; }
 .app.overlay-mode .cam-label { font-size: 11px; padding: 2px 7px; left: 6px; bottom: 6px; }
 .ov-tools { position: fixed; top: 8px; right: 8px; z-index: 5; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 10px;
-  background: rgba(15, 17, 21, .88); box-shadow: 0 6px 20px rgba(0, 0, 0, .5); opacity: 0; transition: opacity .15s; }
+  background: rgba(20, 18, 16, .88); box-shadow: 0 6px 20px rgba(0, 0, 0, .5); opacity: 0; transition: opacity .15s; }
 .app.overlay-mode:hover .ov-tools, .ov-tools:focus-within { opacity: 1; }
 .ov-tools .iconbtn { color: #b8c0cf; }
 .ov-tools .iconbtn.on { color: var(--accent); background: var(--accent-soft); }
@@ -597,7 +597,7 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 .svc-modal .note { margin: 6px 0 0; }
 .svc-modal .svc-list { overflow-y: auto; margin: 16px -4px 8px; padding: 4px; }
 .svc-list li { gap: 14px; padding: 12px 14px; background: var(--panel2); border-color: transparent; }
-.svc-list li.next { border-color: rgba(61, 220, 151, .7); background: rgba(61, 220, 151, .06); }
+.svc-list li.next { border-color: rgba(116, 198, 157, .7); background: rgba(116, 198, 157, .06); }
 .svc-list li.active { border-color: var(--accent); background: var(--accent-soft); }
 .svc-list li.past { opacity: .6; }
 .svc-list li.past:hover { opacity: 1; }
@@ -611,7 +611,7 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 .svc-list .chip { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
 .svc-list .chip .icon { width: 13px; height: 13px; }
 .svc-list .badge { margin: 0; }
-.badge.loaded { background: var(--accent); color: #fff; }
+.badge.loaded { background: var(--accent); color: #1f1608; }
 .badge.loaded .icon { width: 11px; height: 11px; }
 .svc-list li > button { flex: none; min-width: 120px; }
 .svc-list li > button .spinner { width: 14px; height: 14px; }
@@ -642,12 +642,12 @@ header button.on { border-color: var(--accent); color: var(--accent); }
 
 /* nakładka: pasek sygnałów */
 .ov-cues { flex: none; display: flex; align-items: stretch; gap: 2px; background: #000; padding-top: 2px; }
-.ov-cues button { flex: 1; padding: 7px 6px; border: 0; border-radius: 0; background: #1a1d24; font-size: 12px; font-weight: 800; letter-spacing: .03em; gap: 6px; }
+.ov-cues button { flex: 1; padding: 7px 6px; border: 0; border-radius: 0; background: #211d1a; font-size: 12px; font-weight: 800; letter-spacing: .03em; gap: 6px; }
 .ov-cues button kbd { font-size: 10px; padding: 0 4px; }
 .ov-cues .live.current { background: var(--live); color: #fff; }
 .ov-cues .ready.current { background: #c98a00; color: #fff; }
 .ov-cues .off.current { background: #3a3f4b; }
-.ov-phones { flex: none; display: grid; place-items: center; padding: 0 10px; font-size: 12px; font-weight: 700; color: var(--ok); background: #1a1d24; font-variant-numeric: tabular-nums; }
+.ov-phones { flex: none; display: grid; place-items: center; padding: 0 10px; font-size: 12px; font-weight: 700; color: var(--ok); background: #211d1a; font-variant-numeric: tabular-nums; }
 .ov-phones.none { color: var(--warn); }
 
 .loadbox { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
@@ -723,13 +723,13 @@ table.sermons td:first-child { color: var(--muted); white-space: nowrap; }
 .coloralpha.off { opacity: .45; }
 .ca-row { display: flex; align-items: center; gap: 10px; }
 .ca-swatch { position: relative; flex: none; width: 52px; height: 36px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line);
-  background: repeating-conic-gradient(#3a3f4b 0 25%, #20242c 0 50%) 50% / 12px 12px; }
+  background: repeating-conic-gradient(#3a3f4b 0 25%, #27231f 0 50%) 50% / 12px 12px; }
 .ca-swatch i { position: absolute; inset: 0; pointer-events: none; }
 .ca-swatch input[type=color] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .ca-row input[type=range] { flex: 1; }
 .ca-val { width: 38px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* podgląd: szachownica pod przezroczystymi miejscami */
-.preview, .nextslide .mini { background: repeating-conic-gradient(#1b1e25 0 25%, #14161b 0 50%) 50% / 24px 24px; }
+.preview, .nextslide .mini { background: repeating-conic-gradient(#221e1b 0 25%, #181512 0 50%) 50% / 24px 24px; }
 
 /* odliczanie: nabożeństwo w trakcie (3 godziny od rozpoczęcia) */
 .cd-live { display: inline-flex; align-items: center; gap: 8px; align-self: center; padding: 4px 12px; border-radius: 999px; background: var(--live); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .06em; margin: 2px 0 4px; }
@@ -744,7 +744,7 @@ table.sermons td:first-child { color: var(--muted); white-space: nowrap; }
 .svc-list .date .wd { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
 .svc-list .date b { font-size: 26px; line-height: 1; }
 .svc-list .date small { font-size: 11px; }
-.svc-list li.next .date { box-shadow: inset 0 0 0 1px rgba(61, 220, 151, .6); }
+.svc-list li.next .date { box-shadow: inset 0 0 0 1px rgba(116, 198, 157, .6); }
 .svc-list .chip.rel { padding: 1px 8px; border-radius: 999px; background: var(--panel3); color: var(--text); font-weight: 600; }
 .svc-list .chip.rel.soon { background: var(--accent-soft); color: var(--accent); }
 .loadbox { width: 216px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }

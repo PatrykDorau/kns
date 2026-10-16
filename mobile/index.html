@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f1115">
+<meta name="theme-color" content="#141210">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="KNS Nabo">
 <title>KNS Nabo — Kościół Na Skale</title>
@@ -12,9 +12,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <style>
   :root {
-    --bg: #0f1115; --panel: #171a21; --panel2: #1f232c; --line: #2a2f3a; --text: #eef0f4; --muted: #8f98a8;
-    --accent: #5b8cff; --accent-soft: rgba(91, 140, 255, .14); --bad: #f0483e; --bad-soft: rgba(240, 72, 62, .12); --bad-text: #ff8f87;
-    --ok: #3ddc97; --ok-soft: rgba(61, 220, 151, .12);
+    --bg: #141210; --panel: #1e1b18; --panel2: #262220; --line: #2c2824; --text: #f4eee6; --muted: #a69c90;
+    --accent: #e8a33d; --accent-soft: rgba(232, 163, 61, .14); --bad: #e5534b; --bad-soft: rgba(229, 83, 75, .12); --bad-text: #ff8f87;
+    --ok: #74c69d; --ok-soft: rgba(116, 198, 157, .12);
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -27,15 +27,15 @@
   button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); cursor: pointer; }
   button:disabled { opacity: .45; }
   a.button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border-radius: 12px; text-decoration: none; }
-  a.button.primary { background: var(--accent); color: #fff; font-weight: 600; }
-  button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+  a.button.primary { background: var(--accent); color: #1f1608; font-weight: 600; }
+  button.primary { background: var(--accent); border-color: transparent; color: #1f1608; font-weight: 600; }
   button.danger { background: var(--bad); border-color: transparent; color: #fff; font-weight: 600; }
-  button.ghost { background: none; border-color: transparent; color: var(--accent); padding: 10px 8px; }
+  button.ghost { background: none; border-color: transparent; color: var(--accent); padding: 10px 14px; }
   button.icon { min-width: 40px; min-height: 40px; padding: 8px; background: none; border-color: transparent; color: var(--muted); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   input, textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); outline: none; }
   input:focus, textarea:focus { border-color: var(--accent); }
-  input.invalid { border-color: rgba(240, 72, 62, .7); }
+  input.invalid { border-color: rgba(229, 83, 75, .7); }
   textarea { min-height: 96px; resize: vertical; }
   label { display: block; color: var(--muted); font-size: 14px; margin: 16px 0 6px; }
   label .req { color: var(--bad-text); }
@@ -50,10 +50,10 @@
   header img { margin-right: 6px; }
 
   /* karta stanu najbliższej niedzieli */
-  .status { display: flex; gap: 14px; align-items: flex-start; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--bad-soft); border: 1px solid rgba(240, 72, 62, .35); }
-  .status.good { background: var(--ok-soft); border-color: rgba(61, 220, 151, .35); }
+  .status { display: flex; gap: 14px; align-items: flex-start; padding: 14px; margin-bottom: 14px; border-radius: 16px; background: var(--bad-soft); border: 1px solid rgba(229, 83, 75, .35); }
+  .status.good { background: var(--ok-soft); border-color: rgba(116, 198, 157, .35); }
   .status .badge { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--bad); color: #fff; flex: none; }
-  .status.good .badge { background: var(--ok); color: #0c1a14; }
+  .status.good .badge { background: var(--ok); color: #10201a; }
   .status .body { flex: 1; min-width: 0; }
   .status b { display: block; }
   .status p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
@@ -117,7 +117,7 @@
   .sheet .found .meta { min-width: 0; flex: 1; }
   .sheet .found .meta b, .sheet .found .meta small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sheet .found .meta small { color: var(--muted); }
-  .empty { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 14px; border: 1px dashed rgba(240, 72, 62, .5); color: var(--bad-text); font-size: 14px; }
+  .empty { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 14px; border: 1px dashed rgba(229, 83, 75, .5); color: var(--bad-text); font-size: 14px; }
   .bar { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); margin-top: 18px; }
   .bar button.primary { flex: 1; }
   .saved { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--ok); font-size: 14px; min-height: 1.4em; margin-top: 12px; }
@@ -132,7 +132,7 @@
   .getapp .ga-text b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .getapp .ga-text small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .getapp .primary, .getapp a.button { min-height: 38px; padding: 6px 14px; border-radius: 10px; font-size: 14px; }
-  .getapp a.button.primary { background: var(--accent); color: #fff; font-weight: 600; gap: 6px; }
+  .getapp a.button.primary { background: var(--accent); color: #1f1608; font-weight: 600; gap: 6px; }
   .getapp .primary svg.i, .getapp a.button svg.i { width: 18px; height: 18px; }
   .getapp button.icon { min-width: 34px; min-height: 34px; padding: 6px; }
   .getapp .ga-help { flex-basis: 100%; padding: 4px 4px 2px; color: var(--muted); font-size: 13px; }
@@ -156,14 +156,14 @@
   .camera.ready { background: #c98a00; }
   .camera .close { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 8px; color: #fff; }
   .camera .big { font-size: 13vw; font-weight: 900; letter-spacing: .02em; line-height: 1.05; }
-  .camera .start { font-size: 20px; padding: 18px 26px; border-radius: 16px; border: 0; background: #fff; color: #14161a; font-weight: 600; }
+  .camera .start { font-size: 20px; padding: 18px 26px; border-radius: 16px; border: 0; background: #fff; color: #181512; font-weight: 600; }
   .camera .net { margin: 0; font-size: 15px; opacity: .8; display: flex; align-items: center; gap: 8px; }
-  .camera .net::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #f0483e; }
-  .camera .net.on::before { background: #3ddc97; }
+  .camera .net::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #e5534b; }
+  .camera .net.on::before { background: #74c69d; }
   .camera .hint { position: absolute; bottom: calc(16px + env(safe-area-inset-bottom)); left: 16px; right: 16px; margin: 0; font-size: 13px; opacity: .7; }
   body.locked { overflow: hidden; }
   .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center; gap: 4px;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: rgba(15, 17, 21, .96); border-top: 1px solid var(--line); backdrop-filter: blur(8px); }
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: rgba(20, 18, 16, .96); border-top: 1px solid var(--line); backdrop-filter: blur(8px); }
   .tabbar button { flex: 1; max-width: 200px; flex-direction: column; gap: 2px; min-height: 52px; padding: 6px 4px; border: 0; background: none; color: var(--muted); font-size: 12px; border-radius: 12px; }
   .tabbar button.on { color: var(--accent); background: var(--accent-soft); }
   .tabbar svg.i { width: 22px; height: 22px; }
@@ -176,7 +176,7 @@
   .songs .song .pos { min-width: 28px; width: auto; padding: 0 6px; border-radius: 14px; }
   textarea.songtext { min-height: 340px; font-size: 15px; line-height: 1.5; }
   .push-card { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; padding: 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
-  .push-card.on { border-color: rgba(61, 220, 151, .4); }
+  .push-card.on { border-color: rgba(116, 198, 157, .4); }
   .pc-head { display: flex; align-items: flex-start; gap: 12px; }
   .pc-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
   .push-card.on .pc-icon { background: var(--ok-soft); color: var(--ok); }
@@ -196,7 +196,7 @@
   .pc-actions > * { flex: 1; }
   .pc-actions a.button { justify-content: center; }
   .remind { margin-top: 18px; align-items: flex-start; }
-  .remind.on { border-color: rgba(61, 220, 151, .4); }
+  .remind.on { border-color: rgba(116, 198, 157, .4); }
   .remind.on .bell { color: var(--ok); }
   .remind .error { display: block; margin-top: 6px; }
   .remind .when { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; color: var(--text); }
@@ -210,7 +210,7 @@
   .remind .bell { width: 28px; height: 28px; color: var(--accent); flex: none; margin: 0 8px; }
   .remind a.button { margin-left: auto; background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
   .remind .topic { word-break: break-all; font-size: 12px; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
-  .origin-warn { margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: var(--bad-soft); border: 1px solid rgba(240, 72, 62, .4); font-size: 14px; color: var(--bad-text); display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .origin-warn { margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: var(--bad-soft); border: 1px solid rgba(229, 83, 75, .4); font-size: 14px; color: var(--bad-text); display: flex; flex-direction: column; gap: 10px; align-items: center; }
   .origin-warn b { color: var(--text); }
   button.ghost.link { min-height: 0; padding: 0; font-size: inherit; display: inline; }
   .login-cd { margin: 6px 0 22px; }
@@ -234,7 +234,7 @@
   button.cal-day { flex-direction: column; justify-content: flex-start; gap: 4px; min-height: 52px; padding: 6px 2px; border-radius: 12px; border: 1px solid transparent; background: var(--panel); font-size: 15px; font-weight: 600; }
   button.cal-day.out { background: none; color: var(--muted); font-weight: 400; opacity: .55; }
   button.cal-day.today { border-color: var(--accent); color: var(--accent); }
-  button.cal-day.sel { background: var(--accent); color: #fff; border-color: transparent; }
+  button.cal-day.sel { background: var(--accent); color: #1f1608; border-color: transparent; }
   .cal-dots { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; max-width: 34px; }
   .cal-dots i { width: 6px; height: 6px; border-radius: 50%; }
   button.cal-day.sel .cal-dots i { box-shadow: 0 0 0 1.5px #fff; }
@@ -295,11 +295,11 @@
   .proto-status b { color: var(--text); font-size: 15px; }
   .proto-status.do-akceptacji { border-color: rgba(245, 165, 36, .5); }
   .proto-status.do-akceptacji b { color: #f5a524; }
-  .proto-status.zatwierdzony { border-color: rgba(61, 220, 151, .45); background: var(--ok-soft); }
+  .proto-status.zatwierdzony { border-color: rgba(116, 198, 157, .45); background: var(--ok-soft); }
   .proto-status.zatwierdzony b { color: var(--ok); }
   .ev .tag.szkic { --c: #8f98a8; }
   .ev .tag.do-akceptacji { --c: #f5a524; }
-  .ev .tag.zatwierdzony { --c: #3ddc97; }
+  .ev .tag.zatwierdzony { --c: #74c69d; }
   .proto-item { display: flex; flex-direction: column; gap: 8px; padding: 10px; margin-bottom: 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
   .pi-head { display: flex; align-items: center; gap: 8px; }
   .pi-head .pos { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; }
@@ -333,16 +333,16 @@
   /* komunikaty rady, ogłoszenia, newsletter, podgląd publiczny */
   button.notice, .notice { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; text-align: left; padding: 14px; margin-bottom: 12px; border-radius: 16px;
     background: linear-gradient(135deg, rgba(245, 165, 36, .16), rgba(245, 165, 36, .06)); border: 1px solid rgba(245, 165, 36, .45); }
-  .notice-tag { display: inline-flex; align-items: center; gap: 6px; color: #f5a524; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .notice-tag { display: inline-flex; align-items: center; gap: 6px; color: #e07a5f; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
   .notice-tag svg.i { width: 16px; height: 16px; }
   .notice b { font-size: 17px; }
   .notice-text { color: var(--text); opacity: .85; font-size: 15px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   button.ann, .ann { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; text-align: left; padding: 12px 14px; margin-bottom: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
-  .ann.important { border-color: rgba(245, 165, 36, .45); }
+  .ann.important { border-color: rgba(224, 122, 95, .45); }
   .ann.old { opacity: .6; }
   .ann-tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .ann-tag { padding: 1px 8px; border-radius: 999px; background: var(--panel2); color: var(--muted); font-size: 11px; font-weight: 700; }
-  .ann-tag.imp { background: rgba(245, 165, 36, .16); color: #f5a524; }
+  .ann-tag.imp { background: rgba(224, 122, 95, .16); color: #e07a5f; }
   .ann-body { color: var(--muted); font-size: 14px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .ann-body.full { display: block; }
   textarea.ann-text { min-height: 160px; }
@@ -359,8 +359,8 @@
   .notices::-webkit-scrollbar { display: none; }
   .notices .notice { flex: 0 0 86%; margin: 0; scroll-snap-align: start; }
   .notices.single .notice { flex-basis: 100%; }
-  .hero { display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 100%; text-align: left; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(91, 140, 255, .45); }
-  .hero.live { border-color: rgba(240, 72, 62, .6); }
+  .hero { display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 100%; text-align: left; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(232, 163, 61, .45); }
+  .hero.live { border-color: rgba(229, 83, 75, .6); }
   .hero-top { display: flex; align-items: center; min-height: 22px; }
   .hero-cd { color: var(--accent); font-size: 13px; font-weight: 600; }
   .hero .cd-live { margin: 0; font-size: 13px; padding: 2px 10px; }
@@ -393,12 +393,52 @@
   .gcal { display: flex; flex-direction: column; gap: 10px; }
   .gcal p { margin: 0; }
   .gcal a.button { width: 100%; gap: 8px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
-  .gcal a.button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+  .gcal a.button.primary { background: var(--accent); border-color: transparent; color: #1f1608; }
   .gcal label { margin-top: 10px; }
   .gcal-url { display: flex; gap: 8px; }
   .gcal-url input { font-size: 13px; }
   .desktop-mode { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bad-soft); color: var(--bad-text); font-size: 14px; }
   @media (min-width: 720px) { #app { max-width: 760px; } }
+  /* powitanie (wszędzie) */
+  .hello { margin: 4px 0 14px; }
+  .hello h1 { margin: 0; font: 600 24px/1.2 Georgia, 'Times New Roman', serif; letter-spacing: -.01em; }
+  .hello p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  .start-top .hero { margin-bottom: 14px; }
+  .week-cols { display: none; }
+  /* Przeglądarka na komputerze: układ jak aplikacja na komputer — zakładki u góry, szeroka strona. */
+  @media (min-width: 1024px) {
+    body { padding-left: 32px; padding-right: 32px; }
+    #app { max-width: 1180px; display: flex; flex-direction: column; }
+    #app > header { order: -2; padding-top: 18px; }
+    #app.tabbed { padding-bottom: 32px; }
+    .tabbar { order: -1; position: sticky; top: 0; bottom: auto; left: auto; right: auto; justify-content: flex-start; gap: 6px; margin: 0 0 18px; padding: 8px 0;
+      background: var(--bg); border-top: 0; border-bottom: 1px solid var(--line); backdrop-filter: none; }
+    .tabbar button { flex: none; max-width: none; flex-direction: row; gap: 8px; min-height: 40px; padding: 8px 16px; font-size: 14px; }
+    .tabbar svg.i { width: 18px; height: 18px; }
+    .tabbar button .count { position: static; margin-left: 2px; }
+    .hello h1 { font-size: 32px; }
+    .start-top { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 2fr); gap: 14px; align-items: stretch; margin-bottom: 8px; }
+    .start-top .hero { margin: 0; }
+    .start-top .notices { margin: 0; padding: 0 0 6px; }
+    .start-top .notices .notice { flex: 0 0 300px; }
+    .start-panels { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+    .start-panels > section { padding: 4px 16px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+    .start-panels .section h2 { font: 600 18px Georgia, 'Times New Roman', serif; letter-spacing: 0; text-transform: none; color: var(--text); }
+    .week-list-only { display: none; }
+    .week-cols { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+    .wc-day { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-height: 180px; padding: 8px 6px; border-radius: 10px; background: var(--panel2); }
+    .wc-day.today { box-shadow: inset 0 0 0 1px var(--accent); }
+    .wc-wd { text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+    .wc-n { align-self: center; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 700; margin-bottom: 4px; }
+    .wc-day.today .wc-n { background: var(--accent); color: #1f1608; }
+    button.wc-ev { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; min-height: 0; padding: 5px 6px; border: 0; border-left: 3px solid var(--c); border-radius: 6px;
+      background: color-mix(in srgb, var(--c) 16%, transparent); font-size: 12px; line-height: 1.25; text-align: left; }
+    .wc-ev small { display: block; color: var(--muted); font-size: 11px; }
+    .news-grid { grid-template-columns: 1fr; }
+    .news-card { min-height: 0; }
+    /* edytory i listy: wygodna szerokość, nie na cały ekran */
+    #app.narrow { max-width: 760px; }
+  }
   /* konta: oczekiwanie na zatwierdzenie, osoby i rangi */
   .gate h2 { font-size: 21px; margin: 0 0 6px; }
   .gate .note { max-width: 420px; margin: 0 auto 18px; }
@@ -410,7 +450,7 @@
   .gate-pending i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: cdpulse 1.4s ease-in-out infinite; }
   .gate-links { display: flex; justify-content: center; gap: 4px; margin-top: 8px; }
   .person { padding: 14px; margin-bottom: 10px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
-  .person.pending { border-color: rgba(91, 140, 255, .45); }
+  .person.pending { border-color: rgba(232, 163, 61, .45); }
   .person.rejected { opacity: .7; }
   .p-head { display: flex; align-items: center; gap: 12px; }
   .avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; flex: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 15px; }
@@ -419,7 +459,7 @@
   .p-head .meta small { color: var(--muted); font-size: 13px; }
   .ranks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
   button.rank { min-height: 34px; padding: 4px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); background: none; }
-  button.rank.on { color: var(--accent); background: var(--accent-soft); border-color: rgba(91, 140, 255, .5); font-weight: 600; }
+  button.rank.on { color: var(--accent); background: var(--accent-soft); border-color: rgba(232, 163, 61, .5); font-weight: 600; }
   .p-actions { display: flex; gap: 8px; margin-top: 12px; }
   .p-actions > button { flex: 1; }
   .p-actions .ghost { flex: 0 1 auto; color: var(--bad-text); }
@@ -474,7 +514,7 @@
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
 </svg>
 
-<div id="app" v-cloak :class="{ tabbed: showTabs }">
+<div id="app" v-cloak :class="{ tabbed: showTabs, narrow: !!(current || song || currentEvent || currentProto || currentAnn || tplType || peopleView || moreView || gcalView || annView || protoView || tplView || songView) }">
   <header>
     <img src="znak.png" alt="">
     <h1>{{ current ? 'Nabożeństwo' : currentAnn ? 'Ogłoszenie' : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
@@ -509,7 +549,7 @@
   <!-- Instalacja: jeden niski pasek — ikona, tytuł, „Pobierz”. -->
   <div v-if="desktop && !current && !currentEvent && !tplView && !currentProto && !protoView && !currentAnn && !annView && !hideDesktop" class="getapp">
     <img src="icon-192.png" alt="">
-    <span class="ga-text"><b>Aplikacja na komputer</b><small>{{ desktopApp.error || 'Windows' + (desktopApp.version ? ' · ' + desktopApp.version : '') }}</small></span>
+    <span class="ga-text"><b>Aplikacja na komputer — dla służby technicznej</b><small>{{ desktopApp.error || 'Rzutnik, stream i organizacja nabożeństw · Windows' + (desktopApp.version ? ' · wersja ' + desktopApp.version : '') + (desktopApp.size ? ' · ' + desktopApp.size : '') }}</small></span>
     <a v-if="desktopApp.url" class="button primary" :href="desktopApp.url"><svg class="i"><use href="#download"/></svg>Pobierz</a>
     <button class="icon" aria-label="Ukryj" title="Ukryj" @click="dismissDesktop"><svg class="i"><use href="#x"/></svg></button>
   </div>
@@ -996,54 +1036,79 @@
     </div>
   </template>
 
-  <!-- Start: komunikaty rady, najbliższe nabożeństwo, ten tydzień, kartki z newslettera -->
+  <!-- Start: powitanie, najbliższe nabożeństwo i komunikaty rady, ten tydzień, kartki z newslettera.
+       Na szerokim ekranie (przeglądarka na komputerze) — układ jak w aplikacji na komputer. -->
   <template v-else-if="!current">
-    <div v-if="importantAnns.length" class="notices" :class="{ single: importantAnns.length === 1 }" aria-label="Komunikaty rady zboru">
-      <button v-for="a in importantAnns" :key="a.id" class="notice" @click="openAnn(a)">
-        <span class="notice-tag"><svg class="i"><use href="#megaphone"/></svg>Komunikat rady zboru</span>
-        <b>{{ a.title }}</b>
-        <span class="notice-text">{{ a.text }}</span>
-      </button>
+    <div class="hello">
+      <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
+      <p>Oto co dzieje się w kościele.</p>
     </div>
 
-    <button v-if="nextService" class="hero" :class="{ live: countdown?.live }" @click="open(nextService)">
-      <span class="hero-top">
-        <span v-if="countdown?.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
-        <span v-else class="hero-cd">Najbliższe nabożeństwo · {{ untilText }}</span>
-      </span>
-      <b class="hero-when">{{ pretty(nextService.date).replace(/ \d{4}$/, '').replace(/^./, c => c.toUpperCase()) }}, {{ nextService.time || DEFAULT_TIME }}</b>
-      <span class="hero-place">{{ nextService.place || DEFAULT_PLACE }}</span>
-      <span v-if="nextService.sermonTitle || nextService.passage" class="hero-sermon">{{ [nextService.sermonTitle, nextService.passage].filter(Boolean).join(' · ') }}<template v-if="nextService.speaker"> — {{ nextService.speaker }}</template></span>
-      <span v-if="canEdit" class="chips">
-        <span v-if="!missing(nextService).length" class="chip good"><svg class="i"><use href="#check"/></svg>Komplet</span>
-        <span v-for="m in missing(nextService)" :key="m" class="chip"><svg class="i"><use href="#warn"/></svg>brak: {{ m }}</span>
-      </span>
-    </button>
-    <div v-else-if="canEdit" class="hero empty-hero">
-      <b>Nie ma zaplanowanego nabożeństwa</b>
-      <span class="hero-place">Na niedzielę {{ pretty(nextSundayDate).replace(/^niedziela, /, '') }} nic jeszcze nie ma.</span>
-      <button class="primary" @click="create(nextSundayDate)"><svg class="i"><use href="#plus"/></svg>Utwórz nabożeństwo</button>
+    <div class="start-top">
+      <button v-if="nextService" class="hero" :class="{ live: countdown?.live }" @click="open(nextService)">
+        <span class="hero-top">
+          <span v-if="countdown?.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
+          <span v-else class="hero-cd">Najbliższe nabożeństwo · {{ untilText }}</span>
+        </span>
+        <b class="hero-when">{{ pretty(nextService.date).replace(/ \d{4}$/, '').replace(/^./, c => c.toUpperCase()) }}, {{ nextService.time || DEFAULT_TIME }}</b>
+        <span class="hero-place">{{ nextService.place || DEFAULT_PLACE }}</span>
+        <span v-if="nextService.sermonTitle || nextService.passage" class="hero-sermon">{{ [nextService.sermonTitle, nextService.passage].filter(Boolean).join(' · ') }}<template v-if="nextService.speaker"> — {{ nextService.speaker }}</template></span>
+        <span v-if="canEdit" class="chips">
+          <span v-if="!missing(nextService).length" class="chip good"><svg class="i"><use href="#check"/></svg>Komplet</span>
+          <span v-for="m in missing(nextService)" :key="m" class="chip"><svg class="i"><use href="#warn"/></svg>brak: {{ m }}</span>
+        </span>
+      </button>
+      <div v-else-if="canEdit" class="hero empty-hero">
+        <b>Nie ma zaplanowanego nabożeństwa</b>
+        <span class="hero-place">Na niedzielę {{ pretty(nextSundayDate).replace(/^niedziela, /, '') }} nic jeszcze nie ma.</span>
+        <button class="primary" @click="create(nextSundayDate)"><svg class="i"><use href="#plus"/></svg>Utwórz nabożeństwo</button>
+      </div>
+
+      <div v-if="importantAnns.length" class="notices" :class="{ single: importantAnns.length === 1 }" aria-label="Komunikaty rady zboru">
+        <button v-for="a in importantAnns" :key="a.id" class="notice" @click="openAnn(a)">
+          <span class="notice-tag"><svg class="i"><use href="#megaphone"/></svg>Komunikat rady zboru</span>
+          <b>{{ a.title }}</b>
+          <span class="notice-text">{{ a.text }}</span>
+        </button>
+      </div>
     </div>
 
-    <div class="section"><h2>Ten tydzień</h2><button class="ghost" @click="openCalendar">Kalendarz</button></div>
-    <p v-if="!weekItems.length" class="note">W najbliższych dniach nic nie zaplanowano.</p>
-    <div v-else class="week">
-      <button v-for="it in weekItems" :key="it.kind + it.id" class="week-row" @click="openItem(it)">
-        <span class="week-day" :class="{ today: it.date === todayStr }">{{ dayLabel(it.date) }}</span>
-        <i class="week-dot" :style="{ background: typeOf(it.type).color }"></i>
-        <span class="week-title">{{ it.title }}</span>
-        <span class="week-time">{{ it.time }}</span>
-      </button>
-    </div>
+    <div class="start-panels">
+      <section class="sp-week">
+        <div class="section"><h2>Ten tydzień</h2><button class="ghost" @click="openCalendar">Kalendarz</button></div>
+        <!-- telefon: lista -->
+        <p v-if="!weekItems.length" class="note week-list-only">W najbliższych dniach nic nie zaplanowano.</p>
+        <div v-else class="week week-list-only">
+          <button v-for="it in weekItems" :key="it.kind + it.id" class="week-row" @click="openItem(it)">
+            <span class="week-day" :class="{ today: it.date === todayStr }">{{ dayLabel(it.date) }}</span>
+            <i class="week-dot" :style="{ background: typeOf(it.type).color }"></i>
+            <span class="week-title">{{ it.title }}</span>
+            <span class="week-time">{{ it.time }}</span>
+          </button>
+        </div>
+        <!-- szeroki ekran: 7 kolumn -->
+        <div class="week-cols">
+          <div v-for="d in weekDays" :key="d.date" class="wc-day" :class="{ today: d.date === todayStr }">
+            <span class="wc-wd">{{ d.wd }}</span>
+            <span class="wc-n">{{ d.n }}</span>
+            <button v-for="it in d.items" :key="it.kind + it.id" class="wc-ev" :style="{ '--c': typeOf(it.type).color }" :title="(it.time ? it.time + ' ' : '') + it.title" @click="openItem(it)">
+              <small v-if="it.time">{{ it.time }}</small>{{ it.kind === 'service' ? 'Nabożeństwo' : it.title }}
+            </button>
+          </div>
+        </div>
+      </section>
 
-    <div class="section"><h2>Z newslettera</h2><button class="ghost" @click="openAnns">{{ canAnnounce ? 'Wszystkie / dodaj' : 'Wszystkie' }}</button></div>
-    <p v-if="!homeAnns.length" class="note">Nie ma nowych ogłoszeń.</p>
-    <div v-else class="news-grid">
-      <button v-for="a in homeAnns" :key="a.id" class="news-card" @click="openAnn(a)">
-        <b>{{ a.title }}</b>
-        <span>{{ a.text }}</span>
-        <small>{{ shortDate(a.date) }}</small>
-      </button>
+      <section class="sp-news">
+        <div class="section"><h2>Z newslettera</h2><button class="ghost" @click="openAnns">{{ canAnnounce ? 'Wszystkie / dodaj' : 'Wszystkie' }}</button></div>
+        <p v-if="!homeAnns.length" class="note">Nie ma nowych ogłoszeń.</p>
+        <div v-else class="news-grid">
+          <button v-for="a in homeAnns" :key="a.id" class="news-card" @click="openAnn(a)">
+            <b>{{ a.title }}</b>
+            <span>{{ a.text }}</span>
+            <small>{{ shortDate(a.date) }}</small>
+          </button>
+        </div>
+      </section>
     </div>
   </template>
 
@@ -1268,7 +1333,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.35 · 17.10.2026'
+const VERSION = '2.37 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2081,17 +2146,25 @@ createApp({
       const until = localDate(new Date(Date.now() + 6 * 86400000))
       return calItems.value.filter(it => it.date >= todayStr.value && it.date <= until)
     })
+    // Szeroki ekran: tydzień w 7 kolumnach.
+    const weekDays = computed(() => Array.from({ length: 7 }, (_, i) => {
+      const date = localDate(new Date(asDate(todayStr.value).getTime() + i * 86400000))
+      return { date, wd: wd(date), n: day(date), items: calItems.value.filter(it => it.date === date) }
+    }))
+    // Powitanie: przed 18 „Dzień dobry”, potem „Dobry wieczór”; imię z konta.
+    const greeting = (h => (h >= 5 && h < 18 ? 'Dzień dobry' : 'Dobry wieczór'))(new Date().getHours())
+    const firstName = computed(() => { const n = me.value?.name || ''; return n && !/tryb pokazowy/.test(n) ? n.split(/\s+/)[0] : '' })
     const dayLabel = d => {
       const t = todayStr.value, next = localDate(new Date(asDate(t).getTime() + 86400000))
       return d === t ? 'dziś' : d === next ? 'jutro' : wd(d) + ' ' + day(d)
     }
     // Chrome w trybie „wersja na komputer” udaje szeroki ekran — wtedy wszystko jest drobne.
-    const desktopMode = screen.width < 600 && innerWidth > 800
+    const desktopMode = screen.width < 600 && innerWidth > 800 && matchMedia('(pointer: coarse)').matches
     // Instalacja: Android/Chrome podaje gotowe okno instalacji, iPhone wymaga dodania ręcznie z Safari.
     const installed = ref(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)
     // Komputer (Windows): zamiast instalacji strony — instalator aplikacji na komputer z najnowszego wydania na GitHubie.
     const desktop = !/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) && /windows/i.test(navigator.userAgent) && !installed.value
-    const desktopApp = Vue.reactive({ url: '', version: '', error: '' })
+    const desktopApp = Vue.reactive({ url: '', version: '', size: '', error: '' })
     let desktopHidden = false
     try { desktopHidden = localStorage.getItem('kns-desktop-hidden') === '1' } catch { /* tryb prywatny */ }
     const hideDesktop = ref(desktopHidden)
@@ -2101,6 +2174,7 @@ createApp({
         const asset = rel?.assets?.find(a => /instalator.*\.exe$/i.test(a.name)) || rel?.assets?.find(a => /\.exe$/i.test(a.name))
         if (!asset) { desktopApp.error = 'Instalator nie jest jeszcze opublikowany — zajrzyj tu za jakiś czas.'; return }
         desktopApp.url = asset.browser_download_url
+        desktopApp.size = asset.size ? Math.round(asset.size / 1048576) + ' MB' : ''
         desktopApp.version = String(rel.tag_name || '').replace(/^v/, '')
       }).catch(() => { desktopApp.error = 'Nie udało się sprawdzić najnowszej wersji — sprawdź internet.' })
     }
@@ -2262,6 +2336,7 @@ createApp({
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,
       gcalView, gcal, openGcal, renewGcal, copyGcal,
+      weekDays, greeting, firstName,
       moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,

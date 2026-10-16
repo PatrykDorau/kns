@@ -99,23 +99,24 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
 .strip b { font-size: 16px; line-height: 1.3; }
 .card-body { flex: 1; font-size: 13px; opacity: .85; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .card-foot { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
-.card-svc { justify-content: flex-start; background: linear-gradient(160deg, #22325a, #171a21 70%); border: 1px solid rgba(91, 140, 255, .45); }
+.card-svc { justify-content: flex-start; background: linear-gradient(160deg, #4a3418, #1e1b18 70%); border: 1px solid rgba(232, 163, 61, .45); }
 .card-svc .card-tag { color: var(--accent); }
 .card-svc b::first-letter { text-transform: uppercase; }
 .until { padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-.until.live { background: rgba(240, 72, 62, .18); color: #ff8a82; }
-.card-notice { background: linear-gradient(160deg, rgba(245, 165, 36, .18), #171a21 75%); border: 1px solid rgba(245, 165, 36, .4); }
-.card-notice .card-tag, .card-notice b { color: #f5b942; }
+.until.live { background: rgba(229, 83, 75, .18); color: #ff8a82; }
+.card-notice { background: linear-gradient(160deg, rgba(224, 122, 95, .18), #1e1b18 75%); border: 1px solid rgba(224, 122, 95, .4); }
+.card-notice .card-tag, .card-notice b { color: #e8957d; }
 .card-empty { background: var(--panel); border: 1px dashed var(--line); color: var(--muted); }
 .pill { font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
-.pill.bad { background: rgba(240, 72, 62, .16); color: #ff8a82; }
+.pill.bad { background: rgba(229, 83, 75, .16); color: #ff8a82; }
 .panels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; }
 .panel { padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); min-width: 0; }
 .panel-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
 .panel-h h2 { margin: 0; font: 600 18px Georgia, 'Times New Roman', serif; text-transform: none; letter-spacing: 0; color: var(--text); }
 .muted { color: var(--muted); font-size: 12px; }
 .spacer { flex: 1; }
-.linklike { background: none; border: 0; padding: 0; color: var(--accent); font-size: 13px; }
+.linklike { background: var(--accent-soft); border: 0; padding: 6px 14px; border-radius: 999px; color: var(--accent); font-size: 13px; font-weight: 600; }
+.linklike:hover:not(:disabled) { background: rgba(232, 163, 61, .24); }
 .ann-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
 .ann-row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; background: var(--panel2); }
 .ann-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font: 600 20px Georgia, serif; }
@@ -127,7 +128,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
 .day.today { box-shadow: inset 0 0 0 1px var(--accent); }
 .day-wd { text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
 .day-n { align-self: center; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 700; margin-bottom: 4px; }
-.day.today .day-n { background: var(--accent); color: #fff; }
+.day.today .day-n { background: var(--accent); color: #1f1608; }
 .day-ev { display: block; justify-content: flex-start; padding: 5px 6px; border: 0; border-left: 3px solid var(--c); border-radius: 6px; background: color-mix(in srgb, var(--c) 16%, transparent); font-size: 11.5px; text-align: left; line-height: 1.25; white-space: normal; overflow-wrap: normal; word-break: normal; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .day-ev small { display: block; color: var(--muted); font-size: 11px; }
 </style>
