@@ -84,7 +84,12 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 - [x] Stream: program nabożeństwa w panelu (w dniu nabożeństwa zaznaczony punkt „TERAZ”, kopiowanie)
 - [x] Rzutnik: przycisk „Ogłoszenia” — aktualne ogłoszenia (bez rady) jako pętla slajdów przełączanych co 12 s
 
-### 5. Baza danych (później)
+### 5. Baza danych (Supabase)
+- [x] Projekt Supabase `kns-nabo` (https://igkjlgdpvgdeqfqctnnf.supabase.co, region Europa, plan Free); klucz publiczny w repozytorium jest bezpieczny (sb_publishable_…), sekretnego nie używamy w aplikacjach
+- [x] Schemat `supabase/schema.sql` (rangi, osoby, nabożeństwa, pieśni, wydarzenia, szablony, protokoły, ogłoszenia, telefony; RLS według rang; `set_person`, `set_newsletter`, `public_preview`) — test: `npm i --no-save @electric-sql/pglite@0.2.17 && node supabase/test-schema.mjs`
+- [ ] Uruchomić schemat w Supabase (SQL Editor) z adresem administratora
+- [ ] Logowanie Google w Supabase (Authentication → Providers → Google; redirect URI w Google Cloud)
+- [ ] Telefon i komputer na Supabase (zamiast JSON na Dysku), migracja danych z Dysku, codzienne „szturchnięcie”
 - [ ] Supabase: tabele osób, rang, wydarzeń, programów, protokołów, ogłoszeń; uprawnienia w bazie (RLS);
   logowanie Google; pliki zostają na Dysku; migracja z JSON na Dysku
 
