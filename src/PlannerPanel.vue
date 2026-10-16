@@ -5,10 +5,13 @@ import SyncButton from './SyncButton.vue'
 import SongManager from './SongManager.vue'
 import Brand from './Brand.vue'
 import StatsPanel from './StatsPanel.vue'
+import ProgramEditor from './ProgramEditor.vue'
+import ChurchCalendar from './ChurchCalendar.vue'
+import { addMinutes, category, programFrom } from '../mobile/church.js'
 import { ago, songHistory } from './stats.js'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
-  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay,
+  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay, churchTypes,
 } from './store.js'
 
 // Organizacja nabożeństw: plan, z którego korzystają potem rzutnik i stream.
@@ -24,7 +27,7 @@ watch(current, svc => { plannerTarget.value = svc }, { immediate: true })
 
 function load(svc, fresh = false) {
   currentId.value = svc?.id ?? null
-  const withDefaults = s => ({ time: DEFAULT_TIME, place: DEFAULT_PLACE, ...copy(s) })
+  const withDefaults = s => ({ time: DEFAULT_TIME, place: DEFAULT_PLACE, program: [], ...copy(s) })
   current.value = svc ? withDefaults(svc) : null
   base.value = svc ? withDefaults(svc) : null
   isNew.value = fresh
@@ -69,8 +72,17 @@ function create(date) {
   const day = typeof date === 'string' ? date : today()
   const existing = services.value.find(s => s.date === day)
   if (existing) { load(existing); message.value = 'Na ten dzień jest już nabożeństwo — otwarto je.'; return }
-  load(newService(day, false), true)
+  const svc = newService(day, false)
+  svc.program = programFrom(serviceType.value, uid)
+  load(svc, true)
 }
+// Program nabożeństwa z szablonu (szablony zmienia się na telefonie: Kalendarz → Szablony).
+const serviceType = computed(() => churchTypes.value.find(t => t.id === 'nabozenstwo') || { program: [] })
+function fillProgram() {
+  if (current.value.program.length && !confirm('Zastąpić obecny program programem z szablonu?')) return
+  current.value.program = programFrom(serviceType.value, uid)
+}
+const leftTab = ref('list') // lista nabożeństw albo kalendarz
 // Alarm prowadzi prosto do rzeczy: tworzy brakujące nabożeństwo albo otwiera to niekompletne.
 function fixAlert() {
   if (planAlert.value.service) select(planAlert.value.service)
@@ -90,9 +102,11 @@ function discard() { if (confirm('Porzucić zmiany i wrócić do zapisanej wersj
 
 /* ---------- zapis z wykrywaniem zmian innych osób ---------- */
 // Porównanie: co ktoś zmienił od otwarcia (jego wersja), a co jest u mnie — pokazywane przed nadpisaniem.
+const programText = (v, svc) => (v || []).slice().sort((a, b) => a.offset - b.offset)
+  .map(p => addMinutes(svc.time || DEFAULT_TIME, p.offset) + ' ' + category(p.category).name + (p.title ? ' — ' + p.title : '') + (p.person ? ' (' + p.person + ')' : '')).join('\n')
 const FIELDS = [['date', 'Data', v => prettyDate(v)], ['time', 'Godzina', v => v || DEFAULT_TIME], ['place', 'Miejsce', v => v || DEFAULT_PLACE], ['sermonTitle', 'Tytuł kazania'], ['passage', 'Fragment'], ['speaker', 'Mówca'], ['band', 'Skład zespołu'],
-  ['songs', 'Pieśni', v => v.map(songTitle).join('\n')], ['files', 'Załączniki', v => v.map(x => x.name).join('\n')], ['notes', 'Dodatkowe informacje']]
-const show = (field, svc) => { const [key, , fmt] = field; const v = svc[key] ?? ''; return (fmt ? fmt(v) : String(v)) || '—' }
+  ['program', 'Program', programText], ['songs', 'Pieśni', v => v.map(songTitle).join('\n')], ['files', 'Załączniki', v => v.map(x => x.name).join('\n')], ['notes', 'Dodatkowe informacje']]
+const show = (field, svc) => { const [key, , fmt] = field; const v = svc[key] ?? ''; return (fmt ? fmt(v, svc) : String(v)) || '—' }
 const conflict = ref(null) // { theirs, rows: [{ label, theirs, mine, lost }] }
 function compare(theirs) {
   const rows = []
@@ -179,8 +193,12 @@ load(nearestService.value)
 
     <main class="planner">
       <section>
-        <h2>Nabożeństwa</h2>
-        <ul class="list">
+        <div class="tabs" role="tablist">
+          <button role="tab" :aria-selected="leftTab === 'list'" :class="{ on: leftTab === 'list' }" @click="leftTab = 'list'">Nabożeństwa</button>
+          <button role="tab" :aria-selected="leftTab === 'cal'" :class="{ on: leftTab === 'cal' }" @click="leftTab = 'cal'"><Icon name="calendar" />Kalendarz</button>
+        </div>
+        <ChurchCalendar v-if="leftTab === 'cal'" :selected="currentId || ''" @select="select" />
+        <ul v-else class="list">
           <li v-if="isNew && current" class="row selected"><button class="pick"><span class="meta"><span class="name">{{ prettyDate(current.date) }}</span><span class="kind">Nowe — jeszcze niezapisane</span></span></button></li>
           <li v-if="!services.length && !isNew" class="empty"><Icon name="calendar" />Nie ma jeszcze żadnego nabożeństwa.<br>Kliknij „Nowe nabożeństwo”.</li>
           <!-- Nadchodzące: czerwona obwódka (braki) albo zielona (komplet), z ikonką w rogu; minione — przygaszone. -->
@@ -222,6 +240,10 @@ load(nearestService.value)
             <template v-if="current.createdBy">Utworzył(a): <b>{{ current.createdBy }}</b></template>
             <template v-if="current.updatedBy"><template v-if="current.createdBy"> · </template>ostatnia zmiana: <b>{{ current.updatedBy }}</b><template v-if="current.updated">, {{ when(current.updated) }}</template></template>
           </p>
+
+          <h2 class="sub">Program nabożeństwa</h2>
+          <ProgramEditor :items="current.program" :start="current.time || DEFAULT_TIME" :template="serviceType.program"
+                         :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }" @fill="fillProgram" />
 
           <label for="pBand">Skład zespołu (opcjonalnie)</label>
           <textarea id="pBand" v-model="current.band" class="short" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>

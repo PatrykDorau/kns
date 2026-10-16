@@ -1,3 +1,4 @@
+import { mergeTypes } from '../mobile/church.js'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { parseBibleXml, parseRef, passage, refLabel, toSlides } from './bible.js'
 export { parseBibleXml } // do testów
@@ -33,6 +34,9 @@ export const settings = reactive({
 export const appUpdate = ref({ current: '' })
 export const role = ref(null) // wybrana służba: 'display' | 'stream' | 'planner'
 export const services = ref([]) // zaplanowane nabożeństwa
+// Życie kościoła z Dysku Google (zapisywane na telefonie): rodzaje wydarzeń z szablonami i wydarzenia.
+export const churchTypes = ref(mergeTypes(null))
+export const churchEvents = ref([])
 export const serviceModal = ref(false) // okno „Wczytaj nabożeństwo”
 export const plannerTarget = ref(null) // nabożeństwo edytowane w organizacji — tam trafia pieśń dodana z bazy
 export const tab = ref('materials')
@@ -839,6 +843,8 @@ async function runSync() {
   const res = await api.sharedRead(dir)
   googleExpired.value = !!res.needLogin
   if (res.error) { sharedStatus.value = res.error; return }
+  if (res.templates !== undefined) churchTypes.value = mergeTypes(res.templates)
+  if (Array.isArray(res.events)) churchEvents.value = res.events
   const seen = new Set()
   for (const payload of res.list) {
     const id = payload.service.id

@@ -219,7 +219,34 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       })
       result.push(payload)
     }))
-    return { list: result }
+    // Życie kościoła (szablony i wydarzenia z telefonu) — błąd tutaj nie zatrzymuje synchronizacji nabożeństw.
+    const church = await readChurch().catch(e => { if (e.needLogin) throw e; return {} })
+    return { list: result, ...church }
+  }
+
+  // Szablony rodzajów wydarzeń (program nabożeństwa) i wydarzenia z ostatnich 120 dni i przyszłe.
+  async function readChurch() {
+    const { root } = await folders()
+    const cached = async file => {
+      let c = jsonCache.get(file.id)
+      if (!c || c.modified !== file.modifiedTime) { c = { modified: file.modifiedTime, payload: await readJson(file.id) }; jsonCache.set(file.id, c) }
+      return JSON.parse(JSON.stringify(c.payload))
+    }
+    const [tplDir, evDir] = await Promise.all([subfolder(root, 'szablony'), subfolder(root, 'wydarzenia')])
+    let templates = null
+    if (tplDir) {
+      const [file] = await list(`${q(tplDir)} in parents and name='szablony.json' and trashed=false`)
+      if (file) templates = (await cached(file)).types || null
+    }
+    const events = []
+    if (evDir) {
+      const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
+      const dirs = new Set((await list(`${q(evDir)} in parents and mimeType='${FOLDER}' and trashed=false`))
+        .filter(d => !/^\d{4}-\d{2}-\d{2}/.test(d.name) || d.name.slice(0, 10) >= since).map(d => d.id))
+      const jsons = dirs.size ? (await list(`name='wydarzenie.json' and trashed=false`)).filter(f => f.parents?.some(p => dirs.has(p))) : []
+      await Promise.all(jsons.map(async f => { const ev = (await cached(f)).event; if (ev?.id) events.push(ev) }))
+    }
+    return { templates, events }
   }
 
   async function writeService(payload) {
