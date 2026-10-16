@@ -32,7 +32,7 @@ const ctx = {
   PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k === 'SUPABASE_SECRET' ? 'sb_secret_TEST' : null) }) },
   Session: { getScriptTimeZone: () => 'Europe/Warsaw' },
   Utilities: { formatDate: (d, tz, f) => (f === 'yyyy-MM-dd' ? iso(d) : f === 'u' ? String(d.getDay() || 7) : f === 'H' ? String(d.getHours()) : f === 'd.MM.yyyy' ? iso(d).split('-').reverse().join('.') : iso(d).slice(8, 10) + '.' + iso(d).slice(5, 7)) },
-  DriveApp: { getFoldersByName(name) {
+  DriveApp: { getFolderById(id) { if (id !== '1pI2FlyMq8XUQHbJlELd1OuxsCIz-RRnG') throw new Error('zły folder'); return folder }, getFoldersByName(name) {
     if (name !== 'Aplikacja KNS Nabo') throw new Error('Dysk nie powinien być używany do danych w trybie bazy: ' + name)
     let used = false
     return { hasNext: () => !used, next: () => { used = true; return folder } }

@@ -8,7 +8,7 @@ module.exports = {
 
   // Folder aplikacji na Dysku: najpewniej jego identyfikator (końcówka adresu
   // drive.google.com/drive/folders/<IDENTYFIKATOR>); gdy pusty, folder jest szukany po nazwie.
-  folderId: '',
+  folderId: '1pI2FlyMq8XUQHbJlELd1OuxsCIz-RRnG',
   folderName: 'Aplikacja KNS Nabo',
   servicesFolder: 'nabozenstwa',
   songsFolder: 'piesni',

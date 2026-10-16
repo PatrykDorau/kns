@@ -8,7 +8,7 @@
 // Instalacja (raz): „+” → Skrypt → nazwa „baza” → wklej ten plik; Ustawienia projektu → Właściwości skryptu →
 // Dodaj: SUPABASE_SECRET = klucz secret; potem uruchom „ustawNewsletterBazy” (newsletter co czwartek o 18:00).
 
-const BAZA = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', folder: 'Aplikacja KNS Nabo' }
+const BAZA = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', folderId: '1pI2FlyMq8XUQHbJlELd1OuxsCIz-RRnG', folder: 'Aplikacja KNS Nabo' }
 
 function bazaKlucz() { return PropertiesService.getScriptProperties().getProperty('SUPABASE_SECRET') || '' }
 function bazaWlaczona() { return !!bazaKlucz() }
@@ -51,9 +51,12 @@ function bazaUdostepnij() {
   const sig = want.join(',') + '|' + others.join(',')
   const props = PropertiesService.getScriptProperties()
   if (props.getProperty('UDOSTEPNIENIE') === sig) return
-  const found = DriveApp.getFoldersByName(BAZA.folder)
-  if (!found.hasNext()) return
-  const dir = found.next()
+  let dir = null
+  try { dir = DriveApp.getFolderById(BAZA.folderId) } catch (e) {
+    const found = DriveApp.getFoldersByName(BAZA.folder)
+    if (found.hasNext()) dir = found.next()
+  }
+  if (!dir) return
   const owner = dir.getOwner() ? lower(dir.getOwner().getEmail()) : ''
   const editors = dir.getEditors().map(u => lower(u.getEmail()))
   for (const e of want) if (e && e !== owner && editors.indexOf(e) < 0) dir.addEditor(e)

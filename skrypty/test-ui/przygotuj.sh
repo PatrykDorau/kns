@@ -8,6 +8,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 out="${TEMP:-/tmp}/kns-mtest"
 rm -rf "$out" && cp -r "$here/../../mobile" "$out" && cp "$here/udawane-google.js" "$out/mock.js"
 cd "$out"
+sed -i "s/^  folderId: '[^']*',/  folderId: '',/" config.js
 sed -i 's#<script src="https://accounts.google.com/gsi/client" async defer></script>#<script src="mock.js"></script>#' index.html
 sed -i "s#navigator.serviceWorker.register('sw.js')#Promise.resolve()#" index.html
 sed -i "s#  apiUrl: '',#  apiUrl: 'https://mock.api/exec',#; s#appUrl: 'https://kns-nabo.netlify.app'#appUrl: 'http://localhost:5183'#" config.js

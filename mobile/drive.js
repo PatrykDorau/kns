@@ -249,7 +249,12 @@ export function createDrive(config) {
     async prepareFiles() {
       if (baseId) return
       let rootId = config.folderId
-      if (!rootId) {
+      if (rootId) {
+        try { await call(`${API}/files/${rootId}?fields=id&supportsAllDrives=true`) } catch (e) {
+          if (e.auth) throw e
+          throw new Error(`To konto Google (${email || 'zalogowane'}) nie ma dostępu do folderu „${config.folderName}” na Dysku — załączniki trafiają właśnie tam. Poproś administratora o dostęp (ranga z prawem edycji).`)
+        }
+      } else {
         const [found] = await list(`name=${quote(config.folderName)} and mimeType='${FOLDER}' and trashed=false`)
         if (!found) throw new Error(`To konto Google nie ma dostępu do folderu „${config.folderName}” na Dysku — załączniki trafiają właśnie tam.`)
         rootId = found.id

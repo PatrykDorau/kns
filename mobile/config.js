@@ -9,7 +9,7 @@ window.KNS_CONFIG = {
   // Folder aplikacji na Dysku Google — w „Mój dysk” konta kościoła albo udostępniony zalogowanemu kontu.
   // Najpewniej wpisać jego identyfikator: to końcówka adresu po otwarciu folderu w przeglądarce,
   // drive.google.com/drive/folders/<IDENTYFIKATOR>. Gdy pusty, folder jest szukany po nazwie.
-  folderId: '',
+  folderId: '1pI2FlyMq8XUQHbJlELd1OuxsCIz-RRnG',
   folderName: 'Aplikacja KNS Nabo',
 
   // Podfoldery w folderze aplikacji (te same, których używa aplikacja na komputerze).
