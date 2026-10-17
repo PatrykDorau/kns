@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import Icon from './Icon.vue'
-import { CATEGORIES, addMinutes, offsetOf } from '../mobile/church.js'
+import { CATEGORIES, addMinutes, categoryName, offsetOf, setCategory } from '../mobile/church.js'
 import { uid } from './store.js'
 
 // Program nabożeństwa (ten sam zapis co na telefonie): punkty trzymają przesunięcie w minutach
@@ -30,11 +30,10 @@ const sermonLine = computed(() => [props.sermon?.title, props.sermon?.passage, p
 <template>
   <div class="program-ed">
     <div v-if="!items.length" class="empty slim">Program nie jest jeszcze ułożony.</div>
+    <datalist id="pg-cats"><option v-for="c in CATEGORIES" :key="c.id" :value="c.name"></option></datalist>
     <div v-for="(p, i) in items" :key="p.key" class="pg-line">
       <input class="pg-time" type="time" :value="timeOf(p)" aria-label="Godzina punktu" @change="setTime(p, $event.target.value)">
-      <select v-model="p.category" aria-label="Rodzaj punktu">
-        <option v-for="c in CATEGORIES" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
+      <input class="pg-cat" :value="categoryName(p)" list="pg-cats" type="text" placeholder="Rodzaj — wybierz albo wpisz" aria-label="Rodzaj punktu" @change="setCategory(p, $event.target.value)" @focus="$event.target.select()">
       <input v-model="p.title" type="text" :placeholder="p.category === 'kazanie' ? (sermonLine || 'Tytuł kazania') : 'Opis, np. Pieśń / kolekta'" aria-label="Opis punktu">
       <input v-model="p.person" class="pg-person" type="text" placeholder="Kto" aria-label="Kto prowadzi ten punkt">
       <button class="iconbtn danger" title="Usuń punkt" aria-label="Usuń punkt" @click="items.splice(i, 1)"><Icon name="x" /></button>

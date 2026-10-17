@@ -20,6 +20,13 @@ export const CATEGORIES = [
   { id: 'porzadek', name: 'Punkt obrad', icon: 'list' },
 ]
 export const category = id => CATEGORIES.find(c => c.id === id) || CATEGORIES[0]
+// Rodzaj punktu programu: z listy albo wpisany ręcznie (wtedy category 'inne' i własna nazwa w categoryName).
+export const categoryName = p => p?.categoryName || category(p?.category).name
+export function setCategory(p, text) {
+  const v = String(text || '').trim()
+  const c = CATEGORIES.find(x => x.name.toLowerCase() === v.toLowerCase())
+  if (c) { p.category = c.id; delete p.categoryName } else if (v) { p.category = 'inne'; p.categoryName = v }
+}
 
 const item = (offset, category, title = '') => ({ offset, category, title })
 export const DEFAULT_TYPES = [

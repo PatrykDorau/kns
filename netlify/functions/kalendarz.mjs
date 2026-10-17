@@ -47,7 +47,7 @@ function span(item, start, fallback) {
 }
 function programText(item, start) {
   return [...(item.program || [])].sort((a, b) => a.offset - b.offset)
-    .map(p => hhmm(minutes(start) + Number(p.offset || 0) + 1440).replace(/(\d\d)(\d\d)/, '$1:$2') + ' ' + (CATEGORY[p.category] || 'Inne') + (p.title ? ' — ' + p.title : '') + (p.person ? ' (' + p.person + ')' : ''))
+    .map(p => hhmm(minutes(start) + Number(p.offset || 0) + 1440).replace(/(\d\d)(\d\d)/, '$1:$2') + ' ' + (p.categoryName || CATEGORY[p.category] || 'Inne') + (p.title ? ' — ' + p.title : '') + (p.person ? ' (' + p.person + ')' : ''))
     .join('\n')
 }
 

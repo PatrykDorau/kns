@@ -5,7 +5,7 @@ import SyncButton from './SyncButton.vue'
 import Brand from './Brand.vue'
 import Countdown from './Countdown.vue'
 import { api, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from './store.js'
-import { addMinutes, category } from '../mobile/church.js'
+import { addMinutes, categoryName } from '../mobile/church.js'
 
 // Stream: podgląd wszystkich kamer podłączonych do komputera i dane nabożeństwa pod ręką.
 const cams = ref([]) // { id, label, stream | error }
@@ -135,7 +135,7 @@ const program = computed(() => {
   const list = [...s.program].sort((a, b) => a.offset - b.offset).map(p => {
     const time = addMinutes(s.time || DEFAULT_TIME, p.offset)
     const sermon = p.category === 'kazanie' ? [p.title || s.sermonTitle, s.passage].filter(Boolean).join(', ') : p.title
-    return { key: p.key, time, name: category(p.category).name, detail: [sermon, p.person || (p.category === 'kazanie' ? s.speaker : '')].filter(Boolean).join(' — ') }
+    return { key: p.key, time, name: categoryName(p), detail: [sermon, p.person || (p.category === 'kazanie' ? s.speaker : '')].filter(Boolean).join(' — ') }
   })
   if (s.date === today()) {
     const t = new Date(now.value).toTimeString().slice(0, 5)

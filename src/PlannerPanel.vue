@@ -6,7 +6,7 @@ import SongManager from './SongManager.vue'
 import Brand from './Brand.vue'
 import StatsPanel from './StatsPanel.vue'
 import ProgramEditor from './ProgramEditor.vue'
-import { addMinutes, category, programFrom } from '../mobile/church.js'
+import { addMinutes, category, categoryName, programFrom } from '../mobile/church.js'
 import { ago, songHistory } from './stats.js'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
@@ -101,7 +101,7 @@ function discard() { if (confirm('Porzucić zmiany i wrócić do zapisanej wersj
 /* ---------- zapis z wykrywaniem zmian innych osób ---------- */
 // Porównanie: co ktoś zmienił od otwarcia (jego wersja), a co jest u mnie — pokazywane przed nadpisaniem.
 const programText = (v, svc) => (v || []).slice().sort((a, b) => a.offset - b.offset)
-  .map(p => addMinutes(svc.time || DEFAULT_TIME, p.offset) + ' ' + category(p.category).name + (p.title ? ' — ' + p.title : '') + (p.person ? ' (' + p.person + ')' : '')).join('\n')
+  .map(p => addMinutes(svc.time || DEFAULT_TIME, p.offset) + ' ' + categoryName(p) + (p.title ? ' — ' + p.title : '') + (p.person ? ' (' + p.person + ')' : '')).join('\n')
 const FIELDS = [['date', 'Data', v => prettyDate(v)], ['time', 'Godzina', v => v || DEFAULT_TIME], ['place', 'Miejsce', v => v || DEFAULT_PLACE], ['sermonTitle', 'Tytuł kazania'], ['passage', 'Fragment'], ['speaker', 'Mówca'], ['band', 'Skład zespołu'], ['thoughts', 'Myśli z kazania'],
   ['program', 'Program', programText], ['songs', 'Pieśni', v => v.map(songTitle).join('\n')], ['files', 'Załączniki', v => v.map(x => x.name).join('\n')], ['notes', 'Dodatkowe informacje']]
 const show = (field, svc) => { const [key, , fmt] = field; const v = svc[key] ?? ''; return (fmt ? fmt(v, svc) : String(v)) || '—' }

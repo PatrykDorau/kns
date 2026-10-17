@@ -5,7 +5,7 @@ import Brand from './Brand.vue'
 import SyncButton from './SyncButton.vue'
 import ProgramEditor from './ProgramEditor.vue'
 import NotifyPicker from './NotifyPicker.vue'
-import { addMinutes, category, programFrom } from '../mobile/church.js'
+import { addMinutes, category, categoryName, programFrom } from '../mobile/church.js'
 import { access, notifyPeople, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
 
 // Kalendarz życia kościoła: nabożeństwa i inne wydarzenia. Wydarzenia zmieniają osoby z prawem edycji;
@@ -122,7 +122,7 @@ async function remove() {
   } finally { busy.value = false }
 }
 function back() { if (leaveOk()) role.value = null }
-const programLine = (svc, p) => addMinutes(svc.time || DEFAULT_TIME, p.offset) + ' ' + category(p.category).name + (p.title ? ' — ' + p.title : '')
+const programLine = (svc, p) => addMinutes(svc.time || DEFAULT_TIME, p.offset) + ' ' + categoryName(p) + (p.title ? ' — ' + p.title : '')
 
 onMounted(() => {
   const req = calendarRequest.value

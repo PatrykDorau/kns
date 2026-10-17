@@ -3,6 +3,8 @@
 -- przez notify_targets — baza sama sprawdza uprawnienia, więc serwer nie potrzebuje tajnego klucza bazy.
 
 -- Lista osób do wyboru odbiorców: imię, rangi i liczba telefonów z włączonymi powiadomieniami.
+-- (profil.sql rozszerza ją o grupkę — uruchamiaj profil.sql po tym pliku)
+drop function if exists public.people_directory();
 create or replace function public.people_directory()
 returns table (id uuid, name text, email text, roles text[], devices int)
 language plpgsql stable security definer set search_path = public as $$
