@@ -11,6 +11,7 @@
     await db.waitReady
     const has = (await db.query(`select to_regclass('public.people') as t`)).rows[0].t
     if (!has) await fake.setupDb(db, await (await fetch('schema.sql')).text(), ['admin@kns.pl'])
+    await db.exec(await (await fetch('powiadomienia.sql')).text()) // funkcje powiadomień (można uruchamiać wielokrotnie)
     return { db, fake }
   })()
   window.__db = dbP

@@ -96,6 +96,12 @@ export function createFakeClient(db, user = null) {
   async function rpc(name, args = {}) {
     const params = []
     const list = Object.entries(args).map(([k, v]) => { params.push(v); return `${ident(k)} => $${params.length}${ARRAYS[k] ? '::' + ARRAYS[k] : ''}` })
+    // funkcja zwracająca listę (returns table / setof) — jak w Supabase: tablica wierszy
+    const set = (await db.query('select bool_or(proretset) as s from pg_proc where proname = $1', [name])).rows[0]?.s
+    if (set) {
+      const res = await run(`select coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) as r from public.${ident(name)}(${list.join(', ')}) t`, params)
+      return res.error ? { data: null, error: res.error } : { data: res.data.rows[0].r, error: null }
+    }
     const res = await run(`select to_jsonb(public.${ident(name)}(${list.join(', ')})) as r`, params)
     return res.error ? { data: null, error: res.error } : { data: res.data.rows[0].r, error: null }
   }

@@ -75,6 +75,17 @@ export function createSupa(config, client = window.supabase.createClient(config.
         const p = check(await sb.rpc('set_person', { person_email: data.email, new_status: data.status ?? null, new_roles: Array.isArray(data.roles) ? data.roles : null }))
         return { person: view(p) }
       }
+      // Powiadomienia do wybranych osób: lista osób i wysyłka przez /api/push (z tokenem logowania).
+      if (action === 'directory') return { people: check(await sb.rpc('people_directory')) }
+      if (action === 'notify') {
+        const res = await fetch((location.protocol.startsWith('http') ? '' : 'https://kns-nabo.netlify.app') + '/api/push', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notify: true, token: session.access_token, people: data.people, title: data.title, body: data.body, url: data.url }),
+        })
+        const out = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(out.error || 'Nie udało się wysłać powiadomienia.')
+        return out
+      }
       if (action === 'calendarToken') return { token: check(await sb.rpc('my_calendar_token', { renew: !!data.renew })) }
       if (action === 'setNewsletter') return { person: view(check(await sb.rpc('set_newsletter', { enabled: !!data.on }))) }
       throw new Error('Nieznane polecenie.')

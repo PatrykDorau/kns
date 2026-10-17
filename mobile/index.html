@@ -358,6 +358,17 @@
   .news-card .ann-img { aspect-ratio: 16 / 10; margin-bottom: 4px; }
   .ann-video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 4px; border-radius: 12px; overflow: hidden; background: #000; }
   .ann-video video, .ann-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .notify-box { margin-top: 14px; }
+  .notify-sheet .head .primary { min-height: 40px; padding: 8px 14px; }
+  .notify-groups { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+  .chipbtn { min-height: 34px; padding: 6px 12px; border-radius: 999px; font-size: 14px; background: var(--panel2); }
+  .chipbtn.on { background: var(--accent-soft); border-color: rgba(242, 165, 60, .5); color: var(--accent); }
+  .chipbtn.clear { background: none; color: var(--muted); }
+  .notify-person { display: flex; align-items: center; gap: 12px; margin: 0; padding: 10px 6px; border-bottom: 1px solid var(--line); color: var(--text); font-size: 16px; }
+  .notify-person input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+  .notify-person span { display: flex; flex-direction: column; min-width: 0; }
+  .notify-person small { color: var(--muted); font-size: 13px; }
+  .notify-person small.off { color: var(--warn, #e8957d); }
   .ann-tag.vid { background: rgba(240, 127, 180, .16); color: var(--pink, #f07fb4); }
   textarea.ann-text { min-height: 160px; }
   .static { cursor: default; }
@@ -708,14 +719,19 @@
       <p class="note" style="margin-top:4px">Po tej dacie ogłoszenie znika ze strony głównej (zostaje w archiwum).</p>
     </fieldset>
     <p v-if="currentAnn.author" class="note who">Autor: {{ currentAnn.author }}<template v-if="currentAnn.updated > 1">, {{ dateTime(currentAnn.updated) }}</template></p>
+    <div v-if="canNotify && annEditable" class="notify-box">
+      <label>Powiadom osoby (opcjonalnie)</label>
+      <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
+      <p class="note" style="margin:6px 0 0">Powiadomienie wyjdzie po zapisaniu — na telefony osób, które włączyły powiadomienia.</p>
+    </div>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div v-if="annEditable" class="bar">
       <template v-if="annSavedOnce">
         <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeAnn">Na pewno usuń</button>
         <button v-else :disabled="busy" aria-label="Usuń ogłoszenie" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
       </template>
-      <button class="primary" :disabled="busy || !annDirty || !currentAnn.title.trim()" @click="saveAnn()">
-        <svg v-if="!annDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : annDirty ? 'Zapisz' : 'Zapisane' }}
+      <button class="primary" :disabled="busy || (!annDirty && !notify.ids.length) || !currentAnn.title.trim()" @click="saveAnn()">
+        <svg v-if="!annDirty && !notify.ids.length && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : annDirty ? 'Zapisz' : notify.ids.length ? 'Wyślij powiadomienie' : 'Zapisane' }}
       </button>
     </div>
   </template>
@@ -854,14 +870,19 @@
       <template v-if="currentEvent.createdBy">Utworzył(a): {{ currentEvent.createdBy }}</template>
       <template v-if="currentEvent.updatedBy"><br>Ostatnia zmiana: {{ currentEvent.updatedBy }}<template v-if="currentEvent.updated">, {{ new Date(currentEvent.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
     </p>
+    <div v-if="canNotify" class="notify-box">
+      <label>Powiadom osoby (opcjonalnie)</label>
+      <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
+      <p class="note" style="margin:6px 0 0">Powiadomienie wyjdzie po zapisaniu — na telefony osób, które włączyły powiadomienia.</p>
+    </div>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div v-if="canEdit" class="bar">
       <template v-if="eventSavedOnce">
         <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeEvent">Na pewno usuń</button>
         <button v-else :disabled="busy" aria-label="Usuń wydarzenie" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
       </template>
-      <button class="primary" :disabled="busy || !eventDirty || !currentEvent.title.trim() || !currentEvent.date" @click="saveEvent()">
-        <svg v-if="!eventDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : eventDirty ? 'Zapisz' : 'Zapisane' }}
+      <button class="primary" :disabled="busy || (!eventDirty && !notify.ids.length) || !currentEvent.title.trim() || !currentEvent.date" @click="saveEvent()">
+        <svg v-if="!eventDirty && !notify.ids.length && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : eventDirty ? 'Zapisz' : notify.ids.length ? 'Wyślij powiadomienie' : 'Zapisane' }}
       </button>
     </div>
   </template>
@@ -1353,6 +1374,23 @@
     </template>
   </section>
 
+  <!-- Wybór odbiorców powiadomienia: grupy (wszyscy, rangi) albo pojedyncze osoby. -->
+  <div v-if="notify.open" class="sheet notify-sheet" role="dialog" aria-label="Kogo powiadomić">
+    <div class="head"><b>Kogo powiadomić?</b><button class="primary" @click="notify.open = false">Gotowe · {{ notify.ids.length }}</button></div>
+    <p v-if="notify.error" class="error">{{ notify.error }}</p>
+    <p v-else-if="!directory.length" class="note">Wczytuję listę osób…</p>
+    <div class="notify-groups">
+      <button v-for="g in notifyGroups" :key="g.id" type="button" class="chipbtn" :class="{ on: g.ids.length && g.ids.every(id => notify.ids.includes(id)) }" @click="toggleGroup(g)">{{ g.name }} · {{ g.ids.length }}</button>
+      <button v-if="notify.ids.length" type="button" class="chipbtn clear" @click="notify.ids = []">Wyczyść</button>
+    </div>
+    <div class="found">
+      <label v-for="p in directory" :key="p.id" class="check notify-person">
+        <input v-model="notify.ids" type="checkbox" :value="p.id">
+        <span><b>{{ p.name }}</b><small :class="{ off: !p.devices }">{{ p.devices ? (p.devices === 1 ? 'telefon z powiadomieniami' : p.devices + ' telefony z powiadomieniami') : 'nie ma włączonych powiadomień' }}</small></span>
+      </label>
+    </div>
+  </div>
+
   <!-- Protokół do druku / PDF (widoczny tylko przy drukowaniu). -->
   <article v-if="currentProto" class="print-proto">
     <h1>Protokół — {{ currentProto.title }}</h1>
@@ -1447,7 +1485,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.42 · 17.10.2026'
+const VERSION = '2.43 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1969,6 +2007,7 @@ createApp({
     function openEvent(ev) {
       currentEvent.value = { type: 'inne', title: '', date: today(), time: '', place: '', description: '', program: [], ...JSON.parse(JSON.stringify(ev)) }
       eventSaved = JSON.stringify(currentEvent.value); eventBase = ev.updated || 0; eventType = currentEvent.value.type
+      notify.ids = []
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
     }
     function newEvent(typeId) {
@@ -2011,8 +2050,9 @@ createApp({
       const i = events.value.findIndex(x => x.id === data.id)
       if (i >= 0) events.value[i] = data
       else events.value.push(data)
+      const sent = await sendNotify({ title: data.title || typeOf(data.type).name, body: [pretty(data.date) + (data.time ? ', ' + data.time : ''), data.place].filter(Boolean).join(' · '), url: './?wydarzenie=' + encodeURIComponent(data.id) })
       openEvent(data)
-      status.value = 'Zapisano o ' + clockNow()
+      status.value = 'Zapisano o ' + clockNow() + sent
     })
     const removeEvent = () => guard(async () => {
       const id = currentEvent.value.id
@@ -2174,6 +2214,7 @@ createApp({
     function openAnn(a) {
       currentAnn.value = { title: '', text: '', audience: 'members', important: false, until: '', ...JSON.parse(JSON.stringify(a)) }
       annSaved = JSON.stringify(currentAnn.value); annBase = a.updated || 0; annAudience = currentAnn.value.audience
+      notify.ids = []
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
     }
     function newAnn() {
@@ -2199,8 +2240,9 @@ createApp({
       const prev = announcements.value.find(x => x.id === data.id)
       for (const k of ['image', 'video']) if (prev?.[k] && prev[k] !== data[k] && /\/ogloszenia\//.test(prev[k])) drive.removeImage?.(prev[k])
       announcements.value = [...announcements.value.filter(x => x.id !== data.id), data]
+      const sent = await sendNotify({ title: (data.important ? 'Komunikat rady zboru: ' : 'Ogłoszenie: ') + data.title, body: String(data.text || '').slice(0, 160), url: './?ogloszenie=' + encodeURIComponent(data.id) })
       openAnn(data)
-      status.value = 'Zapisano o ' + clockNow()
+      status.value = 'Zapisano o ' + clockNow() + sent
     })
     const removeAnn = () => guard(async () => {
       const a = currentAnn.value
@@ -2238,6 +2280,37 @@ createApp({
       if (file.size > 50 * 1048576) { error.value = 'Film ma ' + Math.round(file.size / 1048576) + ' MB — limit to 50 MB. Skróć go albo wrzuć na YouTube i wklej link.'; return }
       vidBusy.value = true
       guard(async () => { currentAnn.value.video = await drive.uploadFile(file, (file.name.match(/\.(\w+)$/) || [, 'mp4'])[1]) }).finally(() => { vidBusy.value = false })
+    }
+
+    /* ---------- powiadomienia do wybranych osób ---------- */
+    const canNotify = computed(() => api.enabled && useSupa && canEdit.value)
+    const notify = Vue.reactive({ open: false, ids: [], error: '' })
+    const directory = ref([])
+    function openNotify() {
+      notify.open = true; notify.error = ''
+      if (!directory.value.length) api.call('directory').then(r => { directory.value = r.people || [] }, e => { notify.error = e.message })
+    }
+    // Grupy: wszyscy i każda ranga (z liczbą osób).
+    const notifyGroups = computed(() => [
+      { id: 'all', name: 'Wszyscy', ids: directory.value.map(p => p.id) },
+      ...ranks.value.map(r => ({ id: r.id, name: r.name, ids: directory.value.filter(p => (p.roles || []).includes(r.id)).map(p => p.id) })).filter(g => g.ids.length),
+    ])
+    function toggleGroup(g) {
+      const all = g.ids.every(id => notify.ids.includes(id))
+      notify.ids = all ? notify.ids.filter(id => !g.ids.includes(id)) : [...new Set([...notify.ids, ...g.ids])]
+    }
+    const notifySummary = computed(() => {
+      const names = directory.value.filter(p => notify.ids.includes(p.id)).map(p => p.name)
+      return names.length > 3 ? names.slice(0, 2).join(', ') + ' i ' + (names.length - 2) + ' innych' : names.join(', ') || notify.ids.length + ' osób'
+    })
+    // Po zapisaniu: wysyłka do wybranych; zwraca dopisek do komunikatu „Zapisano…”.
+    async function sendNotify(msg) {
+      if (!notify.ids.length) return ''
+      try {
+        const r = await api.call('notify', { people: notify.ids, ...msg })
+        notify.ids = []
+        return r.sent ? ' · powiadomienie wysłane (' + r.sent + ' ' + (r.sent === 1 ? 'telefon' : 'telefony') + ')' : ' · nikt z wybranych nie ma włączonych powiadomień'
+      } catch (e) { return ' · powiadomienie nie wyszło: ' + e.message }
     }
 
     /* ---------- newsletter ---------- */
@@ -2506,6 +2579,21 @@ createApp({
       else if (clientId && drive.signedIn()) guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } })
     })
 
+    // Link z powiadomienia (?ogloszenie=id albo ?wydarzenie=id): po wczytaniu danych otwiera wskazaną rzecz.
+    const link = new URLSearchParams(location.search)
+    const linkAnn = link.get('ogloszenie'), linkEvent = link.get('wydarzenie')
+    if (linkAnn || linkEvent) {
+      const stop = watch(ready, ok => {
+        if (!ok) return
+        stop?.()
+        history.replaceState(null, '', location.pathname)
+        const a = linkAnn && announcements.value.find(x => x.id === linkAnn)
+        const e = linkEvent && events.value.find(x => x.id === linkEvent)
+        if (a) openAnn(a)
+        else if (e) openEvent(e)
+      }, { immediate: true })
+    }
+
     // Klasy na #app (kontener montowania — Vue nie kompiluje jego atrybutów): pasek zakładek, strona startowa, wąski widok.
     Vue.watchEffect(() => {
       const el = document.getElementById('app')
@@ -2518,7 +2606,7 @@ createApp({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,

@@ -9,7 +9,7 @@ out="${TEMP:-/tmp}/kns-stest"
 rm -rf "$out" && cp -r "$here/../../mobile" "$out"
 cp "$here/udawane-google.js" "$out/mock.js"
 cp "$here/udawana-baza.js" "$out/udawana-baza.js"
-cp "$here/../../supabase/fake-client.mjs" "$here/../../supabase/schema.sql" "$out/"
+cp "$here/../../supabase/fake-client.mjs" "$here/../../supabase/schema.sql" "$here/../../supabase/powiadomienia.sql" "$out/"
 cd "$out"
 sed -i "s/^  folderId: '[^']*',/  folderId: '',/" config.js
 sed -i 's#<script src="https://accounts.google.com/gsi/client" async defer></script>#<script src="mock.js"></script>#' index.html
