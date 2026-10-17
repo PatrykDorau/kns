@@ -10,7 +10,7 @@ import { videoInfo } from '../mobile/church.js'
 const active = a => a.audience !== 'council' && (!a.until || a.until >= today())
 const newest = (a, b) => (b.date || 0) - (a.date || 0)
 const notices = computed(() => churchAnnouncements.value.filter(a => a.important && active(a)).sort(newest))
-const news = computed(() => churchAnnouncements.value.filter(a => !a.important && active(a)).sort(newest).slice(0, 8))
+const news = computed(() => churchAnnouncements.value.filter(a => !a.important && active(a)).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || newest(a, b)).slice(0, 8))
 
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const asDate = date => new Date(date + 'T12:00')
@@ -72,7 +72,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
         <article v-for="a in news" :key="a.id" class="kh-ann kh-clickable" @click="shown = a">
           <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
           <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
-          <span class="kh-ann-text"><b>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
+          <span class="kh-ann-text"><b><Icon v-if="a.pinned" name="pin" class="kh-pin" />{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
           <small>{{ shortDate(a.date) }}</small>
         </article>
       </div>

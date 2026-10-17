@@ -275,7 +275,23 @@
 
   /* program (nabożeństwa i wydarzenia) */
   .program { margin-top: 6px; }
-  .pg-row { padding: 10px; margin-bottom: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .pg-row { padding: 0; margin-bottom: 8px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+  .pg-row.open { border-color: rgba(242, 165, 60, .45); }
+  .pg-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px; border: 0; border-radius: 0; background: none; text-align: left; }
+  .pg-head time { flex: none; width: 46px; font: 600 14px ui-monospace, Consolas, monospace; color: var(--muted); }
+  .pg-head .tl-ic { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
+  .pg-head .tl-ic svg.i { width: 18px; height: 18px; }
+  .pg-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .pg-main small { color: var(--muted); font-size: 12px; }
+  .pg-main b { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+  .pg-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .pg-side small { color: var(--muted); font-size: 12px; }
+  .pg-side .pg-noone { color: var(--warn, #e8957d); font-size: 11px; }
+  .pg-person { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #f2a53c, #f07fb4 55%, #a98bff); color: #1f1608; font-size: 11px; font-weight: 700; }
+  .pg-chev { flex: none; width: 16px !important; height: 16px !important; color: var(--muted); transition: transform .15s; }
+  .pg-row.open .pg-chev { transform: rotate(180deg); }
+  .pg-edit { padding: 0 12px 12px; }
+  .pg-row > .pg-extra { margin: 0 12px 12px; }
   .pg-top { display: flex; gap: 8px; align-items: center; }
   .pg-top input[type=time] { flex: 0 0 92px; padding: 8px; height: 40px; }
   .pg-top select { flex: 1; min-width: 0; height: 40px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; }
@@ -360,6 +376,17 @@
   .ann-video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 4px; border-radius: 12px; overflow: hidden; background: #000; }
   .ann-video video, .ann-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .notify-box { margin-top: 14px; }
+  .pg-extra { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .pg-extra label { margin-top: 8px; }
+  .pg-extra .song { margin-bottom: 6px; background: var(--panel2); }
+  .pg-extra .song .pos { width: 28px; height: 28px; }
+  .pg-extra .song .pos svg.i { width: 15px; height: 15px; }
+  .pg-addsong { min-height: 38px; padding: 7px 14px; border-radius: 999px; background: var(--accent-soft); border-color: transparent; color: var(--accent); font-size: 14px; font-weight: 600; }
+  .timeline .tl-body .pg-extra { border-top: 0; margin-top: 6px; padding-top: 0; }
+  .timeline .tl-dur { flex: none; color: var(--muted); font-size: 12px; }
+  .ann-tag svg.i { width: 12px; height: 12px; margin-right: 3px; vertical-align: -1px; }
+  .ann-tag.pin { background: var(--accent-soft); color: var(--accent); }
+  .kh-pin { width: 13px !important; height: 13px !important; margin-right: 5px; color: var(--accent); vertical-align: -1px; }
   .pending-note { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: rgba(169, 139, 255, .12); border: 1px solid rgba(169, 139, 255, .35); color: #cbb8ff; font-size: 14px; }
   .pending-note svg.i { flex: none; margin-top: 1px; }
   .approve-row { display: flex; gap: 10px; margin: 6px 0 12px; }
@@ -566,6 +593,8 @@
   <symbol id="pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
   <symbol id="info" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.5h.01"/></symbol>
   <symbol id="link" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><path d="M12 16v6M8 3h8l-1 6 3 4H6l3-4-1-6Z"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/></symbol>
   <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
@@ -740,7 +769,8 @@
       </div>
       <img v-if="currentAnn.image" class="ann-hero" :src="currentAnn.image" alt="">
       <div class="ann-tags">
-        <span v-if="currentAnn.important" class="ann-tag imp">Komunikat rady zboru</span>
+        <span v-if="currentAnn.pinned" class="ann-tag pin"><svg class="i"><use href="#pin"/></svg>Przypięte</span>
+        <span v-if="currentAnn.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady zboru</span>
         <span class="ann-tag">{{ AUDIENCE[currentAnn.audience] }}</span>
         <span v-if="currentAnn.until" class="ann-tag">ważne do {{ shortDate(currentAnn.until) }}</span>
       </div>
@@ -794,7 +824,8 @@
         <option value="members">Członkowie (zatwierdzeni)</option>
         <option v-if="hasCouncil || currentAnn.audience === 'council'" value="council">Tylko rada zboru</option>
       </select>
-      <label v-if="hasCouncil && currentAnn.audience !== 'council'" class="check"><input v-model="currentAnn.important" type="checkbox">Komunikat rady zboru — przypięty na górze strony głównej</label>
+      <label v-if="hasCouncil && currentAnn.audience !== 'council'" class="check"><input v-model="currentAnn.important" type="checkbox">Komunikat rady zboru — na górze strony głównej</label>
+      <label v-if="canEdit || canReview" class="check"><input v-model="currentAnn.pinned" type="checkbox">Przypnij — zawsze nad innymi ogłoszeniami</label>
       <label for="anUntil">Ważne do (opcjonalnie)</label>
       <input id="anUntil" v-model="currentAnn.until" type="date">
       <p class="note" style="margin-top:4px">Po tej dacie ogłoszenie znika ze strony głównej (zostaje w archiwum).</p>
@@ -824,7 +855,7 @@
     <p v-if="!activeAnns.length" class="note">Nie ma aktualnych ogłoszeń.</p>
     <button v-for="a in activeAnns" :key="a.id" class="ann" :class="{ important: a.important }" @click="openAnn(a)">
       <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
-      <span class="ann-tags"><span v-if="a.video" class="ann-tag vid">▶ Film</span><span v-if="a.important" class="ann-tag imp">Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
+      <span class="ann-tags"><span v-if="a.pinned" class="ann-tag pin"><svg class="i"><use href="#pin"/></svg>Przypięte</span><span v-if="a.video" class="ann-tag vid">▶ Film</span><span v-if="a.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
       <b>{{ a.title }}</b>
       <span class="ann-body">{{ a.text }}</span>
     </button>
@@ -1239,7 +1270,7 @@
             <button v-for="a in boardNews" :key="a.id" class="kh-ann" @click="openAnn(a)">
               <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
               <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
-              <span class="kh-ann-text"><b>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
+              <span class="kh-ann-text"><b><svg v-if="a.pinned" class="i kh-pin"><use href="#pin"/></svg>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
               <small>{{ shortDate(a.date) }}</small>
             </button>
           </div>
@@ -1334,7 +1365,7 @@
         <div v-else class="news-grid">
           <button v-for="a in homeAnns" :key="a.id" class="news-card" @click="openAnn(a)">
             <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
-            <b>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b>
+            <b><svg v-if="a.pinned" class="i kh-pin"><use href="#pin"/></svg>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b>
             <span>{{ a.text }}</span>
             <small>{{ shortDate(a.date) }}</small>
           </button>
@@ -1350,24 +1381,79 @@
     <fieldset class="plain" :disabled="!canEdit">
     <div class="row">
       <div><label for="date">Data <span class="req">*</span></label><input id="date" v-model="current.date" type="date"></div>
-      <div><label for="speaker">Mówca <span class="req">*</span></label><input id="speaker" v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off"></div>
-    </div>
-    <label for="title">Tytuł kazania <span class="req">*</span></label>
-    <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
-    <label for="passage">Fragment <span class="req">*</span></label>
-    <input id="passage" v-model="current.passage" :class="{ invalid: !current.passage.trim() }" placeholder="np. J 3,16–21" autocomplete="off">
-    <label for="thoughts">Myśli z kazania</label>
-    <textarea id="thoughts" v-model="current.thoughts" placeholder="Jedna myśl w jednej linii — pokażą się na stronie startowej po nabożeństwie"></textarea>
-    <div class="row">
       <div><label for="time">Godzina</label><input id="time" v-model="current.time" type="time"></div>
-      <div><label for="place">Miejsce</label><input id="place" v-model="current.place" autocomplete="off"></div>
     </div>
+    <label for="place">Miejsce</label>
+    <input id="place" v-model="current.place" autocomplete="off">
     </fieldset>
-    <label>Program nabożeństwa</label>
-    <program-editor :items="current.program" :start="current.time || DEFAULT_TIME" :readonly="!canEdit" :template="typeOf('nabozenstwo').program"
-                    :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }" @fill="fillProgram(current, 'nabozenstwo')"></program-editor>
-    <fieldset class="plain" :disabled="!canEdit">
 
+    <!-- Harmonogram: kazanie i pieśni uzupełnia się w punktach programu. -->
+    <label>Harmonogram nabożeństwa</label>
+    <program-editor :items="current.program" :start="current.time || DEFAULT_TIME" :readonly="!canEdit" :template="typeOf('nabozenstwo').program"
+                    :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }" @fill="fillProgram(current, 'nabozenstwo')">
+      <template #item="{ item }">
+        <div v-if="item.key === sermonSlot" class="pg-extra">
+          <template v-if="canEdit">
+            <div class="row">
+              <div><label>Mówca <span class="req">*</span></label><input v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off"></div>
+              <div><label>Fragment <span class="req">*</span></label><input v-model="current.passage" :class="{ invalid: !current.passage.trim() }" placeholder="np. J 3,16–21" autocomplete="off"></div>
+            </div>
+            <label>Tytuł kazania <span class="req">*</span></label>
+            <input v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
+            <label>Myśli z kazania</label>
+            <textarea v-model="current.thoughts" placeholder="Jedna myśl w jednej linii — pokażą się na stronie startowej po nabożeństwie"></textarea>
+          </template>
+          <p v-else class="pg-sermon">{{ [current.sermonTitle, current.passage, current.speaker].filter(Boolean).join(' · ') || 'Kazanie nie jest jeszcze uzupełnione.' }}</p>
+        </div>
+        <div v-else-if="songSlots.includes(item.key)" class="pg-extra">
+          <div v-for="entry in songsIn(item.key)" :key="entry.key" class="song">
+            <span class="pos"><svg class="i"><use href="#music"/></svg></span>
+            <div class="meta"><b>{{ songTitle(entry) }}</b><small :class="{ missing: !inBase(entry) }">{{ firstLine(entry) }}</small></div>
+            <template v-if="canEdit">
+              <button class="icon" aria-label="Wyżej" @click="moveIn(item.key, entry, -1)"><svg class="i"><use href="#up"/></svg></button>
+              <button class="icon" aria-label="Usuń pieśń z nabożeństwa" @click="removeSong(entry)"><svg class="i"><use href="#x"/></svg></button>
+            </template>
+          </div>
+          <p v-if="!songsIn(item.key).length && !canEdit" class="pg-sermon">Pieśni nie są jeszcze wybrane.</p>
+          <button v-if="canEdit" type="button" class="pg-addsong" @click="pickSongsFor(item.key)"><svg class="i"><use href="#plus"/></svg>Dodaj pieśń</button>
+        </div>
+      </template>
+    </program-editor>
+    <fieldset class="plain" :disabled="!canEdit">
+    <!-- Bez punktu „Kazanie” w programie — pola kazania tutaj. -->
+    <template v-if="!sermonSlot">
+      <div class="row">
+        <div><label for="speaker">Mówca <span class="req">*</span></label><input id="speaker" v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off"></div>
+        <div><label for="passage">Fragment <span class="req">*</span></label><input id="passage" v-model="current.passage" :class="{ invalid: !current.passage.trim() }" placeholder="np. J 3,16–21" autocomplete="off"></div>
+      </div>
+      <label for="title">Tytuł kazania <span class="req">*</span></label>
+      <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
+      <label for="thoughts">Myśli z kazania</label>
+      <textarea id="thoughts" v-model="current.thoughts" placeholder="Jedna myśl w jednej linii"></textarea>
+    </template>
+
+    <!-- Wybór pieśni (do punktu uwielbienia albo — bez takiego punktu — do całego nabożeństwa). -->
+    <div v-if="songSheet" class="sheet">
+      <div class="head">
+        <button class="ghost" aria-label="Zamknij" @click="songSheet = false"><svg class="i"><use href="#back"/></svg></button>
+        <b>Dodaj pieśń</b>
+        <button class="primary" @click="songSheet = false">Gotowe</button>
+      </div>
+      <div class="searchbox">
+        <svg class="i"><use href="#search"/></svg>
+        <input v-model="query" type="search" :placeholder="`Szukaj: numer, tytuł, tekst (${songs.length})`" autocomplete="off">
+      </div>
+      <div class="found">
+        <button v-for="song in results" :key="song.id" @click="addSong(song, songSheetSlot)">
+          <span class="ph">{{ song.number || '♪' }}</span>
+          <span class="meta"><b>{{ song.title }}</b><small>{{ lines(song.text) }}</small></span>
+          <svg v-if="chosen(song)" class="i added"><use href="#check"/></svg>
+          <svg v-else class="i"><use href="#plus"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <template v-if="!songSlots.length">
     <label for="find">Pieśni <span class="req">*</span></label>
     <div class="finder">
       <div class="searchbox">
@@ -1396,6 +1482,7 @@
         <button class="icon" aria-label="Usuń pieśń z nabożeństwa" @click="current.songs.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
       </div>
     </div>
+    </template>
 
     <label for="band">Skład zespołu</label>
     <textarea id="band" v-model="current.band" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
@@ -1538,11 +1625,20 @@
       <li v-for="p in sorted" :key="p.key">
         <time>{{ timeOf(p) }}</time>
         <span class="tl-ic"><svg class="i"><use :href="'#' + cat(p).icon"/></svg></span>
-        <span class="tl-body"><b>{{ cat(p).name }}</b><span v-if="label(p)">{{ label(p) }}</span></span>
+        <span class="tl-body"><b>{{ cat(p).name }}</b><span v-if="label(p)">{{ label(p) }}</span><slot name="item" :item="p"></slot></span>
+        <small v-if="duration(p)" class="tl-dur">{{ duration(p) }} min</small>
       </li>
     </ol>
     <template v-else>
-      <div v-for="(p, i) in items" :key="p.key" class="pg-row">
+      <div v-for="(p, i) in items" :key="p.key" class="pg-row" :class="{ open: openKey === p.key }">
+        <button type="button" class="pg-head" :aria-expanded="openKey === p.key" @click="openKey = openKey === p.key ? '' : p.key">
+          <time>{{ timeOf(p) }}</time>
+          <span class="tl-ic"><svg class="i"><use :href="'#' + cat(p).icon"/></svg></span>
+          <span class="pg-main"><small>{{ cat(p).name }}</small><b>{{ label(p) || cat(p).name }}</b></span>
+          <span class="pg-side"><small v-if="duration(p)">{{ duration(p) }} min</small><span v-if="p.person" class="pg-person" :title="p.person">{{ initialsOf(p.person) }}</span><small v-else class="pg-noone">Brak osób</small></span>
+          <svg class="i pg-chev"><use href="#down"/></svg>
+        </button>
+        <div v-if="openKey === p.key" class="pg-edit">
         <div class="pg-top">
           <input type="time" :value="timeOf(p)" aria-label="Godzina punktu" @change="setTime(p, $event.target.value)">
           <select v-model="p.category" aria-label="Rodzaj punktu"><option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option></select>
@@ -1552,7 +1648,9 @@
           <input v-model="p.title" :placeholder="p.category === 'kazanie' ? 'Tytuł (gdy inny niż wyżej)' : 'Opis, np. Pieśń / kolekta'" aria-label="Opis punktu" autocomplete="off">
           <input v-model="p.person" placeholder="Kto" aria-label="Kto prowadzi ten punkt" autocomplete="off">
         </div>
-        <p v-if="p.category === 'kazanie' && sermon && (sermon.title || sermon.passage)" class="pg-sermon">{{ [sermon.title, sermon.passage, sermon.speaker].filter(Boolean).join(' · ') }}</p>
+        </div>
+        <p v-if="p.category === 'kazanie' && sermon && (sermon.title || sermon.passage) && !$slots.item" class="pg-sermon">{{ [sermon.title, sermon.passage, sermon.speaker].filter(Boolean).join(' · ') }}</p>
+        <slot name="item" :item="p"></slot>
       </div>
       <div class="pg-add">
         <button type="button" @click="add"><svg class="i"><use href="#plus"/></svg>Dodaj punkt</button>
@@ -1593,7 +1691,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.46 · 17.10.2026'
+const VERSION = '2.47 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1693,6 +1791,10 @@ const ProgramEditor = {
   setup(props) {
     const timeOf = p => addMinutes(props.start || '00:00', p.offset)
     const sorted = computed(() => [...props.items].sort((a, b) => a.offset - b.offset))
+    // Czas trwania punktu: do następnego punktu programu.
+    const openKey = ref('') // rozwinięty punkt (edycja godziny, rodzaju, opisu, osoby)
+    const initialsOf = name => String(name).split(/[\s,]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
+    const duration = p => { const i = sorted.value.indexOf(p), next = sorted.value[i + 1]; return next ? next.offset - p.offset : 0 }
     function setTime(p, t) {
       if (!t) return
       p.offset = offsetOf(props.start || '00:00', t)
@@ -1700,7 +1802,8 @@ const ProgramEditor = {
     }
     function add() {
       const last = props.items[props.items.length - 1]
-      props.items.push({ key: uid(), offset: last ? last.offset + 10 : 0, category: 'inne', title: '', person: '', note: '' })
+      const p = { key: uid(), offset: last ? last.offset + 10 : 0, category: 'inne', title: '', person: '', note: '' }
+      props.items.push(p); openKey.value = p.key
     }
     const cat = p => category(p.category)
     const label = p => {
@@ -1710,7 +1813,7 @@ const ProgramEditor = {
       }
       return [p.title, p.person].filter(Boolean).join(' — ')
     }
-    return { categories: CATEGORIES, timeOf, sorted, setTime, add, cat, label }
+    return { openKey, initialsOf, duration, categories: CATEGORIES, timeOf, sorted, setTime, add, cat, label }
   },
 }
 
@@ -1980,11 +2083,34 @@ createApp({
     })
 
     // Dotknięcie pieśni dodaje ją albo — gdy już jest — zdejmuje; lista zostaje otwarta, żeby wybrać kilka.
-    function addSong(song) {
+    // Harmonogram: kazanie w pierwszym punkcie „Kazanie”, pieśni w punktach „Uwielbienie” (pieśń pamięta swój punkt).
+    const programSorted = computed(() => [...(current.value?.program || [])].sort((a, b) => a.offset - b.offset))
+    const sermonSlot = computed(() => programSorted.value.find(p => p.category === 'kazanie')?.key || '')
+    const songSlots = computed(() => programSorted.value.filter(p => p.category === 'uwielbienie').map(p => p.key))
+    const slotOf = entry => (songSlots.value.includes(entry.slot) ? entry.slot : songSlots.value[0])
+    const songsIn = key => (current.value?.songs || []).filter(e => slotOf(e) === key)
+    // Kolejność pieśni dla rzutnika = kolejność w harmonogramie.
+    function orderSongs() {
+      const rank = key => songSlots.value.indexOf(key)
+      const list = current.value.songs
+      const sorted = list.map((e, i) => [e, i]).sort((a, b) => rank(slotOf(a[0])) - rank(slotOf(b[0])) || a[1] - b[1]).map(x => x[0])
+      list.splice(0, list.length, ...sorted)
+    }
+    const songSheet = ref(false), songSheetSlot = ref('')
+    function pickSongsFor(key) { songSheetSlot.value = key; query.value = ''; songSheet.value = true }
+    function addSong(song, slot = '') {
       const list = current.value.songs
       const at = list.findIndex(sameSong(song))
       if (at >= 0) list.splice(at, 1)
-      else list.push({ key: uid(), songId: null, title: song.title, number: song.number || '' })
+      else list.push({ key: uid(), songId: null, title: song.title, number: song.number || '', ...(slot ? { slot } : {}) })
+      if (slot) orderSongs()
+    }
+    function removeSong(entry) { const list = current.value.songs; list.splice(list.indexOf(entry), 1) }
+    function moveIn(key, entry, by) {
+      const list = current.value.songs, inSlot = songsIn(key), i = inSlot.indexOf(entry), other = inSlot[i + by]
+      if (!other) return
+      const a = list.indexOf(entry), b = list.indexOf(other)
+      list.splice(a, 1, other); list.splice(b, 1, entry)
     }
     function move(i, by) { const list = current.value.songs; list.splice(i + by, 0, ...list.splice(i, 1)) }
 
@@ -2122,7 +2248,7 @@ createApp({
     let eventSaved = '', eventBase = 0, eventType = ''
     const eventEditable = computed(() => !!currentEvent.value && mayChange(currentEvent.value, eventSavedOnce.value))
     const eventDirty = computed(() => !!currentEvent.value && JSON.stringify(currentEvent.value) !== eventSaved)
-    const eventSavedOnce = computed(() => !!currentEvent.value && events.value.some(x => x.id === currentEvent.value.id))
+    const eventSavedOnce = computed(() => !!currentEvent.value && [...events.value, ...pendingEvents.value].some(x => x.id === currentEvent.value.id))
     function openEvent(ev) {
       currentEvent.value = { type: 'inne', title: '', date: today(), time: '', place: '', description: '', program: [], ...JSON.parse(JSON.stringify(ev)) }
       eventSaved = JSON.stringify(currentEvent.value); eventBase = ev.updated || 0; eventType = currentEvent.value.type
@@ -2339,7 +2465,8 @@ createApp({
     const shortDate = d => (d ? new Date(typeof d === 'number' ? d : d + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'short' }) : '')
     const isActive = a => !a.until || a.until >= todayStr.value
     const byNewest = (a, b) => (b.date || 0) - (a.date || 0)
-    const activeAnns = computed(() => announcements.value.filter(isActive).sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || byNewest(a, b)))
+    // Kolejność: przypięte, komunikaty rady, potem od najnowszych.
+    const activeAnns = computed(() => announcements.value.filter(isActive).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.important ? 1 : 0) - (a.important ? 1 : 0) || byNewest(a, b)))
     const oldAnns = computed(() => announcements.value.filter(a => !isActive(a)).sort((a, b) => (b.until || '').localeCompare(a.until || '')))
     const importantAnns = computed(() => activeAnns.value.filter(a => a.important && a.audience !== 'council'))
     // Myśli z kazania: ostatnie nabożeństwo, które już się odbyło (jedna myśl w linii).
@@ -2349,7 +2476,7 @@ createApp({
     const annView = ref(false), currentAnn = ref(null), annEditing = ref(false)
     let annSaved = '', annBase = 0, annAudience = ''
     const annDirty = computed(() => !!currentAnn.value && JSON.stringify(currentAnn.value) !== annSaved)
-    const annSavedOnce = computed(() => !!currentAnn.value && announcements.value.some(x => x.id === currentAnn.value.id))
+    const annSavedOnce = computed(() => !!currentAnn.value && [...announcements.value, ...pendingAnns.value].some(x => x.id === currentAnn.value.id))
     // Zwykłe ogłoszenia — osoby z prawem edycji; komunikaty rady i ogłoszenia dla rady — rada i pastor.
     const annEditable = computed(() => !!currentAnn.value && mayChange(currentAnn.value, annSavedOnce.value) && (hasCouncil.value || (!currentAnn.value.important && currentAnn.value.audience !== 'council' && annAudience !== 'council')))
     function openAnns() { annView.value = true; scrollTo(0, 0) }
@@ -2757,7 +2884,7 @@ createApp({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,
