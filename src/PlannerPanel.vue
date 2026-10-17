@@ -6,6 +6,7 @@ import SongManager from './SongManager.vue'
 import Brand from './Brand.vue'
 import StatsPanel from './StatsPanel.vue'
 import ProgramEditor from './ProgramEditor.vue'
+import ThoughtsEditor from './ThoughtsEditor.vue'
 import { addMinutes, category, categoryName, programFrom } from '../mobile/church.js'
 import { ago, songHistory } from './stats.js'
 import {
@@ -16,6 +17,7 @@ import {
 // Organizacja nabożeństw: plan, z którego korzystają potem rzutnik i stream.
 // Zmiany robi się na kopii roboczej; do nabożeństwa (i do innych komputerów) trafiają dopiero po „Zapisz”.
 const copy = svc => JSON.parse(JSON.stringify(svc))
+const serviceType = computed(() => churchTypes.value.find(t => t.id === 'nabozenstwo') || { program: [] })
 const currentId = ref(null)
 const current = ref(null) // kopia robocza
 const base = ref(null) // stan nabożeństwa w chwili otwarcia — do wykrywania zmian innych osób
@@ -27,8 +29,11 @@ watch(current, svc => { plannerTarget.value = svc }, { immediate: true })
 function load(svc, fresh = false) {
   currentId.value = svc?.id ?? null
   const withDefaults = s => ({ time: DEFAULT_TIME, place: DEFAULT_PLACE, program: [], ...copy(s) })
-  current.value = svc ? withDefaults(svc) : null
-  base.value = svc ? withDefaults(svc) : null
+  const draft = svc ? withDefaults(svc) : null
+  // Nabożeństwo bez programu: od razu program z szablonu (zapisze się razem z pierwszą zmianą).
+  if (draft && !draft.program.length) draft.program = programFrom(serviceType.value, uid)
+  current.value = draft
+  base.value = draft ? copy(draft) : null
   isNew.value = fresh
   confirmDelete.value = false
   message.value = ''
@@ -76,7 +81,6 @@ function create(date) {
   load(svc, true)
 }
 // Program nabożeństwa z szablonu (szablony zmienia się na telefonie: Kalendarz → Szablony).
-const serviceType = computed(() => churchTypes.value.find(t => t.id === 'nabozenstwo') || { program: [] })
 function fillProgram() {
   if (current.value.program.length && !confirm('Zastąpić obecny program programem z szablonu?')) return
   current.value.program = programFrom(serviceType.value, uid)
@@ -87,10 +91,30 @@ function fixAlert() {
   else create(planAlert.value.date)
 }
 const blank = key => !String(current.value[key] || '').trim()
+// Pieśni wybiera się w punktach „Uwielbienie” programu (pieśń pamięta swój punkt — jak na telefonie);
+// kolejność dla rzutnika = kolejność w programie.
+const songSlots = computed(() => [...(current.value?.program || [])].sort((a, b) => a.offset - b.offset).filter(p => p.category === 'uwielbienie').map(p => p.key))
+const slotOf = entry => (songSlots.value.includes(entry.slot) ? entry.slot : songSlots.value[0])
+const songsIn = key => (current.value?.songs || []).filter(e => slotOf(e) === key)
+const pickSlot = ref('') // punkt, do którego właśnie wybiera się pieśni
+function openPick(key) { pickSlot.value = pickSlot.value === key ? '' : key; query.value = '' }
+function orderSongs() {
+  const rank = key => songSlots.value.indexOf(key)
+  const list = current.value.songs
+  list.splice(0, list.length, ...list.map((e, i) => [e, i]).sort((a, b) => rank(slotOf(a[0])) - rank(slotOf(b[0])) || a[1] - b[1]).map(x => x[0]))
+}
 function addSong(song) {
-  current.value.songs.push({ key: uid(), songId: song.id, title: song.title, number: song.number })
+  current.value.songs.push({ key: uid(), songId: song.id, title: song.title, number: song.number, slot: pickSlot.value })
+  orderSongs()
   query.value = ''
 }
+function moveIn(key, entry, by) {
+  const list = current.value.songs, inSlot = songsIn(key), other = inSlot[inSlot.indexOf(entry) + by]
+  if (!other) return
+  const a = list.indexOf(entry), b = list.indexOf(other)
+  list.splice(a, 1, other); list.splice(b, 1, entry)
+}
+const removeSong = entry => current.value.songs.splice(current.value.songs.indexOf(entry), 1)
 function move(list, from, to) { list.splice(to, 0, ...list.splice(from, 1)) }
 function remove() {
   if (original.value) removeService(original.value)
@@ -233,8 +257,8 @@ else load(nearestService.value)
             <div><label for="pPlace">Miejsce</label><input id="pPlace" v-model="current.place" type="text" :placeholder="DEFAULT_PLACE"></div>
           </div>
 
-          <label for="pThoughts">Myśli z kazania</label>
-          <textarea id="pThoughts" v-model="current.thoughts" class="short" placeholder="Jedna myśl w jednej linii — pokażą się na stronie startowej po nabożeństwie"></textarea>
+          <label>Myśli z kazania</label>
+          <ThoughtsEditor v-model="current.thoughts" />
           <p v-if="clash" class="note bad">Na ten dzień jest już inne nabożeństwo — przy synchronizacji zostaną połączone w jedno.</p>
           <p class="note">* pola wymagane — bez nich nabożeństwo jest oznaczone jako niekompletne.</p>
           <p v-if="current.createdBy || current.updatedBy" class="note">
@@ -244,40 +268,54 @@ else load(nearestService.value)
 
           <h2 class="sub">Program nabożeństwa</h2>
           <ProgramEditor :items="current.program" :start="current.time || DEFAULT_TIME" :template="serviceType.program"
-                         :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }" @fill="fillProgram" />
+                         :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }" @fill="fillProgram">
+            <template #item="{ item }">
+              <div v-if="songSlots.includes(item.key)" class="slot-songs">
+                <ol v-if="songsIn(item.key).length" class="members wide-rows">
+                  <li v-for="(entry, i) in songsIn(item.key)" :key="entry.key">
+                    <span class="num"><Icon name="music" /></span>
+                    <span class="meta">
+                      <span class="name">{{ entry.title }}<span v-if="entry.number" class="nr">nr {{ entry.number }}</span></span>
+                      <span v-if="songOf(entry)" class="kind">{{ firstLine(songOf(entry)) }} · slajdów: {{ verses(songOf(entry)).length }}</span>
+                      <span v-else class="kind warnText">Tej pieśni nie ma już w bazie</span>
+                    </span>
+                    <button v-if="songOf(entry)" class="iconbtn" title="Podgląd i edycja pieśni" aria-label="Podgląd i edycja pieśni" @click="openSong(entry.songId)"><Icon name="pencil" /></button>
+                    <button class="iconbtn" :disabled="i === 0" title="Wyżej" aria-label="Przesuń wyżej" @click="moveIn(item.key, entry, -1)"><Icon name="up" /></button>
+                    <button class="iconbtn" :disabled="i === songsIn(item.key).length - 1" title="Niżej" aria-label="Przesuń niżej" @click="moveIn(item.key, entry, 1)"><Icon name="down" /></button>
+                    <button class="iconbtn danger" title="Usuń z nabożeństwa" aria-label="Usuń z nabożeństwa" @click="removeSong(entry)"><Icon name="x" /></button>
+                  </li>
+                </ol>
+                <div v-if="pickSlot === item.key" class="finder">
+                  <label class="searchbox">
+                    <Icon name="search" />
+                    <input v-model="query" type="search" placeholder="Numer, tytuł lub fragment tekstu pieśni" aria-label="Wyszukaj pieśń" autofocus
+                           @keydown.enter.prevent="results[0] && addSong(results[0])" @keydown.esc.stop="pickSlot = ''">
+                  </label>
+                  <ul v-if="query.trim()" class="results">
+                    <li v-if="!results.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta — uzupełnia ją służba rzutnika.' }}</li>
+                    <li v-for="song in results" :key="song.id">
+                      <button @click="addSong(song)"><Icon name="plus" /><span class="meta"><span class="name">{{ songTitle(song) }}</span><span class="kind">{{ firstLine(song) }}</span><span class="kind sung">{{ sung(song) }}</span></span></button>
+                    </li>
+                  </ul>
+                </div>
+                <button class="addsong" @click="openPick(item.key)"><Icon :name="pickSlot === item.key ? 'check' : 'plus'" />{{ pickSlot === item.key ? 'Gotowe' : 'Dodaj pieśń' }}</button>
+              </div>
+            </template>
+          </ProgramEditor>
+          <p v-if="!current.songs.length" class="empty slim bad">Nabożeństwo musi mieć pieśni — {{ songSlots.length ? 'dodaj je w punkcie „Uwielbienie” programu.' : 'dodaj do programu punkt „Uwielbienie” (albo wstaw program z szablonu) i wybierz w nim pieśni.' }}</p>
+          <template v-else-if="!songSlots.length">
+            <p class="note bad">Pieśni dodaje się w punkcie „Uwielbienie” programu — dodaj taki punkt. Obecne pieśni:</p>
+            <ol class="members wide-rows">
+              <li v-for="entry in current.songs" :key="entry.key">
+                <span class="num"><Icon name="music" /></span>
+                <span class="meta"><span class="name">{{ entry.title }}<span v-if="entry.number" class="nr">nr {{ entry.number }}</span></span></span>
+                <button class="iconbtn danger" title="Usuń z nabożeństwa" aria-label="Usuń z nabożeństwa" @click="removeSong(entry)"><Icon name="x" /></button>
+              </li>
+            </ol>
+          </template>
 
           <label for="pBand">Skład zespołu (opcjonalnie)</label>
           <textarea id="pBand" v-model="current.band" class="short" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
-
-          <h2 class="sub" :class="{ bad: !current.songs.length }">Pieśni *</h2>
-          <div class="finder">
-            <label class="searchbox">
-              <Icon name="search" />
-              <input v-model="query" type="search" placeholder="Numer, tytuł lub fragment tekstu pieśni" aria-label="Wyszukaj pieśń"
-                     @keydown.enter.prevent="results[0] && addSong(results[0])" @keydown.esc.stop="query = ''">
-            </label>
-            <ul v-if="query.trim()" class="results">
-              <li v-if="!results.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta — uzupełnia ją służba rzutnika.' }}</li>
-              <li v-for="song in results" :key="song.id">
-                <button @click="addSong(song)"><Icon name="plus" /><span class="meta"><span class="name">{{ songTitle(song) }}</span><span class="kind">{{ firstLine(song) }}</span><span class="kind sung">{{ sung(song) }}</span></span></button>
-              </li>
-            </ul>
-          </div>
-          <div v-if="!current.songs.length" class="empty slim bad">Nabożeństwo musi mieć pieśni — wyszukaj je powyżej.</div>
-          <ol v-else class="members wide-rows">
-            <li v-for="(entry, i) in current.songs" :key="entry.key">
-              <span class="num">{{ i + 1 }}</span>
-              <span class="meta">
-                <span class="name">{{ entry.title }}<span v-if="entry.number" class="nr">nr {{ entry.number }}</span></span>
-                <span v-if="songOf(entry)" class="kind">{{ firstLine(songOf(entry)) }} · slajdów: {{ verses(songOf(entry)).length }}</span>
-                <span v-else class="kind warnText">Tej pieśni nie ma już w bazie</span>
-              </span>
-              <button v-if="songOf(entry)" class="iconbtn" title="Podgląd i edycja pieśni" aria-label="Podgląd i edycja pieśni" @click="openSong(entry.songId)"><Icon name="pencil" /></button>
-              <button class="iconbtn" :disabled="i === 0" title="Wyżej" aria-label="Przesuń wyżej" @click="move(current.songs, i, i - 1)"><Icon name="up" /></button>
-              <button class="iconbtn" :disabled="i === current.songs.length - 1" title="Niżej" aria-label="Przesuń niżej" @click="move(current.songs, i, i + 1)"><Icon name="down" /></button>
-              <button class="iconbtn danger" title="Usuń z nabożeństwa" aria-label="Usuń z nabożeństwa" @click="current.songs.splice(i, 1)"><Icon name="x" /></button>
-            </li>
-          </ol>
 
           <h2 class="sub">Załączniki dla rzutnika</h2>
           <p class="note">Np. prezentacja kaznodziei (PowerPoint lub PDF), zdjęcia, filmy. Służba rzutnika dostanie je razem z pieśniami.</p>
@@ -346,3 +384,9 @@ else load(nearestService.value)
     </div>
   </div>
 </template>
+
+<style scoped>
+.slot-songs { margin: 0 0 8px 102px; display: flex; flex-direction: column; gap: 6px; }
+.slot-songs .members { margin: 0; }
+.slot-songs .addsong { align-self: flex-start; }
+</style>

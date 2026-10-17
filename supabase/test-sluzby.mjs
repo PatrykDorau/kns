@@ -9,10 +9,14 @@ const files = ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzani
 await setupDb(db, files.map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join('\n'), ['admin@kns.pl'])
 const a = await addUser(db, 'admin@kns.pl'), l = await addUser(db, 'lider@kns.pl', 'Lena Lider'), m = await addUser(db, 'marek@kns.pl', 'Marek'), z = await addUser(db, 'zosia@kns.pl', 'Zosia')
 await db.query(`update people set status = 'active', roles = array['czlonek'] where email <> 'admin@kns.pl'`)
+await db.query(`update people set roles = array['czlonek', 'lider'] where email = 'lider@kns.pl'`)
 const A = createFakeClient(db, a), L = createFakeClient(db, l), M = createFakeClient(db, m), Z = createFakeClient(db, z)
 const ok = r => { assert.equal(r.error, null, r.error?.message); return r.data }
 const err = (r, re) => assert.match(r.error?.message || '', re)
 
+// do wyboru na liderów — tylko osoby z rangą „Lider”
+assert.deepEqual(ok(await A.rpc('member_names')).map(p => p.name), ['Lena Lider'])
+err(await A.rpc('ministry_save', { mid: 'x', new_name: 'X', new_description: '', new_seeking: true, new_leaders: [m.id] }), /rangą Lider/)
 // administrator tworzy służbę z liderem
 ok(await A.rpc('ministry_save', { mid: 'uwielbienie', new_name: 'Zespół uwielbienia', new_description: 'Śpiew i instrumenty', new_seeking: true, new_leaders: [l.id] }))
 ok(await A.rpc('ministry_save', { mid: 'powitanie', new_name: 'Powitanie', new_description: '', new_seeking: false, new_leaders: [] }))

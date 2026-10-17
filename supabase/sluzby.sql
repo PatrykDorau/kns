@@ -74,6 +74,10 @@ language plpgsql security definer set search_path = public as $$
 begin
   if has_flag('manage') then
     if length(trim(coalesce(new_name, ''))) = 0 then raise exception 'Wpisz nazwę służby.'; end if;
+    -- liderem służby może być tylko osoba z rangą „Lider”
+    if exists (select 1 from unnest(coalesce(new_leaders, '{}')) l where not exists (select 1 from people p where p.id = l and p.status = 'active' and 'lider' = any (p.roles))) then
+      raise exception 'Liderem służby może być tylko osoba z rangą Lider.';
+    end if;
     insert into ministries (id, name, description, seeking, leader_ids) values (mid, trim(new_name), coalesce(new_description, ''), coalesce(new_seeking, false), coalesce(new_leaders, '{}'))
     on conflict (id) do update set name = excluded.name, description = excluded.description, seeking = excluded.seeking, leader_ids = excluded.leader_ids, updated = now();
   elsif is_ministry_leader(mid) then
@@ -87,12 +91,12 @@ begin
   delete from ministries where id = mid;
 end $$;
 
--- Lista osób do wyboru liderów (administrator).
+-- Osoby do wyboru na liderów służby (administrator): tylko z rangą „Lider”.
 create or replace function public.member_names() returns table (id uuid, name text)
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not has_flag('manage') then raise exception 'Tylko administrator.'; end if;
-  return query select p.id, coalesce(nullif(p.name, ''), split_part(p.email, '@', 1)) from people p where p.status = 'active' order by 2;
+  return query select p.id, coalesce(nullif(p.name, ''), split_part(p.email, '@', 1)) from people p where p.status = 'active' and 'lider' = any (p.roles) order by 2;
 end $$;
 
 revoke all on function public.is_ministry_leader(text), public.ministry_board(), public.ministry_join(text), public.ministry_leave(text),

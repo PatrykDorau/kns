@@ -432,6 +432,12 @@
   .proto-file span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 14px; }
   .proto-file button { flex: none; min-height: 38px; padding: 7px 14px; }
   .proto-fname { margin-left: auto; color: var(--muted); font-weight: 400; font-size: 12px; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .thoughts-ed { display: flex; flex-direction: column; gap: 6px; }
+  .thoughts-ed .th-line { display: flex; align-items: center; gap: 6px; }
+  .thoughts-ed .th-line input { flex: 1; min-width: 0; margin: 0; }
+  .thoughts-ed .th-n { width: 22px; flex: none; text-align: center; color: var(--muted); font-size: 13px; }
+  .thoughts-ed .pg-addsong { align-self: flex-start; }
+  .thoughts-ed .note { margin: 0; }
   .pg-extra { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .pg-extra label { margin-top: 8px; }
   .pg-extra .song { margin-bottom: 6px; background: var(--panel2); }
@@ -1541,7 +1547,7 @@
             <label>Tytuł kazania <span class="req">*</span></label>
             <input v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
             <label>Myśli z kazania</label>
-            <textarea v-model="current.thoughts" placeholder="Jedna myśl w jednej linii — pokażą się na stronie startowej po nabożeństwie"></textarea>
+            <thoughts-editor v-model="current.thoughts"></thoughts-editor>
           </template>
           <p v-else class="pg-sermon">{{ [current.sermonTitle, current.passage, current.speaker].filter(Boolean).join(' · ') || 'Kazanie nie jest jeszcze uzupełnione.' }}</p>
         </div>
@@ -1568,8 +1574,8 @@
       </div>
       <label for="title">Tytuł kazania <span class="req">*</span></label>
       <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
-      <label for="thoughts">Myśli z kazania</label>
-      <textarea id="thoughts" v-model="current.thoughts" placeholder="Jedna myśl w jednej linii"></textarea>
+      <label>Myśli z kazania</label>
+      <thoughts-editor v-model="current.thoughts"></thoughts-editor>
     </template>
 
     <!-- Wybór pieśni (do punktu uwielbienia albo — bez takiego punktu — do całego nabożeństwa). -->
@@ -1593,32 +1599,14 @@
       </div>
     </div>
 
+    <!-- Pieśni wybiera się tylko w punktach „Uwielbienie” harmonogramu. -->
     <template v-if="!songSlots.length">
-    <label for="find">Pieśni <span class="req">*</span></label>
-    <div class="finder">
-      <div class="searchbox">
-        <svg class="i"><use href="#search"/></svg>
-        <input id="find" v-model="query" type="search" :placeholder="`Wybierz z bazy (${songs.length})`" autocomplete="off"
-               @focus="picking = true" @blur="picking = false" @keydown.esc="picking = false; $event.target.blur()">
-      </div>
-      <!-- Lista otwiera się po dotknięciu pola; widać ok. 5 pozycji, resztę się przewija. -->
-      <div v-if="picking" class="suggest" @mousedown.prevent>
-        <div v-if="!results.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta.' }}</div>
-        <button v-for="song in results" :key="song.id" @click="addSong(song)">
-          <span class="num">{{ song.number || '♪' }}</span>
-          <span class="meta"><b>{{ song.title }}</b><small>{{ lines(song.text) }}</small></span>
-          <svg v-if="chosen(song)" class="i added"><use href="#check"/></svg>
-          <svg v-else class="i"><use href="#plus"/></svg>
-        </button>
-      </div>
-    </div>
-    <div class="songs">
-      <div v-if="!current.songs.length" class="empty"><svg class="i"><use href="#music"/></svg>{{ canEdit ? 'Dotknij pola powyżej i wybierz pieśni na to nabożeństwo.' : 'Pieśni nie są jeszcze wybrane.' }}</div>
+    <label>Pieśni <span class="req">*</span></label>
+    <p class="note" style="margin-top:0">Pieśni dodaje się w harmonogramie — w punkcie „Uwielbienie”. Dodaj taki punkt (albo wstaw program z szablonu), żeby wybrać pieśni.</p>
+    <div v-if="current.songs.length" class="songs">
       <div v-for="(entry, i) in current.songs" :key="entry.key" class="song">
         <span class="pos">{{ i + 1 }}</span>
         <div class="meta"><b>{{ songTitle(entry) }}</b><small :class="{ missing: !inBase(entry) }">{{ firstLine(entry) }}</small></div>
-        <button class="icon" :disabled="i === 0" aria-label="Wyżej" @click="move(i, -1)"><svg class="i"><use href="#up"/></svg></button>
-        <button class="icon" :disabled="i === current.songs.length - 1" aria-label="Niżej" @click="move(i, 1)"><svg class="i"><use href="#down"/></svg></button>
         <button class="icon" aria-label="Usuń pieśń z nabożeństwa" @click="current.songs.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
       </div>
     </div>
@@ -1720,7 +1708,8 @@
         <textarea id="mnDesc" v-model="mEdit.description" placeholder="Czym się zajmujecie, kogo szukacie, ile czasu to zajmuje"></textarea>
         <label class="check"><input v-model="mEdit.seeking" type="checkbox">Szukamy nowych chętnych</label>
         <template v-if="canManage">
-          <label>Liderzy (akceptują zgłoszenia)</label>
+          <label>Liderzy (akceptują zgłoszenia) — osoby z rangą Lider</label>
+          <p v-if="!memberNames.length" class="note" style="margin-top:0">Nikt nie ma jeszcze rangi Lider — nadaj ją w Więcej → Osoby.</p>
           <div class="notify-groups"><button v-for="p in memberNames" :key="p.id" type="button" class="chipbtn" :class="{ on: mEdit.leaders.includes(p.id) }" @click="toggleLeader(p.id)">{{ p.name }}</button></div>
         </template>
       </div>
@@ -1764,6 +1753,19 @@
     <button :class="{ on: moreView || songView || peopleView }" :aria-current="moreView || songView || peopleView ? 'page' : null" @click="openMore"><svg class="i"><use href="#menu"/></svg>Więcej<span v-if="canManage && pendingCount" class="count">{{ pendingCount }}</span></button>
   </nav>
 </div>
+
+<!-- Myśli z kazania: każda myśl w osobnym polu (zapis: jedna myśl w linii). -->
+<script type="text/x-template" id="thoughts-editor">
+  <div class="thoughts-ed">
+    <div v-for="(t, i) in lines" :key="i" class="th-line">
+      <span class="th-n">{{ i + 1 }}</span>
+      <input :value="t" placeholder="Myśl z kazania" autocomplete="off" @input="set(i, $event.target.value)" @keydown.enter.prevent="add(i + 1)">
+      <button class="icon" type="button" aria-label="Usuń myśl" @click="remove(i)"><svg class="i"><use href="#x"/></svg></button>
+    </div>
+    <button type="button" class="pg-addsong" @click="add(lines.length)"><svg class="i"><use href="#plus"/></svg>Dodaj myśl</button>
+    <p class="note">Pokażą się na stronie startowej po nabożeństwie — do następnego nabożeństwa.</p>
+  </div>
+</script>
 
 <!-- Program wydarzenia: punkty z godziną, rodzajem, opisem i osobą. W podglądzie — oś czasu. -->
 <script type="text/x-template" id="program-editor">
@@ -1818,7 +1820,7 @@ import { createApi, createDemoApi } from './api.js'
 import { createSupa } from './supa.js'
 import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, categoryName, setCategory, mergeTypes, offsetOf, programFrom, videoInfo } from './church.js'
 const KIND = { image: 'Zdjęcie', video: 'Film', pdf: 'PDF', pptx: 'Prezentacja' }
-const { createApp, ref, computed, watch } = Vue
+const { createApp, ref, computed, watch, nextTick } = Vue
 
 const demo = new URLSearchParams(location.search).has('demo')
 const clientId = window.KNS_CONFIG?.clientId || ''
@@ -1840,7 +1842,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.52 · 17.10.2026'
+const VERSION = '2.53 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1931,6 +1933,26 @@ const DEFAULT_TIME = '12:12', DEFAULT_PLACE = 'Hotel Forza'
 const startsAt = s => new Date(s.date + 'T' + (s.time || DEFAULT_TIME)).getTime()
 const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
+
+const ThoughtsEditor = {
+  template: '#thoughts-editor',
+  props: { modelValue: String },
+  emits: ['update:modelValue'],
+  setup(props, { emit }) {
+    const split = t => (t ? String(t).split('\n') : [])
+    const lines = ref(split(props.modelValue))
+    // zmiana z zewnątrz (inne nabożeństwo, wczytanie) — puste pole w trakcie pisania zostaje
+    watch(() => props.modelValue, v => { if (lines.value.join('\n') !== (v || '')) lines.value = split(v) })
+    const push = () => emit('update:modelValue', lines.value.join('\n'))
+    const set = (i, v) => { lines.value[i] = v.replace(/\n/g, ' '); push() }
+    function add(at) {
+      lines.value.splice(at, 0, ''); push()
+      nextTick(() => document.querySelectorAll('.thoughts-ed .th-line input')[at]?.focus())
+    }
+    const remove = i => { lines.value.splice(i, 1); push() }
+    return { lines, set, add, remove }
+  },
+}
 
 // Program: punkty trzymają przesunięcie w minutach od początku, a pokazują godzinę.
 const ProgramEditor = {
@@ -2156,6 +2178,7 @@ createApp({
     function open(svc) {
       songView.value = false; peopleView.value = false; calView.value = false; song.value = null; fromCal = false
       current.value = { time: DEFAULT_TIME, place: DEFAULT_PLACE, program: [], ...JSON.parse(JSON.stringify(svc)) }
+      if (!current.value.program.length) current.value.program = programFrom(typeOf('nabozenstwo'), uid) // program od razu z szablonu
       saved.value = JSON.stringify(current.value)
       base = svc.updated || 0
       query.value = ''; status.value = ''; confirmDelete.value = false; picking.value = false
@@ -2719,7 +2742,7 @@ createApp({
       if (canManage.value && !memberNames.value.length) api.call('memberNames').then(r => { memberNames.value = r.people || [] }, () => {})
     }
     function toggleLeader(id) { const l = mEdit.value.leaders; mEdit.value.leaders = l.includes(id) ? l.filter(x => x !== id) : [...l, id] }
-    const saveMinistry = () => guard(async () => { await api.call('saveMinistry', mEdit.value); mEdit.value = null; await loadServe() })
+    const saveMinistry = () => guard(async () => { const m = mEdit.value; await api.call('saveMinistry', canManage.value ? { ...m, leaders: m.leaders.filter(id => memberNames.value.some(p => p.id === id)) } : m); mEdit.value = null; await loadServe() })
     function deleteMinistry() { if (confirm('Usunąć tę służbę razem z listą osób?')) guard(async () => { await api.call('deleteMinistry', { id: mEdit.value.id }); mEdit.value = null; await loadServe() }) }
     // Konto bez imienia i nazwiska (jedno słowo albo puste) — ostrzeżenie przy koncie i w profilu.
     const needsName = computed(() => api.enabled && !!me.value && !/\S+\s+\S+/.test((me.value.name || '').trim()))
@@ -3094,7 +3117,7 @@ createApp({
       KIND, ACCEPT, fileType, uploading, progress, fromPhone, picker, pickQuery, pickFound, pickBusy, openPicker, searchSoon, fromDrive,
     }
   },
-}).component('program-editor', ProgramEditor).mount('#app')
+}).component('program-editor', ProgramEditor).component('thoughts-editor', ThoughtsEditor).mount('#app')
 </script>
 </body>
 </html>
