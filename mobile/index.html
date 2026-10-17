@@ -376,6 +376,10 @@
   .ann-video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 4px; border-radius: 12px; overflow: hidden; background: #000; }
   .ann-video video, .ann-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .notify-box { margin-top: 14px; }
+  .proto-file { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border-radius: 14px; background: var(--panel); border: 1px dashed var(--line); }
+  .proto-file span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 14px; }
+  .proto-file button { flex: none; min-height: 38px; padding: 7px 14px; }
+  .proto-fname { margin-left: auto; color: var(--muted); font-weight: 400; font-size: 12px; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pg-extra { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .pg-extra label { margin-top: 8px; }
   .pg-extra .song { margin-bottom: 6px; background: var(--panel2); }
@@ -501,6 +505,8 @@
     /* edytory i listy: wygodna szerokość treści — pasek i nagłówek bez zmian */
     #app.narrow > :not(.kh-bar):not(header):not(.version):not(.sheet):not(.kh-modal) { max-width: 760px; margin-left: auto; margin-right: auto; }
     #app.narrow > header { max-width: 760px; margin: 0 auto; }
+    #app.narrow > input, #app.narrow > select, #app.narrow > textarea { display: block; }
+    #app.narrow > button, #app.narrow > a.button { display: flex; width: 100%; }
     /* Więcej: kafelki */
     .more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; background: none; border: 0; border-radius: 0; overflow: visible; margin-bottom: 14px; }
     .more-list button { min-height: 76px; padding: 14px 18px; border-radius: 18px !important; border: 1px solid var(--line) !important;
@@ -618,11 +624,11 @@
   </div>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja protokołu' : 'Nowy protokół') : 'Protokół') : currentEvent ? 'Wydarzenie' : protoView ? 'Biblioteka protokołów' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
     <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
     <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="currentProto" class="ghost" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Protokoły' }}</button>
+    <button v-else-if="currentProto" class="ghost" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Biblioteka' }}</button>
     <button v-else-if="currentEvent" class="ghost" @click="closeEvent"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="tplType" class="ghost" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
     <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
@@ -868,92 +874,76 @@
     </template>
   </template>
 
-  <!-- protokół spotkania (członkowskiego albo rady) -->
+  <!-- protokół: podgląd (otwarcie pliku) albo edycja (plik, tytuł, data, widoczność, spotkanie) -->
   <template v-else-if="currentProto">
-    <div class="proto-status" :class="currentProto.status">
-      <b>{{ STATUS[currentProto.status] }}</b>
-      <span v-if="currentProto.status === 'zatwierdzony'">Zatwierdził(a): {{ currentProto.approvedBy }}<template v-if="currentProto.approvedAt">, {{ dateTime(currentProto.approvedAt) }}</template></span>
-      <span v-else-if="currentProto.status === 'do-akceptacji'">Czeka na zatwierdzenie przez radę zboru albo pastora.</span>
-      <span v-else>Szkic — można go jeszcze zmieniać; oficjalny jest dopiero po zatwierdzeniu.</span>
-    </div>
-    <p v-if="!protoEditable" class="note readonly"><svg class="i"><use href="#eye"/></svg>{{ currentProto.status === 'zatwierdzony' ? 'Protokół jest zatwierdzony — zmiany dopiero po cofnięciu zatwierdzenia.' : 'Tylko podgląd — protokół pisze protokolant.' }}</p>
-    <fieldset class="plain" :disabled="!protoEditable">
-      <label for="prTitle">Spotkanie <span class="req">*</span></label>
-      <input id="prTitle" v-model="currentProto.title" :class="{ invalid: !currentProto.title.trim() }" autocomplete="off">
-      <div class="row">
-        <div><label for="prDate">Data</label><input id="prDate" v-model="currentProto.date" type="date"></div>
-        <div><label for="prPlace">Miejsce</label><input id="prPlace" v-model="currentProto.place" autocomplete="off"></div>
+    <article v-if="!protoEditing" class="ann-view">
+      <div class="ann-tags">
+        <span class="ann-tag" :class="{ imp: currentProto.kind === 'rada' }">{{ VISIBILITY[currentProto.kind] }}</span>
+        <span v-if="currentProto.eventId && eventTitle(currentProto.eventId)" class="ann-tag">{{ eventTitle(currentProto.eventId) }}</span>
       </div>
-      <div class="row">
-        <div><label for="prChair">Prowadzący</label><input id="prChair" v-model="currentProto.chair" autocomplete="off"></div>
-        <div><label for="prSec">Protokolant</label><input id="prSec" v-model="currentProto.secretary" autocomplete="off"></div>
-      </div>
-      <label for="prPresent">Obecni<template v-if="presentList.length"> ({{ presentList.length }})</template></label>
-      <textarea id="prPresent" v-model="currentProto.present" placeholder="Imiona i nazwiska — każde w osobnej linii albo po przecinku"></textarea>
-
-      <label>Porządek obrad</label>
-      <div v-for="(it, i) in currentProto.items" :key="it.key" class="proto-item">
-        <div class="pi-head">
-          <span class="pos">{{ i + 1 }}</span>
-          <input v-model="it.title" placeholder="Temat" aria-label="Temat punktu" autocomplete="off">
-          <button class="icon" type="button" aria-label="Usuń punkt obrad" @click="currentProto.items.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
-        </div>
-        <textarea v-model="it.notes" class="pi-notes" placeholder="Przebieg — co zostało powiedziane" aria-label="Przebieg"></textarea>
-        <input v-model="it.decision" placeholder="Ustalenie / uchwała" aria-label="Ustalenie albo uchwała" autocomplete="off">
-        <div v-if="it.vote" class="votes">
-          <span>Za<input v-model="it.vote.for" inputmode="numeric" aria-label="Głosy za"></span>
-          <span>Przeciw<input v-model="it.vote.against" inputmode="numeric" aria-label="Głosy przeciw"></span>
-          <span>Wstrzymało się<input v-model="it.vote.abstain" inputmode="numeric" aria-label="Wstrzymało się"></span>
-          <button class="icon" type="button" aria-label="Usuń głosowanie" @click="it.vote = null"><svg class="i"><use href="#x"/></svg></button>
-        </div>
-        <button v-else type="button" class="ghost add-vote" @click="it.vote = { for: '', against: '', abstain: '' }"><svg class="i"><use href="#plus"/></svg>Głosowanie</button>
-      </div>
-      <button type="button" class="add-item" @click="addProtoItem"><svg class="i"><use href="#plus"/></svg>Dodaj punkt obrad</button>
-      <label for="prOther">Inne uwagi</label>
-      <textarea id="prOther" v-model="currentProto.other" placeholder="Wolne wnioski, następne spotkanie…"></textarea>
-    </fieldset>
-    <p v-if="currentProto.createdBy || currentProto.updatedBy" class="note who">
-      <template v-if="currentProto.createdBy">Utworzył(a): {{ currentProto.createdBy }}</template>
-      <template v-if="currentProto.updatedBy"><br>Ostatnia zmiana: {{ currentProto.updatedBy }}<template v-if="currentProto.updated">, {{ dateTime(currentProto.updated) }}</template></template>
-    </p>
-    <div class="proto-actions">
-      <button @click="printProto"><svg class="i"><use href="#download"/></svg>PDF / drukuj</button>
-      <button v-if="protoEditable && protoSavedOnce && currentProto.status === 'szkic'" :disabled="busy" @click="setProtoStatus('do-akceptacji')">Prześlij do akceptacji</button>
-      <button v-if="canApprove && currentProto.status === 'do-akceptacji'" class="primary" :disabled="busy" @click="setProtoStatus('zatwierdzony')"><svg class="i"><use href="#check"/></svg>Zatwierdź</button>
-      <button v-if="canApprove && currentProto.status !== 'szkic' && protoSavedOnce" :disabled="busy" @click="setProtoStatus('szkic')">{{ currentProto.status === 'zatwierdzony' ? 'Cofnij zatwierdzenie' : 'Zwróć do poprawy' }}</button>
-    </div>
-    <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
-    <div v-if="protoEditable" class="bar">
-      <template v-if="protoSavedOnce">
-        <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeProto">Na pewno usuń</button>
-        <button v-else :disabled="busy" aria-label="Usuń protokół" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
-      </template>
-      <button class="primary" :disabled="busy || !protoDirty || !currentProto.title.trim()" @click="saveProto()">
-        <svg v-if="!protoDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : protoDirty ? 'Zapisz' : 'Zapisane' }}
-      </button>
-    </div>
-  </template>
-
-  <!-- lista protokołów -->
-  <template v-else-if="protoView">
-    <div class="seg" role="tablist">
-      <button role="tab" :aria-selected="protoKind === 'czlonkowskie'" :class="{ on: protoKind === 'czlonkowskie' }" @click="loadProtoKind('czlonkowskie')">Spotkania członkowskie</button>
-      <button v-if="hasCouncil" role="tab" :aria-selected="protoKind === 'rada'" :class="{ on: protoKind === 'rada' }" @click="loadProtoKind('rada')">Rada zboru</button>
-    </div>
-    <p v-if="protoBusy" class="note">Wczytuję protokoły…</p>
-    <p v-else-if="protoError" class="error">{{ protoError }}</p>
+      <h2 class="ann-view-title">{{ currentProto.title }}</h2>
+      <p class="ann-view-meta">{{ pretty(currentProto.date) }}<template v-if="currentProto.updatedBy"> · dodał(a) {{ currentProto.updatedBy }}</template></p>
+      <div v-if="currentProto.note" class="ann-view-text">{{ currentProto.note }}</div>
+      <a v-if="protoUrl" class="button ann-link" :href="protoUrl" target="_blank" rel="noopener"><svg class="i"><use href="#list"/></svg>Otwórz protokół<small class="proto-fname">{{ currentProto.fileName }}</small><svg class="i chev"><use href="#chev"/></svg></a>
+      <p v-else-if="currentProto.file" class="note">Przygotowuję plik…</p>
+      <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
+      <button v-if="protoEditable" class="ann-edit-btn" @click="protoEditing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
+    </article>
     <template v-else>
-      <p v-if="!protocols.length" class="note">Nie ma jeszcze protokołów.</p>
-      <button v-for="p in protocols" :key="p.id" class="ev" :style="{ '--c': typeOf(p.kind).color }" @click="openProto(p)">
-        <span class="when"><small>{{ p.date ? wd(p.date) : '' }}</small><b>{{ p.date ? day(p.date) : '—' }}</b><small>{{ p.date ? month(p.date) + ' ' + p.date.slice(2, 4) : '' }}</small></span>
-        <span class="body"><b>{{ p.title }}</b><small>{{ p.secretary ? 'Protokolant: ' + p.secretary : 'punktów obrad: ' + p.items.length }}</small><span class="tag" :class="p.status">{{ STATUS[p.status] }}</span></span>
-        <svg class="i chev"><use href="#chev"/></svg>
-      </button>
+      <label>Plik protokołu <span class="req">*</span></label>
+      <div class="proto-file">
+        <svg class="i"><use href="#list"/></svg>
+        <span>{{ protoFile ? protoFile.name : currentProto.fileName || 'Nie wybrano pliku (PDF, Word, zdjęcie)' }}</span>
+        <button type="button" :disabled="busy" @click="$refs.protoFileIn.click()">{{ currentProto.file || protoFile ? 'Zmień' : 'Wybierz plik' }}</button>
+      </div>
+      <input ref="protoFileIn" type="file" accept=".pdf,.doc,.docx,.odt,.txt,image/*" hidden @change="pickProtoFile">
+      <label for="prTitle">Tytuł <span class="req">*</span></label>
+      <input id="prTitle" v-model="currentProto.title" :class="{ invalid: !currentProto.title.trim() }" autocomplete="off">
+      <label for="prDate">Data spotkania</label>
+      <input id="prDate" v-model="currentProto.date" type="date">
+      <label for="prKind">Kto widzi</label>
+      <select id="prKind" v-model="currentProto.kind" class="field">
+        <option value="czlonkowskie">Wszyscy członkowie</option>
+        <option v-if="hasCouncil" value="rada">Tylko rada zboru</option>
+      </select>
+      <label for="prEvent">Spotkanie (opcjonalnie)</label>
+      <select id="prEvent" v-model="currentProto.eventId" class="field">
+        <option value="">— bez spotkania (tylko biblioteka) —</option>
+        <option v-for="e in meetingEvents.filter(e => currentProto.kind === 'rada' || e.type !== 'rada')" :key="e.id" :value="e.id">{{ (e.title || typeOf(e.type).name) + ' · ' + shortDate(e.date) }}</option>
+      </select>
+      <label for="prNote">Notatka (opcjonalnie)</label>
+      <textarea id="prNote" v-model="currentProto.note" placeholder="np. najważniejsze ustalenia"></textarea>
+      <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
+      <div class="bar">
+        <template v-if="protoSavedOnce">
+          <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeProto">Na pewno usuń</button>
+          <button v-else :disabled="busy" aria-label="Usuń protokół" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
+        </template>
+        <button class="primary" :disabled="busy || !protoDirty || !currentProto.title.trim() || (!currentProto.file && !protoFile)" @click="saveProto()">
+          <svg v-if="!protoDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : protoDirty ? 'Zapisz' : 'Zapisane' }}
+        </button>
+      </div>
     </template>
-    <button v-if="canWriteProto(protoKind) && !protoError" class="primary" style="width:100%;margin-top:6px" @click="newProto(protoKind)"><svg class="i"><use href="#plus"/></svg>Nowy protokół</button>
   </template>
 
-  <!-- wydarzenie (spotkanie studenckie, członkowskie, rady…) -->
+  <!-- biblioteka protokołów -->
+  <template v-else-if="protoView">
+    <div class="notify-groups">
+      <button class="chipbtn" :class="{ on: protoKind === 'all' }" @click="protoKind = 'all'">Wszystkie</button>
+      <button class="chipbtn" :class="{ on: protoKind === 'czlonkowskie' }" @click="protoKind = 'czlonkowskie'">Dla członków</button>
+      <button v-if="hasCouncil" class="chipbtn" :class="{ on: protoKind === 'rada' }" @click="protoKind = 'rada'">Rada zboru</button>
+    </div>
+    <button v-if="canAddProto" class="primary" style="width:100%;margin-bottom:12px" @click="newProto()"><svg class="i"><use href="#plus"/></svg>Dodaj protokół</button>
+    <p v-if="protoBusy && !protocols.length" class="note">Wczytuję protokoły…</p>
+    <p v-else-if="protoError" class="error">{{ protoError }}</p>
+    <p v-else-if="!protocols.length" class="note">W bibliotece nie ma jeszcze protokołów.</p>
+    <button v-for="p in protocols" :key="p.id" class="ev" :style="{ '--c': typeOf(p.kind).color }" @click="openProto(p)">
+      <span class="when"><small>{{ wd(p.date) }}</small><b>{{ day(p.date) }}</b><small>{{ month(p.date) }}</small></span>
+      <span class="body"><b>{{ p.title }}</b><small>{{ VISIBILITY[p.kind] }}<template v-if="p.eventId && eventTitle(p.eventId)"> · {{ eventTitle(p.eventId) }}</template></small></span>
+      <svg class="i chev"><use href="#chev"/></svg>
+    </button>
+  </template>
+
   <template v-else-if="currentEvent">
     <p v-if="currentEvent.status === 'pending'" class="pending-note"><svg class="i"><use href="#bell"/></svg>{{ canReview ? 'Zgłoszenie czeka na Twoje zatwierdzenie' + (currentEvent.createdBy ? ' — od: ' + currentEvent.createdBy : '') + '.' : 'Czeka na zatwierdzenie — po zatwierdzeniu zobaczą je wszyscy.' }}</p>
     <p v-else-if="!eventEditable" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — wydarzenia zmieniają osoby z prawem edycji.</p>
@@ -977,9 +967,11 @@
     </fieldset>
     <label>Program</label>
     <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!eventEditable" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
-    <template v-if="typeOf(currentEvent.type).protocol && eventSavedOnce && (currentEvent.type !== 'rada' || hasCouncil)">
-      <label>Protokół</label>
-      <button class="songsbtn" :disabled="busy" @click="protoForEvent(currentEvent)"><svg class="i"><use href="#list"/></svg>Protokół z tego spotkania<svg class="i chev"><use href="#chev"/></svg></button>
+    <template v-if="['czlonkowskie', 'rada'].includes(currentEvent.type) && eventSavedOnce">
+      <label>Protokoły</label>
+      <button v-for="p in eventProtocols" :key="p.id" class="songsbtn" @click="openProto(p)"><svg class="i"><use href="#list"/></svg>{{ p.title }}<svg class="i chev"><use href="#chev"/></svg></button>
+      <p v-if="!eventProtocols.length" class="note" style="margin:0 0 8px">Do tego spotkania nie dołączono jeszcze protokołu.</p>
+      <button v-if="canWriteProto(currentEvent.type === 'rada' ? 'rada' : 'czlonkowskie')" class="songsbtn" @click="protoForEvent(currentEvent)"><svg class="i"><use href="#plus"/></svg>Dołącz protokół<svg class="i chev"><use href="#chev"/></svg></button>
     </template>
     <p v-if="currentEvent.createdBy || currentEvent.updatedBy" class="note who">
       <template v-if="currentEvent.createdBy">Utworzył(a): {{ currentEvent.createdBy }}</template>
@@ -1018,7 +1010,6 @@
       <div><label for="tTime">Domyślna godzina</label><input id="tTime" v-model="tplType.time" type="time"></div>
       <div><label for="tPlace">Domyślne miejsce</label><input id="tPlace" v-model="tplType.place" autocomplete="off"></div>
     </div>
-    <label v-if="tplType.id !== 'nabozenstwo' && tplType.id !== 'rada'" class="check"><input v-model="tplType.protocol" type="checkbox">Spotkanie z protokołem (pisze protokolant)</label>
     <label>Program</label>
     <p class="note" style="margin-top:0">Godziny punktów są liczone od godziny rozpoczęcia — gdy wydarzenie zacznie się o innej porze, cały program przesunie się razem z nią.</p>
     <program-editor :items="tplType.program" :start="tplType.time || '00:00'"></program-editor>
@@ -1163,7 +1154,7 @@
     <nav class="more-list" aria-label="Więcej">
       <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
-      <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Protokoły</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Biblioteka protokołów</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
@@ -1586,26 +1577,6 @@
     </div>
   </div>
 
-  <!-- Protokół do druku / PDF (widoczny tylko przy drukowaniu). -->
-  <article v-if="currentProto" class="print-proto">
-    <h1>Protokół — {{ currentProto.title }}</h1>
-    <p>{{ currentProto.date ? pretty(currentProto.date) : '' }}<template v-if="currentProto.place">, {{ currentProto.place }}</template></p>
-    <p v-if="currentProto.chair"><b>Prowadzący:</b> {{ currentProto.chair }}</p>
-    <p v-if="currentProto.secretary"><b>Protokolant:</b> {{ currentProto.secretary }}</p>
-    <p v-if="presentList.length"><b>Obecni ({{ presentList.length }}):</b> {{ presentList.join(', ') }}</p>
-    <h2>Porządek obrad</h2>
-    <ol>
-      <li v-for="it in currentProto.items" :key="it.key">
-        <b>{{ it.title || 'Punkt bez tytułu' }}</b>
-        <p v-if="it.notes">{{ it.notes }}</p>
-        <p v-if="it.decision"><b>Ustalenie:</b> {{ it.decision }}</p>
-        <p v-if="it.vote"><b>Głosowanie:</b> za {{ it.vote.for || 0 }}, przeciw {{ it.vote.against || 0 }}, wstrzymało się {{ it.vote.abstain || 0 }}</p>
-      </li>
-    </ol>
-    <template v-if="currentProto.other"><h2>Inne uwagi</h2><p>{{ currentProto.other }}</p></template>
-    <p class="sign">Status: {{ STATUS[currentProto.status] }}<template v-if="currentProto.status === 'zatwierdzony'"> — zatwierdził(a) {{ currentProto.approvedBy }}<template v-if="currentProto.approvedAt">, {{ dateTime(currentProto.approvedAt) }}</template></template>.
-      Kościół Na Skale · KNS Nabo</p>
-  </article>
 
   <p class="version">wersja {{ version }}</p>
 
@@ -1691,7 +1662,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.48 · 17.10.2026'
+const VERSION = '2.49 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2251,6 +2222,7 @@ createApp({
     const eventSavedOnce = computed(() => !!currentEvent.value && [...events.value, ...pendingEvents.value].some(x => x.id === currentEvent.value.id))
     function openEvent(ev) {
       currentEvent.value = { type: 'inne', title: '', date: today(), time: '', place: '', description: '', program: [], ...JSON.parse(JSON.stringify(ev)) }
+      if (['czlonkowskie', 'rada'].includes(currentEvent.value.type) && api.enabled) loadProtocols()
       eventSaved = JSON.stringify(currentEvent.value); eventBase = ev.updated || 0; eventType = currentEvent.value.type
       notify.ids = []
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
@@ -2352,94 +2324,80 @@ createApp({
       types.value = list
       tplType.value = null
     })
-    /* ---------- protokoły ---------- */
-    // Członkowskie pisze protokolant, rady — rada zboru; zatwierdzają rada i pastor (dostępu i tak pilnuje Dysk).
-    const STATUS = { szkic: 'Szkic', 'do-akceptacji': 'Do akceptacji', zatwierdzony: 'Zatwierdzony' }
+    /* ---------- protokoły: biblioteka plików ---------- */
+    // Protokół spisuje ktoś poza aplikacją i wgrywa plik. Widoczność: wszyscy członkowie albo tylko rada (pilnuje baza);
+    // opcjonalnie dołączony do spotkania członkowskiego albo rady. Dodają protokolant i rada zboru.
     const hasCouncil = computed(() => hasFlag('council'))
     const canApprove = computed(() => hasFlag('council'))
     const canWriteProto = kind => (kind === 'rada' ? hasFlag('council') : hasFlag('protocols') || hasFlag('council'))
+    const canAddProto = computed(() => !!drive.uploadProtocolFile && canWriteProto('czlonkowskie'))
+    const VISIBILITY = { czlonkowskie: 'Wszyscy członkowie', rada: 'Tylko rada zboru' }
     const dateTime = t => new Date(t).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
-    const protoView = ref(false), protoKind = ref('czlonkowskie'), protocolsRaw = ref([]), protoBusy = ref(false), protoError = ref('')
-    const protocols = computed(() => [...protocolsRaw.value].sort((a, b) => (b.date || '').localeCompare(a.date || '')))
-    const normProto = p => ({ eventId: '', place: '', chair: '', secretary: '', present: '', items: [], other: '', status: 'szkic', ...p })
-    async function fetchProtocols(kind) {
-      const list = (await drive.loadProtocols(kind)).map(normProto)
-      if (protoKind.value === kind) protocolsRaw.value = list
-      return list
+    const protoView = ref(false), protoKind = ref('all'), protocolsRaw = ref([]), protoBusy = ref(false), protoError = ref('')
+    const protocols = computed(() => protocolsRaw.value.filter(p => protoKind.value === 'all' || p.kind === protoKind.value).sort((a, b) => (b.date || '').localeCompare(a.date || '')))
+    let protoLoaded = false
+    async function loadProtocols(force = false) {
+      if (protoLoaded && !force) return
+      protoBusy.value = true; protoError.value = ''
+      try { protocolsRaw.value = await drive.loadProtocols(); protoLoaded = true } catch (e) { protoError.value = e.message } finally { protoBusy.value = false }
     }
-    async function loadProtoKind(kind) {
-      protoKind.value = kind; protocolsRaw.value = []; protoError.value = ''; protoBusy.value = true
-      try { await fetchProtocols(kind) } catch (e) { protoError.value = e.message; if (e.auth) { ready.value = false; gate.value = '' } } finally { protoBusy.value = false }
-    }
-    function openProtocols() { protoView.value = true; scrollTo(0, 0); loadProtoKind(protoKind.value === 'rada' && !hasCouncil.value ? 'czlonkowskie' : protoKind.value) }
-
-    const currentProto = ref(null)
+    function loadProtoKind(kind) { protoKind.value = kind }
+    function openProtocols() { protoView.value = true; scrollTo(0, 0); loadProtocols(true) }
+    const meetingEvents = computed(() => events.value.filter(e => ['czlonkowskie', 'rada'].includes(e.type)).sort((a, b) => (b.date || '').localeCompare(a.date || '')))
+    const eventTitle = id => { const e = events.value.find(x => x.id === id); return e ? (e.title || typeOf(e.type).name) + ' · ' + shortDate(e.date) : '' }
+    const eventProtocols = computed(() => (currentEvent.value ? protocolsRaw.value.filter(p => p.eventId === currentEvent.value.id) : []))
+    const currentProto = ref(null), protoEditing = ref(false), protoFile = ref(null), protoUrl = ref('')
     let protoSaved = '', protoBase = 0
-    const protoDirty = computed(() => !!currentProto.value && JSON.stringify(currentProto.value) !== protoSaved)
-    const protoSavedOnce = computed(() => !!currentProto.value && protoSaved !== '' && protoBase > 0)
-    const protoEditable = computed(() => !!currentProto.value && currentProto.value.status !== 'zatwierdzony' && (canWriteProto(currentProto.value.kind) || canApprove.value))
-    const presentList = computed(() => String(currentProto.value?.present || '').split(/[\n,;]+/).map(s => s.trim()).filter(Boolean))
+    const protoDirty = computed(() => !!currentProto.value && (JSON.stringify(currentProto.value) !== protoSaved || !!protoFile.value))
+    const protoSavedOnce = computed(() => !!currentProto.value && protocolsRaw.value.some(p => p.id === currentProto.value.id))
+    const protoEditable = computed(() => !!currentProto.value && canWriteProto(currentProto.value.kind))
     function openProto(p) {
-      currentProto.value = normProto(JSON.parse(JSON.stringify(p)))
-      currentProto.value.items = currentProto.value.items.map(it => ({ key: uid(), title: '', notes: '', decision: '', vote: null, ...it }))
+      currentProto.value = { title: '', date: today(), kind: 'czlonkowskie', eventId: '', note: '', file: '', fileName: '', ...JSON.parse(JSON.stringify(p)) }
       protoSaved = JSON.stringify(currentProto.value); protoBase = p.updated || 0
+      protoFile.value = null; protoEditing.value = false; protoUrl.value = ''
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
+      // adres pliku (prywatny, ważny godzinę) — od razu, żeby link otwierał się bez czekania
+      if (p.file && drive.protocolUrl) drive.protocolUrl(p.file).then(u => { if (currentProto.value?.id === p.id) protoUrl.value = u }, e => { error.value = e.message })
     }
-    // Nowy protokół — ze spotkania z kalendarza (tytuł, data, miejsce, punkty obrad z programu) albo pusty.
-    function newProto(kind, ev = null) {
-      const items = (ev?.program || []).filter(p => p.category === 'porzadek' && p.title).map(p => ({ key: uid(), title: p.title, notes: '', decision: '', vote: null }))
-      openProto({ id: uid(), eventId: ev?.id || '', kind, title: ev?.title || typeOf(kind).name, date: ev?.date || today(), place: ev?.place || '',
-        secretary: me.value?.name || '', items: items.length ? items : [{ key: uid(), title: '', notes: '', decision: '', vote: null }], createdBy: drive.account() || 'telefon' })
-      protoSaved = ''; protoBase = 0
+    function newProto(kind = 'czlonkowskie', ev = null) {
+      openProto({ id: uid(), kind, eventId: ev?.id || '', title: ev ? 'Protokół — ' + (ev.title || typeOf(ev.type).name) : '', date: ev?.date || today() })
+      protoSaved = ''; protoEditing.value = true
     }
-    const protoKindOf = ev => (ev.type === 'rada' ? 'rada' : 'czlonkowskie')
-    // Przycisk „Protokół” przy spotkaniu: istniejący protokół albo nowy (dla protokolanta).
-    const protoForEvent = ev => guard(async () => {
-      const kind = protoKindOf(ev)
-      protoKind.value = kind
-      const found = (await fetchProtocols(kind)).find(p => p.eventId === ev.id)
-      if (found) openProto(found)
-      else if (canWriteProto(kind)) newProto(kind, ev)
-      else throw new Error('Protokół z tego spotkania nie został jeszcze napisany.')
-    })
-    function addProtoItem() { currentProto.value.items.push({ key: uid(), title: '', notes: '', decision: '', vote: null }) }
+    function protoForEvent(ev) { loadProtocols(); newProto(ev.type === 'rada' ? 'rada' : 'czlonkowskie', ev) }
+    function pickProtoFile(e) {
+      const f = e.target.files?.[0]
+      e.target.value = ''
+      if (!f) return
+      if (f.size > 25 * 1048576) { error.value = 'Plik ma ' + Math.round(f.size / 1048576) + ' MB — limit to 25 MB.'; return }
+      protoFile.value = f
+      if (!currentProto.value.title.trim()) currentProto.value.title = f.name.replace(/\.[^.]+$/, '')
+    }
     function closeProto() {
-      if (protoDirty.value && protoSavedOnce.value && !confirm('Masz niezapisane zmiany w protokole. Wyjść bez zapisywania?')) return
+      if (protoEditing.value && protoDirty.value && protoSavedOnce.value && !confirm('Masz niezapisane zmiany w protokole. Wyjść bez zapisywania?')) return
+      if (protoEditing.value && protoSavedOnce.value) { const p = protocolsRaw.value.find(x => x.id === currentProto.value.id); if (p) { openProto(p); return } }
       currentProto.value = null
-      if (protoView.value) loadProtoKind(protoKind.value)
     }
-    async function writeProto(changes = {}) {
-      const p = currentProto.value
-      p.title = p.title.trim()
-      const data = { ...JSON.parse(JSON.stringify(p)), ...changes, updated: Date.now(), updatedBy: drive.account() || 'telefon' }
-      try {
-        await drive.saveProtocol(data, protoBase)
-      } catch (e) {
+    const saveProto = () => guard(async () => {
+      const p = currentProto.value, f = protoFile.value, old = p.file
+      const data = { ...JSON.parse(JSON.stringify(p)), title: p.title.trim(), status: 'zatwierdzony', updated: Date.now(), updatedBy: me.value?.name || drive.account() || 'telefon' }
+      if (f) Object.assign(data, { file: await drive.uploadProtocolFile(f), fileName: f.name, fileType: f.type, size: f.size })
+      try { await drive.saveProtocol(data, protoBase) } catch (e) {
         if (!e.conflict) throw e
-        if (!confirm('Ktoś inny zmienił ten protokół, odkąd go otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) {
-          const fresh = (await fetchProtocols(p.kind)).find(x => x.id === p.id)
-          if (fresh) openProto(fresh)
-          status.value = 'Wczytano najnowszą wersję'
-          return false
-        }
+        if (!confirm('Ktoś inny zmienił ten protokół, odkąd go otworzyłeś. Zapisać mimo to?')) return
         await drive.saveProtocol(data, protoBase, true)
       }
+      if (f && old && old !== data.file) drive.removeProtocolFile?.(old)
+      protocolsRaw.value = [...protocolsRaw.value.filter(x => x.id !== data.id), data]
       openProto(data)
-      return true
-    }
-    const saveProto = () => guard(async () => { if (await writeProto()) status.value = 'Zapisano o ' + clockNow() })
-    const setProtoStatus = next => guard(async () => {
-      if (next === 'zatwierdzony' && !confirm('Zatwierdzić protokół? Po zatwierdzeniu nie będzie można go zmieniać (chyba że ktoś cofnie zatwierdzenie).')) return
-      const changes = { status: next, ...(next === 'zatwierdzony' ? { approvedBy: me.value?.name || drive.account() || 'telefon', approvedAt: Date.now() } : { approvedBy: '', approvedAt: 0 }) }
-      if (await writeProto(changes)) status.value = next === 'zatwierdzony' ? 'Protokół zatwierdzony' : next === 'do-akceptacji' ? 'Przesłano do akceptacji' : 'Protokół wrócił do szkicu'
+      status.value = 'Zapisano o ' + clockNow()
     })
     const removeProto = () => guard(async () => {
-      await drive.removeProtocol(currentProto.value.id)
+      const p = currentProto.value
+      await drive.removeProtocol(p.id)
+      if (p.file) drive.removeProtocolFile?.(p.file)
+      protocolsRaw.value = protocolsRaw.value.filter(x => x.id !== p.id)
       currentProto.value = null
-      if (protoView.value) loadProtoKind(protoKind.value)
     })
-    // PDF: wersja do druku (przeglądarka pozwala ją zapisać jako PDF).
-    function printProto() { setTimeout(() => print(), 50) }
     /* ---------- ogłoszenia i komunikaty rady ---------- */
     const AUDIENCE = { public: 'Wszyscy', members: 'Członkowie', council: 'Rada zboru' }
     const announcements = ref([])
@@ -2885,8 +2843,9 @@ createApp({
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
-      STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
-      currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
+      hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
+      currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
+      VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
       migrating, migrated, migrate,
       gcalView, gcal, openGcal, renewGcal, copyGcal,
       weekDays, greeting, firstName, webTiles, chooseTile, boardNews, weekRange,

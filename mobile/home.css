@@ -141,8 +141,8 @@ button.kh-ann:hover { background: rgba(255, 255, 255, .06); }
 .kh-modal-link { display: inline-flex; margin-top: 14px; padding: 9px 16px; border-radius: 12px; background: var(--accent-soft); border: 1px solid rgba(242, 165, 60, .4); color: var(--accent); font-weight: 650; text-decoration: none; }
 
 /* myśli z kazania */
+.kh-thoughts .kh-panel-h h2::before { content: '\201C'; width: auto; height: auto; margin-right: 8px; border-radius: 0; background: none; font: 700 40px/0 Georgia, serif; color: var(--amber, #f2a53c); top: 10px; }
 .kh-panel.kh-thoughts { position: relative; overflow: hidden; --hc: var(--amber, #f2a53c); }
-.kh-thoughts::before { content: '\201D'; position: absolute; right: 18px; bottom: -48px; font: 700 130px/1 Georgia, serif; color: rgba(242, 165, 60, .10); pointer-events: none; }
 .kh-th-sermon { margin: -4px 0 12px; color: var(--muted); font-size: 13px; }
 .kh-th-sermon b { color: var(--text); font-weight: 650; }
 .kh-th-list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }

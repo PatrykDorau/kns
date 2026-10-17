@@ -174,9 +174,24 @@ export function createSupa(config, client = window.supabase.createClient(config.
       check(await sb.from('templates').upsert({ id: 'main', types, updated, updated_by: who() }))
       return updated
     },
-    async loadProtocols(kind) {
-      return (await all(() => sb.from('protocols').select('data').eq('kind', kind).order('id'))).map(r => r.data)
+    // Biblioteka protokołów: wszystkie, które ta osoba może zobaczyć (członkowskie; rady — tylko rada).
+    async loadProtocols() {
+      return (await all(() => sb.from('protocols').select('data,kind,event_id,updated').order('id'))).map(r => ({ ...r.data, kind: r.kind, eventId: r.event_id || '', updated: Math.max(r.data?.updated || 0, r.updated || 0) }))
     },
+    // Plik protokołu: prywatny kosz „protokoly”; link ważny godzinę.
+    async uploadProtocolFile(file) {
+      const ext = ((file.name.match(/\.(\w+)$/) || [])[1] || 'pdf').toLowerCase()
+      const path = crypto.randomUUID() + '.' + ext
+      const { error } = await sb.storage.from('protokoly').upload(path, file, { contentType: file.type || 'application/octet-stream' })
+      if (error) throw new Error('Nie udało się wysłać pliku: ' + error.message)
+      return path
+    },
+    async protocolUrl(path) {
+      const { data, error } = await sb.storage.from('protokoly').createSignedUrl(path, 3600)
+      if (error) throw new Error('Nie udało się otworzyć pliku protokołu: ' + error.message)
+      return data.signedUrl
+    },
+    async removeProtocolFile(path) { await sb.storage.from('protokoly').remove([path]).catch(() => {}) },
     async saveProtocol(p, base = 0, force = false) {
       await guardNewer('protocols', p.id, base, force, 'ten protokół')
       check(await sb.from('protocols').upsert({ id: p.id, kind: p.kind, event_id: p.eventId || null, date: day(p.date), status: p.status || 'szkic', data: p, updated: p.updated || Date.now(), updated_by: p.updatedBy || who() }))

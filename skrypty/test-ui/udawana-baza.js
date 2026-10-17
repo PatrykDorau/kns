@@ -49,6 +49,7 @@
         async upload(path, blob) { (window.__files ||= {})[path] = URL.createObjectURL(blob); return { error: null } },
         getPublicUrl: path => ({ data: { publicUrl: window.__files[path] + '#/' + bucket + '/' + path } }),
         async remove(paths) { (window.__removed ||= []).push(...paths); return { error: null } },
+        async createSignedUrl(path) { return { data: { signedUrl: window.__files?.[path] || 'about:blank' }, error: null } },
       }) },
       auth: {
         getSession: async () => ({ data: { session: await sessionP } }),

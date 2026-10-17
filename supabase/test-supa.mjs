@@ -56,15 +56,15 @@ assert.equal(d.events.length, 2)
 assert.equal(d.templates[0].name, 'Studenci')
 assert.equal(d.templatesUpdated, tu)
 assert.deepEqual(d.announcements.map(a => a.id + ':' + a.audience).sort(), ['a1:public', 'a2:council'])
-assert.equal((await A.loadProtocols('czlonkowskie')).length, 1)
+assert.equal((await A.loadProtocols()).filter(p => p.kind === 'czlonkowskie').length, 1)
 
 // zatwierdzenie: członek czyta, nie zmienia; nie widzi spraw rady
 await A.api.call('setPerson', { email: 'ania@kns.pl', status: 'active', roles: ['czlonek'] })
 d = await N.load()
 assert.deepEqual([d.services.length, d.songs.length, d.events.length], [1, 1, 2])
 assert.deepEqual(d.announcements.map(a => a.id), ['a1'])
-assert.equal((await N.loadProtocols('czlonkowskie')).length, 1)
-assert.equal((await N.loadProtocols('rada')).length, 0)
+// biblioteka: członek widzi protokoły członkowskie, rady — nie
+assert.deepEqual((await N.loadProtocols()).map(p => p.kind), ['czlonkowskie'])
 await assert.rejects(N.save({ service: { ...svc, updated: 99 } }, 99), /uprawnień/)
 await assert.rejects(N.saveProtocol({ id: 'pr2', kind: 'czlonkowskie', updated: 1 }), /uprawnień/)
 // protokolant pisze, ale nie zmienia nabożeństw
