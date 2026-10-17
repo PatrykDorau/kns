@@ -61,6 +61,11 @@ export async function removeChurchEvent(id) {
   if (!res.error) churchEvents.value = churchEvents.value.filter(x => x.id !== id)
   return res
 }
+// Osoby i powiadomienia (baza danych).
+export const loadPeople = () => (cloud ? cloud.people() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
+export const setPerson = (email, status, roles) => (cloud ? cloud.setPerson(email, status, roles) : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
+export const loadDirectory = () => (cloud ? cloud.directory() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
+export const notifyPeople = (people, msg) => (cloud ? cloud.notify(people, msg) : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 export const serviceModal = ref(false) // okno „Wczytaj nabożeństwo”
 export const plannerTarget = ref(null) // nabożeństwo edytowane w organizacji — tam trafia pieśń dodana z bazy
 export const tab = ref('materials')

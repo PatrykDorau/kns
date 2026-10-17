@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export const BAZA = 'baza'
 export const CLOUD = {
+  pushUrl: 'https://kns-nabo.netlify.app/api/push',
   url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co',
   key: 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI', // klucz publiczny — dostępu pilnuje baza
 }
@@ -82,6 +83,29 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       return { ok: true }
     }),
     removeEvent: id => safe(async () => { await active(); check(await sb.from('events').delete().eq('id', id)); return { ok: true } }),
+    // Osoby (administrator): lista, zatwierdzanie, rangi.
+    people: () => safe(async () => {
+      await active()
+      const [people, ranks] = await Promise.all([sb.from('people').select('*').order('requested').then(check), sb.from('ranks').select('*').order('sort').then(check)])
+      return { people, ranks }
+    }),
+    setPerson: (email, status, roles) => safe(async () => {
+      await active()
+      return { person: check(await sb.rpc('set_person', { person_email: email, new_status: status ?? null, new_roles: Array.isArray(roles) ? roles : null })) }
+    }),
+    // Powiadomienia do wybranych osób: lista odbiorców i wysyłka przez /api/push (z tokenem logowania).
+    directory: () => safe(async () => {
+      await active()
+      const [people, ranks] = await Promise.all([sb.rpc('people_directory').then(check), sb.from('ranks').select('*').order('sort').then(check)])
+      return { people, ranks }
+    }),
+    notify: (people, msg) => safe(async () => {
+      const s = await session()
+      const res = await fetch(CLOUD.pushUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notify: true, token: s.access_token, people, ...msg }) })
+      const out = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(out.error || 'Nie udało się wysłać powiadomienia.')
+      return out
+    }),
     // Pierwsze połączenie (po zalogowaniu Google): od razu sprawdza konto.
     connect: () => safe(async () => { await active(); return { ok: true, email: person.email } }),
     signOut: () => sb.auth.signOut({ scope: 'local' }).catch(() => {}),
@@ -91,9 +115,9 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
       const [rows, events, tpl, news] = await Promise.all([
         all(() => sb.from('services').select('data').order('id')),
-        all(() => sb.from('events').select('data').or(`date.gte.${since},date.is.null`).order('id')),
+        all(() => sb.from('events').select('data,updated').or(`date.gte.${since},date.is.null`).order('id')),
         sb.from('templates').select('types').eq('id', 'main').then(check),
-        all(() => sb.from('announcements').select('data,audience').order('id')),
+        all(() => sb.from('announcements').select('data,audience,updated').order('id')),
       ])
       // Teksty pieśni z nabożeństwa (komputer dopasowuje pieśni po tytule i numerze).
       if (!remoteSongs.size) for (const s of await all(() => sb.from('songs').select('*').order('id'))) remoteSongs.set(s.id, s)
@@ -108,8 +132,8 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       return {
         list: services.map(s => ({ service: s, songs: (s.songs || []).map(e => byKey.get(songKey(e))).filter(Boolean).map(({ number, title, text }) => ({ number, title, text })) })),
         templates: tpl[0]?.types || null,
-        events: events.map(r => r.data),
-        announcements: news.map(r => ({ ...r.data, audience: r.audience })),
+        events: events.map(r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0) })),
+        announcements: news.map(r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0), audience: r.audience })),
       }
     }),
     sharedWrite: (dir, payload) => safe(async () => {

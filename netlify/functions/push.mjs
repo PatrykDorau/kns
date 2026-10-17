@@ -18,7 +18,9 @@ const b64u = buf => Buffer.from(buf).toString('base64url')
 const unb64u = s => Buffer.from(String(s || ''), 'base64url')
 // Baza (Supabase) — adres i klucz publiczny (bezpieczny: dostęp pilnują reguły w bazie).
 const SUPABASE = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', key: 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI' }
-const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
+// CORS: aplikacja na komputer wywołuje funkcję z innego źródła (plik lokalny). Uprawnienia sprawdza baza po tokenie.
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }
+const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS } })
 
 // Para kluczy VAPID z samego klucza prywatnego (32 bajty) — publiczny wyliczany.
 export function vapidKeys(privateB64) {
@@ -73,6 +75,7 @@ export default async function handler(req) {
   const privateKey = process.env.VAPID_PRIVATE
   if (!privateKey) return json({ error: 'Powiadomienia nie są skonfigurowane (brak VAPID_PRIVATE).' }, 503)
   const keys = vapidKeys(privateKey)
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
   if (req.method === 'GET') return json({ publicKey: b64u(keys.publicRaw) })
   if (req.method !== 'POST') return json({ error: 'Nieobsługiwana metoda.' }, 405)
 

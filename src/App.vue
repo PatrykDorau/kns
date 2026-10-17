@@ -6,6 +6,7 @@ import Control from './Control.vue'
 import PlannerPanel from './PlannerPanel.vue'
 import StreamPanel from './StreamPanel.vue'
 import CalendarView from './CalendarView.vue'
+import PeopleView from './PeopleView.vue'
 import HomeBoard from './HomeBoard.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
@@ -49,6 +50,7 @@ const TILES = [
         <template v-if="ready && access.status === 'active'">
           <button v-if="googleExpired" class="small primary" @click="loginGoogle">Zaloguj ponownie</button>
           <button v-else class="kh-ib" :class="{ spin: syncing }" :disabled="syncing" :title="(access.offline ? 'Bez internetu — ostatnie sprawdzenie. ' : '') + (sharedStatus || 'Synchronizuj z bazą danych')" aria-label="Synchronizuj" @click="syncShared"><Icon name="refresh" /></button>
+          <button v-if="access.manage" class="kh-ib" title="Osoby — zatwierdzanie kont i rangi" aria-label="Osoby" @click="role = 'people'"><Icon name="users" /></button>
           <span class="kh-me" :title="access.email">
             <span class="kh-av">{{ initials }}</span>
             <span class="kh-me-text"><b>{{ access.name || access.email }}</b><small>{{ access.names.filter(n => n !== 'Członek').join(', ') || 'Członek' }}</small></span>
@@ -97,6 +99,7 @@ const TILES = [
   <Control v-else-if="role === 'display'" />
   <StreamPanel v-else-if="role === 'stream'" />
   <CalendarView v-else-if="role === 'calendar'" />
+  <PeopleView v-else-if="role === 'people'" />
   <PlannerPanel v-else />
 
   <!-- Nowa wersja aplikacji: pobrana w tle (instalator) albo do pobrania (wersja przenośna). -->

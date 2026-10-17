@@ -4,8 +4,9 @@ import Icon from './Icon.vue'
 import Brand from './Brand.vue'
 import SyncButton from './SyncButton.vue'
 import ProgramEditor from './ProgramEditor.vue'
+import NotifyPicker from './NotifyPicker.vue'
 import { addMinutes, category, programFrom } from '../mobile/church.js'
-import { access, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
+import { access, notifyPeople, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
 
 // Kalendarz życia kościoła: nabożeństwa i inne wydarzenia. Wydarzenia zmieniają osoby z prawem edycji;
 // nabożeństwo otwiera się w Organizacji nabożeństw (tam są pieśni, załączniki i program).
@@ -47,6 +48,7 @@ const draft = ref(null)
 let saved = ''
 const isNew = ref(false)
 const message = ref('')
+const notifyIds = ref([]) // odbiorcy powiadomienia po zapisaniu
 const busy = ref(false)
 const dirty = computed(() => !!draft.value && (isNew.value || JSON.stringify(draft.value) !== saved))
 const pickedService = computed(() => picked.value?.kind === 'service' ? services.value.find(s => s.id === picked.value.id) : null)
@@ -102,6 +104,12 @@ async function save() {
     if (res.error) { message.value = res.error; return }
     draft.value = { ...ev }; saved = JSON.stringify(draft.value); isNew.value = false
     message.value = 'Zapisano — telefony i inne komputery widzą zmianę od razu.'
+    if (notifyIds.value.length) {
+      const when = asDate(ev.date).toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + (ev.time ? ', ' + ev.time : '')
+      const r = await notifyPeople(notifyIds.value, { title: ev.title || typeOf(ev.type).name, body: [when, ev.place].filter(Boolean).join(' · '), url: './?wydarzenie=' + encodeURIComponent(ev.id) })
+      if (r.error) message.value += ' Powiadomienie nie wyszło: ' + r.error
+      else { message.value += r.sent ? ` Powiadomienie wysłane (${r.sent} ${r.sent === 1 ? 'telefon' : 'telefony'}).` : ' Nikt z wybranych nie ma włączonych powiadomień.'; notifyIds.value = [] }
+    }
   } finally { busy.value = false }
 }
 async function remove() {
@@ -192,11 +200,12 @@ onMounted(() => {
             <h2 class="sub">Program</h2>
             <ProgramEditor :items="draft.program" :start="draft.time || '00:00'" :template="typeOf(draft.type).program || []" @fill="fillProgram" />
           </fieldset>
+          <NotifyPicker v-if="canEdit" v-model="notifyIds" />
           <p v-if="message" class="url">{{ message }}</p>
           <div v-if="canEdit" class="btnrow end">
             <button v-if="!isNew" :disabled="busy" @click="remove"><Icon name="trash" />Usuń</button>
             <span class="spacer"></span>
-            <button class="primary" :disabled="busy || !dirty || !draft.title.trim() || !draft.date" @click="save"><Icon name="check" />{{ busy ? 'Zapisuję…' : dirty ? 'Zapisz' : 'Zapisane' }}</button>
+            <button class="primary" :disabled="busy || (!dirty && !notifyIds.length) || !draft.title.trim() || !draft.date" @click="save"><Icon name="check" />{{ busy ? 'Zapisuję…' : dirty ? 'Zapisz' : notifyIds.length ? 'Wyślij powiadomienie' : 'Zapisane' }}</button>
           </div>
         </template>
 
