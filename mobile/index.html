@@ -382,6 +382,36 @@
   .ann-video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 4px; border-radius: 12px; overflow: hidden; background: #000; }
   .ann-video video, .ann-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .notify-box { margin-top: 14px; }
+  .kh-warn { width: 16px !important; height: 16px !important; color: var(--warn, #e8957d) !important; flex: none; }
+  .ministry { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; margin-bottom: 10px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+  .ministry.seeking { border-color: rgba(242, 165, 60, .45); background: radial-gradient(120% 120% at 0% 0%, rgba(242, 165, 60, .10), transparent 60%), var(--panel); }
+  .mn-head { display: flex; align-items: center; gap: 10px; }
+  .mn-head b { font-size: 17px; }
+  .mn-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); flex: none; }
+  .mn-desc { margin: 0; white-space: pre-wrap; color: var(--text); opacity: .9; }
+  .mn-meta { margin: 0; color: var(--muted); font-size: 13px; }
+  .mn-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mn-state { display: inline-flex; align-items: center; gap: 6px; color: #cbb8ff; font-size: 14px; font-weight: 600; }
+  .mn-state.ok { color: var(--ok); }
+  .mn-state svg.i { width: 16px; height: 16px; }
+  .mn-pending { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed var(--line); }
+  .mn-pending > small { color: var(--muted); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .mn-person { display: flex; align-items: center; gap: 8px; }
+  .mn-person span { flex: 1; display: flex; flex-direction: column; }
+  .mn-person small { color: var(--muted); font-size: 12px; }
+  .mn-person button { min-height: 36px; padding: 6px 12px; }
+  .mn-foot { gap: 10px; }
+  .mn-foot .primary { flex: 1; }
+  .mn-mine { display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; margin-bottom: 6px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+  .mn-mine span { color: #cbb8ff; font-size: 13px; }
+  .mn-mine span.ok { color: var(--ok); }
+  .view-h { margin: 14px 0 2px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .view-card { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(242, 165, 60, .35); background: radial-gradient(120% 140% at 0% 0%, rgba(242, 165, 60, .12), transparent 60%), var(--panel); }
+  .view-card > small { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .view-card > b { font-size: 19px; }
+  .view-card > span { color: var(--muted); }
+  .view-card .kh-th-list { margin-top: 8px; grid-template-columns: 1fr; }
+  .view-songs { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; color: var(--accent); font-size: 14px; }
   .np-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: rgba(5, 6, 8, .6); backdrop-filter: blur(3px); }
   .np-panel { display: flex; flex-direction: column; width: 100%; max-height: 86vh; padding: 16px 16px calc(14px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 -20px 60px rgba(0, 0, 0, .5); }
   @media (min-width: 720px) { .np-overlay { align-items: center; padding: 24px; } .np-panel { width: min(560px, 100%); max-height: 80vh; border-radius: 22px; padding-bottom: 16px; } }
@@ -640,13 +670,14 @@
         <span v-if="me" class="kh-me kh-me-btn" role="button" tabindex="0" title="Mój profil" @click="openProfile" @keydown.enter="openProfile">
           <span class="kh-av">{{ initials(me) }}</span>
           <span class="kh-me-text"><b>{{ me.name || me.email }}</b><small>{{ myRanks || 'Członek' }}</small></span>
+          <svg v-if="needsName" class="i kh-warn" aria-label="Uzupełnij imię i nazwisko"><title>Uzupełnij imię i nazwisko w profilu</title><use href="#warn"/></svg>
         </span>
         <button v-if="me" class="kh-ib" title="Wyloguj" aria-label="Wyloguj" @click="logout"><svg class="i"><use href="#logout"/></svg></button>
       </div>
   </div>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja protokołu' : 'Nowy protokół') : 'Protokół') : currentEvent ? 'Wydarzenie' : protoView ? 'Biblioteka protokołów' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja protokołu' : 'Nowy protokół') : 'Protokół') : currentEvent ? 'Wydarzenie' : protoView ? 'Biblioteka protokołów' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
     <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
     <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
@@ -657,6 +688,7 @@
     <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
     <button v-else-if="profileView" class="ghost" @click="profileView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
+    <button v-else-if="serveView" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
     <button v-else-if="gcalView" class="ghost" @click="gcalView = false; calView = true"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="songView || peopleView" class="ghost" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
@@ -969,8 +1001,23 @@
 
   <template v-else-if="currentEvent">
     <p v-if="currentEvent.status === 'pending'" class="pending-note"><svg class="i"><use href="#bell"/></svg>{{ canReview ? 'Zgłoszenie czeka na Twoje zatwierdzenie' + (currentEvent.createdBy ? ' — od: ' + currentEvent.createdBy : '') + '.' : 'Czeka na zatwierdzenie — po zatwierdzeniu zobaczą je wszyscy.' }}</p>
-    <p v-else-if="!eventEditable" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — wydarzenia zmieniają osoby z prawem edycji.</p>
     <p v-else-if="!eventSavedOnce && !canEdit && !canReview" class="pending-note"><svg class="i"><use href="#bell"/></svg>Wydarzenie pojawi się w kalendarzu po zatwierdzeniu przez lidera newslettera, radę zboru albo administratora.</p>
+    <!-- podgląd wydarzenia (bez prawa zmian) -->
+    <article v-if="!eventEditable" class="ann-view ev-view">
+      <div class="ann-tags"><span class="ann-tag" :style="{ background: 'color-mix(in srgb, ' + typeOf(currentEvent.type).color + ' 22%, transparent)', color: typeOf(currentEvent.type).color }">{{ typeOf(currentEvent.type).name }}</span></div>
+      <h2 class="ann-view-title">{{ currentEvent.title || typeOf(currentEvent.type).name }}</h2>
+      <p class="ann-view-meta">{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time"> · {{ currentEvent.time }}</template><template v-if="currentEvent.place"> · {{ currentEvent.place }}</template></p>
+      <div v-if="currentEvent.description" class="ann-view-text">{{ currentEvent.description }}</div>
+      <template v-if="(currentEvent.program || []).length">
+        <h3 class="view-h">Program</h3>
+        <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" readonly></program-editor>
+      </template>
+      <template v-if="['czlonkowskie', 'rada'].includes(currentEvent.type) && eventProtocols.length">
+        <h3 class="view-h">Protokoły</h3>
+        <button v-for="p in eventProtocols" :key="p.id" class="songsbtn" @click="openProto(p)"><svg class="i"><use href="#list"/></svg>{{ p.title }}<svg class="i chev"><use href="#chev"/></svg></button>
+      </template>
+    </article>
+    <template v-else>
     <fieldset class="plain" :disabled="!eventEditable">
       <label for="evType">Rodzaj</label>
       <select id="evType" v-model="currentEvent.type" class="field" @change="typeChanged">
@@ -1019,6 +1066,7 @@
         <svg v-if="!eventDirty && !notify.ids.length && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : eventDirty ? 'Zapisz' : notify.ids.length ? 'Wyślij powiadomienie' : 'Zapisane' }}
       </button>
     </div>
+    </template>
   </template>
 
   <!-- szablon jednego rodzaju wydarzeń -->
@@ -1173,6 +1221,39 @@
   </template>
 
   <!-- Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) -->
+  <!-- Zaangażuj się: służby szukające chętnych, zgłoszenia, akceptacja przez lidera -->
+  <template v-else-if="serveView && !current">
+    <p class="note" style="margin-top:0">Wybierz służbę i zgłoś się — lider służby potwierdzi zgłoszenie. Służby, które szukają chętnych, są na górze.</p>
+    <button v-if="canManage" class="primary" style="width:100%;margin-bottom:12px" @click="editMinistry()"><svg class="i"><use href="#plus"/></svg>Nowa służba</button>
+    <p v-if="serve.busy && !serve.list.length" class="note">Wczytuję służby…</p>
+    <p v-else-if="serve.error" class="error">{{ serve.error }}</p>
+    <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canManage ? ' — dodaj pierwszą.' : '.' }}</p>
+    <article v-for="m in serve.list" :key="m.id" class="ministry" :class="{ seeking: m.seeking }">
+      <div class="mn-head">
+        <span class="mn-ic"><svg class="i"><use href="#users"/></svg></span>
+        <b>{{ m.name }}</b>
+        <span v-if="m.seeking" class="ann-tag pin">Szukamy chętnych</span>
+        <span class="kh-spacer"></span>
+        <button v-if="m.lead" class="icon" aria-label="Edytuj służbę" title="Edytuj służbę" @click="editMinistry(m)"><svg class="i"><use href="#pencil"/></svg></button>
+      </div>
+      <p v-if="m.description" class="mn-desc">{{ m.description }}</p>
+      <p class="mn-meta"><template v-if="m.leaders.length">Lider: {{ m.leaders.map(l => l.name).join(', ') }} · </template>{{ m.members.length ? 'Służą: ' + m.members.join(', ') : 'Nikt jeszcze nie służy' }}</p>
+      <div class="mn-actions">
+        <button v-if="!m.mine" :class="{ primary: m.seeking }" :disabled="busy" @click="joinMinistry(m)">Chcę się zaangażować</button>
+        <template v-else-if="m.mine === 'pending'"><span class="mn-state">Zgłoszono — czeka na lidera</span><button class="ghost" :disabled="busy" @click="leaveMinistry(m)">Wycofaj</button></template>
+        <template v-else><span class="mn-state ok"><svg class="i"><use href="#check"/></svg>Służysz tutaj</span><button class="ghost" :disabled="busy" @click="leaveMinistry(m)">Zrezygnuj</button></template>
+      </div>
+      <div v-if="m.pending.length" class="mn-pending">
+        <small>Zgłoszenia do akceptacji</small>
+        <div v-for="p in m.pending" :key="p.id" class="mn-person">
+          <span><b>{{ p.name }}</b><small v-if="p.grupa">{{ p.grupa }}</small></span>
+          <button :disabled="busy" @click="decideMinistry(m, p, false)">Odrzuć</button>
+          <button class="primary" :disabled="busy" @click="decideMinistry(m, p, true)">Akceptuj</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
   <!-- Mój profil: imię i nazwisko, grupka -->
   <template v-else-if="profileView && !current">
     <div class="profile-head">
@@ -1185,6 +1266,10 @@
     <input id="pfGroup" v-model="profile.grupa" list="pf-groups" placeholder="np. Grupka domowa — Mokotów" autocomplete="off">
     <datalist id="pf-groups"><option v-for="g in groupNames" :key="g" :value="g"></option></datalist>
     <p class="note" style="margin-top:6px">Wybierz z listy albo wpisz nazwę. Dzięki grupce lider może wysłać powiadomienie całej grupce.</p>
+    <label>Moje służby</label>
+    <div v-for="m in serve.list.filter(m => m.mine)" :key="m.id" class="mn-mine"><b>{{ m.name }}</b><span :class="{ ok: m.mine === 'active' }">{{ m.mine === 'active' ? 'służysz' : 'czeka na akceptację lidera' }}</span></div>
+    <p v-if="!serve.busy && !serve.list.some(m => m.mine)" class="note" style="margin:0 0 8px">Nie należysz jeszcze do żadnej służby.</p>
+    <button class="songsbtn" @click="openServe"><svg class="i"><use href="#users"/></svg>Zgłoś się do służby<svg class="i chev"><use href="#chev"/></svg></button>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div class="bar"><button class="primary" :disabled="busy || !profile.name.trim() || !profileDirty" @click="saveProfile"><svg v-if="!profileDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : profileDirty ? 'Zapisz' : 'Zapisane' }}</button></div>
   </template>
@@ -1233,7 +1318,7 @@
       <div class="pc-text"><b>Newsletter e-mail</b><p>Co czwartek: kalendarz na dwa tygodnie i ogłoszenia — na {{ me.email }}.</p></div>
       <button class="switch" :class="{ on: me.newsletter }" role="switch" :aria-checked="!!me.newsletter" aria-label="Newsletter e-mail" :disabled="newsBusy" @click="toggleNewsletter"></button>
     </div>
-    <button v-if="api.enabled && me" class="songsbtn" @click="openProfile"><svg class="i"><use href="#user"/></svg>Mój profil — {{ me.name || 'uzupełnij imię i nazwisko' }}{{ me.grupa ? ' · ' + me.grupa : '' }}<svg class="i chev"><use href="#chev"/></svg></button>
+    <button v-if="api.enabled && me" class="songsbtn" @click="openProfile"><svg class="i" :class="{ 'kh-warn': needsName }"><use :href="needsName ? '#warn' : '#user'"/></svg>Mój profil — {{ needsName ? 'uzupełnij imię i nazwisko' : me.name }}{{ me.grupa ? ' · ' + me.grupa : '' }}<svg class="i chev"><use href="#chev"/></svg></button>
     <div class="account">
       <svg class="i"><use href="#user"/></svg><span>{{ me?.email || drive.account() || 'Zalogowano' }}<template v-if="myRanks"> · <span class="roles">{{ myRanks }}</span></template></span>
       <button v-if="!drive.demo" class="ghost" @click="logout"><svg class="i"><use href="#logout"/></svg>Wyloguj</button>
@@ -1408,7 +1493,31 @@
 
   <!-- edycja -->
   <template v-else>
-    <p v-if="!canEdit" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — nabożeństwa zmieniają osoby z rangą z prawem edycji.</p>
+    <!-- podgląd nabożeństwa (bez prawa edycji) -->
+    <article v-if="!canEdit" class="ann-view svc-view">
+      <div class="ann-tags"><span class="ann-tag pin">Nabożeństwo</span></div>
+      <h2 class="ann-view-title">{{ pretty(current.date).replace(/ \d{4}$/, '').replace(/^./, c => c.toUpperCase()) }}</h2>
+      <p class="ann-view-meta">{{ current.time || DEFAULT_TIME }} · {{ current.place || DEFAULT_PLACE }}</p>
+      <div v-if="current.sermonTitle || current.passage || current.speaker" class="view-card">
+        <small>Kazanie</small>
+        <b>{{ current.sermonTitle || 'Bez tytułu' }}</b>
+        <span>{{ [current.passage, current.speaker].filter(Boolean).join(' — ') }}</span>
+        <ul v-if="thoughtList(current).length" class="kh-th-list"><li v-for="(t, i) in thoughtList(current)" :key="i">{{ t }}</li></ul>
+      </div>
+      <template v-if="(current.program || []).length">
+        <h3 class="view-h">Harmonogram</h3>
+        <program-editor :items="current.program" :start="current.time || DEFAULT_TIME" readonly :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }">
+          <template #item="{ item }"><span v-if="songSlots.includes(item.key)" class="view-songs"><span v-for="e in songsIn(item.key)" :key="e.key">♪ {{ songTitle(e) }}</span></span></template>
+        </program-editor>
+      </template>
+      <template v-else-if="current.songs.length">
+        <h3 class="view-h">Pieśni</h3>
+        <span class="view-songs"><span v-for="e in current.songs" :key="e.key">♪ {{ songTitle(e) }}</span></span>
+      </template>
+      <template v-if="current.band"><h3 class="view-h">Zespół</h3><div class="ann-view-text">{{ current.band }}</div></template>
+      <template v-if="current.notes"><h3 class="view-h">Informacje</h3><div class="ann-view-text">{{ current.notes }}</div></template>
+    </article>
+    <template v-else>
     <fieldset class="plain" :disabled="!canEdit">
     <div class="row">
       <div><label for="date">Data <span class="req">*</span></label><input id="date" v-model="current.date" type="date"></div>
@@ -1571,6 +1680,7 @@
         <svg v-if="!dirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : dirty ? 'Zapisz' : 'Zapisane' }}
       </button>
     </div>
+    </template>
   </template>
 
   <!-- Podgląd publiczny (bez konta albo przed zatwierdzeniem): najbliższe nabożeństwa, wydarzenia i ogłoszenia. -->
@@ -1596,6 +1706,30 @@
       <div v-for="a in pub.announcements.filter(a => !a.important)" :key="a.id" class="ann static"><img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy"><b>{{ a.title }}</b><span class="ann-body full">{{ a.text }}</span><a v-if="a.link" class="button ann-link" :href="a.link" target="_blank" rel="noopener"><svg class="i"><use href="#link"/></svg>{{ a.linkText || 'Otwórz link' }}</a><a v-if="videoInfo(a.video)" class="button ann-link" :href="videoInfo(a.video).link" target="_blank" rel="noopener">▶ Obejrzyj film</a></div>
     </template>
   </section>
+
+  <!-- Służba: edycja (administrator — wszystko; lider — opis i „szukamy chętnych”) -->
+  <div v-if="mEdit" class="np-overlay" @click.self="mEdit = null">
+    <div class="np-panel" role="dialog" aria-label="Służba">
+      <div class="np-head"><b>{{ mEdit.isNew ? 'Nowa służba' : mEdit.name }}</b><button class="icon" aria-label="Zamknij" @click="mEdit = null"><svg class="i"><use href="#x"/></svg></button></div>
+      <div class="np-list">
+        <template v-if="canManage">
+          <label for="mnName" style="margin-top:0">Nazwa <span class="req">*</span></label>
+          <input id="mnName" v-model="mEdit.name" placeholder="np. Zespół uwielbienia" autocomplete="off">
+        </template>
+        <label for="mnDesc">Opis</label>
+        <textarea id="mnDesc" v-model="mEdit.description" placeholder="Czym się zajmujecie, kogo szukacie, ile czasu to zajmuje"></textarea>
+        <label class="check"><input v-model="mEdit.seeking" type="checkbox">Szukamy nowych chętnych</label>
+        <template v-if="canManage">
+          <label>Liderzy (akceptują zgłoszenia)</label>
+          <div class="notify-groups"><button v-for="p in memberNames" :key="p.id" type="button" class="chipbtn" :class="{ on: mEdit.leaders.includes(p.id) }" @click="toggleLeader(p.id)">{{ p.name }}</button></div>
+        </template>
+      </div>
+      <div class="np-foot mn-foot">
+        <button v-if="canManage && !mEdit.isNew" class="danger" :disabled="busy" @click="deleteMinistry">Usuń</button>
+        <button class="primary" :disabled="busy || (canManage && !mEdit.name.trim())" @click="saveMinistry">Zapisz</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Wybór odbiorców powiadomienia: grupy (wszyscy, rangi) albo pojedyncze osoby. -->
   <div v-if="notify.open" class="np-overlay" @click.self="notify.open = false">
@@ -1624,8 +1758,9 @@
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
   <nav v-if="showTabs" class="tabbar" aria-label="Części aplikacji">
-    <button :class="{ on: !calView && !moreView && !songView && !peopleView }" :aria-current="!calView && !moreView && !songView && !peopleView ? 'page' : null" @click="showServices"><svg class="i"><use href="#church"/></svg>Start</button>
+    <button :class="{ on: !calView && !moreView && !songView && !peopleView && !serveView && !profileView }" :aria-current="!calView && !moreView && !songView && !peopleView && !serveView ? 'page' : null" @click="showServices"><svg class="i"><use href="#church"/></svg>Start</button>
     <button :class="{ on: calView }" :aria-current="calView ? 'page' : null" @click="openCalendar"><svg class="i"><use href="#calendar"/></svg>Kalendarz</button>
+    <button :class="{ on: serveView }" :aria-current="serveView ? 'page' : null" @click="openServe"><svg class="i"><use href="#users"/></svg>Zaangażuj się</button>
     <button :class="{ on: moreView || songView || peopleView }" :aria-current="moreView || songView || peopleView ? 'page' : null" @click="openMore"><svg class="i"><use href="#menu"/></svg>Więcej<span v-if="canManage && pendingCount" class="count">{{ pendingCount }}</span></button>
   </nav>
 </div>
@@ -1705,7 +1840,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.51 · 17.10.2026'
+const VERSION = '2.52 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1885,7 +2020,7 @@ createApp({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
-    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value)
+    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value)
     const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
@@ -2062,7 +2197,7 @@ createApp({
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null
       tplType.value = null; tplView.value = false; protoView.value = false; annView.value = false
     }
-    function showServices() { profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
+    function showServices() { serveView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -2255,7 +2390,7 @@ createApp({
       return visibleItems.value.filter(it => it.date >= todayStr.value && it.date <= until).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { serveView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -2561,6 +2696,34 @@ createApp({
       guard(async () => { currentAnn.value.video = await drive.uploadFile(file, (file.name.match(/\.(\w+)$/) || [, 'mp4'])[1]) }).finally(() => { vidBusy.value = false })
     }
 
+    /* ---------- służby („Zaangażuj się”) ---------- */
+    const serveView = ref(false), mEdit = ref(null), memberNames = ref([])
+    const serve = Vue.reactive({ list: [], busy: false, error: '' })
+    async function loadServe() {
+      if (!api.enabled) return
+      serve.busy = true; serve.error = ''
+      try { serve.list = (await api.call('ministries')) || [] } catch (e) { serve.error = e.message } finally { serve.busy = false }
+    }
+    function openServe() {
+      profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
+      annView.value = false; protoView.value = false; tplView.value = false
+      serveView.value = true; scrollTo(0, 0); loadServe()
+    }
+    const serveCall = (action, data) => guard(async () => { await api.call(action, data); await loadServe() })
+    const joinMinistry = m => serveCall('joinMinistry', { id: m.id })
+    function leaveMinistry(m) { if (confirm(m.mine === 'active' ? `Zrezygnować ze służby „${m.name}”?` : 'Wycofać zgłoszenie?')) serveCall('leaveMinistry', { id: m.id }) }
+    const decideMinistry = (m, p, accept) => serveCall('decideMinistry', { id: m.id, who: p.id, accept })
+    function editMinistry(m = null) {
+      mEdit.value = m ? { id: m.id, name: m.name, description: m.description, seeking: m.seeking, leaders: m.leaders.map(l => l.id), isNew: false }
+        : { id: uid(), name: '', description: '', seeking: true, leaders: [], isNew: true }
+      if (canManage.value && !memberNames.value.length) api.call('memberNames').then(r => { memberNames.value = r.people || [] }, () => {})
+    }
+    function toggleLeader(id) { const l = mEdit.value.leaders; mEdit.value.leaders = l.includes(id) ? l.filter(x => x !== id) : [...l, id] }
+    const saveMinistry = () => guard(async () => { await api.call('saveMinistry', mEdit.value); mEdit.value = null; await loadServe() })
+    function deleteMinistry() { if (confirm('Usunąć tę służbę razem z listą osób?')) guard(async () => { await api.call('deleteMinistry', { id: mEdit.value.id }); mEdit.value = null; await loadServe() }) }
+    // Konto bez imienia i nazwiska (jedno słowo albo puste) — ostrzeżenie przy koncie i w profilu.
+    const needsName = computed(() => api.enabled && !!me.value && !/\S+\s+\S+/.test((me.value.name || '').trim()))
+
     /* ---------- mój profil ---------- */
     const profileView = ref(false), groupNames = ref([])
     const profile = Vue.reactive({ name: '', grupa: '' })
@@ -2570,7 +2733,7 @@ createApp({
       profile.name = me.value.name || ''; profile.grupa = me.value.grupa || ''; status.value = ''
       current.value = null; currentEvent.value = null; currentAnn.value = null; currentProto.value = null
       songView.value = false; peopleView.value = false; calView.value = false; gcalView.value = false; annView.value = false; protoView.value = false; tplView.value = false
-      profileView.value = true; scrollTo(0, 0)
+      serveView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
       api.call('groups').then(r => { groupNames.value = r.groups || [] }, () => {})
     }
     const saveProfile = () => guard(async () => {
@@ -2660,7 +2823,7 @@ createApp({
     function openGcal() { calView.value = false; moreView.value = false; gcalView.value = true; scrollTo(0, 0); if (!gcal.url) loadGcal() }
     function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
-    function openMore() { profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMore() { serveView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -2691,11 +2854,13 @@ createApp({
         { id: 'planner', icon: 'pencil', name: 'Nabożeństwa', desc: canEdit.value ? 'Kazanie, pieśni, program' : 'Dla osób z prawem edycji', locked: !canEdit.value, go: canEdit.value ? 'chev' : 'warn',
           pill: canEdit.value && svc ? (missing(svc).length ? 'Braki' : 'Komplet') : '' },
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
+        ...(api.enabled ? [{ id: 'serve', icon: 'users', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
       ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
     })
     function chooseTile(t) {
       if (t.locked) return
       if (t.id === 'calendar') openCalendar()
+      else if (t.id === 'serve') openServe()
       else if (t.id === 'planner') nextService.value ? open(nextService.value) : create(nextSundayDate)
       else if (desktopApp.url) location.href = desktopApp.url
     }
@@ -2899,14 +3064,14 @@ createApp({
       const el = document.getElementById('app')
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
-      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || annView.value || protoView.value || tplView.value || songView.value))
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return {
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,

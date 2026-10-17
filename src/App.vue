@@ -58,6 +58,7 @@ const TILES = [
           <span class="kh-me" :title="access.email">
             <span class="kh-av">{{ initials }}</span>
             <span class="kh-me-text"><b>{{ access.name || access.email }}</b><small>{{ access.names.filter(n => n !== 'Członek').join(', ') || 'Członek' }}</small></span>
+            <Icon v-if="!/\S+\s+\S+/.test((access.name || '').trim())" name="missing" class="kh-warn" title="Uzupełnij imię i nazwisko w aplikacji na telefon (Mój profil)" />
           </span>
           <button class="kh-ib" title="Wyloguj" aria-label="Wyloguj" @click="logoutGoogle"><Icon name="logout" /></button>
         </template>

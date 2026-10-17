@@ -98,6 +98,14 @@ export function createSupa(config, client = window.supabase.createClient(config.
       // Profil: imię i nazwisko, grupka; podpowiedzi grupek.
       if (action === 'setProfile') return { person: view(check(await sb.rpc('set_my_profile', { new_name: data.name, new_group: data.grupa || '' }))) }
       if (action === 'groups') return { groups: check(await sb.rpc('group_names')) || [] }
+      // Służby: tablica, zgłoszenia, akceptacja (lider/administrator), edycja.
+      if (action === 'ministries') return check(await sb.rpc('ministry_board')) || []
+      if (action === 'joinMinistry') return check(await sb.rpc('ministry_join', { mid: data.id }))
+      if (action === 'leaveMinistry') return check(await sb.rpc('ministry_leave', { mid: data.id }))
+      if (action === 'decideMinistry') return check(await sb.rpc('ministry_decide', { mid: data.id, who: data.who, accept: !!data.accept }))
+      if (action === 'saveMinistry') return check(await sb.rpc('ministry_save', { mid: data.id, new_name: data.name || '', new_description: data.description || '', new_seeking: !!data.seeking, new_leaders: data.leaders || [] }))
+      if (action === 'deleteMinistry') return check(await sb.rpc('ministry_delete', { mid: data.id }))
+      if (action === 'memberNames') return { people: check(await sb.rpc('member_names')) || [] }
       if (action === 'calendarToken') return { token: check(await sb.rpc('my_calendar_token', { renew: !!data.renew })) }
       if (action === 'setNewsletter') return { person: view(check(await sb.rpc('set_newsletter', { enabled: !!data.on }))) }
       throw new Error('Nieznane polecenie.')

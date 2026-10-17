@@ -159,3 +159,4 @@ button.kh-ann:hover { background: rgba(255, 255, 255, .06); }
 .kh-cd b { font: 700 40px/1 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; color: var(--text); font-variant-numeric: tabular-nums; }
 .kh-cd small { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .kh-countdown .kh-muted { font-size: 13px; }
+.kh-me .kh-warn { width: 16px; height: 16px; color: var(--warn, #e8957d); flex: none; }

@@ -92,7 +92,7 @@ export function createFakeClient(db, user = null) {
     return b
   }
 
-  const ARRAYS = { new_roles: 'text[]' }
+  const ARRAYS = { new_roles: 'text[]', new_leaders: 'uuid[]', targets: 'uuid[]' }
   async function rpc(name, args = {}) {
     const params = []
     const list = Object.entries(args).map(([k, v]) => { params.push(v); return `${ident(k)} => $${params.length}${ARRAYS[k] ? '::' + ARRAYS[k] : ''}` })
