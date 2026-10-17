@@ -1,10 +1,13 @@
 <script setup>
-import { computed } from 'vue'
-import { canUse, plannerRequest, role, services, today } from './store.js'
+import { computed, ref } from 'vue'
+import { canUse, plannerRequest, role, services, DEFAULT_TIME } from './store.js'
 
-// Myśli z kazania: ostatnie nabożeństwo, które już się odbyło — widżet tylko wtedy, gdy kaznodzieja dodał myśli
+// Myśli z kazania: z ostatniego nabożeństwa, które już się zaczęło (widoczne cały tydzień, do początku następnego) — widżet tylko wtedy, gdy kaznodzieja dodał myśli
 // (pole „Myśli z kazania” w nabożeństwie, jedna myśl w linii). Style: mobile/home.css.
-const last = computed(() => services.value.filter(s => s.date && s.date <= today()).sort((a, b) => b.date.localeCompare(a.date))[0] || null)
+const now = ref(Date.now())
+setInterval(() => { now.value = Date.now() }, 60000)
+const startsAt = s => new Date(s.date + 'T' + (s.time || DEFAULT_TIME)).getTime()
+const last = computed(() => services.value.filter(s => s.date && startsAt(s) <= now.value).sort((a, b) => startsAt(b) - startsAt(a))[0] || null)
 const thoughts = computed(() => String(last.value?.thoughts || '').split('\n').map(t => t.replace(/^\s*[-•*\d.)]+\s*/, '').trim()).filter(Boolean))
 const when = computed(() => (last.value ? new Date(last.value.date + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'short' }).replace('.', '') : ''))
 function edit() { plannerRequest.value = { id: last.value.id }; role.value = 'planner' }
