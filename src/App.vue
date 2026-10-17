@@ -9,6 +9,7 @@ import CalendarView from './CalendarView.vue'
 import PeopleView from './PeopleView.vue'
 import HomeBoard from './HomeBoard.vue'
 import SermonThoughts from './SermonThoughts.vue'
+import GuestBoard from './GuestBoard.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
 import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init, planAlert, planReady, role, serviceModal, services, sharedStatus, syncShared, syncing, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
@@ -82,6 +83,7 @@ const TILES = [
         <p v-if="googleError || access.error" class="bad">{{ googleError || access.error }}</p>
       </div>
 
+      <GuestBoard v-if="ready && access.status !== 'active'" />
       <div class="kh-tiles">
         <button v-for="[id, icon, name, desc] in visibleTiles" :key="id" class="kh-tile" :class="{ locked: ready && !canUse(id) }" :disabled="!ready || !canUse(id)" :title="accessReason(id)" @click="choose(id)">
           <span class="kh-tile-ic"><Icon :name="icon" /></span>

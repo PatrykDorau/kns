@@ -149,3 +149,13 @@ button.kh-ann:hover { background: rgba(255, 255, 255, .06); }
 .kh-th-list li { position: relative; padding: 12px 14px 12px 36px; border-radius: 12px; background: rgba(255, 255, 255, .035); color: var(--text); font-size: 14px; line-height: 1.5; }
 .kh-th-list li::before { content: ''; position: absolute; left: 14px; top: 18px; width: 8px; height: 8px; border-radius: 50%; background: var(--amber, #f2a53c); box-shadow: 0 0 10px rgba(242, 165, 60, .6); }
 .kh-th-empty { margin: 0; color: var(--muted); font-size: 13px; }
+
+/* odliczanie do nabożeństwa (ekran przed zalogowaniem w aplikacji na komputer) */
+.kh-countdown { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; border-color: rgba(242, 165, 60, .35) !important;
+  background: radial-gradient(120% 140% at 50% 0%, rgba(242, 165, 60, .16), rgba(242, 165, 60, 0) 60%), color-mix(in srgb, var(--panel) 72%, transparent) !important; }
+.kh-countdown .kh-tag { color: var(--accent); }
+.kh-cd { display: flex; gap: 14px; }
+.kh-cd span { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
+.kh-cd b { font: 700 40px/1 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; color: var(--text); font-variant-numeric: tabular-nums; }
+.kh-cd small { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.kh-countdown .kh-muted { font-size: 13px; }
