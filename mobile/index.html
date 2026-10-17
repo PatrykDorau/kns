@@ -24,11 +24,11 @@
   body { background: radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%) no-repeat, radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%) no-repeat, radial-gradient(700px 420px at 50% 110%, rgba(62, 199, 176, .05), transparent 70%) fixed no-repeat, var(--bg); color: var(--text); font: 16px/1.45 "Segoe UI Variable Text", system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
   [v-cloak] { display: none; }
   /* scena na końcu strony */
-  html { background: var(--bg); } body { background-image: var(--kh-scene), radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%), radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%); background-size: max(100%, 760px) 300px, auto, auto; background-position: center bottom, 0 0, 0 0; background-repeat: no-repeat; background-attachment: fixed, scroll, scroll; min-height: 100vh; }
+  html { background: var(--bg); } body { background-image: var(--kh-scene), radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%), radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%); background-size: max(100%, 760px) auto, auto, auto; background-position: center bottom, 0 0, 0 0; background-repeat: no-repeat; background-attachment: fixed, scroll, scroll; min-height: 100vh; }
   #app { position: relative; min-height: calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding-bottom: 36px; }
   #app > .version { position: absolute; left: 0; right: 0; bottom: 6px; margin: 0; }
   #app.tabbed > .version { bottom: 82px; }
-  @media (min-width: 1024px) { body { background-size: max(100%, 1200px) 460px, auto, auto; } #app.tabbed > .version { bottom: 6px; } }
+  @media (min-width: 1024px) { body { background-size: max(100%, 1200px) auto, auto, auto; } #app.tabbed > .version { bottom: 6px; } }
   #app { max-width: 640px; margin: 0 auto; }
   svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   button, input, textarea { font: inherit; color: inherit; }
@@ -447,8 +447,11 @@
   .whoami small { color: var(--muted); font-size: 13px; }
   .gate { display: flex; flex-direction: column; align-items: center; }
   .gate > img { display: block; margin: 0 auto 16px; }
-  .pub-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; scrollbar-width: thin; }
-  .pub-strip .ev { flex: 0 0 min(280px, 80%); margin: 0; scroll-snap-align: start; }
+  .pub-week { margin-bottom: 8px; }
+  .pub-week .kh-ev { cursor: default; }
+  .pub-week .kh-day { background: color-mix(in srgb, var(--panel) 90%, transparent); border-color: var(--line); }
+  .pub-week .kh-day.today { background: linear-gradient(180deg, rgba(242, 165, 60, .14), transparent 70%), color-mix(in srgb, var(--panel) 90%, transparent); border-color: rgba(242, 165, 60, .45); }
+  @media (max-width: 700px) { .pub-week { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); } .pub-week .kh-day { min-height: 120px; } }
   .gate-pending { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600; }
   .gate-pending i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: cdpulse 1.4s ease-in-out infinite; }
   .gate-links { display: flex; justify-content: center; gap: 4px; margin-top: 8px; }
@@ -1331,11 +1334,14 @@
       <span class="notice-text">{{ a.text }}</span>
     </button>
     <div v-if="pubItems.length" class="section"><h2>Najbliżej w kościele</h2></div>
-    <!-- najbliższe wydarzenia: pas przewijany w bok -->
-    <div v-if="pubItems.length" class="pub-strip">
-      <div v-for="it in pubItems" :key="it.key" class="ev static" :style="{ '--c': it.color }">
-        <span class="when"><small>{{ wd(it.date) }}</small><b>{{ day(it.date) }}</b><small>{{ month(it.date) }}</small></span>
-        <span class="body"><b>{{ it.title }}</b><small>{{ [it.time, it.place].filter(Boolean).join(' · ') }}</small><small v-if="it.sub">{{ it.sub }}</small></span>
+    <!-- najbliższy tydzień: kartki dni jak na stronie głównej (bez przewijania) -->
+    <div v-if="pubItems.length" class="kh-week pub-week">
+      <div v-for="d in pubWeek" :key="d.date" class="kh-day" :class="{ today: d.date === todayStr }">
+        <span class="kh-wd">{{ d.wd }}</span>
+        <span class="kh-n">{{ d.n }}</span>
+        <div v-for="it in d.items" :key="it.key" class="kh-ev" :style="{ '--c': it.color }" :title="[it.time, it.title, it.place].filter(Boolean).join(' · ')">
+          <small v-if="it.time">{{ it.time }}</small>{{ it.title.replace(/^Nabożeństwo: .*/, 'Nabożeństwo') }}
+        </div>
       </div>
     </div>
     <template v-if="pub.announcements.some(a => !a.important)">
@@ -1441,7 +1447,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.41 · 17.10.2026'
+const VERSION = '2.42 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2250,8 +2256,13 @@ createApp({
       return [
         ...pub.value.services.map((s, i) => ({ key: 's' + i, date: s.date, time: s.time || DEFAULT_TIME, place: s.place || DEFAULT_PLACE, title: 'Nabożeństwo' + (s.sermonTitle ? ': ' + s.sermonTitle : ''), sub: [s.passage, s.speaker].filter(Boolean).join(' · '), color: color('nabozenstwo') })),
         ...pub.value.events.map((e, i) => ({ key: 'e' + i, date: e.date, time: e.time, place: e.place, title: e.title || name(e.type), sub: e.description, color: color(e.type) })),
-      ].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))).slice(0, 8)
+      ].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
     })
+    // Podgląd: najbliższe 7 dni jako kartki (jak tydzień na stronie głównej).
+    const pubWeek = computed(() => Array.from({ length: 7 }, (_, i) => {
+      const date = localDate(new Date(asDate(todayStr.value).getTime() + i * 86400000))
+      return { date, wd: wd(date), n: day(date), items: pubItems.value.filter(it => it.date === date) }
+    }))
     async function loadPublic() {
       if (!api.enabled || pub.value) return
       try { pub.value = await api.call('public') } catch { /* podgląd jest tylko dodatkiem */ }
@@ -2507,7 +2518,7 @@ createApp({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,

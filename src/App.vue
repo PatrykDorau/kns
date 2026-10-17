@@ -112,7 +112,7 @@ const TILES = [
 
 <style scoped>
 .home { height: 100%; overflow-y: auto; display: flex; flex-direction: column; padding: 16px 28px 14px;
-  background: var(--kh-scene) center bottom / max(100%, 1200px) 460px no-repeat fixed; }
+  background: var(--kh-scene) center bottom / max(100%, 1200px) auto no-repeat fixed; }
 .home > .kh { flex: 1 0 auto; }
 .login-card { display: flex; flex-direction: column; align-items: center; gap: 12px; align-self: center; max-width: 560px; padding: 24px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
 .login-card p { margin: 0; color: var(--muted); }

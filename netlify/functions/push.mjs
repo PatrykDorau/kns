@@ -4,6 +4,9 @@
 //                    zawsze ta sama treść — nie da się nim wysłać niczego innego)
 //   POST /api/push → wysyła powiadomienie do podanych telefonów (wywołuje skrypt przypomnienia z Google);
 //                    body: { secret, title, body, url, subscriptions: [{ id, subscription }] } → { sent, gone: [id] }
+//   POST /api/push { notify: true, token, people: [id osoby], title, body, url } → powiadomienie do wybranych osób
+//                    (twórca wydarzenia/ogłoszenia). Telefony odbiorców daje baza (notify_targets) tylko osobie
+//                    z prawem edycji — po jej tokenie logowania; serwer nie potrzebuje tajnego klucza bazy.
 // Zmienne środowiskowe w Netlify (Project configuration → Environment variables):
 //   VAPID_PRIVATE — klucz prywatny (z: node skrypty/klucze-powiadomien.cjs)
 //   PUSH_SECRET   — hasło, które zna tylko skrypt przypomnienia
@@ -13,6 +16,8 @@ export const config = { path: '/api/push' }
 
 const b64u = buf => Buffer.from(buf).toString('base64url')
 const unb64u = s => Buffer.from(String(s || ''), 'base64url')
+// Baza (Supabase) — adres i klucz publiczny (bezpieczny: dostęp pilnują reguły w bazie).
+const SUPABASE = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', key: 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI' }
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
 
 // Para kluczy VAPID z samego klucza prywatnego (32 bajty) — publiczny wyliczany.
@@ -80,6 +85,7 @@ export default async function handler(req) {
     }, keys).catch(() => 0)
     return json(status && status < 300 ? { sent: 1 } : { sent: 0, error: status === 404 || status === 410 ? 'Ten telefon nie jest już zapisany — wyłącz i włącz powiadomienia.' : 'Serwer powiadomień nie przyjął wiadomości.' })
   }
+  if (data.notify === true) return notify(data, keys)
   if (!process.env.PUSH_SECRET || !same(data.secret, process.env.PUSH_SECRET)) return json({ error: 'Brak dostępu.' }, 403)
   const payload = { title: String(data.title || 'Nabożeństwa'), body: String(data.body || ''), url: String(data.url || '/') }
   let sent = 0
@@ -92,4 +98,29 @@ export default async function handler(req) {
     } catch { /* jeden telefon nie psuje reszty */ }
   }))
   return json({ sent, gone })
+}
+
+// Powiadomienie do wybranych osób — wywołuje aplikacja osoby z prawem edycji (jej token logowania).
+async function notify(data, keys) {
+  const token = String(data.token || '')
+  const targets = (Array.isArray(data.people) ? data.people : []).filter(x => /^[0-9a-f-]{36}$/i.test(String(x))).slice(0, 500)
+  if (!token || !targets.length) return json({ error: 'Nie wybrano odbiorców.' }, 400)
+  const rpc = (name, body) => fetch(SUPABASE.url + '/rest/v1/rpc/' + name, {
+    method: 'POST', headers: { apikey: SUPABASE.key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  const res = await rpc('notify_targets', { targets }).catch(() => null)
+  if (!res?.ok) return json({ error: (await res?.json().catch(() => null))?.message || 'Brak dostępu.' }, 403)
+  const devices = await res.json()
+  const payload = { title: String(data.title || 'KNS Nabo').slice(0, 120), body: String(data.body || '').slice(0, 300), url: String(data.url || './').slice(0, 300) }
+  let sent = 0
+  const gone = []
+  await Promise.all(devices.map(async ({ id, subscription }) => {
+    try {
+      const status = await sendPush(subscription, payload, keys)
+      if (status === 404 || status === 410) gone.push(id)
+      else if (status < 300) sent++
+    } catch { /* jeden telefon nie psuje reszty */ }
+  }))
+  if (gone.length) await rpc('forget_push_devices', { ids: gone }).catch(() => {})
+  return json({ sent, devices: devices.length, people: targets.length })
 }
