@@ -153,7 +153,8 @@
   .install .primary { margin-left: 56px; }
   .install b { display: block; font-size: 15px; color: var(--text); }
   .steps { margin: 6px 0 0; padding-left: 18px; }
-  .account { display: flex; align-items: center; gap: 8px; margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  .account { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 26px; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  .account .acc-ver { flex-basis: 100%; font-size: 12px; opacity: .7; } /* wersja w ramce konta — nie na tle z górami */
   .account span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .version { margin-top: 18px; text-align: center; color: var(--muted); font-size: 12px; opacity: .7; }
   .offline { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 12px; border-radius: 12px; background: var(--panel2); color: var(--muted); font-size: 14px; }
@@ -247,12 +248,12 @@
   .cal-dots { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; max-width: 34px; }
   .cal-dots i { width: 6px; height: 6px; border-radius: 50%; }
   button.cal-day.sel .cal-dots i { box-shadow: 0 0 0 1.5px #fff; }
-  .filters { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 4px; margin: 12px 0 0; scrollbar-width: none; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 4px; margin: 12px 0 0; max-width: 100%; } /* rodzaje wydarzeń zawijają się — nie wychodzą poza ekran */
   .filters::-webkit-scrollbar { display: none; }
   button.filter { flex: none; min-height: 32px; padding: 4px 12px 4px 10px; border-radius: 999px; font-size: 13px; color: var(--muted); background: none; gap: 6px; }
   button.filter i { width: 9px; height: 9px; border-radius: 50%; }
   button.filter.on { color: var(--text); background: var(--panel2); border-color: var(--muted); }
-  .cal-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .cal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
   .cal-actions .primary { flex: 1; }
   .ev { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border-radius: 0 14px 14px 0; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c, var(--accent)); }
   .ev .when { flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
@@ -1550,10 +1551,10 @@
       <div v-else-if="!push.needsInstall" class="pc-actions"><button class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz powiadomienia' }}</button></div>
     </div>
     <button v-if="api.enabled && me" class="songsbtn" @click="openProfile"><svg class="i" :class="{ 'kh-warn': needsName }"><use :href="needsName ? '#warn' : '#user'"/></svg>Mój profil — {{ needsName ? 'uzupełnij imię i nazwisko' : me.name }}{{ me.grupa ? ' · ' + me.grupa : '' }}<svg class="i chev"><use href="#chev"/></svg></button>
-    <p class="version">wersja {{ version }}</p>
     <div class="account">
       <svg class="i"><use href="#user"/></svg><span>{{ me?.email || drive.account() || 'Zalogowano' }}<template v-if="myRanks"> · <span class="roles">{{ myRanks }}</span></template></span>
       <button v-if="!drive.demo" class="ghost" @click="logout"><svg class="i"><use href="#logout"/></svg>Wyloguj</button>
+      <small class="acc-ver">wersja {{ version }}</small>
     </div>
   </template>
 
@@ -2110,7 +2111,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.64 · 17.10.2026'
+const VERSION = '2.65 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,

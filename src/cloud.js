@@ -85,6 +85,8 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     removeEvent: id => safe(async () => { await active(); check(await sb.from('events').delete().eq('id', id)); return { ok: true } }),
     // Podgląd dla gości (bez logowania): to, co baza pokazuje publicznie.
     publicPreview: () => safe(async () => check(await sb.rpc('public_preview'))),
+    // „Posłuchaj”: linki YouTube i Spotify (czyta też gość).
+    listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
     // Osoby (administrator): lista, zatwierdzanie, rangi.
     people: () => safe(async () => {
       await active()
