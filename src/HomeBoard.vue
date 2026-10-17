@@ -104,6 +104,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
         <img v-if="vid.thumb" :src="vid.thumb" alt="">
         <span>▶ Obejrzyj film ({{ vid.kind === 'youtube' ? 'YouTube' : 'Vimeo' }}) — otworzy się w przeglądarce</span>
       </a>
+      <a v-if="shown.link" class="kh-modal-link" :href="shown.link" target="_blank" rel="noopener">{{ shown.linkText || 'Otwórz link' }} ›</a>
     </div>
   </div>
 </template>

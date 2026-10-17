@@ -359,6 +359,16 @@
   .ann-video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 4px; border-radius: 12px; overflow: hidden; background: #000; }
   .ann-video video, .ann-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .notify-box { margin-top: 14px; }
+  .ann-view { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
+  .ann-hero { display: block; width: calc(100% + 32px); max-width: none; margin: 0 -16px 4px; max-height: 360px; object-fit: cover; }
+  @media (min-width: 720px) { .ann-hero { width: 100%; margin: 0 0 4px; border-radius: 18px; } }
+  .ann-view .ann-tags { margin: 0; }
+  .ann-view-title { margin: 0; font: 700 26px/1.2 "Segoe UI Variable Display", system-ui, "Segoe UI", sans-serif; letter-spacing: -.02em; text-transform: none; color: var(--text); }
+  .ann-view-meta { margin: -4px 0 0; color: var(--muted); font-size: 14px; }
+  .ann-view-text { white-space: pre-wrap; font-size: 17px; line-height: 1.6; color: var(--text); opacity: .92; }
+  a.button.ann-link { justify-content: flex-start; gap: 10px; margin-top: 4px; background: var(--accent-soft); border: 1px solid rgba(242, 165, 60, .4); color: var(--accent); font-weight: 600; }
+  a.button.ann-link .chev { margin-left: auto; }
+  .ann-edit-btn { margin-top: 10px; align-self: flex-start; }
   .notify-sheet .head .primary { min-height: 40px; padding: 8px 14px; }
   .notify-groups { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
   .chipbtn { min-height: 34px; padding: 6px 12px; border-radius: 999px; font-size: 14px; background: var(--panel2); }
@@ -528,6 +538,7 @@
   <symbol id="monitor" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM8 21h8M12 17v4"/></symbol>
   <symbol id="pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
   <symbol id="info" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.5h.01"/></symbol>
+  <symbol id="link" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></symbol>
   <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
@@ -537,7 +548,7 @@
 <div id="app" v-cloak>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? 'Ogłoszenie' : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? 'Nabożeństwo' : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
     <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
     <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
@@ -678,7 +689,26 @@
 
   <!-- ogłoszenie -->
   <template v-else-if="currentAnn">
-    <p v-if="!annEditable" class="note readonly"><svg class="i"><use href="#eye"/></svg>{{ canAnnounce ? 'Komunikaty rady i ogłoszenia dla rady zmieniają rada zboru i pastor.' : 'Tylko podgląd.' }}</p>
+    <!-- podgląd ogłoszenia (dla wszystkich); edycja dopiero po „Edytuj” (osoby z prawem edycji) -->
+    <article v-if="!annEditing" class="ann-view">
+      <img v-if="currentAnn.image" class="ann-hero" :src="currentAnn.image" alt="">
+      <div class="ann-tags">
+        <span v-if="currentAnn.important" class="ann-tag imp">Komunikat rady zboru</span>
+        <span class="ann-tag">{{ AUDIENCE[currentAnn.audience] }}</span>
+        <span v-if="currentAnn.until" class="ann-tag">ważne do {{ shortDate(currentAnn.until) }}</span>
+      </div>
+      <h2 class="ann-view-title">{{ currentAnn.title }}</h2>
+      <p class="ann-view-meta"><template v-if="currentAnn.author">{{ currentAnn.author }} · </template>{{ shortDate(currentAnn.date || currentAnn.updated) }}</p>
+      <div v-if="currentAnn.text" class="ann-view-text">{{ currentAnn.text }}</div>
+      <div v-if="videoInfo(currentAnn.video)" class="ann-video">
+        <video v-if="videoInfo(currentAnn.video).kind === 'file'" :src="videoInfo(currentAnn.video).src" controls playsinline preload="metadata"></video>
+        <iframe v-else :src="videoInfo(currentAnn.video).embed" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>
+      </div>
+      <a v-if="currentAnn.link" class="button ann-link" :href="currentAnn.link" target="_blank" rel="noopener"><svg class="i"><use href="#link"/></svg>{{ currentAnn.linkText || 'Otwórz link' }}<svg class="i chev"><use href="#chev"/></svg></a>
+      <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
+      <button v-if="annEditable" class="ann-edit-btn" @click="annEditing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj ogłoszenie</button>
+    </article>
+    <template v-else>
     <fieldset class="plain" :disabled="!annEditable">
       <label for="anTitle">Tytuł <span class="req">*</span></label>
       <input id="anTitle" v-model="currentAnn.title" :class="{ invalid: !currentAnn.title.trim() }" autocomplete="off">
@@ -707,6 +737,9 @@
         </div>
         <input ref="annVid" type="file" accept="video/mp4,video/webm,video/quicktime" hidden @change="pickAnnVideo">
       </template>
+      <label for="anLink">Link (opcjonalnie)</label>
+      <input id="anLink" v-model.trim="currentAnn.link" placeholder="np. formularz zapisów, strona wydarzenia" autocomplete="off" inputmode="url">
+      <input v-if="currentAnn.link" v-model="currentAnn.linkText" placeholder="Tekst przycisku, np. „Zapisz się”" autocomplete="off" style="margin-top:8px">
       <label for="anAud">Kto widzi</label>
       <select id="anAud" v-model="currentAnn.audience" class="field">
         <option value="public">Wszyscy — także goście bez konta</option>
@@ -734,6 +767,7 @@
         <svg v-if="!annDirty && !notify.ids.length && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : annDirty ? 'Zapisz' : notify.ids.length ? 'Wyślij powiadomienie' : 'Zapisane' }}
       </button>
     </div>
+    </template>
   </template>
 
   <!-- wszystkie ogłoszenia -->
@@ -1367,7 +1401,7 @@
     </div>
     <template v-if="pub.announcements.some(a => !a.important)">
       <div class="section"><h2>Ogłoszenia</h2></div>
-      <div v-for="a in pub.announcements.filter(a => !a.important)" :key="a.id" class="ann static"><img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy"><b>{{ a.title }}</b><span class="ann-body full">{{ a.text }}</span><div v-if="videoInfo(a.video)" class="ann-video">
+      <div v-for="a in pub.announcements.filter(a => !a.important)" :key="a.id" class="ann static"><img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy"><b>{{ a.title }}</b><span class="ann-body full">{{ a.text }}</span><a v-if="a.link" class="button ann-link" :href="a.link" target="_blank" rel="noopener"><svg class="i"><use href="#link"/></svg>{{ a.linkText || 'Otwórz link' }}</a><div v-if="videoInfo(a.video)" class="ann-video">
           <video v-if="videoInfo(a.video).kind === 'file'" :src="videoInfo(a.video).src" controls playsinline preload="metadata"></video>
           <iframe v-else :src="videoInfo(a.video).embed" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>
         </div></div>
@@ -1485,7 +1519,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.43 · 17.10.2026'
+const VERSION = '2.44 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2204,7 +2238,7 @@ createApp({
     const oldAnns = computed(() => announcements.value.filter(a => !isActive(a)).sort((a, b) => (b.until || '').localeCompare(a.until || '')))
     const importantAnns = computed(() => activeAnns.value.filter(a => a.important && a.audience !== 'council'))
     const homeAnns = computed(() => activeAnns.value.filter(a => !a.important).slice(0, 4))
-    const annView = ref(false), currentAnn = ref(null)
+    const annView = ref(false), currentAnn = ref(null), annEditing = ref(false)
     let annSaved = '', annBase = 0, annAudience = ''
     const annDirty = computed(() => !!currentAnn.value && JSON.stringify(currentAnn.value) !== annSaved)
     const annSavedOnce = computed(() => !!currentAnn.value && announcements.value.some(x => x.id === currentAnn.value.id))
@@ -2216,19 +2250,24 @@ createApp({
       annSaved = JSON.stringify(currentAnn.value); annBase = a.updated || 0; annAudience = currentAnn.value.audience
       notify.ids = []
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
+      annEditing.value = false
     }
     function newAnn() {
       openAnn({ id: uid(), title: '', text: '', audience: 'members', important: false, until: '', author: me.value?.name || drive.account() || 'telefon' })
-      annSaved = ''; annAudience = ''
+      annSaved = ''; annAudience = ''; annEditing.value = true
     }
     function closeAnn() {
       if (annDirty.value && annSavedOnce.value && !confirm('Masz niezapisane zmiany w ogłoszeniu. Wyjść bez zapisywania?')) return
+      // z edycji zapisanego ogłoszenia — wracamy do podglądu
+      if (annEditing.value && annSavedOnce.value) { const a = announcements.value.find(x => x.id === currentAnn.value.id); if (a) { openAnn(a); return } }
       currentAnn.value = null
     }
     const saveAnn = () => guard(async () => {
       const a = currentAnn.value
       if (a.audience === 'council') a.important = false
       const data = { ...JSON.parse(JSON.stringify(a)), title: a.title.trim(), date: a.date || Date.now(), updated: Date.now(), updatedBy: drive.account() || 'telefon' }
+      if (data.link && !/^https?:\/\//i.test(data.link)) data.link = 'https://' + data.link
+      if (!data.link) delete data.linkText
       try {
         await drive.saveAnnouncement(data, annBase, false, annAudience)
       } catch (e) {
@@ -2606,7 +2645,7 @@ createApp({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,

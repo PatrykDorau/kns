@@ -26,7 +26,7 @@ language sql stable security definer set search_path = public as $$
       from events e where e.date between current_date and current_date + 60
         and coalesce(e.is_public, e.type not in ('czlonkowskie', 'rada'))), '[]'::jsonb),
     'announcements', coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'title', a.data ->> 'title', 'text', a.data ->> 'text',
-        'important', a.important, 'date', a.data -> 'date', 'image', a.data ->> 'image', 'video', a.data ->> 'video') order by a.important desc, a.updated desc)
+        'important', a.important, 'date', a.data -> 'date', 'image', a.data ->> 'image', 'video', a.data ->> 'video', 'link', a.data ->> 'link', 'linkText', a.data ->> 'linkText') order by a.important desc, a.updated desc)
       from announcements a where a.audience = 'public' and (a.until is null or a.until >= current_date)), '[]'::jsonb),
     'types', coalesce((select jsonb_path_query_array(t.types, '$[*] ? (!exists(@.removed)) ') from templates t where t.id = 'main'), '[]'::jsonb))
 $$;
