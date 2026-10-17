@@ -137,6 +137,16 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'signupJoin') return { status: check(await sb.rpc('signup_join', { eid: data.id, new_adults: data.adults, new_children: data.children || 0, new_note: data.note || '' })) }
       if (action === 'signupLeave') return check(await sb.rpc('signup_leave', { eid: data.id }))
       if (action === 'signupDecide') return { status: check(await sb.rpc('signup_decide', { eid: data.id, who: data.who, decision: data.decision })) }
+      // ASB: grafik spotkań i lista pomysłów (ranga „ASB” albo administrator — pilnuje baza).
+      if (action === 'asbLoad') {
+        const [meetings, ideas] = await Promise.all([sb.from('asb_meetings').select('*').order('sort').then(check), sb.from('asb_ideas').select('*').order('created').then(check)])
+        const day = d => (d instanceof Date ? d.toISOString().slice(0, 10) : d || null) // data zawsze jako 'RRRR-MM-DD'
+        return { meetings: (meetings || []).map(m => ({ ...m, date: day(m.date) })), ideas: ideas || [] }
+      }
+      if (action === 'asbSave') { const { _new, ...row } = data; return check(await sb.from('asb_meetings').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
+      if (action === 'asbDelete') return check(await sb.from('asb_meetings').delete().eq('id', data.id))
+      if (action === 'asbIdea') return check(await sb.from('asb_ideas').upsert({ id: data.id, author: data.author || '', topic: data.topic }))
+      if (action === 'asbIdeaDelete') return check(await sb.from('asb_ideas').delete().eq('id', data.id))
       if (action === 'addToMinistry') return check(await sb.rpc('ministry_add', { mid: data.id, who: data.who }))
       if (action === 'ministryPeople') return { people: check(await sb.rpc('ministry_people')) || [] }
       if (action === 'memberNames') return { people: check(await sb.rpc('member_names')) || [] }
