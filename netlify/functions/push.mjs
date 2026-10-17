@@ -89,6 +89,7 @@ export default async function handler(req) {
     return json(status && status < 300 ? { sent: 1 } : { sent: 0, error: status === 404 || status === 410 ? 'Ten telefon nie jest już zapisany — wyłącz i włącz powiadomienia.' : 'Serwer powiadomień nie przyjął wiadomości.' })
   }
   if (data.notify === true) return notify(data, keys)
+  if (data.review === true) return notify({ ...data, review: true }, keys)
   if (!process.env.PUSH_SECRET || !same(data.secret, process.env.PUSH_SECRET)) return json({ error: 'Brak dostępu.' }, 403)
   const payload = { title: String(data.title || 'Nabożeństwa'), body: String(data.body || ''), url: String(data.url || '/') }
   let sent = 0
@@ -107,14 +108,17 @@ export default async function handler(req) {
 async function notify(data, keys) {
   const token = String(data.token || '')
   const targets = (Array.isArray(data.people) ? data.people : []).filter(x => /^[0-9a-f-]{36}$/i.test(String(x))).slice(0, 500)
-  if (!token || !targets.length) return json({ error: 'Nie wybrano odbiorców.' }, 400)
+  if (!token || (!data.review && !targets.length)) return json({ error: 'Nie wybrano odbiorców.' }, 400)
   const rpc = (name, body) => fetch(SUPABASE.url + '/rest/v1/rpc/' + name, {
     method: 'POST', headers: { apikey: SUPABASE.key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
-  const res = await rpc('notify_targets', { targets }).catch(() => null)
+  // zgłoszenie: odbiorcy to zatwierdzający, treść stała (z tytułem zgłoszenia)
+  const res = await (data.review ? rpc('review_targets', {}) : rpc('notify_targets', { targets })).catch(() => null)
   if (!res?.ok) return json({ error: (await res?.json().catch(() => null))?.message || 'Brak dostępu.' }, 403)
   const devices = await res.json()
-  const payload = { title: String(data.title || 'KNS Nabo').slice(0, 120), body: String(data.body || '').slice(0, 300), url: String(data.url || './').slice(0, 300) }
+  const payload = data.review
+    ? { title: 'Nowe zgłoszenie do zatwierdzenia', body: String(data.title || '').slice(0, 100), url: './' }
+    : { title: String(data.title || 'KNS Nabo').slice(0, 120), body: String(data.body || '').slice(0, 300), url: String(data.url || './').slice(0, 300) }
   let sent = 0
   const gone = []
   await Promise.all(devices.map(async ({ id, subscription }) => {

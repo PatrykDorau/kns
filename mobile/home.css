@@ -142,7 +142,7 @@ button.kh-ann:hover { background: rgba(255, 255, 255, .06); }
 
 /* myśli z kazania */
 .kh-panel.kh-thoughts { position: relative; overflow: hidden; --hc: var(--amber, #f2a53c); }
-.kh-thoughts::before { content: '\201D'; position: absolute; right: 22px; top: 4px; font: 700 110px/1 Georgia, serif; color: rgba(242, 165, 60, .10); pointer-events: none; }
+.kh-thoughts::before { content: '\201D'; position: absolute; right: 18px; bottom: -48px; font: 700 130px/1 Georgia, serif; color: rgba(242, 165, 60, .10); pointer-events: none; }
 .kh-th-sermon { margin: -4px 0 12px; color: var(--muted); font-size: 13px; }
 .kh-th-sermon b { color: var(--text); font-weight: 650; }
 .kh-th-list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }

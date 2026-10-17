@@ -5,7 +5,7 @@
 import { createDrive } from './drive.js'
 
 // Rangi z bazy → kształt używany w aplikacji (jak w serwer.gs).
-const rank = r => ({ id: r.id, name: r.name, edit: r.can_edit, council: r.council, protocols: r.protocols, manage: r.manage })
+const rank = r => ({ id: r.id, name: r.name, edit: r.can_edit, council: r.council, protocols: r.protocols, manage: r.manage, approve: !!r.approve })
 const view = p => ({ email: p.email, name: p.name || '', status: p.status, roles: p.roles || [], requested: p.requested ? new Date(p.requested).getTime() : 0, newsletter: !!p.newsletter })
 const day = d => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : null)
 
@@ -44,6 +44,8 @@ export function createSupa(config, client = window.supabase.createClient(config.
     return row || null
   }
   const withUpdated = r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0) })
+  // Zgłoszenia od członków: status (opublikowane / czeka na zatwierdzenie) i czy to moje.
+  const withMeta = r => ({ ...withUpdated(r), status: r.status || 'published', mine: !!session && r.created_by === session.user.id })
   const songsList = async () => (await all(() => sb.from('songs').select('id,number,title,text,updated').eq('deleted', false).order('id')))
   // Załączniki: logowanie Google z dostępem do Dysku dopiero przy pierwszym pliku.
   async function withFiles(job) {
@@ -86,6 +88,13 @@ export function createSupa(config, client = window.supabase.createClient(config.
         if (!res.ok) throw new Error(out.error || 'Nie udało się wysłać powiadomienia.')
         return out
       }
+      // Nowe zgłoszenie: powiadomienie dla zatwierdzających (lider newslettera, rada, administrator).
+      if (action === 'review') {
+        const res = await fetch((location.protocol.startsWith('http') ? '' : 'https://kns-nabo.netlify.app') + '/api/push', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review: true, token: session.access_token, title: data.title }),
+        })
+        return res.json().catch(() => ({}))
+      }
       if (action === 'calendarToken') return { token: check(await sb.rpc('my_calendar_token', { renew: !!data.renew })) }
       if (action === 'setNewsletter') return { person: view(check(await sb.rpc('set_newsletter', { enabled: !!data.on }))) }
       throw new Error('Nieznane polecenie.')
@@ -118,15 +127,15 @@ export function createSupa(config, client = window.supabase.createClient(config.
       const [services, songs, events, tpl, news] = await Promise.all([
         all(() => sb.from('services').select('data,updated').order('id')),
         songsList(),
-        all(() => sb.from('events').select('data,updated').or(`date.gte.${since},date.is.null`).order('id')),
+        all(() => sb.from('events').select('data,updated,status,created_by').or(`date.gte.${since},date.is.null`).order('id')),
         sb.from('templates').select('types,updated').eq('id', 'main').then(check),
-        all(() => sb.from('announcements').select('data,audience,updated').order('id')),
+        all(() => sb.from('announcements').select('data,audience,updated,status,created_by').order('id')),
       ])
       return {
         // „updated” z kolumny — rekordy dodane wprost w bazie mogą go nie mieć w danych (inaczej każdy zapis byłby „konfliktem”)
-        services: services.map(withUpdated), songs, events: events.map(withUpdated),
+        services: services.map(withUpdated), songs, events: events.map(withMeta),
         templates: tpl[0]?.types || null, templatesUpdated: tpl[0]?.updated || 0,
-        announcements: news.map(r => ({ ...withUpdated(r), audience: r.audience })),
+        announcements: news.map(r => ({ ...withMeta(r), audience: r.audience })),
       }
     },
     async save(payload, base = 0, force = false) {
@@ -155,7 +164,8 @@ export function createSupa(config, client = window.supabase.createClient(config.
 
     async saveEvent(ev, base = 0, force = false) {
       await guardNewer('events', ev.id, base, force, 'to wydarzenie')
-      check(await sb.from('events').upsert({ id: ev.id, type: ev.type || 'inne', date: day(ev.date), is_public: ev.public ?? null, data: ev, updated: ev.updated || Date.now(), updated_by: ev.updatedBy || who() }))
+      const { status, mine, ...data } = ev
+      check(await sb.from('events').upsert({ id: ev.id, type: ev.type || 'inne', date: day(ev.date), is_public: ev.public ?? null, data, ...(status ? { status } : {}), updated: ev.updated || Date.now(), updated_by: ev.updatedBy || who() }))
     },
     async removeEvent(id) { check(await sb.from('events').delete().eq('id', id)) },
     async saveTemplates(types, base = 0, force = false) {
@@ -174,8 +184,8 @@ export function createSupa(config, client = window.supabase.createClient(config.
     async removeProtocol(id) { check(await sb.from('protocols').delete().eq('id', id)) },
     async saveAnnouncement(item, base = 0, force = false) {
       await guardNewer('announcements', item.id, base, force, 'to ogłoszenie')
-      const { audience, ...data } = item
-      check(await sb.from('announcements').upsert({ id: item.id, audience: audience || 'members', important: !!item.important, until: day(item.until), data, updated: item.updated || Date.now(), updated_by: item.updatedBy || who() }))
+      const { audience, status, mine, ...data } = item
+      check(await sb.from('announcements').upsert({ id: item.id, audience: audience || 'members', important: !!item.important, until: day(item.until), data, ...(status ? { status } : {}), updated: item.updated || Date.now(), updated_by: item.updatedBy || who() }))
     },
     async removeAnnouncement(item) { check(await sb.from('announcements').delete().eq('id', item.id)) },
     // Grafiki ogłoszeń: publiczny kosz „ogloszenia” w Supabase Storage (losowe nazwy plików).

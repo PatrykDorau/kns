@@ -30,10 +30,6 @@ const weekRange = computed(() => {
   return f(week.value[0].date) + ' – ' + f(week.value[6].date)
 })
 const shortDate = t => (t ? new Date(t).toLocaleDateString('pl', { day: 'numeric', month: 'short' }).replace('.', '') : '')
-// Myśli z kazania: ostatnie nabożeństwo, które już się odbyło (jedna myśl w linii).
-const lastSermon = computed(() => services.value.filter(s => s.date && s.date <= today()).sort((a, b) => b.date.localeCompare(a.date))[0] || null)
-const thoughts = computed(() => String(lastSermon.value?.thoughts || '').split('\n').map(t => t.replace(/^\s*[-•*\d.)]+\s*/, '').trim()).filter(Boolean))
-const canEdit = computed(() => canUse('planner'))
 const svc = computed(() => nearestService.value && nearestService.value.date >= today() ? nearestService.value : null)
 const svcWhen = computed(() => (svc.value ? asDate(svc.value.date).toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + (svc.value.time || DEFAULT_TIME) : ''))
 const until = computed(() => {
@@ -96,13 +92,6 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
       </div>
     </section>
   </div>
-
-  <section v-if="lastSermon && (thoughts.length || canEdit)" class="kh-panel kh-thoughts">
-    <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date + 'T12:00') }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="openService(lastSermon.id)">{{ thoughts.length ? 'Edytuj' : 'Dodaj' }}</button></div>
-    <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
-    <ul v-if="thoughts.length" class="kh-th-list"><li v-for="(t, i) in thoughts" :key="i">{{ t }}</li></ul>
-    <p v-else class="kh-th-empty">Prowadzący nie dodał jeszcze myśli z tego kazania.</p>
-  </section>
 
   <div v-if="shown" class="kh-modal" role="dialog" aria-modal="true" @click.self="shown = null" @keydown.esc="shown = null">
     <div class="kh-modal-box">

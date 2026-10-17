@@ -115,9 +115,9 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
       const [rows, events, tpl, news] = await Promise.all([
         all(() => sb.from('services').select('data').order('id')),
-        all(() => sb.from('events').select('data,updated').or(`date.gte.${since},date.is.null`).order('id')),
+        all(() => sb.from('events').select('data,updated,status').or(`date.gte.${since},date.is.null`).order('id')),
         sb.from('templates').select('types').eq('id', 'main').then(check),
-        all(() => sb.from('announcements').select('data,audience,updated').order('id')),
+        all(() => sb.from('announcements').select('data,audience,updated,status').order('id')),
       ])
       // Teksty pieśni z nabożeństwa (komputer dopasowuje pieśni po tytule i numerze).
       if (!remoteSongs.size) for (const s of await all(() => sb.from('songs').select('*').order('id'))) remoteSongs.set(s.id, s)
@@ -132,8 +132,9 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       return {
         list: services.map(s => ({ service: s, songs: (s.songs || []).map(e => byKey.get(songKey(e))).filter(Boolean).map(({ number, title, text }) => ({ number, title, text })) })),
         templates: tpl[0]?.types || null,
-        events: events.map(r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0) })),
-        announcements: news.map(r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0), audience: r.audience })),
+        // zgłoszenia czekające na zatwierdzenie — tylko w aplikacji na telefon/w przeglądarce
+        events: events.filter(r => (r.status || 'published') === 'published').map(r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0) })),
+        announcements: news.filter(r => (r.status || 'published') === 'published').map(r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0), audience: r.audience })),
       }
     }),
     sharedWrite: (dir, payload) => safe(async () => {

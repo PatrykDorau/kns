@@ -8,7 +8,7 @@ import { createCloud } from '../src/cloud.js'
 import { createSupa } from '../mobile/supa.js'
 
 const db = new PGlite()
-await setupDb(db, fs.readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'), ['admin@kns.pl'])
+await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
 const admin = await addUser(db, 'admin@kns.pl')
 const tech = await addUser(db, 'tech@kns.pl')
 const member = await addUser(db, 'czlonek@kns.pl')
@@ -98,7 +98,7 @@ assert.ok((await phone.load()).events.some(e => e.title === 'Próba zespołu'))
 r = await T.saveEvent({ id: 'e9', type: 'inne', title: 'Stara wersja', date: inDays(4), updated: 101 }, 50)
 assert.match(r.error, /w międzyczasie/)
 r = await M.saveEvent({ id: 'e10', type: 'inne', title: 'x', date: inDays(4), updated: 1 }, 0)
-assert.match(r.error, /uprawnień/)
+assert.equal((await db.query(`select status from events where id = 'e10'`)).rows[0].status, 'pending') // zgłoszenie
 r = await (await M.access())
 assert.deepEqual([r.status, r.edit], ['active', false])
 r = await T.access()

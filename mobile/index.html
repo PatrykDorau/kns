@@ -126,7 +126,8 @@
   .sheet .found .meta b, .sheet .found .meta small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sheet .found .meta small { color: var(--muted); }
   .empty { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 14px; border: 1px dashed rgba(229, 83, 75, .5); color: var(--bad-text); font-size: 14px; }
-  .bar { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); margin-top: 18px; }
+  .bar { position: sticky; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 5; display: flex; gap: 10px; padding: 8px; margin-top: 18px; border-radius: 18px;
+    background: color-mix(in srgb, var(--panel) 72%, transparent); border: 1px solid var(--line); backdrop-filter: blur(14px); box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .6); }
   .bar button.primary { flex: 1; }
   .saved { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--ok); font-size: 14px; min-height: 1.4em; margin-top: 12px; }
   .saved svg.i { width: 16px; height: 16px; }
@@ -359,6 +360,13 @@
   .ann-video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 4px; border-radius: 12px; overflow: hidden; background: #000; }
   .ann-video video, .ann-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .notify-box { margin-top: 14px; }
+  .pending-note { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: rgba(169, 139, 255, .12); border: 1px solid rgba(169, 139, 255, .35); color: #cbb8ff; font-size: 14px; }
+  .pending-note svg.i { flex: none; margin-top: 1px; }
+  .approve-row { display: flex; gap: 10px; margin: 6px 0 12px; }
+  .approve-row button { flex: 1; }
+  .kh-review { --hc: var(--violet, #a98bff); border-color: rgba(169, 139, 255, .35) !important; }
+  .kh-review .kh-ann-ic { color: var(--violet, #a98bff); background: rgba(169, 139, 255, .16); }
+  .kh-wait { padding: 1px 8px; border-radius: 999px; background: rgba(169, 139, 255, .16); color: #cbb8ff !important; }
   .ann-view { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
   .ann-hero { display: block; width: calc(100% + 32px); max-width: none; margin: 0 -16px 4px; max-height: 360px; object-fit: cover; }
   @media (min-width: 720px) { .ann-hero { width: 100%; margin: 0 0 4px; border-radius: 18px; } }
@@ -591,7 +599,8 @@
     <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
-    <button v-else-if="songView || peopleView || gcalView" class="ghost" @click="songView = false; peopleView = false; gcalView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
+    <button v-else-if="gcalView" class="ghost" @click="gcalView = false; calView = true"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
+    <button v-else-if="songView || peopleView" class="ghost" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
       <button v-if="ready && (calView || moreView)" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
       <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
@@ -724,6 +733,11 @@
   <template v-else-if="currentAnn">
     <!-- podgląd ogłoszenia (dla wszystkich); edycja dopiero po „Edytuj” (osoby z prawem edycji) -->
     <article v-if="!annEditing" class="ann-view">
+      <p v-if="currentAnn.status === 'pending'" class="pending-note"><svg class="i"><use href="#bell"/></svg>{{ canReview ? 'Zgłoszenie czeka na Twoje zatwierdzenie' + (currentAnn.author ? ' — od: ' + currentAnn.author : '') + '.' : 'Czeka na zatwierdzenie — po zatwierdzeniu zobaczą je wszyscy.' }}</p>
+      <div v-if="canReview && currentAnn.status === 'pending'" class="approve-row">
+        <button :disabled="busy" @click="rejectAnn"><svg class="i"><use href="#x"/></svg>Odrzuć</button>
+        <button class="primary" :disabled="busy" @click="approveAnn"><svg class="i"><use href="#check"/></svg>Zatwierdź i opublikuj</button>
+      </div>
       <img v-if="currentAnn.image" class="ann-hero" :src="currentAnn.image" alt="">
       <div class="ann-tags">
         <span v-if="currentAnn.important" class="ann-tag imp">Komunikat rady zboru</span>
@@ -742,6 +756,7 @@
       <button v-if="annEditable" class="ann-edit-btn" @click="annEditing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj ogłoszenie</button>
     </article>
     <template v-else>
+    <p v-if="!annSavedOnce && !canEdit && !canReview" class="pending-note"><svg class="i"><use href="#bell"/></svg>Ogłoszenie pojawi się po zatwierdzeniu przez lidera newslettera, radę zboru albo administratora.</p>
     <fieldset class="plain" :disabled="!annEditable">
       <label for="anTitle">Tytuł <span class="req">*</span></label>
       <input id="anTitle" v-model="currentAnn.title" :class="{ invalid: !currentAnn.title.trim() }" autocomplete="off">
@@ -909,8 +924,10 @@
 
   <!-- wydarzenie (spotkanie studenckie, członkowskie, rady…) -->
   <template v-else-if="currentEvent">
-    <p v-if="!canEdit" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — wydarzenia zmieniają osoby z rangą z prawem edycji.</p>
-    <fieldset class="plain" :disabled="!canEdit">
+    <p v-if="currentEvent.status === 'pending'" class="pending-note"><svg class="i"><use href="#bell"/></svg>{{ canReview ? 'Zgłoszenie czeka na Twoje zatwierdzenie' + (currentEvent.createdBy ? ' — od: ' + currentEvent.createdBy : '') + '.' : 'Czeka na zatwierdzenie — po zatwierdzeniu zobaczą je wszyscy.' }}</p>
+    <p v-else-if="!eventEditable" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — wydarzenia zmieniają osoby z prawem edycji.</p>
+    <p v-else-if="!eventSavedOnce && !canEdit && !canReview" class="pending-note"><svg class="i"><use href="#bell"/></svg>Wydarzenie pojawi się w kalendarzu po zatwierdzeniu przez lidera newslettera, radę zboru albo administratora.</p>
+    <fieldset class="plain" :disabled="!eventEditable">
       <label for="evType">Rodzaj</label>
       <select id="evType" v-model="currentEvent.type" class="field" @change="typeChanged">
         <option v-for="t in eventTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
@@ -928,7 +945,7 @@
       <label v-if="api.enabled" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
     </fieldset>
     <label>Program</label>
-    <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!canEdit" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
+    <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!eventEditable" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
     <template v-if="typeOf(currentEvent.type).protocol && eventSavedOnce && (currentEvent.type !== 'rada' || hasCouncil)">
       <label>Protokół</label>
       <button class="songsbtn" :disabled="busy" @click="protoForEvent(currentEvent)"><svg class="i"><use href="#list"/></svg>Protokół z tego spotkania<svg class="i chev"><use href="#chev"/></svg></button>
@@ -943,7 +960,11 @@
       <p class="note" style="margin:6px 0 0">Powiadomienie wyjdzie po zapisaniu — na telefony osób, które włączyły powiadomienia.</p>
     </div>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
-    <div v-if="canEdit" class="bar">
+    <div v-if="canReview && currentEvent.status === 'pending'" class="approve-row">
+      <button :disabled="busy" @click="rejectEvent"><svg class="i"><use href="#x"/></svg>Odrzuć</button>
+      <button class="primary" :disabled="busy" @click="approveEvent"><svg class="i"><use href="#check"/></svg>Zatwierdź i opublikuj</button>
+    </div>
+    <div v-if="eventEditable" class="bar">
       <template v-if="eventSavedOnce">
         <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeEvent">Na pewno usuń</button>
         <button v-else :disabled="busy" aria-label="Usuń wydarzenie" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
@@ -1011,9 +1032,9 @@
       <button v-for="t in types" :key="t.id" class="filter" :class="{ on: !hidden.includes(t.id) }" :aria-pressed="!hidden.includes(t.id)" @click="toggleType(t.id)"><i :style="{ background: t.color }"></i>{{ t.name }}</button>
     </div>
     <div class="cal-actions">
-      <button v-if="canEdit" class="primary" @click="pickType = true"><svg class="i"><use href="#plus"/></svg>Nowe wydarzenie</button>
+      <button v-if="canSubmit" class="primary" @click="pickType = true"><svg class="i"><use href="#plus"/></svg>{{ canEdit || canReview ? 'Nowe wydarzenie' : 'Zgłoś wydarzenie' }}</button>
+      <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg>Dodaj do swojego kalendarza</button>
       <button v-if="canEdit" @click="openTemplates">Szablony</button>
-      <button @click="openProtocols">Protokoły</button>
     </div>
     <div class="section"><h2>{{ selDay ? pretty(selDay) : 'Najbliższe' }}</h2><button v-if="selDay" class="ghost" @click="selDay = ''">Wszystkie</button></div>
     <p v-if="!agenda.length" class="note">{{ selDay ? 'Tego dnia nic nie zaplanowano.' : 'Na najbliższe tygodnie nic nie zaplanowano.' }}</p>
@@ -1026,10 +1047,10 @@
     <div v-if="pickType" class="sheet">
       <div class="head">
         <button class="ghost" aria-label="Zamknij" @click="pickType = false"><svg class="i"><use href="#back"/></svg></button>
-        <b>Nowe wydarzenie{{ selDay ? ' — ' + pretty(selDay) : '' }}</b>
+        <b>{{ canEdit || canReview ? 'Nowe wydarzenie' : 'Zgłoś wydarzenie' }}{{ selDay ? ' — ' + pretty(selDay) : '' }}</b>
       </div>
       <div class="typepick">
-        <button v-for="t in types" :key="t.id" @click="newEvent(t.id)"><i :style="{ background: t.color }"></i>{{ t.name }}<small>{{ t.time }}</small></button>
+        <button v-for="t in types.filter(t => canEdit || canReview || !['nabozenstwo', 'rada', 'czlonkowskie'].includes(t.id))" :key="t.id" @click="newEvent(t.id)"><i :style="{ background: t.color }"></i>{{ t.name }}<small>{{ t.time }}</small></button>
       </div>
     </div>
   </template>
@@ -1114,7 +1135,6 @@
       <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Protokoły</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-      <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg><span>Kalendarz Google</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     </nav>
     <div v-if="push.supported" class="push-card" :class="{ on: push.on }">
@@ -1167,6 +1187,11 @@
         <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
         <p>Oto co dzieje się w kościele.</p>
       </div>
+      <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts">
+        <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
+        <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
+        <ul class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
+      </section>
 
       <div class="kh-tiles">
         <button v-for="t in webTiles" :key="t.id" class="kh-tile" :class="{ locked: t.locked }" :disabled="t.locked" :title="t.desc" @click="chooseTile(t)">
@@ -1196,6 +1221,17 @@
         <article v-if="!importantAnns.length" class="kh-empty"><span class="kh-tag"><svg class="i"><use href="#info"/></svg>Komunikaty rady zboru</span><span class="kh-body">Brak aktualnych komunikatów.</span></article>
       </div>
 
+
+      <section v-if="reviewItems.length" class="kh-panel kh-review">
+        <div class="kh-panel-h"><h2>{{ canReview ? 'Do zatwierdzenia' : 'Twoje zgłoszenia' }}</h2><span class="kh-muted">{{ canReview ? 'czekają na Twoją decyzję' : 'czekają na zatwierdzenie' }}</span></div>
+        <div class="kh-anns">
+          <button v-for="it in reviewItems" :key="it.kind + it.id" class="kh-ann" @click="it.kind === 'event' ? openEvent(it.ref) : openAnn(it.ref)">
+            <span class="kh-ann-ic"><svg class="i"><use :href="it.kind === 'event' ? '#calendar' : '#megaphone'"/></svg></span>
+            <span class="kh-ann-text"><b>{{ it.title }}</b><span>{{ it.sub }}</span></span>
+            <small class="kh-wait">czeka</small>
+          </button>
+        </div>
+      </section>
       <div class="kh-panels">
         <section class="kh-panel">
           <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie</button></div>
@@ -1223,12 +1259,6 @@
           </div>
         </section>
       </div>
-      <section v-if="lastSermon && (lastSermon.thoughts || canEdit)" class="kh-panel kh-thoughts">
-        <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">{{ lastSermon.thoughts ? 'Edytuj' : 'Dodaj' }}</button></div>
-        <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
-        <ul v-if="lastSermon.thoughts" class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
-        <p v-else class="kh-th-empty">Prowadzący nie dodał jeszcze myśli z tego kazania.</p>
-      </section>
     </div>
 
     <div class="phone-home">
@@ -1236,6 +1266,21 @@
       <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
       <p>Oto co dzieje się w kościele.</p>
     </div>
+    <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts phone-thoughts">
+      <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
+      <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
+      <ul class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
+    </section>
+    <section v-if="reviewItems.length" class="kh-panel kh-review phone-thoughts">
+      <div class="kh-panel-h"><h2>{{ canReview ? 'Do zatwierdzenia' : 'Twoje zgłoszenia' }}</h2><span class="kh-muted">{{ canReview ? 'czekają na Twoją decyzję' : 'czekają na zatwierdzenie' }}</span></div>
+      <div class="kh-anns">
+        <button v-for="it in reviewItems" :key="it.kind + it.id" class="kh-ann" @click="it.kind === 'event' ? openEvent(it.ref) : openAnn(it.ref)">
+          <span class="kh-ann-ic"><svg class="i"><use :href="it.kind === 'event' ? '#calendar' : '#megaphone'"/></svg></span>
+          <span class="kh-ann-text"><b>{{ it.title }}</b><span>{{ it.sub }}</span></span>
+          <small class="kh-wait">czeka</small>
+        </button>
+      </div>
+    </section>
 
     <div class="start-top">
       <button v-if="nextService" class="hero" :class="{ live: countdown?.live }" @click="open(nextService)">
@@ -1282,12 +1327,6 @@
         </div>
       </section>
 
-<section v-if="lastSermon && (lastSermon.thoughts || canEdit)" class="kh-panel kh-thoughts phone-thoughts">
-        <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">{{ lastSermon.thoughts ? 'Edytuj' : 'Dodaj' }}</button></div>
-        <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
-        <ul v-if="lastSermon.thoughts" class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
-        <p v-else class="kh-th-empty">Prowadzący nie dodał jeszcze myśli z tego kazania.</p>
-      </section>
 
       <section class="sp-news">
         <div class="section"><h2>Z newslettera</h2><button class="ghost" @click="openAnns">{{ canAnnounce ? 'Wszystkie / dodaj' : 'Wszystkie' }}</button></div>
@@ -1554,7 +1593,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.45 · 17.10.2026'
+const VERSION = '2.46 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1796,9 +1835,10 @@ createApp({
       // Terminy na odliczanie przed zalogowaniem (ekran logowania).
       try { localStorage.setItem('kns-times', JSON.stringify(services.value.filter(s => s.date >= today()).map(({ date, time, place }) => ({ date, time, place })))) } catch { /* tryb prywatny */ }
       songs.value = data.songs
-      events.value = (data.events || []).map(e => ({ type: 'inne', title: '', time: '', place: '', description: '', program: [], ...e }))
+      const allEvents = (data.events || []).map(e => ({ type: 'inne', title: '', time: '', place: '', description: '', program: [], ...e }))
+      events.value = allEvents.filter(e => e.status !== 'pending'); pendingEvents.value = allEvents.filter(e => e.status === 'pending')
       types.value = mergeTypes(data.templates); typesBase = data.templatesUpdated || 0
-      announcements.value = data.announcements || []
+      announcements.value = (data.announcements || []).filter(a => a.status !== 'pending'); pendingAnns.value = (data.announcements || []).filter(a => a.status === 'pending')
     }
     // Z serwerem kont nowa osoba loguje się najpierw samą tożsamością — o Dysk pytamy dopiero po zatwierdzeniu.
     const start = (choose = false) => guard(async () => {
@@ -2027,6 +2067,7 @@ createApp({
 
     /* ---------- kalendarz, wydarzenia, szablony ---------- */
     const events = ref([]), types = ref(mergeTypes(null))
+    const pendingEvents = ref([]), pendingAnns = ref([]) // zgłoszenia czekające na zatwierdzenie (moje albo do zatwierdzenia)
     let typesBase = 0
     const typeOf = id => types.value.find(t => t.id === id) || { id, name: 'Inne', color: '#8f98a8', time: '', place: '', program: [] }
     const eventTypes = computed(() => types.value.filter(t => t.id !== 'nabozenstwo'))
@@ -2079,6 +2120,7 @@ createApp({
 
     const currentEvent = ref(null)
     let eventSaved = '', eventBase = 0, eventType = ''
+    const eventEditable = computed(() => !!currentEvent.value && mayChange(currentEvent.value, eventSavedOnce.value))
     const eventDirty = computed(() => !!currentEvent.value && JSON.stringify(currentEvent.value) !== eventSaved)
     const eventSavedOnce = computed(() => !!currentEvent.value && events.value.some(x => x.id === currentEvent.value.id))
     function openEvent(ev) {
@@ -2091,7 +2133,7 @@ createApp({
       pickType.value = false
       if (typeId === 'nabozenstwo') { create(selDay.value || undefined); fromCal = true; return }
       const t = typeOf(typeId)
-      openEvent({ id: uid(), type: typeId, title: t.name, date: selDay.value || today(), time: t.time || '', place: t.place || '', description: '', program: programFrom(t, uid), createdBy: drive.account() || 'telefon' })
+      openEvent({ id: uid(), type: typeId, title: t.name, date: selDay.value || today(), time: t.time || '', place: t.place || '', description: '', program: programFrom(t, uid), createdBy: me.value?.name || drive.account() || 'telefon' })
       eventSaved = '' // nowe wydarzenie od razu jest „do zapisania”
     }
     // Zmiana rodzaju: podpowiedzi z szablonu zastępują tylko to, czego nikt jeszcze nie zmienił.
@@ -2107,10 +2149,12 @@ createApp({
       if (eventDirty.value && eventSavedOnce.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
       currentEvent.value = null
     }
-    const saveEvent = (force = false) => guard(async () => {
+    const saveEvent = (force = false, approving = false) => guard(async () => {
       const ev = currentEvent.value
       ev.title = ev.title.trim()
       const data = { ...JSON.parse(JSON.stringify(ev)), updated: Date.now(), updatedBy: drive.account() || 'telefon' }
+      const submitted = !canEdit.value && !canReview.value
+      if (submitted) { data.status = 'pending'; data.mine = true; data.createdBy = data.createdBy || me.value?.name || drive.account() }
       try {
         await drive.saveEvent(data, eventBase, force === true)
       } catch (e) {
@@ -2124,17 +2168,17 @@ createApp({
         }
         await drive.saveEvent(data, eventBase, true)
       }
-      const i = events.value.findIndex(x => x.id === data.id)
-      if (i >= 0) events.value[i] = data
-      else events.value.push(data)
-      const sent = await sendNotify({ title: data.title || typeOf(data.type).name, body: [pretty(data.date) + (data.time ? ', ' + data.time : ''), data.place].filter(Boolean).join(' · '), url: './?wydarzenie=' + encodeURIComponent(data.id) })
+      const wasNew = !eventSavedOnce.value
+      place(events, pendingEvents, data)
+      if (submitted && wasNew && api.enabled) api.call('review', { title: data.title }).catch(() => {})
+      const sent = (submitted ? ' · czeka na zatwierdzenie' : approving ? ' · opublikowane' : '') + await sendNotify({ title: data.title || typeOf(data.type).name, body: [pretty(data.date) + (data.time ? ', ' + data.time : ''), data.place].filter(Boolean).join(' · '), url: './?wydarzenie=' + encodeURIComponent(data.id) })
       openEvent(data)
       status.value = 'Zapisano o ' + clockNow() + sent
     })
     const removeEvent = () => guard(async () => {
       const id = currentEvent.value.id
       await drive.removeEvent(id)
-      events.value = events.value.filter(x => x.id !== id)
+      events.value = events.value.filter(x => x.id !== id); pendingEvents.value = pendingEvents.value.filter(x => x.id !== id)
       currentEvent.value = null
     })
 
@@ -2273,7 +2317,25 @@ createApp({
     /* ---------- ogłoszenia i komunikaty rady ---------- */
     const AUDIENCE = { public: 'Wszyscy', members: 'Członkowie', council: 'Rada zboru' }
     const announcements = ref([])
-    const canAnnounce = computed(() => hasFlag('edit'))
+    // Każdy zatwierdzony członek może zgłosić wydarzenie albo ogłoszenie; publikują osoby z prawem edycji,
+    // a zgłoszenia zatwierdzają lider newslettera, rada zboru i administrator (flaga approve).
+    const canReview = computed(() => api.enabled && hasFlag('approve'))
+    const canSubmit = computed(() => (api.enabled ? me.value?.status === 'active' : canEdit.value))
+    const canAnnounce = canSubmit
+    const mayChange = (item, savedOnce) => canEdit.value || canReview.value || !savedOnce || (item?.status === 'pending' && item?.mine)
+    const reviewItems = computed(() => [
+      ...pendingEvents.value.map(e => ({ kind: 'event', id: e.id, title: e.title || typeOf(e.type).name, sub: 'Wydarzenie · ' + shortDate(e.date) + (e.createdBy ? ' · ' + e.createdBy : ''), ref: e })),
+      ...pendingAnns.value.map(a => ({ kind: 'ann', id: a.id, title: a.title, sub: 'Ogłoszenie' + (a.author ? ' · ' + a.author : ''), ref: a })),
+    ])
+    // Zapisane wydarzenie/ogłoszenie trafia do właściwej listy (opublikowane albo zgłoszenia).
+    function place(list, pend, data) {
+      list.value = list.value.filter(x => x.id !== data.id); pend.value = pend.value.filter(x => x.id !== data.id)
+      ;(data.status === 'pending' ? pend : list).value.push(data)
+    }
+    const approveEvent = () => { currentEvent.value.status = 'published'; return saveEvent(false, true) }
+    const approveAnn = () => { currentAnn.value.status = 'published'; return saveAnn(true) }
+    function rejectEvent() { if (confirm('Odrzucić to zgłoszenie? Zostanie usunięte.')) removeEvent() }
+    function rejectAnn() { if (confirm('Odrzucić to zgłoszenie? Zostanie usunięte.')) removeAnn() }
     const shortDate = d => (d ? new Date(typeof d === 'number' ? d : d + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'short' }) : '')
     const isActive = a => !a.until || a.until >= todayStr.value
     const byNewest = (a, b) => (b.date || 0) - (a.date || 0)
@@ -2289,7 +2351,7 @@ createApp({
     const annDirty = computed(() => !!currentAnn.value && JSON.stringify(currentAnn.value) !== annSaved)
     const annSavedOnce = computed(() => !!currentAnn.value && announcements.value.some(x => x.id === currentAnn.value.id))
     // Zwykłe ogłoszenia — osoby z prawem edycji; komunikaty rady i ogłoszenia dla rady — rada i pastor.
-    const annEditable = computed(() => !!currentAnn.value && canAnnounce.value && (hasCouncil.value || (!currentAnn.value.important && currentAnn.value.audience !== 'council' && annAudience !== 'council')))
+    const annEditable = computed(() => !!currentAnn.value && mayChange(currentAnn.value, annSavedOnce.value) && (hasCouncil.value || (!currentAnn.value.important && currentAnn.value.audience !== 'council' && annAudience !== 'council')))
     function openAnns() { annView.value = true; scrollTo(0, 0) }
     function openAnn(a) {
       currentAnn.value = { title: '', text: '', audience: 'members', important: false, until: '', ...JSON.parse(JSON.stringify(a)) }
@@ -2308,12 +2370,15 @@ createApp({
       if (annEditing.value && annSavedOnce.value) { const a = announcements.value.find(x => x.id === currentAnn.value.id); if (a) { openAnn(a); return } }
       currentAnn.value = null
     }
-    const saveAnn = () => guard(async () => {
+    const saveAnn = (approving = false) => guard(async () => {
       const a = currentAnn.value
+      const submitted = !canEdit.value && !canReview.value
+      const wasNew = !annSavedOnce.value
       if (a.audience === 'council') a.important = false
       const data = { ...JSON.parse(JSON.stringify(a)), title: a.title.trim(), date: a.date || Date.now(), updated: Date.now(), updatedBy: drive.account() || 'telefon' }
       if (data.link && !/^https?:\/\//i.test(data.link)) data.link = 'https://' + data.link
       if (!data.link) delete data.linkText
+      if (submitted) { data.status = 'pending'; data.mine = true }
       try {
         await drive.saveAnnouncement(data, annBase, false, annAudience)
       } catch (e) {
@@ -2324,8 +2389,9 @@ createApp({
       // poprzednia grafika (zmieniona albo usunięta) znika z magazynu
       const prev = announcements.value.find(x => x.id === data.id)
       for (const k of ['image', 'video']) if (prev?.[k] && prev[k] !== data[k] && /\/ogloszenia\//.test(prev[k])) drive.removeImage?.(prev[k])
-      announcements.value = [...announcements.value.filter(x => x.id !== data.id), data]
-      const sent = await sendNotify({ title: (data.important ? 'Komunikat rady zboru: ' : 'Ogłoszenie: ') + data.title, body: String(data.text || '').slice(0, 160), url: './?ogloszenie=' + encodeURIComponent(data.id) })
+      place(announcements, pendingAnns, data)
+      if (submitted && wasNew && api.enabled) api.call('review', { title: data.title }).catch(() => {})
+      const sent = (submitted ? ' · czeka na zatwierdzenie' : approving === true ? ' · opublikowane' : '') + await sendNotify({ title: (data.important ? 'Komunikat rady zboru: ' : 'Ogłoszenie: ') + data.title, body: String(data.text || '').slice(0, 160), url: './?ogloszenie=' + encodeURIComponent(data.id) })
       openAnn(data)
       status.value = 'Zapisano o ' + clockNow() + sent
     })
@@ -2334,7 +2400,7 @@ createApp({
       await drive.removeAnnouncement({ id: a.id, audience: annAudience || a.audience })
       const prev = announcements.value.find(x => x.id === a.id)
       for (const k of ['image', 'video']) if (/\/ogloszenia\//.test(prev?.[k] || '')) drive.removeImage?.(prev[k])
-      announcements.value = announcements.value.filter(x => x.id !== a.id)
+      announcements.value = announcements.value.filter(x => x.id !== a.id); pendingAnns.value = pendingAnns.value.filter(x => x.id !== a.id)
       currentAnn.value = null
     })
 
@@ -2442,7 +2508,7 @@ createApp({
         gcal.google = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(gcal.webcal)
       } catch (e) { gcal.error = e.message } finally { gcal.busy = false }
     }
-    function openGcal() { gcalView.value = true; scrollTo(0, 0); if (!gcal.url) loadGcal() }
+    function openGcal() { calView.value = false; moreView.value = false; gcalView.value = true; scrollTo(0, 0); if (!gcal.url) loadGcal() }
     function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
@@ -2691,7 +2757,7 @@ createApp({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,

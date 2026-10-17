@@ -8,6 +8,9 @@ import StreamPanel from './StreamPanel.vue'
 import CalendarView from './CalendarView.vue'
 import PeopleView from './PeopleView.vue'
 import HomeBoard from './HomeBoard.vue'
+import SermonThoughts from './SermonThoughts.vue'
+import SermonThoughts from './SermonThoughts.vue'
+import SermonThoughts from './SermonThoughts.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
 import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init, planAlert, planReady, role, serviceModal, services, sharedStatus, syncShared, syncing, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
@@ -71,6 +74,9 @@ const TILES = [
         <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
         <p>Oto co dzieje się w kościele.</p>
       </div>
+      <SermonThoughts v-if="ready && access.status === 'active'" />
+      <SermonThoughts v-if="ready && access.status === 'active'" />
+      <SermonThoughts v-if="ready && access.status === 'active'" />
 
       <div v-if="ready && !access.status" class="login-card">
         <Brand full />

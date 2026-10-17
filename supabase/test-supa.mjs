@@ -7,7 +7,7 @@ import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
 import { createSupa } from '../mobile/supa.js'
 
 const db = new PGlite()
-await setupDb(db, fs.readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'), ['admin@kns.pl'])
+await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
 const admin = await addUser(db, 'admin@kns.pl', 'Admin')
 const ania = await addUser(db, 'ania@kns.pl', 'Ania')
 const inDays = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
@@ -70,7 +70,9 @@ await assert.rejects(N.saveProtocol({ id: 'pr2', kind: 'czlonkowskie', updated: 
 // protokolant pisze, ale nie zmienia nabożeństw
 await A.api.call('setPerson', { email: 'ania@kns.pl', roles: ['czlonek', 'protokolant'] })
 await N.saveProtocol({ id: 'pr2', kind: 'czlonkowskie', title: 'Nowy', status: 'szkic', items: [], updated: 1 })
-await assert.rejects(N.saveEvent({ id: 'e9', type: 'inne', updated: 1 }), /uprawnień/)
+// członek bez prawa edycji może zgłosić wydarzenie — czeka na zatwierdzenie
+await N.saveEvent({ id: 'e9', type: 'inne', updated: 1 })
+assert.equal((await db.query(`select status from events where id = 'e9'`)).rows[0].status, 'pending')
 // newsletter i telefon do powiadomień
 assert.equal((await N.api.call('setNewsletter', { on: true })).person.newsletter, true)
 await N.savePush('tel1', { subscription: {}, schedule: { day: 5, hour: 19 } })
@@ -88,5 +90,6 @@ assert.deepEqual(pub.announcements.map(a => a.title), ['Piknik'])
 // usuwanie
 await A.removeEvent('e2'); await A.removeAnnouncement({ id: 'a2' }); await A.removeProtocol('pr2'); await A.remove('s1')
 d = await A.load()
-assert.deepEqual([d.services.length, d.events.length, d.announcements.length], [0, 1, 1])
+assert.deepEqual([d.services.length, d.events.length, d.announcements.length], [0, 2, 1]) // + zgłoszenie e9 (administrator je widzi)
+assert.deepEqual(d.events.map(e => e.status).sort(), ['pending', 'published'])
 console.log('supa.js: wszystkie testy OK')
