@@ -42,11 +42,12 @@ const days = computed(() => {
 })
 const dayItems = computed(() => items.value.filter(it => it.date === day.value))
 
-// Wybrane: nabożeństwo (podgląd) albo wydarzenie (edycja na kopii roboczej).
+// Wybrane: nabożeństwo albo wydarzenie — zawsze najpierw podgląd; wydarzenie edytuje się po „Edytuj” (na kopii roboczej).
 const picked = ref(null) // { kind, id }
 const draft = ref(null)
 let saved = ''
 const isNew = ref(false)
+const editing = ref(false)
 const message = ref('')
 const notifyIds = ref([]) // odbiorcy powiadomienia po zapisaniu
 const busy = ref(false)
@@ -64,12 +65,18 @@ function pick(it) {
     draft.value.program = (draft.value.program || []).map(p => ({ key: uid(), person: '', note: '', ...p }))
     saved = JSON.stringify(draft.value); isNew.value = false
   } else draft.value = null
+  editing.value = false
+}
+// Z edycji z powrotem do podglądu (niezapisane zmiany przepadają).
+function cancelEdit() {
+  if (!leaveOk()) return
+  draft.value = JSON.parse(saved); editing.value = false; message.value = ''
 }
 function newEvent() {
   if (!leaveOk()) return
   const t = eventTypes.value[0] || typeOf('inne')
   draft.value = { id: uid(), type: t.id, title: t.name, date: day.value || today(), time: t.time || '', place: t.place || '', description: '', program: programFrom(t, uid), createdBy: me() }
-  saved = ''; isNew.value = true; picked.value = { kind: 'event', id: draft.value.id }; message.value = ''
+  saved = ''; isNew.value = true; editing.value = true; picked.value = { kind: 'event', id: draft.value.id }; message.value = ''
 }
 function newService() {
   if (!leaveOk()) return
@@ -185,6 +192,19 @@ onMounted(() => {
           <button v-if="canUse('planner')" class="primary" @click="openInPlanner"><Icon name="pencil" />Otwórz w Organizacji nabożeństw</button>
         </div>
 
+        <div v-else-if="draft && !(editing && canEdit)" class="cal-detail">
+          <h2 class="with-link"><span>{{ draft.title || typeOf(draft.type).name }}</span><button class="small" title="Kopiuj link — po zalogowaniu otworzy to wydarzenie" @click="share('wydarzenie', draft.id)"><Icon name="link" />{{ copied === draft.id ? 'Skopiowano' : 'Kopiuj link' }}</button></h2>
+          <span class="ev-tag" :style="{ '--c': typeOf(draft.type).color }">{{ typeOf(draft.type).name }}</span>
+          <p class="big">{{ pretty(draft.date) }}<template v-if="draft.time">, {{ draft.time }}</template><template v-if="draft.place"> · {{ draft.place }}</template></p>
+          <p v-if="draft.description" class="ev-desc">{{ draft.description }}</p>
+          <template v-if="draft.program?.length">
+            <h2 class="sub">Program</h2>
+            <ol class="tl"><li v-for="p in [...draft.program].sort((a, b) => a.offset - b.offset)" :key="p.key">{{ programLine({ time: draft.time || '00:00' }, p) }}<template v-if="p.person"> ({{ p.person }})</template></li></ol>
+          </template>
+          <p v-if="message" class="url">{{ message }}</p>
+          <button v-if="canEdit" class="primary" @click="editing = true"><Icon name="pencil" />Edytuj wydarzenie</button>
+        </div>
+
         <template v-else-if="draft">
           <h2 class="with-link">{{ isNew ? 'Nowe wydarzenie' : 'Wydarzenie' }}<button v-if="!isNew" class="small" title="Kopiuj link — po zalogowaniu otworzy to wydarzenie" @click="share('wydarzenie', draft.id)"><Icon name="link" />{{ copied === draft.id ? 'Skopiowano' : 'Kopiuj link' }}</button></h2>
           <p v-if="!canEdit" class="note">Tylko podgląd — wydarzenia zmieniają osoby z prawem edycji.</p>
@@ -206,6 +226,7 @@ onMounted(() => {
           <p v-if="message" class="url">{{ message }}</p>
           <div v-if="canEdit" class="btnrow end">
             <button v-if="!isNew" :disabled="busy" @click="remove"><Icon name="trash" />Usuń</button>
+            <button v-if="!isNew" :disabled="busy" @click="cancelEdit"><Icon name="left" />Podgląd</button>
             <span class="spacer"></span>
             <button class="primary" :disabled="busy || (!dirty && !notifyIds.length) || !draft.title.trim() || !draft.date" @click="save"><Icon name="check" />{{ busy ? 'Zapisuję…' : dirty ? 'Zapisz' : notifyIds.length ? 'Wyślij powiadomienie' : 'Zapisane' }}</button>
           </div>
@@ -240,6 +261,9 @@ onMounted(() => {
 .cm-item small { color: var(--muted); font-size: 12px; }
 .cal-side { overflow-y: auto; }
 .cal-detail .big { font-size: 16px; }
+.ev-tag { align-self: flex-start; display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
+.ev-desc { white-space: pre-wrap; }
+.cal-detail .with-link > span { font-size: 22px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--text, #fff); }
 .tl { padding-left: 18px; margin: 6px 0; }
 .plainset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .checkrow { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
