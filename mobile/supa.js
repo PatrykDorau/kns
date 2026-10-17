@@ -72,6 +72,9 @@ export function createSupa(config, client = window.supabase.createClient(config.
     enabled: true,
     async call(action, data = {}) {
       if (action === 'public') return check(await sb.rpc('public_preview'))
+      // „Posłuchaj”: linki YouTube i Spotify (czyta każdy, także gość; zmienia administrator).
+      if (action === 'listen') return (check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {}
+      if (action === 'setListen') return check(await sb.rpc('set_site_setting', { k: 'posluchaj', v: { youtube: data.youtube || '', youtubeMore: data.youtubeMore || '', spotify: data.spotify || '' } }))
       if (!session) throw Object.assign(new Error('Brak logowania.'), { auth: true })
       if (action === 'me') {
         const [rows, ranks] = await Promise.all([sb.from('people').select('*').eq('id', session.user.id), sb.from('ranks').select('*').order('sort')].map(q => q.then(check)))

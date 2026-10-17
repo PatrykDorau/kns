@@ -59,6 +59,23 @@ export function videoInfo(url) {
   return null
 }
 
+// „Posłuchaj”: link YouTube (film, playlista albo identyfikator kanału UC… — wtedy najnowsze filmy kanału)
+// i Spotify (podcast, odcinek, playlista) → adres odtwarzacza w ramce.
+export function youtubeEmbed(url) {
+  const u = String(url || '').trim()
+  if (!u) return null
+  let m = u.match(/[?&]list=([\w-]+)/)
+  if (m) return 'https://www.youtube-nocookie.com/embed/videoseries?list=' + m[1]
+  m = u.match(/(?:^|channel\/)(UC[\w-]{22})(?:$|[/?])/)
+  if (m) return 'https://www.youtube-nocookie.com/embed/videoseries?list=UU' + m[1].slice(2)
+  const v = videoInfo(u)
+  return v?.kind === 'youtube' ? v.embed : null
+}
+export function spotifyEmbed(url) {
+  const m = String(url || '').match(/open\.spotify\.com\/(?:intl-\w+\/)?(show|episode|playlist|album|artist)\/(\w+)/)
+  return m ? 'https://open.spotify.com/embed/' + m[1] + '/' + m[2] + '?utm_source=generator&theme=0' : null
+}
+
 // Godziny: '12:12' + 50 min → '13:02'; różnica w minutach w drugą stronę.
 const minutes = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0) }
 export function addMinutes(time, offset) {
