@@ -39,6 +39,7 @@ begin
                   from ministry_members x join people p on p.id = x.person where x.ministry_id = m.id and x.status = 'active'), '[]'::jsonb),
       'mine', (select x.status from ministry_members x where x.ministry_id = m.id and x.person = auth.uid()),
       'lead', is_ministry_leader(m.id),
+      'leader', auth.uid() = any (m.leader_ids),           -- jestem liderem tej służby
       'pending', case when is_ministry_leader(m.id) then coalesce((select jsonb_agg(jsonb_build_object('id', p.id,
                     'name', coalesce(nullif(p.name, ''), split_part(p.email, '@', 1)), 'grupa', p.grupa) order by x.created)
                   from ministry_members x join people p on p.id = x.person where x.ministry_id = m.id and x.status = 'pending'), '[]'::jsonb)

@@ -23,9 +23,10 @@ ok(await A.rpc('ministry_save', { mid: 'powitanie', new_name: 'Powitanie', new_d
 err(await M.rpc('ministry_save', { mid: 'x', new_name: 'X', new_description: '', new_seeking: true, new_leaders: [] }), /administrator/)
 // lider zmienia opis i „szukamy”, ale nie nazwę ani liderów
 ok(await L.rpc('ministry_save', { mid: 'uwielbienie', new_name: 'Zmieniona', new_description: 'Gitara i wokal', new_seeking: true, new_leaders: [] }))
+assert.equal(ok(await L.rpc('ministry_board'))[0].leader, true) // lider widzi swoją służbę jako swoją
 let b = ok(await M.rpc('ministry_board'))
 assert.deepEqual(b.map(x => x.name), ['Zespół uwielbienia', 'Powitanie']) // szukające najpierw
-assert.equal(b[0].description, 'Gitara i wokal'); assert.equal(b[0].leaders[0].name, 'Lena Lider'); assert.equal(b[0].lead, false)
+assert.equal(b[0].description, 'Gitara i wokal'); assert.equal(b[0].leaders[0].name, 'Lena Lider'); assert.equal(b[0].lead, false); assert.equal(b[0].leader, false)
 
 // zgłoszenie członka: czeka; widzi je lider (i administrator), nie inni członkowie
 ok(await M.rpc('ministry_join', { mid: 'uwielbienie' }))

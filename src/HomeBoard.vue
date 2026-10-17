@@ -10,7 +10,11 @@ import { videoInfo } from '../mobile/church.js'
 const active = a => a.audience !== 'council' && (!a.until || a.until >= today())
 const newest = (a, b) => (b.date || 0) - (a.date || 0)
 const notices = computed(() => churchAnnouncements.value.filter(a => a.important && active(a)).sort(newest))
-const news = computed(() => churchAnnouncements.value.filter(a => !a.important && active(a)).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || newest(a, b)).slice(0, 8))
+const pinnedFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || newest(a, b)
+const news = computed(() => churchAnnouncements.value.filter(a => !a.important && active(a)).sort(pinnedFirst).slice(0, 8))
+// „Wszystkie”: komunikaty rady i ogłoszenia razem (jak na stronie).
+const allAnns = computed(() => churchAnnouncements.value.filter(active).sort(pinnedFirst))
+const listOpen = ref(false)
 
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const asDate = date => new Date(date + 'T12:00')
@@ -67,7 +71,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
 
   <div class="kh-panels">
     <section class="kh-panel">
-      <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span></div>
+      <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span><span class="kh-spacer"></span><button v-if="allAnns.length" class="kh-link" @click="listOpen = true">Wszystkie</button></div>
       <div v-if="news.length" class="kh-anns">
         <article v-for="a in news" :key="a.id" class="kh-ann kh-clickable" @click="shown = a">
           <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
@@ -91,6 +95,21 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
         </div>
       </div>
     </section>
+  </div>
+
+  <div v-if="listOpen && !shown" class="kh-modal" role="dialog" aria-modal="true" @click.self="listOpen = false" @keydown.esc="listOpen = false">
+    <div class="kh-modal-box">
+      <button class="kh-ib kh-close" title="Zamknij" aria-label="Zamknij" @click="listOpen = false"><Icon name="x" /></button>
+      <h2>Wszystkie ogłoszenia</h2>
+      <div class="kh-anns">
+        <article v-for="a in allAnns" :key="a.id" class="kh-ann kh-clickable" @click="shown = a">
+          <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
+          <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
+          <span class="kh-ann-text"><b><Icon v-if="a.pinned" name="pin" class="kh-pin" />{{ a.title }}<em v-if="a.important" class="kh-film">Rada zboru</em><em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
+          <small>{{ shortDate(a.date) }}</small>
+        </article>
+      </div>
+    </div>
   </div>
 
   <div v-if="shown" class="kh-modal" role="dialog" aria-modal="true" @click.self="shown = null" @keydown.esc="shown = null">

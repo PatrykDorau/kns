@@ -438,6 +438,8 @@
   .thoughts-ed .th-n { width: 22px; flex: none; text-align: center; color: var(--muted); font-size: 13px; }
   .thoughts-ed .pg-addsong { align-self: flex-start; }
   .thoughts-ed .note { margin: 0; }
+  .mn-mine-list { margin-bottom: 8px; }
+  .mn-mine-list .note { margin: 0; }
   .pg-extra { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .pg-extra label { margin-top: 8px; }
   .pg-extra .song { margin-bottom: 6px; background: var(--panel2); }
@@ -549,6 +551,7 @@
     #app.tabbed { padding-bottom: 32px; }
     .tabbar { display: none !important; }
     .wide-only { display: inline-flex !important; }
+    .narrow-only { display: none !important; }
     #app > .getapp { display: none !important; }
     #app.home-wide > header, #app.home-wide > .getapp, #app.home-wide > .desktop-mode, #app.home-wide .phone-home { display: none !important; }
     #app.home-wide .kh-web { display: flex !important; padding-top: 16px; }
@@ -699,7 +702,7 @@
     <button v-else-if="songView || peopleView" class="ghost" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
       <button v-if="ready && (calView || moreView)" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
-      <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
+      <button v-if="ready" class="ghost" :class="{ 'narrow-only': !peopleView }" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
   </header>
 
@@ -1273,8 +1276,10 @@
     <datalist id="pf-groups"><option v-for="g in groupNames" :key="g" :value="g"></option></datalist>
     <p class="note" style="margin-top:6px">Wybierz z listy albo wpisz nazwę. Dzięki grupce lider może wysłać powiadomienie całej grupce.</p>
     <label>Moje służby</label>
-    <div v-for="m in serve.list.filter(m => m.mine)" :key="m.id" class="mn-mine"><b>{{ m.name }}</b><span :class="{ ok: m.mine === 'active' }">{{ m.mine === 'active' ? 'służysz' : 'czeka na akceptację lidera' }}</span></div>
-    <p v-if="!serve.busy && !serve.list.some(m => m.mine)" class="note" style="margin:0 0 8px">Nie należysz jeszcze do żadnej służby.</p>
+    <div class="mn-mine-list">
+      <div v-for="m in serve.list.filter(m => m.mine || m.leader)" :key="m.id" class="mn-mine"><b>{{ m.name }}</b><span :class="{ ok: m.leader || m.mine === 'active' }">{{ m.leader ? 'jesteś liderem' : m.mine === 'active' ? 'służysz' : 'czeka na akceptację lidera' }}</span></div>
+      <p v-if="!serve.busy && !serve.list.some(m => m.mine || m.leader)" class="note">Nie należysz jeszcze do żadnej służby.</p>
+    </div>
     <button class="songsbtn" @click="openServe"><svg class="i"><use href="#users"/></svg>Zgłoś się do służby<svg class="i chev"><use href="#chev"/></svg></button>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div class="bar"><button class="primary" :disabled="busy || !profile.name.trim() || !profileDirty" @click="saveProfile"><svg v-if="!profileDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : profileDirty ? 'Zapisz' : 'Zapisane' }}</button></div>
@@ -1842,7 +1847,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.53 · 17.10.2026'
+const VERSION = '2.54 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
