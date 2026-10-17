@@ -26,9 +26,7 @@
   /* scena na końcu strony */
   html { background: var(--bg); } body { background-image: var(--kh-scene), radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%), radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%); background-size: max(100%, 760px) auto, auto, auto; background-position: center bottom, 0 0, 0 0; background-repeat: no-repeat; background-attachment: fixed, scroll, scroll; min-height: 100vh; }
   #app { position: relative; min-height: calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding-bottom: 36px; }
-  #app > .version { position: absolute; left: 0; right: 0; bottom: 6px; margin: 0; }
-  #app.tabbed > .version { bottom: 82px; }
-  @media (min-width: 1024px) { body { background-size: max(100%, 1200px) auto, auto, auto; } #app.tabbed > .version { bottom: 6px; } }
+  @media (min-width: 1024px) { body { background-size: max(100%, 1200px) auto, auto, auto; } }
   #app { max-width: 640px; margin: 0 auto; }
   svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   button, input, textarea { font: inherit; color: inherit; }
@@ -254,7 +252,7 @@
   button.filter.on { color: var(--text); background: var(--panel2); border-color: var(--muted); }
   .cal-actions { display: flex; gap: 10px; margin-top: 14px; }
   .cal-actions .primary { flex: 1; }
-  .ev { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c, var(--accent)); }
+  .ev { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border-radius: 0 14px 14px 0; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c, var(--accent)); }
   .ev .when { flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
   .ev .when b { font-size: 20px; }
   .ev .when small { color: var(--muted); font-size: 11px; text-transform: uppercase; }
@@ -417,6 +415,26 @@
   @media (min-width: 720px) { .np-overlay { align-items: center; padding: 24px; } .np-panel { width: min(560px, 100%); max-height: 80vh; border-radius: 22px; padding-bottom: 16px; } }
   .share-btn span { font-size: 14px; }
   .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); z-index: 80; transform: translateX(-50%); padding: 10px 16px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); font-size: 14px; white-space: nowrap; }
+  .signup-set { margin: 6px 0 4px; padding: 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); }
+  .signup-set label:first-child { margin-top: 0; }
+  .signup-card { margin-top: 16px; padding: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+  .su-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .su-head b { font-size: 17px; }
+  .su-count { color: var(--muted); font-size: 14px; }
+  .su-bar { height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; }
+  .su-bar span { display: block; height: 100%; background: var(--accent); }
+  .su-info { margin: 0; }
+  .su-mine { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--panel2); font-size: 14px; }
+  .su-mine.confirmed { color: var(--ok); }
+  .su-mine.pending, .su-mine.reserve { color: var(--accent); }
+  .su-form { display: flex; gap: 16px; }
+  .su-form label { margin: 0 0 4px; }
+  .stepper { display: inline-flex; align-items: center; gap: 4px; }
+  .stepper button { width: 38px; height: 38px; padding: 0; justify-content: center; font-size: 20px; }
+  .stepper b { min-width: 28px; text-align: center; font-size: 17px; }
+  .su-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .su-list { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .su-list > small { margin-top: 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
   .mn-sec { margin: 18px 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .mn-team { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .mn-team > small { display: block; margin-bottom: 6px; color: var(--muted); }
@@ -501,6 +519,8 @@
   .public { margin-top: 8px; text-align: left; }
   .newsletter { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
   .newsletter .pc-text { flex: 1; }
+  .mail-test { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+  .mail-test small { color: var(--muted); font-size: 13px; }
   .switch { position: relative; flex: none; width: 50px; height: 30px; min-height: 0; padding: 0; border-radius: 999px; border: 0; background: var(--panel2); box-shadow: inset 0 0 0 1px var(--line); }
   .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
   .switch.on { background: var(--accent); box-shadow: none; }
@@ -1047,6 +1067,41 @@
         <h3 class="view-h">Protokoły</h3>
         <button v-for="p in eventProtocols" :key="p.id" class="songsbtn" @click="openProto(p)"><svg class="i"><use href="#list"/></svg>{{ p.title }}<svg class="i chev"><use href="#chev"/></svg></button>
       </template>
+      <section v-if="signup.board" class="signup-card">
+        <div class="su-head">
+          <b>Zapisy</b>
+          <span class="su-count">{{ signup.board.taken }}<template v-if="signup.board.max"> / {{ signup.board.max }}</template> {{ signup.board.max ? 'miejsc zajętych' : 'zapisanych' }}</span>
+        </div>
+        <div v-if="signup.board.max" class="su-bar"><span :style="{ width: Math.min(100, signup.board.taken / signup.board.max * 100) + '%' }"></span></div>
+        <p class="note su-info"><template v-if="signup.board.reserve">Lista rezerwowa: {{ signup.board.reserve }} · </template><template v-if="signup.board.manage && signup.board.pending">Do zatwierdzenia: {{ signup.board.pending }} · </template>{{ signup.board.open ? 'zapisy do ' + pretty(signup.board.until) : 'zapisy zamknięte' }}</p>
+        <div v-if="signup.board.mine" class="su-mine" :class="signup.board.mine.status">
+          <svg class="i"><use :href="signup.board.mine.status === 'confirmed' ? '#check' : '#bell'"/></svg>
+          <span>{{ SIGNUP_STATUS[signup.board.mine.status] }} · {{ seatsText(signup.board.mine) }}</span>
+        </div>
+        <template v-if="signup.board.open">
+          <div class="su-form">
+            <div><label>Dorośli</label><div class="stepper"><button type="button" aria-label="Mniej dorosłych" @click="signup.adults = Math.max(0, signup.adults - 1)">−</button><b>{{ signup.adults }}</b><button type="button" aria-label="Więcej dorosłych" @click="signup.adults++">+</button></div></div>
+            <div v-if="signup.board.kids"><label>Dzieci</label><div class="stepper"><button type="button" aria-label="Mniej dzieci" @click="signup.children = Math.max(0, signup.children - 1)">−</button><b>{{ signup.children }}</b><button type="button" aria-label="Więcej dzieci" @click="signup.children++">+</button></div></div>
+          </div>
+          <input v-model="signup.note" placeholder="Uwagi (np. wiek dzieci, dieta) — opcjonalnie" autocomplete="off">
+          <div class="su-actions">
+            <button class="primary" :disabled="busy || signup.adults + signup.children < 1" @click="signupJoin">{{ signup.board.mine ? 'Zmień zapis' : signup.board.max && signup.board.taken + signup.adults + signup.children > signup.board.max && !signup.board.approval ? 'Zapisz na listę rezerwową' : 'Zapisz się' }}</button>
+            <button v-if="signup.board.mine" :disabled="busy" @click="signupLeave">Wypisz się</button>
+          </div>
+        </template>
+        <!-- twórca wydarzenia / prawo edycji: lista zapisanych -->
+        <div v-if="signup.board.manage && signup.board.list.length" class="su-list">
+          <template v-for="g in signupGroups" :key="g.id">
+            <small>{{ g.title }} ({{ g.list.reduce((n, p) => n + p.adults + p.children, 0) }})</small>
+            <div v-for="p in g.list" :key="p.id" class="mn-person">
+              <span><b>{{ p.name }}</b><small>{{ seatsText(p) }}<template v-if="p.grupa"> · {{ p.grupa }}</template><template v-if="p.note"> · {{ p.note }}</template></small></span>
+              <button v-if="p.status !== 'confirmed'" class="primary" :disabled="busy" @click="signupDecide(p, 'confirm')">Potwierdź</button>
+              <button v-if="p.status === 'pending'" :disabled="busy" @click="signupDecide(p, 'reserve')">Rezerwa</button>
+              <button class="icon" :disabled="busy" :aria-label="'Usuń ' + p.name + ' z zapisów'" title="Usuń z zapisów" @click="signupDecide(p, 'remove')"><svg class="i"><use href="#x"/></svg></button>
+            </div>
+          </template>
+        </div>
+      </section>
       <div v-if="canReview && currentEvent.status === 'pending'" class="approve-row">
         <button :disabled="busy" @click="rejectEvent"><svg class="i"><use href="#x"/></svg>Odrzuć</button>
         <button class="primary" :disabled="busy" @click="approveEvent"><svg class="i"><use href="#check"/></svg>Zatwierdź i opublikuj</button>
@@ -1071,6 +1126,19 @@
       <label for="evDesc">Opis</label>
       <textarea id="evDesc" v-model="currentEvent.description" placeholder="Co, dla kogo, co przygotować…"></textarea>
       <label v-if="api.enabled" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
+      <!-- Zapisy: limit miejsc (dorośli + dzieci), dzieci, zatwierdzanie przez twórcę, termin; brak miejsc → lista rezerwowa -->
+      <template v-if="api.enabled">
+        <label class="check"><input type="checkbox" :checked="!!currentEvent.signup?.enabled" @change="toggleSignup($event.target.checked)">Zapisy na to wydarzenie</label>
+        <div v-if="currentEvent.signup?.enabled" class="signup-set">
+          <div class="row">
+            <div><label for="suMax">Limit miejsc</label><input id="suMax" v-model.number="currentEvent.signup.max" type="number" min="1" inputmode="numeric" placeholder="bez limitu"></div>
+            <div><label for="suUntil">Zapisy do</label><input id="suUntil" v-model="currentEvent.signup.until" type="date" :max="currentEvent.date"></div>
+          </div>
+          <label class="check"><input v-model="currentEvent.signup.kids" type="checkbox">Można zapisać dzieci (liczą się do limitu)</label>
+          <label class="check"><input v-model="currentEvent.signup.approval" type="checkbox">Zapisy zatwierdza twórca wydarzenia</label>
+          <p class="note" style="margin:4px 0 0">{{ currentEvent.signup.approval ? 'Każdy zapis czeka na Twoje potwierdzenie (dostaniesz powiadomienie). Gdy brak miejsc — potwierdzony trafia na listę rezerwową.' : 'Zapis od razu na listę; gdy brak miejsc — na listę rezerwową, a po zwolnieniu miejsca wchodzi sam.' }}<template v-if="!currentEvent.signup.until"> Bez daty — zapisy do dnia wydarzenia.</template></p>
+        </div>
+      </template>
     </fieldset>
     <label>Program</label>
     <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!eventEditable" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
@@ -1322,6 +1390,53 @@
       <p v-if="!serve.busy && !serve.list.some(m => m.mine || m.leader)" class="note">Nie należysz jeszcze do żadnej służby.</p>
     </div>
     <button class="songsbtn" @click="openServe"><svg class="i"><use href="#users"/></svg>Zgłoś się do służby<svg class="i chev"><use href="#chev"/></svg></button>
+    <label>Powiadomienia i newsletter</label>
+    <div v-if="push.supported" class="push-card" :class="{ on: push.on }">
+      <div class="pc-head">
+        <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
+        <div class="pc-text">
+          <b>Powiadomienia na telefon {{ push.on ? '— włączone' : '' }}</b>
+          <p v-if="push.on">Na ten telefon przychodzi wszystko z dzwonka: wiadomości od liderów, zgłoszenia, decyzje w służbach<template v-if="canEdit">, a także przypomnienie, gdy na niedzielę czegoś brakuje</template>.</p>
+          <p v-else-if="push.otherBrowser">Ta przeglądarka ({{ push.otherBrowser }}) nie obsługuje powiadomień. Otwórz stronę w <b>Chrome</b> i zainstaluj aplikację stamtąd (menu ⋮ → „Zainstaluj aplikację”).</p>
+          <p v-else-if="push.needsInstall">Na iPhonie najpierw zainstaluj aplikację (przycisk „Pobierz” wyżej) i otwórz ją z ekranu głównego.</p>
+          <p v-else-if="push.denied">Powiadomienia są zablokowane w ustawieniach telefonu dla tej strony — odblokuj je tam i spróbuj ponownie.</p>
+          <p v-else>Powiadomienia w aplikacji (dzwonek) są zawsze włączone. Włącz, żeby przychodziły też na ten telefon.</p>
+        </div>
+      </div>
+      <div v-if="push.on && canEdit" class="pc-when">
+        <span class="pc-label">Przypomnienie o brakach — kiedy</span>
+        <div class="pc-row">
+          <select v-model.number="push.day" aria-label="Dzień przypomnienia" :disabled="push.busy" @change="saveSchedule"><option v-for="(name, i) in DAYS" :key="i" :value="i">{{ name }}</option></select>
+          <span>o</span>
+          <select v-model.number="push.hour" aria-label="Godzina przypomnienia" :disabled="push.busy" @change="saveSchedule"><option v-for="h in HOURS" :key="h" :value="h">{{ h }}:00</option></select>
+        </div>
+        <small v-if="push.saved" class="pc-saved">Zapisano ✓</small>
+      </div>
+      <p v-if="push.error" class="pc-error">{{ push.error }}</p>
+      <p v-else-if="push.slow" class="pc-slow">{{ push.slow }}</p>
+      <div v-if="push.on" class="pc-actions two">
+        <button :disabled="push.busy" title="Wysyła powiadomienie na ten telefon, żeby zobaczyć, jak wygląda" @click="testPush">{{ push.busy ? 'Wysyłam…' : 'Wyślij próbne powiadomienie' }}</button>
+        <button :disabled="push.busy" @click="disablePush">Wyłącz</button>
+      </div>
+      <div v-else-if="push.otherBrowser" class="pc-actions"><a class="button primary" :href="chromeLink">Otwórz w Chrome</a></div>
+      <div v-else-if="!push.needsInstall" class="pc-actions"><button class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz powiadomienia' }}</button></div>
+    </div>
+    <div v-if="!push.supported" class="push-card">
+      <div class="pc-head">
+        <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
+        <div class="pc-text"><b>Powiadomienia na telefon</b><p>Włącza się je na telefonie: otwórz tę stronę w telefonie (najlepiej zainstaluj aplikację), wejdź w Mój profil i kliknij „Włącz powiadomienia” — tam jest też „Wyślij próbne powiadomienie”. W aplikacji (dzwonek) powiadomienia są zawsze włączone.</p></div>
+      </div>
+    </div>
+    <div v-if="api.enabled && me?.status === 'active'" class="newsletter">
+      <span class="pc-icon"><svg class="i"><use href="#mail"/></svg></span>
+      <div class="pc-text"><b>Newsletter e-mail</b><p>Co czwartek: kalendarz na dwa tygodnie i ogłoszenia — na {{ me.email }}.</p></div>
+      <button class="switch" :class="{ on: me.newsletter }" role="switch" :aria-checked="!!me.newsletter" aria-label="Newsletter e-mail" :disabled="newsBusy" @click="toggleNewsletter"></button>
+    </div>
+    <div v-if="api.enabled && me?.status === 'active'" class="pc-actions mail-test">
+      <button :disabled="mailTest.busy" title="Wysyła newsletter na Twój adres, żeby zobaczyć, jak wygląda" @click="testNewsletter">{{ mailTest.busy ? 'Wysyłam…' : 'Wyślij próbny e-mail' }}</button>
+      <small v-if="mailTest.text" :class="{ 'pc-error': mailTest.bad }">{{ mailTest.text }}</small>
+    </div>
+
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div class="bar"><button class="primary" :disabled="busy || !profile.name.trim() || !profileDirty" @click="saveProfile"><svg v-if="!profileDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : profileDirty ? 'Zapisz' : 'Zapisane' }}</button></div>
   </template>
@@ -1335,7 +1450,7 @@
       <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     </nav>
-    <div v-if="push.supported" class="push-card" :class="{ on: push.on }">
+    <div v-if="push.supported && !api.enabled" class="push-card" :class="{ on: push.on }">
       <div class="pc-head">
         <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
         <div class="pc-text">
@@ -1359,18 +1474,14 @@
       <p v-if="push.error" class="pc-error">{{ push.error }}</p>
       <p v-else-if="push.slow" class="pc-slow">{{ push.slow }}</p>
       <div v-if="push.on" class="pc-actions two">
-        <button :disabled="push.busy" title="Wysyła powiadomienie na ten telefon, żeby zobaczyć, jak wygląda" @click="testPush">{{ push.busy ? 'Wysyłam…' : 'Wyślij próbne' }}</button>
+        <button :disabled="push.busy" title="Wysyła powiadomienie na ten telefon, żeby zobaczyć, jak wygląda" @click="testPush">{{ push.busy ? 'Wysyłam…' : 'Wyślij próbne powiadomienie' }}</button>
         <button :disabled="push.busy" @click="disablePush">Wyłącz</button>
       </div>
       <div v-else-if="push.otherBrowser" class="pc-actions"><a class="button primary" :href="chromeLink">Otwórz w Chrome</a></div>
       <div v-else-if="!push.needsInstall" class="pc-actions"><button class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz powiadomienia' }}</button></div>
     </div>
-    <div v-if="api.enabled && me?.status === 'active'" class="newsletter">
-      <span class="pc-icon"><svg class="i"><use href="#mail"/></svg></span>
-      <div class="pc-text"><b>Newsletter e-mail</b><p>Co czwartek: kalendarz na dwa tygodnie i ogłoszenia — na {{ me.email }}.</p></div>
-      <button class="switch" :class="{ on: me.newsletter }" role="switch" :aria-checked="!!me.newsletter" aria-label="Newsletter e-mail" :disabled="newsBusy" @click="toggleNewsletter"></button>
-    </div>
     <button v-if="api.enabled && me" class="songsbtn" @click="openProfile"><svg class="i" :class="{ 'kh-warn': needsName }"><use :href="needsName ? '#warn' : '#user'"/></svg>Mój profil — {{ needsName ? 'uzupełnij imię i nazwisko' : me.name }}{{ me.grupa ? ' · ' + me.grupa : '' }}<svg class="i chev"><use href="#chev"/></svg></button>
+    <p class="version">wersja {{ version }}</p>
     <div class="account">
       <svg class="i"><use href="#user"/></svg><span>{{ me?.email || drive.account() || 'Zalogowano' }}<template v-if="myRanks"> · <span class="roles">{{ myRanks }}</span></template></span>
       <button v-if="!drive.demo" class="ghost" @click="logout"><svg class="i"><use href="#logout"/></svg>Wyloguj</button>
@@ -1823,7 +1934,7 @@
   </div>
 
 
-  <p class="version">wersja {{ version }}</p>
+
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
   <nav v-if="showTabs" class="tabbar" aria-label="Części aplikacji">
@@ -1922,7 +2033,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.57 · 17.10.2026'
+const VERSION = '2.59 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2508,12 +2619,47 @@ createApp({
     const eventEditable = computed(() => !!currentEvent.value && mayChange(currentEvent.value, eventSavedOnce.value))
     const eventDirty = computed(() => !!currentEvent.value && JSON.stringify(currentEvent.value) !== eventSaved)
     const eventEditing = ref(false) // podgląd albo edycja otwartego wydarzenia
+    /* ---------- zapisy na wydarzenia ---------- */
+    const SIGNUP_STATUS = { confirmed: 'Jesteś zapisany(a)', pending: 'Zapis czeka na potwierdzenie', reserve: 'Jesteś na liście rezerwowej' }
+    const signup = Vue.reactive({ board: null, adults: 1, children: 0, note: '' })
+    const seatsText = p => [p.adults ? p.adults + ' ' + (p.adults === 1 ? 'dorosły' : 'dorosłych') : '', p.children ? p.children + ' ' + (p.children === 1 ? 'dziecko' : 'dzieci') : ''].filter(Boolean).join(' + ')
+    const signupGroups = computed(() => [
+      { id: 'pending', title: 'Do zatwierdzenia', list: (signup.board?.list || []).filter(p => p.status === 'pending') },
+      { id: 'confirmed', title: 'Zapisani', list: (signup.board?.list || []).filter(p => p.status === 'confirmed') },
+      { id: 'reserve', title: 'Lista rezerwowa', list: (signup.board?.list || []).filter(p => p.status === 'reserve') },
+    ].filter(g => g.list.length))
+    async function loadSignup() {
+      const ev = currentEvent.value
+      signup.board = null
+      if (!api.enabled || !ev?.signup?.enabled || ev.status === 'pending' || !events.value.some(x => x.id === ev.id)) return
+      try {
+        const b = await api.call('signupBoard', { id: ev.id })
+        if (currentEvent.value?.id !== ev.id) return
+        signup.board = b
+        signup.adults = b?.mine?.adults ?? 1; signup.children = b?.mine?.children ?? 0; signup.note = b?.mine?.note || ''
+      } catch (e) { error.value = e.message }
+    }
+    function toggleSignup(on) {
+      currentEvent.value.signup = on ? { enabled: true, max: '', kids: false, approval: false, until: '', ...(currentEvent.value.signup || {}), ...{ enabled: true } } : { ...(currentEvent.value.signup || {}), enabled: false }
+    }
+    const SIGNUP_DONE = { confirmed: 'Zapisano — jesteś na liście.', pending: 'Zapis wysłany — czeka na potwierdzenie twórcy wydarzenia.', reserve: 'Brak miejsc — jesteś na liście rezerwowej. Damy znać, gdy zwolni się miejsce.' }
+    const signupJoin = () => guard(async () => {
+      const r = await api.call('signupJoin', { id: currentEvent.value.id, adults: signup.adults, children: signup.children, note: signup.note })
+      api.call('pushInbox').catch(() => {})
+      await loadSignup(); status.value = SIGNUP_DONE[r.status] || 'Zapisano.'
+    })
+    const signupLeave = () => { if (confirm('Wypisać się z tego wydarzenia?')) guard(async () => { await api.call('signupLeave', { id: currentEvent.value.id }); api.call('pushInbox').catch(() => {}); await loadSignup(); status.value = 'Wypisano.' }) }
+    function signupDecide(p, decision) {
+      if (decision === 'remove' && !confirm('Usunąć ' + p.name + ' z zapisów?')) return
+      guard(async () => { await api.call('signupDecide', { id: currentEvent.value.id, who: p.id, decision }); api.call('pushInbox').catch(() => {}); await loadSignup() })
+    }
     const eventSavedOnce = computed(() => !!currentEvent.value && [...events.value, ...pendingEvents.value].some(x => x.id === currentEvent.value.id))
     function openEvent(ev) {
       currentEvent.value = { type: 'inne', title: '', date: today(), time: '', place: '', description: '', program: [], ...JSON.parse(JSON.stringify(ev)) }
       if (['czlonkowskie', 'rada'].includes(currentEvent.value.type) && api.enabled) loadProtocols()
       eventSaved = JSON.stringify(currentEvent.value); eventBase = ev.updated || 0; eventType = currentEvent.value.type
       eventEditing.value = false
+      loadSignup()
       notify.ids = []
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
     }
@@ -2564,7 +2710,7 @@ createApp({
       }
       const wasNew = !eventSavedOnce.value
       place(events, pendingEvents, data)
-      if (submitted && wasNew && api.enabled) api.call('review', { title: data.title }).catch(() => {})
+      if (submitted && wasNew && api.enabled) api.call('pushInbox').catch(() => {})
       const sent = (submitted ? ' · czeka na zatwierdzenie' : approving ? ' · opublikowane' : '') + await sendNotify({ title: data.title || typeOf(data.type).name, body: [pretty(data.date) + (data.time ? ', ' + data.time : ''), data.place].filter(Boolean).join(' · '), url: './?wydarzenie=' + encodeURIComponent(data.id) })
       openEvent(data)
       status.value = 'Zapisano o ' + clockNow() + sent
@@ -2771,7 +2917,7 @@ createApp({
       const prev = announcements.value.find(x => x.id === data.id)
       for (const k of ['image', 'video']) if (prev?.[k] && prev[k] !== data[k] && /\/ogloszenia\//.test(prev[k])) drive.removeImage?.(prev[k])
       place(announcements, pendingAnns, data)
-      if (submitted && wasNew && api.enabled) api.call('review', { title: data.title }).catch(() => {})
+      if (submitted && wasNew && api.enabled) api.call('pushInbox').catch(() => {})
       const sent = (submitted ? ' · czeka na zatwierdzenie' : approving === true ? ' · opublikowane' : '') + await sendNotify({ title: (data.important ? 'Komunikat rady zboru: ' : 'Ogłoszenie: ') + data.title, body: String(data.text || '').slice(0, 160), url: './?ogloszenie=' + encodeURIComponent(data.id) })
       openAnn(data)
       status.value = 'Zapisano o ' + clockNow() + sent
@@ -2888,7 +3034,8 @@ createApp({
       annView.value = false; protoView.value = false; tplView.value = false
       serveView.value = true; scrollTo(0, 0); loadServe()
     }
-    const serveCall = (action, data) => guard(async () => { await api.call(action, data); await loadServe() })
+    // Po każdej zmianie w służbach: powiadomienia (dzwonek) od razu też na telefony odbiorców.
+    const serveCall = (action, data) => guard(async () => { await api.call(action, data); api.call('pushInbox').catch(() => {}); await loadServe() })
     // Sekcje: najpierw służby szukające chętnych, potem pozostałe.
     const serveSections = computed(() => [
       { id: 'seeking', title: 'Szukają chętnych', list: serve.list.filter(m => m.seeking) },
@@ -2906,9 +3053,9 @@ createApp({
       if (!m) return []
       return addPeople.value.filter(p => !m.people.some(x => x.id === p.id) && (!q || (p.name + ' ' + (p.grupa || '')).toLowerCase().includes(q)))
     })
-    const addPerson = p => guard(async () => { const id = addTo.value.id; await api.call('addToMinistry', { id, who: p.id }); await loadServe(); addTo.value = serve.list.find(x => x.id === id) || null })
+    const addPerson = p => guard(async () => { const id = addTo.value.id; await api.call('addToMinistry', { id, who: p.id }); api.call('pushInbox').catch(() => {}); await loadServe(); addTo.value = serve.list.find(x => x.id === id) || null })
     function removeFromMinistry(m, p) { if (confirm('Usunąć ' + p.name + ' ze służby „' + m.name + '”?')) serveCall('decideMinistry', { id: m.id, who: p.id, accept: false }) }
-    const joinMinistry = m => serveCall('joinMinistry', { id: m.id }).then(() => { if (m && serve.list.find(x => x.id === m.id)?.mine === 'pending') api.call('ministryPush', { id: m.id }).catch(() => {}) })
+    const joinMinistry = m => serveCall('joinMinistry', { id: m.id })
     function leaveMinistry(m) { if (confirm(m.mine === 'active' ? `Zrezygnować ze służby „${m.name}”?` : 'Wycofać zgłoszenie?')) serveCall('leaveMinistry', { id: m.id }) }
     const decideMinistry = (m, p, accept) => serveCall('decideMinistry', { id: m.id, who: p.id, accept })
     function editMinistry(m = null) {
@@ -2976,6 +3123,21 @@ createApp({
 
     /* ---------- newsletter ---------- */
     const newsBusy = ref(false)
+    // Próbny newsletter: prośba w bazie, wysyła skrypt Google (co minutę); sprawdzamy, kiedy wyszedł.
+    const mailTest = Vue.reactive({ busy: false, text: '', bad: false })
+    async function testNewsletter() {
+      mailTest.busy = true; mailTest.text = ''; mailTest.bad = false
+      try {
+        const { id } = await api.call('testNewsletter')
+        mailTest.text = 'Wysłano prośbę — e-mail przyjdzie na ' + me.value.email + ' w ciągu 1–2 minut.'
+        for (let i = 0; i < 18; i++) {
+          await new Promise(r => setTimeout(r, 10000))
+          const st = await api.call('mailStatus', { id }).catch(() => null)
+          if (st?.sent) { mailTest.text = 'E-mail wysłany na ' + me.value.email + ' — sprawdź skrzynkę (także Spam).'; return }
+        }
+        mailTest.text = 'E-mail jeszcze nie wyszedł — skrypt newslettera (Google) może nie być ustawiony. Daj znać administratorowi.'; mailTest.bad = true
+      } catch (e) { mailTest.text = e.message; mailTest.bad = true } finally { mailTest.busy = false }
+    }
     async function toggleNewsletter() {
       newsBusy.value = true; error.value = ''
       try { me.value = (await api.call('setNewsletter', { on: !me.value?.newsletter })).person } catch (e) { error.value = e.message } finally { newsBusy.value = false }
@@ -3282,7 +3444,7 @@ createApp({
       shareLink, shareTarget, toast, pendingLink, LINK_KIND, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
@@ -3292,7 +3454,7 @@ createApp({
       moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
-      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, testPush, saveSchedule, DAYS, HOURS,
+      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,

@@ -16,6 +16,15 @@ export function createSupa(config, client = window.supabase.createClient(config.
   let session = null
   const ready = sb.auth.getSession().then(({ data }) => { session = data?.session || null }).catch(() => {})
   sb.auth.onAuthStateChange((_event, s) => { session = s })
+  // Świeże powiadomienia w aplikacji, które ta osoba właśnie wywołała — serwer rozsyła je też na telefony.
+  const pushInbox = async () => {
+    try {
+      const res = await fetch((location.protocol.startsWith('http') ? '' : 'https://kns-nabo.netlify.app') + '/api/push', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inbox: true, token: session?.access_token || '' }),
+      })
+      return await res.json()
+    } catch { return {} }
+  }
   const files = config.noFiles ? null : createDrive({ ...config, apiUrl: '' }) // tylko załączniki
   const who = () => session?.user?.email || ''
 
@@ -82,13 +91,14 @@ export function createSupa(config, client = window.supabase.createClient(config.
       // Powiadomienie do wybranych: zawsze w aplikacji (baza), dodatkowo na telefony (jeśli ktoś włączył).
       if (action === 'notify') {
         const inApp = check(await sb.rpc('inbox_send', { targets: data.people, title: data.title || '', body: data.body || '', url: data.url || '' }))
-        const res = await fetch((location.protocol.startsWith('http') ? '' : 'https://kns-nabo.netlify.app') + '/api/push', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notify: true, token: session.access_token, people: data.people, title: data.title, body: data.body, url: data.url }),
-        })
-        const out = await res.json().catch(() => ({}))
-        return { ...(res.ok ? out : { sent: 0, pushError: out.error || 'telefony niedostępne' }), inApp }
+        const out = await pushInbox()
+        return { sent: out.sent || 0, inApp }
       }
+      // Świeże powiadomienia w aplikacji, które właśnie wywołałem — także na telefony odbiorców (jeśli włączyli).
+      if (action === 'pushInbox') return pushInbox()
+      // Próbny newsletter e-mail (wysyła skrypt Google w ciągu minuty) i jego stan.
+      if (action === 'testNewsletter') return { id: check(await sb.rpc('request_test_newsletter')) }
+      if (action === 'mailStatus') return (check(await sb.from('mail_requests').select('id,sent').eq('id', data.id)) || [])[0] || null
       // Powiadomienia w aplikacji (dzwonek): moje wpisy, oznaczanie jako przeczytane.
       if (action === 'inbox') return check(await sb.from('inbox').select('id,title,body,url,created,read').order('created', { ascending: false }).range(0, 49)) || []
       if (action === 'inboxRead') {
@@ -102,7 +112,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
         })
         return res.json().catch(() => ({}))
       }
-      // Nowe zgłoszenie: powiadomienie dla zatwierdzających (lider newslettera, rada, administrator).
+      // (starsze) Nowe zgłoszenie: powiadomienie dla zatwierdzających — teraz przez pushInbox.
       if (action === 'review') {
         const res = await fetch((location.protocol.startsWith('http') ? '' : 'https://kns-nabo.netlify.app') + '/api/push', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review: true, token: session.access_token, title: data.title }),
@@ -119,6 +129,11 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'decideMinistry') return check(await sb.rpc('ministry_decide', { mid: data.id, who: data.who, accept: !!data.accept }))
       if (action === 'saveMinistry') return check(await sb.rpc('ministry_save', { mid: data.id, new_name: data.name || '', new_description: data.description || '', new_seeking: !!data.seeking, new_leaders: data.leaders || [] }))
       if (action === 'deleteMinistry') return check(await sb.rpc('ministry_delete', { mid: data.id }))
+      // Zapisy na wydarzenia.
+      if (action === 'signupBoard') return check(await sb.rpc('signup_board', { eid: data.id }))
+      if (action === 'signupJoin') return { status: check(await sb.rpc('signup_join', { eid: data.id, new_adults: data.adults, new_children: data.children || 0, new_note: data.note || '' })) }
+      if (action === 'signupLeave') return check(await sb.rpc('signup_leave', { eid: data.id }))
+      if (action === 'signupDecide') return { status: check(await sb.rpc('signup_decide', { eid: data.id, who: data.who, decision: data.decision })) }
       if (action === 'addToMinistry') return check(await sb.rpc('ministry_add', { mid: data.id, who: data.who }))
       if (action === 'ministryPeople') return { people: check(await sb.rpc('ministry_people')) || [] }
       if (action === 'memberNames') return { people: check(await sb.rpc('member_names')) || [] }

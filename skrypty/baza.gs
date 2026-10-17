@@ -6,7 +6,8 @@
 // Co godzinę skrypt udostępnia też folder „Aplikacja KNS Nabo” (załączniki) osobom z prawem edycji według rang z bazy.
 //
 // Instalacja (raz): „+” → Skrypt → nazwa „baza” → wklej ten plik; Ustawienia projektu → Właściwości skryptu →
-// Dodaj: SUPABASE_SECRET = klucz secret; potem uruchom „ustawNewsletterBazy” (newsletter co czwartek o 18:00).
+// Dodaj: SUPABASE_SECRET = klucz secret; potem uruchom „ustawNewsletterBazy” (newsletter co czwartek o 18:00
+// i co minutę próbne e-maile, o które ktoś poprosił w aplikacji: Mój profil → „Wyślij próbny e-mail”).
 
 const BAZA = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', folderId: '1pI2FlyMq8XUQHbJlELd1OuxsCIz-RRnG', folder: 'Aplikacja KNS Nabo' }
 
@@ -67,12 +68,34 @@ function bazaUdostepnij() {
 
 /* ---------- newsletter z bazy ---------- */
 function ustawNewsletterBazy() {
-  ScriptApp.getProjectTriggers().filter(t => ['newsletter', 'newsletterBazy'].indexOf(t.getHandlerFunction()) >= 0).forEach(t => ScriptApp.deleteTrigger(t))
+  ScriptApp.getProjectTriggers().filter(t => ['newsletter', 'newsletterBazy', 'probneMaile'].indexOf(t.getHandlerFunction()) >= 0).forEach(t => ScriptApp.deleteTrigger(t))
   ScriptApp.newTrigger('newsletterBazy').timeBased().onWeekDay(ScriptApp.WeekDay.THURSDAY).atHour(18).inTimezone('Europe/Warsaw').create()
+  ScriptApp.newTrigger('probneMaile').timeBased().everyMinutes(1).create()
+}
+// Próbne newslettery z kolejki (mail_requests): ten sam e-mail co w czwartek, tylko do osoby, która poprosiła.
+function probneMaile() {
+  if (!bazaWlaczona()) return
+  const queue = baza('mail_requests?select=id,person&sent=is.null&kind=eq.newsletter_test&order=id&limit=20')
+  if (!queue.length) return
+  const ids = queue.map(r => r.person).join(',')
+  const people = baza('people?select=id,email&status=eq.active&id=in.(' + ids + ')')
+  const html = trescNewslettera() || '<p>W najbliższych dwóch tygodniach nie ma jeszcze wydarzeń ani ogłoszeń.</p>'
+  for (const r of queue) {
+    const p = people.filter(x => x.id === r.person)[0]
+    if (p) MailApp.sendEmail({ to: p.email, subject: '[Próba] Kościół Na Skale — najbliższe dwa tygodnie', htmlBody: html, name: 'Kościół Na Skale' })
+    baza('mail_requests?id=eq.' + r.id, 'patch', { sent: new Date().toISOString() })
+  }
 }
 function newsletterBazy() {
   const people = baza('people?select=email&status=eq.active&newsletter=is.true')
   if (!people.length) return
+  const html = trescNewslettera()
+  if (!html) return
+  for (const p of people) MailApp.sendEmail({ to: p.email, subject: 'Kościół Na Skale — najbliższe dwa tygodnie', htmlBody: html, name: 'Kościół Na Skale' })
+  Logger.log('Newsletter wysłany: ' + people.length)
+}
+// Treść newslettera: nabożeństwa i wydarzenia na dwa tygodnie, aktualne ogłoszenia.
+function trescNewslettera() {
   const tz = 'Europe/Warsaw'
   const from = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd')
   const until = Utilities.formatDate(new Date(Date.now() + 14 * 86400000), tz, 'yyyy-MM-dd')
@@ -83,10 +106,7 @@ function newsletterBazy() {
     .map(r => Object.assign({}, r.data, { important: r.important })).sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0))
   const tpl = baza('templates?select=types&id=eq.main')
   const types = (tpl[0] && tpl[0].types) || []
-  const html = htmlNewslettera(services, events, anns, types, tz)
-  if (!html) return
-  for (const p of people) MailApp.sendEmail({ to: p.email, subject: 'Kościół Na Skale — najbliższe dwa tygodnie', htmlBody: html, name: 'Kościół Na Skale' })
-  Logger.log('Newsletter wysłany: ' + people.length)
+  return htmlNewslettera(services, events, anns, types, tz)
 }
 function htmlNewslettera(services, events, anns, types, tz) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])

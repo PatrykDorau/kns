@@ -7,6 +7,8 @@
 //   POST /api/push { notify: true, token, people: [id osoby], title, body, url } → powiadomienie do wybranych osób
 //                    (twórca wydarzenia/ogłoszenia). Telefony odbiorców daje baza (notify_targets) tylko osobie
 //                    z prawem edycji — po jej tokenie logowania; serwer nie potrzebuje tajnego klucza bazy.
+//   POST /api/push { inbox: true, token } → świeże powiadomienia w aplikacji, które ta osoba właśnie wywołała
+//                    (wiadomość, zgłoszenie, decyzja lidera…), także na telefony odbiorców (inbox_push_batch).
 //   POST /api/push { ministry: true, token, id } → liderzy służby, do której ta osoba właśnie się zgłosiła
 //                    (ministry_targets). Wpis w powiadomieniach w aplikacji robi sama baza — telefon to dodatek.
 // Zmienne środowiskowe w Netlify (Project configuration → Environment variables):
@@ -92,6 +94,7 @@ export default async function handler(req) {
   }
   if (data.notify === true) return notify(data, keys)
   if (data.review === true) return notify({ ...data, review: true }, keys)
+  if (data.inbox === true) return inboxPush(data, keys)
   if (data.ministry === true) return notify({ ...data, ministry: true, review: false }, keys)
   if (!process.env.PUSH_SECRET || !same(data.secret, process.env.PUSH_SECRET)) return json({ error: 'Brak dostępu.' }, 403)
   const payload = { title: String(data.title || 'Nabożeństwa'), body: String(data.body || ''), url: String(data.url || '/') }
@@ -105,6 +108,29 @@ export default async function handler(req) {
     } catch { /* jeden telefon nie psuje reszty */ }
   }))
   return json({ sent, gone })
+}
+
+// Powiadomienia w aplikacji → telefony (każdy wpis ze swoją treścią i linkiem).
+async function inboxPush(data, keys) {
+  const token = String(data.token || '')
+  if (!token) return json({ error: 'Brak logowania.' }, 400)
+  const rpc = (name, body) => fetch(SUPABASE.url + '/rest/v1/rpc/' + name, {
+    method: 'POST', headers: { apikey: SUPABASE.key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  const res = await rpc('inbox_push_batch', {}).catch(() => null)
+  if (!res?.ok) return json({ error: (await res?.json().catch(() => null))?.message || 'Brak dostępu.' }, 403)
+  const rows = await res.json()
+  let sent = 0
+  const gone = []
+  await Promise.all(rows.map(async r => {
+    try {
+      const status = await sendPush(r.subscription, { title: String(r.title || 'KNS Nabo').slice(0, 120), body: String(r.body || '').slice(0, 300), url: String(r.url || './').slice(0, 300) }, keys)
+      if (status === 404 || status === 410) gone.push(r.id)
+      else if (status < 300) sent++
+    } catch { /* jeden telefon nie psuje reszty */ }
+  }))
+  if (gone.length) await rpc('forget_push_devices', { ids: gone }).catch(() => {})
+  return json({ sent })
 }
 
 // Powiadomienie do wybranych osób — wywołuje aplikacja osoby z prawem edycji (jej token logowania).

@@ -254,7 +254,7 @@ onMounted(() => {
 .cm-more { font-size: 11px; color: var(--muted); }
 .cm-dayh { margin: 10px 0 0; font-size: 14px; }
 .cm-dayh::first-letter, .cal-detail .big::first-letter { text-transform: uppercase; }
-.cm-item { justify-content: flex-start; gap: 12px; text-align: left; border-left: 4px solid var(--c); background: var(--panel2); }
+.cm-item { justify-content: flex-start; gap: 12px; text-align: left; border-left: 4px solid var(--c); border-radius: 0 10px 10px 0; background: var(--panel2); }
 .cm-item.sel { outline: 2px solid var(--accent); }
 .cm-item b { width: 48px; flex: none; }
 .cm-item span { display: flex; flex-direction: column; }

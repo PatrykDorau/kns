@@ -62,4 +62,25 @@ assert.match((await box(N)).at(-1).body, /usunął/)
 // usuwanie swoich wpisów
 ok(await M.from('inbox').delete().eq('id', mine.id))
 assert.equal((await box(M)).length, before - 1)
+// telefony do świeżych wpisów: tylko wpisy nadawcy, tylko odbiorcy z telefonem, raz
+for (const C of [A, L, M, N]) ok(await C.rpc('inbox_push_batch')) // wcześniejsze wpisy
+await db.query(`insert into push_devices (id, person, data) values ('tel-m', $1, '{"subscription":{"endpoint":"https://push.example/m"}}'), ('tel-x', $2, '{"schedule":{}}')`, [m.id, l.id])
+ok(await A.rpc('inbox_send', { targets: [m.id, l.id], title: 'Próba push', body: 'treść', url: './?wydarzenie=e9' }))
+assert.deepEqual(ok(await L.rpc('inbox_push_batch')), []) // cudze wpisy — nic
+let push = ok(await A.rpc('inbox_push_batch'))
+assert.ok(push.some(x => x.id === 'tel-m' && x.title === 'Próba push' && x.url === './?wydarzenie=e9'))
+assert.ok(!push.some(x => x.id === 'tel-x')) // telefon bez powiadomień
+assert.deepEqual(ok(await A.rpc('inbox_push_batch')), []) // drugi raz — nic
+// zgłoszenie do służby: nadawcą jest zgłaszający
+ok(await A.rpc('ministry_save', { mid: 'mlodzi', new_name: 'Młodzi', new_description: '', new_seeking: true, new_leaders: [] }))
+await db.query(`insert into push_devices (id, person, data) values ('tel-a', $1, '{"subscription":{"endpoint":"https://push.example/a"}}')`, [a.id])
+ok(await M.rpc('ministry_join', { mid: 'mlodzi' }))
+assert.deepEqual(ok(await M.rpc('inbox_push_batch')).map(x => x.title), ['Zgłoszenie do służby: Młodzi'])
+
+// próbny newsletter: kolejka, najwyżej raz na 10 minut; każdy widzi tylko swoje prośby
+assert.ok(ok(await M.rpc('request_test_newsletter')) > 0)
+err(await M.rpc('request_test_newsletter'), /kilka minut/)
+assert.equal((ok(await M.from('mail_requests').select('*'))).length, 1)
+assert.equal((ok(await L.from('mail_requests').select('*'))).length, 0)
+err(await M.from('mail_requests').upsert({ person: m.id }), /permission denied/)
 console.log('skrzynka: wszystkie testy OK')

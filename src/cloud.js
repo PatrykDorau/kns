@@ -105,7 +105,7 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     notify: (people, msg) => safe(async () => {
       const s = await session()
       const inApp = check(await sb.rpc('inbox_send', { targets: people, title: msg.title || '', body: msg.body || '', url: msg.url || '' }))
-      const res = await fetch(CLOUD.pushUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notify: true, token: s.access_token, people, ...msg }) }).catch(() => null)
+      const res = await fetch(CLOUD.pushUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inbox: true, token: s.access_token }) }).catch(() => null)
       const out = (await res?.json().catch(() => ({}))) || {}
       return { ...(res?.ok ? out : { sent: 0 }), inApp }
     }),

@@ -49,7 +49,7 @@ const TILES = [
   <div v-if="!role" class="home">
     <div class="kh">
       <div class="kh-top">
-        <Brand />
+        <Brand :title="appUpdate.current ? 'Kościół Na Skale — wersja ' + appUpdate.current : ''" />
         <span class="kh-name">Kościół Na Skale</span>
         <span class="kh-spacer"></span>
         <template v-if="ready && access.status === 'active'">
@@ -102,7 +102,6 @@ const TILES = [
       </div>
 
       <HomeBoard v-if="ready && access.status === 'active'" />
-      <p v-if="appUpdate.current" class="kh-version">wersja {{ appUpdate.current }}</p>
     </div>
   </div>
   <Control v-else-if="role === 'display'" />

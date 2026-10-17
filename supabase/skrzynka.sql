@@ -86,3 +86,53 @@ begin
 end $$;
 drop trigger if exists ministry_members_inbox on public.ministry_members;
 create trigger ministry_members_inbox after insert or update or delete on public.ministry_members for each row execute function public.inbox_ministry();
+
+-- Powiadomienia na telefon do wpisów w aplikacji: aplikacja osoby, która coś zrobiła (wysłała, zgłosiła,
+-- zaakceptowała…), prosi zaraz potem serwer powiadomień (/api/push { inbox: true, token }) o rozesłanie
+-- jej świeżych wpisów. Serwer dostaje z tej funkcji telefony odbiorców (tylko tych, którzy włączyli
+-- powiadomienia) — wpisy oznaczają się jako wysłane, więc nic nie pójdzie dwa razy.
+alter table public.inbox add column if not exists sender uuid default auth.uid();
+alter table public.inbox add column if not exists pushed boolean not null default false;
+create or replace function public.inbox_push_batch() returns table (id text, subscription jsonb, title text, body text, url text)
+language plpgsql security definer set search_path = public as $$
+begin
+  return query
+    with fresh as (
+      update inbox i set pushed = true
+      where i.sender = auth.uid() and not i.pushed and i.created > now() - interval '15 minutes'
+      returning i.person, i.title, i.body, i.url
+    )
+    select d.id, d.data -> 'subscription', f.title, f.body, f.url
+    from fresh f join push_devices d on d.person = f.person
+    where d.data ? 'subscription';
+end $$;
+revoke all on function public.inbox_push_batch() from public, anon;
+grant execute on function public.inbox_push_batch() to authenticated;
+
+-- Próbny newsletter e-mail: prośba w kolejce; skrypt Google (skrypty/baza.gs, co minutę) wysyła go na adres
+-- tej osoby i zaznacza jako wysłany. Najwyżej jedna prośba na 10 minut.
+create table if not exists public.mail_requests (
+  id bigint generated always as identity primary key,
+  person uuid not null references public.people (id) on delete cascade,
+  kind text not null default 'newsletter_test',
+  created timestamptz not null default now(),
+  sent timestamptz
+);
+alter table public.mail_requests enable row level security;
+revoke all on public.mail_requests from anon, authenticated;
+grant select on public.mail_requests to authenticated;
+drop policy if exists mail_own_read on public.mail_requests;
+create policy mail_own_read on public.mail_requests for select to authenticated using (person = auth.uid());
+create or replace function public.request_test_newsletter() returns bigint
+language plpgsql security definer set search_path = public as $$
+declare rid bigint;
+begin
+  if not is_active() then raise exception 'Newsletter jest dla zatwierdzonych członków.'; end if;
+  if exists (select 1 from mail_requests where person = auth.uid() and created > now() - interval '10 minutes') then
+    raise exception 'Próbny e-mail już jest w drodze — kolejny można wysłać za kilka minut.';
+  end if;
+  insert into mail_requests (person) values (auth.uid()) returning mail_requests.id into rid;
+  return rid;
+end $$;
+revoke all on function public.request_test_newsletter() from public, anon;
+grant execute on function public.request_test_newsletter() to authenticated;
