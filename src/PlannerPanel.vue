@@ -102,7 +102,7 @@ function discard() { if (confirm('Porzucić zmiany i wrócić do zapisanej wersj
 // Porównanie: co ktoś zmienił od otwarcia (jego wersja), a co jest u mnie — pokazywane przed nadpisaniem.
 const programText = (v, svc) => (v || []).slice().sort((a, b) => a.offset - b.offset)
   .map(p => addMinutes(svc.time || DEFAULT_TIME, p.offset) + ' ' + category(p.category).name + (p.title ? ' — ' + p.title : '') + (p.person ? ' (' + p.person + ')' : '')).join('\n')
-const FIELDS = [['date', 'Data', v => prettyDate(v)], ['time', 'Godzina', v => v || DEFAULT_TIME], ['place', 'Miejsce', v => v || DEFAULT_PLACE], ['sermonTitle', 'Tytuł kazania'], ['passage', 'Fragment'], ['speaker', 'Mówca'], ['band', 'Skład zespołu'],
+const FIELDS = [['date', 'Data', v => prettyDate(v)], ['time', 'Godzina', v => v || DEFAULT_TIME], ['place', 'Miejsce', v => v || DEFAULT_PLACE], ['sermonTitle', 'Tytuł kazania'], ['passage', 'Fragment'], ['speaker', 'Mówca'], ['band', 'Skład zespołu'], ['thoughts', 'Myśli z kazania'],
   ['program', 'Program', programText], ['songs', 'Pieśni', v => v.map(songTitle).join('\n')], ['files', 'Załączniki', v => v.map(x => x.name).join('\n')], ['notes', 'Dodatkowe informacje']]
 const show = (field, svc) => { const [key, , fmt] = field; const v = svc[key] ?? ''; return (fmt ? fmt(v, svc) : String(v)) || '—' }
 const conflict = ref(null) // { theirs, rows: [{ label, theirs, mine, lost }] }
@@ -233,6 +233,8 @@ else load(nearestService.value)
             <div><label for="pPlace">Miejsce</label><input id="pPlace" v-model="current.place" type="text" :placeholder="DEFAULT_PLACE"></div>
           </div>
 
+          <label for="pThoughts">Myśli z kazania</label>
+          <textarea id="pThoughts" v-model="current.thoughts" class="short" placeholder="Jedna myśl w jednej linii — pokażą się na stronie startowej po nabożeństwie"></textarea>
           <p v-if="clash" class="note bad">Na ten dzień jest już inne nabożeństwo — przy synchronizacji zostaną połączone w jedno.</p>
           <p class="note">* pola wymagane — bez nich nabożeństwo jest oznaczone jako niekompletne.</p>
           <p v-if="current.createdBy || current.updatedBy" class="note">

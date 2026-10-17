@@ -32,6 +32,8 @@ const hour = new Date().getHours()
 const greeting = hour >= 5 && hour < 18 ? 'Dzień dobry' : 'Dobry wieczór'
 const firstName = computed(() => (access.name || access.email.split('@')[0] || '').split(/\s+/)[0])
 const initials = computed(() => (access.name || access.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''))
+// Kafelki tylko z tym, do czego jest dostęp (bez uprawnień — w ogóle się nie pokazują).
+const visibleTiles = computed(() => TILES.filter(([id]) => ready.value && canUse(id)))
 const TILES = [
   ['display', 'monitor', 'Rzutnik', 'Pieśni, zdjęcia, filmy i teksty'],
   ['stream', 'camera', 'Stream', 'Kamery i sygnały dla kamerzysty'],
@@ -79,7 +81,7 @@ const TILES = [
       </div>
 
       <div class="kh-tiles">
-        <button v-for="[id, icon, name, desc] in TILES" :key="id" class="kh-tile" :class="{ locked: ready && !canUse(id) }" :disabled="!ready || !canUse(id)" :title="accessReason(id)" @click="choose(id)">
+        <button v-for="[id, icon, name, desc] in visibleTiles" :key="id" class="kh-tile" :class="{ locked: ready && !canUse(id) }" :disabled="!ready || !canUse(id)" :title="accessReason(id)" @click="choose(id)">
           <span class="kh-tile-ic"><Icon :name="icon" /></span>
           <span class="kh-tile-text">
             <span class="kh-tile-name">{{ name }}

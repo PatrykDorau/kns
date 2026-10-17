@@ -439,7 +439,7 @@
   .hello h1 { margin: 0; font: 700 26px/1.2 "Segoe UI Variable Display", system-ui, "Segoe UI", sans-serif; letter-spacing: -.02em; }
   .hello p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
   .start-top .hero { margin-bottom: 14px; }
-  .kh-web, .wide-only { display: none !important; }
+  .kh-web, .wide-only, .kh-bar { display: none !important; }
   .kh-web svg.i { width: 18px; height: 18px; }
   .kh-web .kh-tile-ic svg.i { width: 22px; height: 22px; }
   .kh-web .kh-tag svg.i { width: 14px; height: 14px; }
@@ -455,10 +455,27 @@
     #app > .getapp { display: none !important; }
     #app.home-wide > header, #app.home-wide > .getapp, #app.home-wide > .desktop-mode, #app.home-wide .phone-home { display: none !important; }
     #app.home-wide .kh-web { display: flex !important; padding-top: 16px; }
-    header { padding-top: 18px; }
-    /* edytory i listy: wygodna szerokość, nie na cały ekran */
-    #app.narrow { max-width: 760px; }
+    /* pasek konta zawsze na górze, nagłówek podstrony w stylu strony startowej */
+    .kh-bar { display: flex !important; padding-top: 16px; margin-bottom: 6px; }
+    #app.home-wide .kh-web { padding-top: 0; }
+    header { padding: 12px 0 14px; }
+    header img { display: none; }
+    header h1 { font: 700 30px/1.15 "Segoe UI Variable Display", system-ui, "Segoe UI", sans-serif; letter-spacing: -.025em; }
+    header button.ghost { min-height: 38px; padding: 7px 15px; border-radius: 999px; background: var(--accent-soft); font-size: 14px; font-weight: 600; }
+    header button.ghost svg.i { width: 18px; height: 18px; }
+    /* edytory i listy: wygodna szerokość treści — pasek i nagłówek bez zmian */
+    #app.narrow > :not(.kh-bar):not(header):not(.version):not(.sheet):not(.kh-modal) { max-width: 760px; margin-left: auto; margin-right: auto; }
+    #app.narrow > header { max-width: 760px; margin: 0 auto; }
+    /* Więcej: kafelki */
+    .more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; background: none; border: 0; border-radius: 0; overflow: visible; margin-bottom: 14px; }
+    .more-list button { min-height: 76px; padding: 14px 18px; border-radius: 18px !important; border: 1px solid var(--line) !important;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0)), color-mix(in srgb, var(--panel) 74%, transparent) !important; backdrop-filter: blur(10px); transition: border-color .15s, transform .15s; }
+    .more-list button:hover { border-color: rgba(242, 165, 60, .55) !important; transform: translateY(-1px); }
+    .more-list button > svg.i:first-child { width: 42px; height: 42px; padding: 10px; border-radius: 12px; color: var(--accent); background: linear-gradient(135deg, rgba(242, 165, 60, .26), rgba(242, 165, 60, .07)); }
+    .more-list button span { font-size: 16px; font-weight: 600; }
   }
+  .kh-brand { display: inline-flex; align-items: center; gap: 10px; min-height: 0; padding: 0; border: 0; background: none; color: var(--text); }
+  .kh-ib.on { background: var(--accent-soft); color: var(--accent); }
   /* konta: oczekiwanie na zatwierdzenie, osoby i rangi */
   .gate h2 { font-size: 21px; margin: 0 0 6px; }
   .gate .note { max-width: 420px; margin: 0 auto 18px; }
@@ -469,6 +486,8 @@
   .gate { display: flex; flex-direction: column; align-items: center; }
   .gate > img { display: block; margin: 0 auto 16px; }
   .pub-week { margin-bottom: 8px; }
+  .phone-thoughts { margin: 18px 0 4px; }
+  .phone-thoughts .kh-th-list { grid-template-columns: 1fr; }
   .pub-week .kh-ev { cursor: default; }
   .pub-week .kh-day { background: color-mix(in srgb, var(--panel) 90%, transparent); border-color: var(--line); }
   .pub-week .kh-day.today { background: linear-gradient(180deg, rgba(242, 165, 60, .14), transparent 70%), color-mix(in srgb, var(--panel) 90%, transparent); border-color: rgba(242, 165, 60, .45); }
@@ -546,6 +565,20 @@
 </svg>
 
 <div id="app" v-cloak>
+  <!-- Szeroki ekran: pasek konta na górze każdego widoku (jak w aplikacji na komputer). -->
+  <div v-if="ready" class="kh kh-bar">
+      <div class="kh-top">
+        <button class="kh-brand" title="Strona startowa" @click="showServices(); closeAll()"><img class="kh-mark" src="znak.png" alt=""><span class="kh-name">Kościół Na Skale</span></button>
+        <span class="kh-spacer"></span>
+        <button class="kh-ib" :class="{ spin: busy }" :disabled="busy" title="Odśwież" aria-label="Odśwież" @click="reload()"><svg class="i"><use href="#refresh"/></svg></button>
+        <button class="kh-ib" title="Więcej: pieśni, ogłoszenia, protokoły, osoby…" aria-label="Więcej" :class="{ on: moreView }" @click="openMore"><svg class="i"><use href="#menu"/></svg><span v-if="canManage && pendingCount" class="kh-count">{{ pendingCount }}</span></button>
+        <span v-if="me" class="kh-me" :title="me.email">
+          <span class="kh-av">{{ initials(me) }}</span>
+          <span class="kh-me-text"><b>{{ me.name || me.email }}</b><small>{{ myRanks || 'Członek' }}</small></span>
+        </span>
+        <button v-if="me" class="kh-ib" title="Wyloguj" aria-label="Wyloguj" @click="logout"><svg class="i"><use href="#logout"/></svg></button>
+      </div>
+  </div>
   <header>
     <img src="znak.png" alt="">
     <h1>{{ current ? 'Nabożeństwo' : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
@@ -1130,19 +1163,6 @@
   <template v-else-if="!current">
     <!-- Szeroki ekran (przeglądarka na komputerze): ten sam układ i te same style co w aplikacji na komputer (home.css). -->
     <div class="kh kh-web">
-      <div class="kh-top">
-        <img class="kh-mark" src="znak.png" alt="">
-        <span class="kh-name">Kościół Na Skale</span>
-        <span class="kh-spacer"></span>
-        <button class="kh-ib" :class="{ spin: busy }" :disabled="busy" title="Odśwież" aria-label="Odśwież" @click="reload()"><svg class="i"><use href="#refresh"/></svg></button>
-        <button class="kh-ib" title="Więcej: pieśni, ogłoszenia, protokoły, osoby…" aria-label="Więcej" @click="openMore"><svg class="i"><use href="#menu"/></svg><span v-if="canManage && pendingCount" class="kh-count">{{ pendingCount }}</span></button>
-        <span v-if="me" class="kh-me" :title="me.email">
-          <span class="kh-av">{{ initials(me) }}</span>
-          <span class="kh-me-text"><b>{{ me.name || me.email }}</b><small>{{ myRanks || 'Członek' }}</small></span>
-        </span>
-        <button v-if="me" class="kh-ib" title="Wyloguj" aria-label="Wyloguj" @click="logout"><svg class="i"><use href="#logout"/></svg></button>
-      </div>
-
       <div class="kh-hello">
         <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
         <p>Oto co dzieje się w kościele.</p>
@@ -1203,6 +1223,12 @@
           </div>
         </section>
       </div>
+      <section v-if="lastSermon && (lastSermon.thoughts || canEdit)" class="kh-panel kh-thoughts">
+        <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">{{ lastSermon.thoughts ? 'Edytuj' : 'Dodaj' }}</button></div>
+        <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
+        <ul v-if="lastSermon.thoughts" class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
+        <p v-else class="kh-th-empty">Prowadzący nie dodał jeszcze myśli z tego kazania.</p>
+      </section>
     </div>
 
     <div class="phone-home">
@@ -1256,6 +1282,13 @@
         </div>
       </section>
 
+<section v-if="lastSermon && (lastSermon.thoughts || canEdit)" class="kh-panel kh-thoughts phone-thoughts">
+        <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">{{ lastSermon.thoughts ? 'Edytuj' : 'Dodaj' }}</button></div>
+        <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
+        <ul v-if="lastSermon.thoughts" class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
+        <p v-else class="kh-th-empty">Prowadzący nie dodał jeszcze myśli z tego kazania.</p>
+      </section>
+
       <section class="sp-news">
         <div class="section"><h2>Z newslettera</h2><button class="ghost" @click="openAnns">{{ canAnnounce ? 'Wszystkie / dodaj' : 'Wszystkie' }}</button></div>
         <p v-if="!homeAnns.length" class="note">Nie ma nowych ogłoszeń.</p>
@@ -1284,6 +1317,8 @@
     <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
     <label for="passage">Fragment <span class="req">*</span></label>
     <input id="passage" v-model="current.passage" :class="{ invalid: !current.passage.trim() }" placeholder="np. J 3,16–21" autocomplete="off">
+    <label for="thoughts">Myśli z kazania</label>
+    <textarea id="thoughts" v-model="current.thoughts" placeholder="Jedna myśl w jednej linii — pokażą się na stronie startowej po nabożeństwie"></textarea>
     <div class="row">
       <div><label for="time">Godzina</label><input id="time" v-model="current.time" type="time"></div>
       <div><label for="place">Miejsce</label><input id="place" v-model="current.place" autocomplete="off"></div>
@@ -1519,7 +1554,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.44 · 17.10.2026'
+const VERSION = '2.45 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1862,6 +1897,14 @@ createApp({
     const songDirty = computed(() => !!song.value && JSON.stringify(song.value) !== songSaved)
     const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
     const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
+    // Pasek konta → strona startowa: zamyka otwarte edytory i listy (z pytaniem o niezapisane zmiany).
+    function closeAll() {
+      if ((current.value && dirty.value) || (currentEvent.value && eventDirty.value) || (currentAnn.value && annDirty.value)) {
+        if (!confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
+      }
+      current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null
+      tplType.value = null; tplView.value = false; protoView.value = false; annView.value = false
+    }
     function showServices() { songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
@@ -2237,6 +2280,9 @@ createApp({
     const activeAnns = computed(() => announcements.value.filter(isActive).sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || byNewest(a, b)))
     const oldAnns = computed(() => announcements.value.filter(a => !isActive(a)).sort((a, b) => (b.until || '').localeCompare(a.until || '')))
     const importantAnns = computed(() => activeAnns.value.filter(a => a.important && a.audience !== 'council'))
+    // Myśli z kazania: ostatnie nabożeństwo, które już się odbyło (jedna myśl w linii).
+    const lastSermon = computed(() => services.value.filter(s => s.date && s.date <= todayStr.value).sort((a, b) => b.date.localeCompare(a.date))[0] || null)
+    const thoughtList = s => String(s?.thoughts || '').split('\n').map(t => t.replace(/^\s*[-•*\d.)]+\s*/, '').trim()).filter(Boolean)
     const homeAnns = computed(() => activeAnns.value.filter(a => !a.important).slice(0, 4))
     const annView = ref(false), currentAnn = ref(null), annEditing = ref(false)
     let annSaved = '', annBase = 0, annAudience = ''
@@ -2430,7 +2476,7 @@ createApp({
         { id: 'planner', icon: 'pencil', name: 'Nabożeństwa', desc: canEdit.value ? 'Kazanie, pieśni, program' : 'Dla osób z prawem edycji', locked: !canEdit.value, go: canEdit.value ? 'chev' : 'warn',
           pill: canEdit.value && svc ? (missing(svc).length ? 'Braki' : 'Komplet') : '' },
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
-      ]
+      ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
     })
     function chooseTile(t) {
       if (t.locked) return
@@ -2638,14 +2684,14 @@ createApp({
       const el = document.getElementById('app')
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
-      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || moreView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value))
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return {
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,
