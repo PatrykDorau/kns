@@ -386,7 +386,9 @@ else load(nearestService.value)
 </template>
 
 <style scoped>
-.slot-songs { margin: 0 0 8px 102px; display: flex; flex-direction: column; gap: 6px; }
+/* pieśni pod punktem „Uwielbienie”: w kolumnach rodzaju i opisu (jak wiersz programu), nie pod „Kto” i usuwaniem */
+.slot-songs { display: grid; grid-template-columns: 96px 170px 1fr 150px 32px; gap: 6px; margin-bottom: 8px; }
+.slot-songs > * { grid-column: 2 / 4; min-width: 0; }
 .slot-songs .members { margin: 0; }
-.slot-songs .addsong { align-self: flex-start; }
+.slot-songs .addsong { justify-self: start; }
 </style>

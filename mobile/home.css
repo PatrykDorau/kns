@@ -160,3 +160,5 @@ button.kh-ann:hover { background: rgba(255, 255, 255, .06); }
 .kh-cd small { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .kh-countdown .kh-muted { font-size: 13px; }
 .kh-me .kh-warn { width: 16px; height: 16px; color: var(--warn, #e8957d); flex: none; }
+.kh-share { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; }
+.kh-share svg { width: 16px; height: 16px; }

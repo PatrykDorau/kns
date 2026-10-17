@@ -32,7 +32,7 @@ const summary = computed(() => {
 <template>
   <div class="np">
     <button type="button" class="np-btn" @click="show"><Icon name="bell" />{{ ids.length ? 'Powiadomię: ' + summary : 'Powiadom osoby (opcjonalnie)' }}</button>
-    <small class="np-note">Powiadomienie wyjdzie po zapisaniu — na telefony osób, które włączyły powiadomienia.</small>
+    <small class="np-note">Po zapisaniu powiadomienie pojawi się w aplikacji (dzwonek), a dodatkowo na telefonach osób, które je włączyły.</small>
     <div v-if="open" class="kh-modal" role="dialog" aria-label="Kogo powiadomić" @click.self="open = false">
       <div class="kh-modal-box np-box">
         <button class="kh-ib kh-close" title="Zamknij" aria-label="Zamknij" @click="open = false"><Icon name="x" /></button>
@@ -46,7 +46,7 @@ const summary = computed(() => {
         <div class="np-list">
           <label v-for="p in people" :key="p.id" class="np-person">
             <input type="checkbox" :checked="ids.includes(p.id)" @change="togglePerson(p.id)">
-            <span><b>{{ p.name }}</b><small :class="{ off: !p.devices }">{{ p.devices ? (p.devices === 1 ? 'telefon z powiadomieniami' : p.devices + ' telefony z powiadomieniami') : 'nie ma włączonych powiadomień' }}</small></span>
+            <span><b>{{ p.name }}</b><small :class="{ off: !p.devices }">{{ p.devices ? 'w aplikacji i na telefonie' : 'w aplikacji' }}</small></span>
           </label>
         </div>
         <div class="np-foot"><button class="primary" @click="open = false"><Icon name="check" />Gotowe · {{ ids.length }}</button></div>

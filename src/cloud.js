@@ -101,13 +101,17 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       const [people, ranks] = await Promise.all([sb.rpc('people_directory').then(check), sb.from('ranks').select('*').order('sort').then(check)])
       return { people, ranks }
     }),
+    // Zawsze w aplikacji (baza); dodatkowo na telefony tych, którzy je włączyli.
     notify: (people, msg) => safe(async () => {
       const s = await session()
-      const res = await fetch(CLOUD.pushUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notify: true, token: s.access_token, people, ...msg }) })
-      const out = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(out.error || 'Nie udało się wysłać powiadomienia.')
-      return out
+      const inApp = check(await sb.rpc('inbox_send', { targets: people, title: msg.title || '', body: msg.body || '', url: msg.url || '' }))
+      const res = await fetch(CLOUD.pushUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notify: true, token: s.access_token, people, ...msg }) }).catch(() => null)
+      const out = (await res?.json().catch(() => ({}))) || {}
+      return { ...(res?.ok ? out : { sent: 0 }), inApp }
     }),
+    // Powiadomienia w aplikacji (dzwonek).
+    inbox: () => safe(async () => ({ list: check(await sb.from('inbox').select('id,title,body,url,created,read').order('created', { ascending: false }).range(0, 49)) || [] })),
+    inboxRead: ids => safe(async () => { if (ids.length) check(await sb.from('inbox').update({ read: true }).in('id', ids)); return { ok: true } }),
     // Pierwsze połączenie (po zalogowaniu Google): od razu sprawdza konto.
     connect: () => safe(async () => { await active(); return { ok: true, email: person.email } }),
     signOut: () => sb.auth.signOut({ scope: 'local' }).catch(() => {}),

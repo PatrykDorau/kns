@@ -79,14 +79,28 @@ export function createSupa(config, client = window.supabase.createClient(config.
       }
       // Powiadomienia do wybranych osób: lista osób i wysyłka przez /api/push (z tokenem logowania).
       if (action === 'directory') return { people: check(await sb.rpc('people_directory')) }
+      // Powiadomienie do wybranych: zawsze w aplikacji (baza), dodatkowo na telefony (jeśli ktoś włączył).
       if (action === 'notify') {
+        const inApp = check(await sb.rpc('inbox_send', { targets: data.people, title: data.title || '', body: data.body || '', url: data.url || '' }))
         const res = await fetch((location.protocol.startsWith('http') ? '' : 'https://kns-nabo.netlify.app') + '/api/push', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ notify: true, token: session.access_token, people: data.people, title: data.title, body: data.body, url: data.url }),
         })
         const out = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(out.error || 'Nie udało się wysłać powiadomienia.')
-        return out
+        return { ...(res.ok ? out : { sent: 0, pushError: out.error || 'telefony niedostępne' }), inApp }
+      }
+      // Powiadomienia w aplikacji (dzwonek): moje wpisy, oznaczanie jako przeczytane.
+      if (action === 'inbox') return check(await sb.from('inbox').select('id,title,body,url,created,read').order('created', { ascending: false }).range(0, 49)) || []
+      if (action === 'inboxRead') {
+        for (const id of data.ids || []) check(await sb.from('inbox').update({ read: true }).eq('id', id))
+        return { ok: true }
+      }
+      // Zgłoszenie do służby: telefony liderów (wpis w aplikacji robi baza).
+      if (action === 'ministryPush') {
+        const res = await fetch((location.protocol.startsWith('http') ? '' : 'https://kns-nabo.netlify.app') + '/api/push', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ministry: true, token: session.access_token, id: data.id }),
+        })
+        return res.json().catch(() => ({}))
       }
       // Nowe zgłoszenie: powiadomienie dla zatwierdzających (lider newslettera, rada, administrator).
       if (action === 'review') {
@@ -105,6 +119,8 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'decideMinistry') return check(await sb.rpc('ministry_decide', { mid: data.id, who: data.who, accept: !!data.accept }))
       if (action === 'saveMinistry') return check(await sb.rpc('ministry_save', { mid: data.id, new_name: data.name || '', new_description: data.description || '', new_seeking: !!data.seeking, new_leaders: data.leaders || [] }))
       if (action === 'deleteMinistry') return check(await sb.rpc('ministry_delete', { mid: data.id }))
+      if (action === 'addToMinistry') return check(await sb.rpc('ministry_add', { mid: data.id, who: data.who }))
+      if (action === 'ministryPeople') return { people: check(await sb.rpc('ministry_people')) || [] }
       if (action === 'memberNames') return { people: check(await sb.rpc('member_names')) || [] }
       if (action === 'calendarToken') return { token: check(await sb.rpc('my_calendar_token', { renew: !!data.renew })) }
       if (action === 'setNewsletter') return { person: view(check(await sb.rpc('set_newsletter', { enabled: !!data.on }))) }

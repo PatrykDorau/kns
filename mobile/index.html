@@ -415,6 +415,23 @@
   .np-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: rgba(5, 6, 8, .6); backdrop-filter: blur(3px); }
   .np-panel { display: flex; flex-direction: column; width: 100%; max-height: 86vh; padding: 16px 16px calc(14px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 -20px 60px rgba(0, 0, 0, .5); }
   @media (min-width: 720px) { .np-overlay { align-items: center; padding: 24px; } .np-panel { width: min(560px, 100%); max-height: 80vh; border-radius: 22px; padding-bottom: 16px; } }
+  .share-btn span { font-size: 14px; }
+  .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); z-index: 80; transform: translateX(-50%); padding: 10px 16px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); font-size: 14px; white-space: nowrap; }
+  .mn-sec { margin: 18px 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .mn-team { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .mn-team > small { display: block; margin-bottom: 6px; color: var(--muted); }
+  .mn-team .mn-add { margin-top: 6px; }
+  .ministry.linked { box-shadow: 0 0 0 2px var(--accent); }
+  .inbox-item { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 12px 10px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+  .inbox-item:hover { background: var(--panel2); }
+  .inbox-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: transparent; }
+  .inbox-item.unread .inbox-dot { background: var(--accent); }
+  .inbox-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .inbox-text span { color: var(--muted); font-size: 13px; }
+  .inbox-item:not(.unread) b { font-weight: 500; }
+  .inbox-item small { flex: none; color: var(--muted); font-size: 12px; }
+  header .bell { position: relative; }
+  header .bell .count { position: absolute; top: 0; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--accent); color: #1f1608; font-size: 10px; font-weight: 700; line-height: 16px; }
   .np-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .np-head b { font-size: 18px; }
   .np-panel .searchbox { margin-bottom: 10px; }
@@ -674,6 +691,7 @@
       <div class="kh-top">
         <button class="kh-brand" title="Strona startowa" @click="showServices(); closeAll()"><img class="kh-mark" src="znak.png" alt=""><span class="kh-name">Kościół Na Skale</span></button>
         <span class="kh-spacer"></span>
+        <button v-if="api.enabled" class="kh-ib" title="Powiadomienia" aria-label="Powiadomienia" :class="{ on: inboxOpen }" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="kh-count">{{ unread }}</span></button>
         <button class="kh-ib" :class="{ spin: busy }" :disabled="busy" title="Odśwież" aria-label="Odśwież" @click="reload()"><svg class="i"><use href="#refresh"/></svg></button>
         <button class="kh-ib" title="Więcej: pieśni, ogłoszenia, protokoły, osoby…" aria-label="Więcej" :class="{ on: moreView }" @click="openMore"><svg class="i"><use href="#menu"/></svg><span v-if="canManage && pendingCount" class="kh-count">{{ pendingCount }}</span></button>
         <span v-if="me" class="kh-me kh-me-btn" role="button" tabindex="0" title="Mój profil" @click="openProfile" @keydown.enter="openProfile">
@@ -704,7 +722,10 @@
       <button v-if="ready && (calView || moreView)" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
       <button v-if="ready" class="ghost" :class="{ 'narrow-only': !peopleView }" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
+    <button v-if="ready && api.enabled && !current && !currentEvent && !currentAnn && !currentProto && !song && !tplType" class="ghost bell narrow-only" aria-label="Powiadomienia" title="Powiadomienia" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="count">{{ unread }}</span></button>
+    <button v-if="shareTarget" class="ghost share-btn" title="Kopiuj link — można go komuś wysłać" aria-label="Kopiuj link" @click="shareLink(...shareTarget)"><svg class="i"><use href="#link"/></svg><span>Link</span></button>
   </header>
+  <div v-if="toast" class="toast" role="status">{{ toast }}</div>
 
   <!-- Kamera: sygnały od operatora streamu (przez internet), z dźwiękiem w słuchawce i wibracją. -->
   <div v-if="camera" class="camera" :class="cue.state" role="status" aria-live="assertive">
@@ -792,6 +813,7 @@
       </span>
       <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
     </div>
+    <p v-if="pendingLink" class="pending-note"><svg class="i"><use href="#link"/></svg>Ktoś udostępnił Ci {{ LINK_KIND[pendingLink.kind] || 'link' }} — po zalogowaniu od razu się otworzy.</p>
     <p class="note">{{ api.enabled ? 'Zaloguj się kontem Google. Nowe konto czeka na zatwierdzenie przez administratora kościoła.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
     <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
     <div v-if="wrongOrigin" class="origin-warn">
@@ -904,7 +926,7 @@
     <div v-if="canNotify && annEditable" class="notify-box">
       <label>Powiadom osoby (opcjonalnie)</label>
       <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
-      <p class="note" style="margin:6px 0 0">Powiadomienie wyjdzie po zapisaniu — na telefony osób, które włączyły powiadomienia.</p>
+      <p class="note" style="margin:6px 0 0">Po zapisaniu powiadomienie pojawi się w aplikacji (dzwonek), a dodatkowo na telefonach osób, które je włączyły.</p>
     </div>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div v-if="annEditable" class="bar">
@@ -1059,7 +1081,7 @@
     <div v-if="canNotify" class="notify-box">
       <label>Powiadom osoby (opcjonalnie)</label>
       <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
-      <p class="note" style="margin:6px 0 0">Powiadomienie wyjdzie po zapisaniu — na telefony osób, które włączyły powiadomienia.</p>
+      <p class="note" style="margin:6px 0 0">Po zapisaniu powiadomienie pojawi się w aplikacji (dzwonek), a dodatkowo na telefonach osób, które je włączyły.</p>
     </div>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <div v-if="canReview && currentEvent.status === 'pending'" class="approve-row">
@@ -1232,22 +1254,34 @@
   <!-- Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) -->
   <!-- Zaangażuj się: służby szukające chętnych, zgłoszenia, akceptacja przez lidera -->
   <template v-else-if="serveView && !current">
-    <p class="note" style="margin-top:0">Wybierz służbę i zgłoś się — lider służby potwierdzi zgłoszenie. Służby, które szukają chętnych, są na górze.</p>
-    <button v-if="canManage" class="primary" style="width:100%;margin-bottom:12px" @click="editMinistry()"><svg class="i"><use href="#plus"/></svg>Nowa służba</button>
+    <p class="note" style="margin-top:0">Wybierz służbę i zgłoś się — lider służby potwierdzi zgłoszenie.</p>
+    <button v-if="canCreateMinistry" class="primary" style="width:100%;margin-bottom:12px" @click="editMinistry()"><svg class="i"><use href="#plus"/></svg>Nowa służba</button>
     <p v-if="serve.busy && !serve.list.length" class="note">Wczytuję służby…</p>
     <p v-else-if="serve.error" class="error">{{ serve.error }}</p>
-    <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canManage ? ' — dodaj pierwszą.' : '.' }}</p>
-    <article v-for="m in serve.list" :key="m.id" class="ministry" :class="{ seeking: m.seeking }">
+    <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canCreateMinistry ? ' — dodaj pierwszą.' : '.' }}</p>
+    <template v-for="sec in serveSections" :key="sec.id">
+    <h2 class="mn-sec">{{ sec.title }}</h2>
+    <article v-for="m in sec.list" :key="m.id" :id="'sluzba-' + m.id" class="ministry" :class="{ seeking: m.seeking, linked: linkedMinistry === m.id }">
       <div class="mn-head">
         <span class="mn-ic"><svg class="i"><use href="#users"/></svg></span>
         <b>{{ m.name }}</b>
         <span v-if="m.seeking" class="ann-tag pin">Szukamy chętnych</span>
         <span class="kh-spacer"></span>
+        <button class="icon" aria-label="Kopiuj link do służby" title="Kopiuj link do służby" @click="shareLink('sluzba', m.id, m.name)"><svg class="i"><use href="#link"/></svg></button>
         <button v-if="m.lead" class="icon" aria-label="Edytuj służbę" title="Edytuj służbę" @click="editMinistry(m)"><svg class="i"><use href="#pencil"/></svg></button>
       </div>
       <p v-if="m.description" class="mn-desc">{{ m.description }}</p>
-      <p class="mn-meta"><template v-if="m.leaders.length">Lider: {{ m.leaders.map(l => l.name).join(', ') }} · </template>{{ m.members.length ? 'Służą: ' + m.members.join(', ') : 'Nikt jeszcze nie służy' }}</p>
-      <div class="mn-actions">
+      <p class="mn-meta"><template v-if="m.leaders.length">Lider: {{ m.leaders.map(l => l.name).join(', ') }}</template><template v-if="!m.lead"><template v-if="m.leaders.length"> · </template>{{ m.members.length ? 'Służą: ' + m.members.join(', ') : 'Nikt jeszcze nie służy' }}</template></p>
+      <!-- lider: osoby w służbie — dodawanie i usuwanie -->
+      <div v-if="m.lead" class="mn-team">
+        <small>Służą ({{ m.people.length }})</small>
+        <div v-for="p in m.people" :key="p.id" class="mn-person">
+          <span><b>{{ p.name }}</b></span>
+          <button class="icon" :disabled="busy" :aria-label="'Usuń ' + p.name + ' ze służby'" title="Usuń ze służby" @click="removeFromMinistry(m, p)"><svg class="i"><use href="#x"/></svg></button>
+        </div>
+        <button class="ghost mn-add" :disabled="busy" @click="openAddPerson(m)"><svg class="i"><use href="#plus"/></svg>Dodaj osobę</button>
+      </div>
+      <div v-if="!m.leader" class="mn-actions">
         <button v-if="!m.mine" :class="{ primary: m.seeking }" :disabled="busy" @click="joinMinistry(m)">Chcę się zaangażować</button>
         <template v-else-if="m.mine === 'pending'"><span class="mn-state">Zgłoszono — czeka na lidera</span><button class="ghost" :disabled="busy" @click="leaveMinistry(m)">Wycofaj</button></template>
         <template v-else><span class="mn-state ok"><svg class="i"><use href="#check"/></svg>Służysz tutaj</span><button class="ghost" :disabled="busy" @click="leaveMinistry(m)">Zrezygnuj</button></template>
@@ -1261,6 +1295,7 @@
         </div>
       </div>
     </article>
+    </template>
   </template>
 
   <!-- Mój profil: imię i nazwisko, grupka -->
@@ -1700,27 +1735,58 @@
     </template>
   </section>
 
+  <!-- Dodawanie osoby do służby (lider) -->
+  <div v-if="addTo" class="np-overlay" @click.self="addTo = null">
+    <div class="np-panel" role="dialog" :aria-label="'Dodaj osobę: ' + addTo.name">
+      <div class="np-head"><b>Dodaj do: {{ addTo.name }}</b><button class="icon" aria-label="Zamknij" @click="addTo = null"><svg class="i"><use href="#x"/></svg></button></div>
+      <div class="searchbox"><svg class="i"><use href="#search"/></svg><input v-model="addQuery" type="search" placeholder="Szukaj osoby albo grupki" autocomplete="off"></div>
+      <div class="np-list">
+        <p v-if="!addCandidates.length" class="note">{{ addPeople.length ? 'Nikogo takiego nie ma (albo już służy).' : 'Wczytuję…' }}</p>
+        <button v-for="p in addCandidates" :key="p.id" class="inbox-item" :disabled="busy" @click="addPerson(p)">
+          <span class="inbox-text"><b>{{ p.name }}</b><span v-if="p.grupa">{{ p.grupa }}</span></span>
+          <svg class="i"><use href="#plus"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Powiadomienia w aplikacji (zawsze włączone; telefon i e-mail — dodatkowo, w ustawieniach) -->
+  <div v-if="inboxOpen" class="np-overlay" @click.self="inboxOpen = false">
+    <div class="np-panel" role="dialog" aria-label="Powiadomienia">
+      <div class="np-head"><b>Powiadomienia</b><button class="icon" aria-label="Zamknij" @click="inboxOpen = false"><svg class="i"><use href="#x"/></svg></button></div>
+      <div class="np-list">
+        <p v-if="!inbox.length" class="note">Nie masz powiadomień. Tutaj pojawią się zgłoszenia do zatwierdzenia, zgłoszenia do służby i wiadomości od liderów.</p>
+        <button v-for="n in inbox" :key="n.id" class="inbox-item" :class="{ unread: !n.read }" @click="openNotice(n)">
+          <span class="inbox-dot"></span>
+          <span class="inbox-text"><b>{{ n.title }}</b><span v-if="n.body">{{ n.body }}</span></span>
+          <small>{{ agoText(n.created) }}</small>
+        </button>
+      </div>
+      <div v-if="unread" class="np-foot"><button class="ghost" @click="readAll">Oznacz wszystkie jako przeczytane</button></div>
+    </div>
+  </div>
+
   <!-- Służba: edycja (administrator — wszystko; lider — opis i „szukamy chętnych”) -->
   <div v-if="mEdit" class="np-overlay" @click.self="mEdit = null">
     <div class="np-panel" role="dialog" aria-label="Służba">
       <div class="np-head"><b>{{ mEdit.isNew ? 'Nowa służba' : mEdit.name }}</b><button class="icon" aria-label="Zamknij" @click="mEdit = null"><svg class="i"><use href="#x"/></svg></button></div>
       <div class="np-list">
-        <template v-if="canManage">
+        <template v-if="mEdit.full">
           <label for="mnName" style="margin-top:0">Nazwa <span class="req">*</span></label>
           <input id="mnName" v-model="mEdit.name" placeholder="np. Zespół uwielbienia" autocomplete="off">
         </template>
         <label for="mnDesc">Opis</label>
         <textarea id="mnDesc" v-model="mEdit.description" placeholder="Czym się zajmujecie, kogo szukacie, ile czasu to zajmuje"></textarea>
         <label class="check"><input v-model="mEdit.seeking" type="checkbox">Szukamy nowych chętnych</label>
-        <template v-if="canManage">
+        <template v-if="mEdit.full">
           <label>Liderzy (akceptują zgłoszenia) — osoby z rangą Lider</label>
           <p v-if="!memberNames.length" class="note" style="margin-top:0">Nikt nie ma jeszcze rangi Lider — nadaj ją w Więcej → Osoby.</p>
           <div class="notify-groups"><button v-for="p in memberNames" :key="p.id" type="button" class="chipbtn" :class="{ on: mEdit.leaders.includes(p.id) }" @click="toggleLeader(p.id)">{{ p.name }}</button></div>
         </template>
       </div>
       <div class="np-foot mn-foot">
-        <button v-if="canManage && !mEdit.isNew" class="danger" :disabled="busy" @click="deleteMinistry">Usuń</button>
-        <button class="primary" :disabled="busy || (canManage && !mEdit.name.trim())" @click="saveMinistry">Zapisz</button>
+        <button v-if="mEdit.full && !mEdit.isNew" class="danger" :disabled="busy" @click="deleteMinistry">Usuń</button>
+        <button class="primary" :disabled="busy || (mEdit.full && !mEdit.name.trim())" @click="saveMinistry">Zapisz</button>
       </div>
     </div>
   </div>
@@ -1739,7 +1805,7 @@
     <div class="np-list">
       <label v-for="p in directoryShown" :key="p.id" class="check notify-person">
         <input v-model="notify.ids" type="checkbox" :value="p.id">
-        <span><b>{{ p.name }}</b><small :class="{ off: !p.devices }">{{ p.grupa ? p.grupa + ' · ' : '' }}{{ p.devices ? (p.devices === 1 ? 'telefon z powiadomieniami' : p.devices + ' telefony z powiadomieniami') : 'nie ma włączonych powiadomień' }}</small></span>
+        <span><b>{{ p.name }}</b><small :class="{ off: !p.devices }">{{ p.grupa ? p.grupa + ' · ' : '' }}{{ p.devices ? 'w aplikacji i na telefonie' : 'w aplikacji' }}</small></span>
       </label>
       <p v-if="directory.length && !directoryShown.length" class="note">Nikogo takiego nie ma.</p>
     </div>
@@ -1847,7 +1913,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.54 · 17.10.2026'
+const VERSION = '2.56 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2118,6 +2184,7 @@ createApp({
       events.value = allEvents.filter(e => e.status !== 'pending'); pendingEvents.value = allEvents.filter(e => e.status === 'pending')
       types.value = mergeTypes(data.templates); typesBase = data.templatesUpdated || 0
       announcements.value = (data.announcements || []).filter(a => a.status !== 'pending'); pendingAnns.value = (data.announcements || []).filter(a => a.status === 'pending')
+      if (api.enabled) setTimeout(loadInbox) // po ustawieniu „ready”
     }
     // Z serwerem kont nowa osoba loguje się najpierw samą tożsamością — o Dysk pytamy dopiero po zatwierdzeniu.
     const start = (choose = false) => guard(async () => {
@@ -2724,6 +2791,67 @@ createApp({
       guard(async () => { currentAnn.value.video = await drive.uploadFile(file, (file.name.match(/\.(\w+)$/) || [, 'mp4'])[1]) }).finally(() => { vidBusy.value = false })
     }
 
+    /* ---------- powiadomienia w aplikacji (dzwonek) ---------- */
+    const inbox = ref([]), inboxOpen = ref(false)
+    const unread = computed(() => inbox.value.filter(n => !n.read).length)
+    async function loadInbox() {
+      if (!api.enabled || !ready.value || gate.value) return
+      try { inbox.value = (await api.call('inbox')) || [] } catch { /* bez sieci — zostaje poprzednia lista */ }
+    }
+    function openInbox() { inboxOpen.value = true; loadInbox() }
+    const agoText = t => {
+      const min = Math.round((Date.now() - new Date(t).getTime()) / 60000)
+      if (min < 1) return 'teraz'
+      if (min < 60) return min + ' min'
+      if (min < 24 * 60) return Math.round(min / 60) + ' godz'
+      return new Date(t).toLocaleDateString('pl', { day: 'numeric', month: 'short' }).replace('.', '')
+    }
+    function markRead(list) {
+      const ids = list.filter(n => !n.read).map(n => n.id)
+      list.forEach(n => { n.read = true })
+      if (ids.length) api.call('inboxRead', { ids }).catch(() => {})
+    }
+    const readAll = () => markRead(inbox.value)
+    function openNotice(n) {
+      markRead([n]); inboxOpen.value = false
+      openLink(new URL(n.url || './', location.href).searchParams)
+    }
+    // Linki do konkretnych rzeczy: ?ogloszenie=id, ?wydarzenie=id, ?nabozenstwo=id, ?sluzba=id (?sluzby=1 — lista służb).
+    // Otwierają wskazaną rzecz (także zgłoszenie czekające na zatwierdzenie).
+    const LINK_KIND = { ogloszenie: 'ogłoszenie', wydarzenie: 'wydarzenie', nabozenstwo: 'nabożeństwo', sluzba: 'służbę', sluzby: 'listę służb' }
+    const linkedMinistry = ref('')
+    function openLink(q) {
+      const annId = q.get('ogloszenie'), evId = q.get('wydarzenie'), svcId = q.get('nabozenstwo'), mId = q.get('sluzba')
+      const a = annId && [...announcements.value, ...pendingAnns.value].find(x => x.id === annId)
+      const e = evId && [...events.value, ...pendingEvents.value].find(x => x.id === evId)
+      const sv = svcId && services.value.find(x => x.id === svcId)
+      if (a) openAnn(a)
+      else if (e) openEvent(e)
+      else if (sv) open(sv)
+      else if (mId || q.get('sluzby')) {
+        openServe(); linkedMinistry.value = mId || ''
+        if (mId) { const stop = watch(() => serve.list, () => { const el = document.getElementById('sluzba-' + mId); if (el) { stop(); nextTick(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' })) } }) }
+      } else if (annId || evId || svcId) error.value = 'Nie znaleziono tej rzeczy — mogła zostać usunięta albo nie masz do niej dostępu.'
+    }
+    const toast = ref('')
+    let toastTimer
+    function showToast(t) { toast.value = t; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.value = '' }, 2500) }
+    // Udostępnienie: na telefonie systemowe „Udostępnij”, na komputerze — kopia do schowka.
+    async function shareLink(kind, id, title) {
+      const url = location.origin + location.pathname + '?' + kind + '=' + encodeURIComponent(id)
+      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) { try { await navigator.share({ title: title || 'KNS Nabo', url }); return } catch (e) { if (e.name === 'AbortError') return } }
+      try { await navigator.clipboard.writeText(url); showToast('Skopiowano link — wklej go w wiadomości') } catch { prompt('Skopiuj link:', url) }
+    }
+    const shareTarget = computed(() => {
+      if (!ready.value || !api.enabled) return null
+      if (currentAnn.value && annSavedOnce.value) return ['ogloszenie', currentAnn.value.id, currentAnn.value.title]
+      if (currentEvent.value && [...events.value, ...pendingEvents.value].some(x => x.id === currentEvent.value.id)) return ['wydarzenie', currentEvent.value.id, currentEvent.value.title]
+      if (current.value && services.value.some(x => x.id === current.value.id)) return ['nabozenstwo', current.value.id, 'Nabożeństwo ' + pretty(current.value.date)]
+      return null
+    })
+    setInterval(() => { if (document.visibilityState === 'visible') loadInbox() }, 60000)
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadInbox() })
+
     /* ---------- służby („Zaangażuj się”) ---------- */
     const serveView = ref(false), mEdit = ref(null), memberNames = ref([])
     const serve = Vue.reactive({ list: [], busy: false, error: '' })
@@ -2738,16 +2866,35 @@ createApp({
       serveView.value = true; scrollTo(0, 0); loadServe()
     }
     const serveCall = (action, data) => guard(async () => { await api.call(action, data); await loadServe() })
-    const joinMinistry = m => serveCall('joinMinistry', { id: m.id })
+    // Sekcje: najpierw służby szukające chętnych, potem pozostałe.
+    const serveSections = computed(() => [
+      { id: 'seeking', title: 'Szukają chętnych', list: serve.list.filter(m => m.seeking) },
+      { id: 'all', title: serve.list.some(m => m.seeking) ? 'Pozostałe służby' : 'Wszystkie służby', list: serve.list.filter(m => !m.seeking) },
+    ].filter(x => x.list.length))
+    const canCreateMinistry = computed(() => canManage.value || (me.value?.roles || []).includes('lider'))
+    // Lider: dodawanie osób od razu (bez zgłoszenia) i usuwanie ze służby.
+    const addTo = ref(null), addQuery = ref(''), addPeople = ref([])
+    function openAddPerson(m) {
+      addTo.value = m; addQuery.value = ''
+      if (!addPeople.value.length) api.call('ministryPeople').then(r => { addPeople.value = r.people || [] }, e => { error.value = e.message })
+    }
+    const addCandidates = computed(() => {
+      const q = addQuery.value.trim().toLowerCase(), m = addTo.value
+      if (!m) return []
+      return addPeople.value.filter(p => !m.people.some(x => x.id === p.id) && (!q || (p.name + ' ' + (p.grupa || '')).toLowerCase().includes(q)))
+    })
+    const addPerson = p => guard(async () => { const id = addTo.value.id; await api.call('addToMinistry', { id, who: p.id }); await loadServe(); addTo.value = serve.list.find(x => x.id === id) || null })
+    function removeFromMinistry(m, p) { if (confirm('Usunąć ' + p.name + ' ze służby „' + m.name + '”?')) serveCall('decideMinistry', { id: m.id, who: p.id, accept: false }) }
+    const joinMinistry = m => serveCall('joinMinistry', { id: m.id }).then(() => { if (m && serve.list.find(x => x.id === m.id)?.mine === 'pending') api.call('ministryPush', { id: m.id }).catch(() => {}) })
     function leaveMinistry(m) { if (confirm(m.mine === 'active' ? `Zrezygnować ze służby „${m.name}”?` : 'Wycofać zgłoszenie?')) serveCall('leaveMinistry', { id: m.id }) }
     const decideMinistry = (m, p, accept) => serveCall('decideMinistry', { id: m.id, who: p.id, accept })
     function editMinistry(m = null) {
-      mEdit.value = m ? { id: m.id, name: m.name, description: m.description, seeking: m.seeking, leaders: m.leaders.map(l => l.id), isNew: false }
-        : { id: uid(), name: '', description: '', seeking: true, leaders: [], isNew: true }
-      if (canManage.value && !memberNames.value.length) api.call('memberNames').then(r => { memberNames.value = r.people || [] }, () => {})
+      mEdit.value = m ? { id: m.id, name: m.name, description: m.description, seeking: m.seeking, leaders: m.leaders.map(l => l.id), isNew: false, full: !!m.full }
+        : { id: uid(), name: '', description: '', seeking: true, leaders: [], isNew: true, full: true }
+      if (mEdit.value.full && !memberNames.value.length) api.call('memberNames').then(r => { memberNames.value = r.people || [] }, () => {})
     }
     function toggleLeader(id) { const l = mEdit.value.leaders; mEdit.value.leaders = l.includes(id) ? l.filter(x => x !== id) : [...l, id] }
-    const saveMinistry = () => guard(async () => { const m = mEdit.value; await api.call('saveMinistry', canManage.value ? { ...m, leaders: m.leaders.filter(id => memberNames.value.some(p => p.id === id)) } : m); mEdit.value = null; await loadServe() })
+    const saveMinistry = () => guard(async () => { const m = mEdit.value; await api.call('saveMinistry', m.full ? { ...m, leaders: m.leaders.filter(id => memberNames.value.some(p => p.id === id)) } : m); mEdit.value = null; await loadServe() })
     function deleteMinistry() { if (confirm('Usunąć tę służbę razem z listą osób?')) guard(async () => { await api.call('deleteMinistry', { id: mEdit.value.id }); mEdit.value = null; await loadServe() }) }
     // Konto bez imienia i nazwiska (jedno słowo albo puste) — ostrzeżenie przy koncie i w profilu.
     const needsName = computed(() => api.enabled && !!me.value && !/\S+\s+\S+/.test((me.value.name || '').trim()))
@@ -2800,7 +2947,7 @@ createApp({
       try {
         const r = await api.call('notify', { people: notify.ids, ...msg })
         notify.ids = []
-        return r.sent ? ' · powiadomienie wysłane (' + r.sent + ' ' + (r.sent === 1 ? 'telefon' : 'telefony') + ')' : ' · nikt z wybranych nie ma włączonych powiadomień'
+        return ' · powiadomienie wysłane (' + (r.inApp || 0) + ' ' + ((r.inApp || 0) === 1 ? 'osoba' : 'os.') + ' w aplikacji' + (r.sent ? ', ' + r.sent + ' ' + (r.sent === 1 ? 'telefon' : 'telefony') : '') + ')'
       } catch (e) { return ' · powiadomienie nie wyszło: ' + e.message }
     }
 
@@ -3074,16 +3221,26 @@ createApp({
 
     // Link z powiadomienia (?ogloszenie=id albo ?wydarzenie=id): po wczytaniu danych otwiera wskazaną rzecz.
     const link = new URLSearchParams(location.search)
-    const linkAnn = link.get('ogloszenie'), linkEvent = link.get('wydarzenie')
-    if (linkAnn || linkEvent) {
+    const LINK_KEYS = Object.keys(LINK_KIND)
+    const linkKey = LINK_KEYS.find(k => link.get(k))
+    if (linkKey) {
+      try { localStorage.setItem('kns-link', JSON.stringify({ kind: linkKey, id: link.get(linkKey), at: Date.now() })) } catch { /* tryb prywatny */ }
+      history.replaceState(null, '', location.pathname)
+    }
+    const pendingLink = ref(null)
+    try {
+      const saved = JSON.parse(localStorage.getItem('kns-link') || 'null')
+      if (saved && Date.now() - saved.at < 3 * 3600e3) pendingLink.value = saved
+      else localStorage.removeItem('kns-link')
+    } catch { /* tryb prywatny */ }
+    if (pendingLink.value) {
       const stop = watch(ready, ok => {
         if (!ok) return
         stop?.()
-        history.replaceState(null, '', location.pathname)
-        const a = linkAnn && announcements.value.find(x => x.id === linkAnn)
-        const e = linkEvent && events.value.find(x => x.id === linkEvent)
-        if (a) openAnn(a)
-        else if (e) openEvent(e)
+        const { kind, id } = pendingLink.value
+        pendingLink.value = null
+        try { localStorage.removeItem('kns-link') } catch { /* tryb prywatny */ }
+        openLink(new URLSearchParams({ [kind]: id }))
       }, { immediate: true })
     }
 
@@ -3099,6 +3256,9 @@ createApp({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
+      shareLink, shareTarget, toast, pendingLink, LINK_KIND, linkedMinistry,
+      serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
+      inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,

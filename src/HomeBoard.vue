@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
-import { calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
+import { copyLink, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
 import { videoInfo } from '../mobile/church.js'
 
 // Strona startowa (wzór: pulpit z powitaniem, pasem kart i tygodniem): najbliższe nabożeństwo i komunikaty
@@ -45,6 +45,8 @@ const until = computed(() => {
 // Ogłoszenie w okienku: grafika, treść i film (wgrany gra od razu; YouTube/Vimeo — w przeglądarce).
 const shown = ref(null)
 const vid = computed(() => videoInfo(shown.value?.video))
+const copied = ref(false)
+async function share(id) { if (await copyLink('ogloszenie', id)) { copied.value = true; setTimeout(() => { copied.value = false }, 2500) } }
 function openService(id) { if (canUse('planner')) { plannerRequest.value = { id }; role.value = 'planner' } else openCalendar({ kind: 'service', id }) }
 function openCalendar(req = null) { if (canUse('calendar')) { calendarRequest.value = req; role.value = 'calendar' } }
 function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalendar({ kind: it.kind, id: it.id, date: it.date }) }
@@ -124,6 +126,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
         <span>▶ Obejrzyj film ({{ vid.kind === 'youtube' ? 'YouTube' : 'Vimeo' }}) — otworzy się w przeglądarce</span>
       </a>
       <a v-if="shown.link" class="kh-modal-link" :href="shown.link" target="_blank" rel="noopener">{{ shown.linkText || 'Otwórz link' }} ›</a>
+      <button class="kh-link kh-share" title="Kopiuj link — po zalogowaniu otworzy to ogłoszenie" @click="share(shown.id)"><Icon name="link" />{{ copied ? 'Skopiowano link' : 'Kopiuj link do ogłoszenia' }}</button>
     </div>
   </div>
 </template>

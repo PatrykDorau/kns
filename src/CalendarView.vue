@@ -6,7 +6,7 @@ import SyncButton from './SyncButton.vue'
 import ProgramEditor from './ProgramEditor.vue'
 import NotifyPicker from './NotifyPicker.vue'
 import { addMinutes, category, categoryName, programFrom } from '../mobile/church.js'
-import { access, notifyPeople, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
+import { copyLink, access, notifyPeople, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
 
 // Kalendarz życia kościoła: nabożeństwa i inne wydarzenia. Wydarzenia zmieniają osoby z prawem edycji;
 // nabożeństwo otwiera się w Organizacji nabożeństw (tam są pieśni, załączniki i program).
@@ -108,10 +108,12 @@ async function save() {
       const when = asDate(ev.date).toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + (ev.time ? ', ' + ev.time : '')
       const r = await notifyPeople(notifyIds.value, { title: ev.title || typeOf(ev.type).name, body: [when, ev.place].filter(Boolean).join(' · '), url: './?wydarzenie=' + encodeURIComponent(ev.id) })
       if (r.error) message.value += ' Powiadomienie nie wyszło: ' + r.error
-      else { message.value += r.sent ? ` Powiadomienie wysłane (${r.sent} ${r.sent === 1 ? 'telefon' : 'telefony'}).` : ' Nikt z wybranych nie ma włączonych powiadomień.'; notifyIds.value = [] }
+      else { message.value += ` Powiadomienie wysłane (${r.inApp || 0} os. w aplikacji${r.sent ? `, ${r.sent} ${r.sent === 1 ? 'telefon' : 'telefony'}` : ''}).`; notifyIds.value = [] }
     }
   } finally { busy.value = false }
 }
+const copied = ref('')
+async function share(kind, id) { if (await copyLink(kind, id)) { copied.value = id; setTimeout(() => { if (copied.value === id) copied.value = '' }, 2500) } }
 async function remove() {
   if (!confirm('Usunąć to wydarzenie z kalendarza?')) return
   busy.value = true
@@ -173,7 +175,7 @@ onMounted(() => {
 
       <section class="props form cal-side">
         <div v-if="pickedService" class="cal-detail">
-          <h2>Nabożeństwo</h2>
+          <h2 class="with-link">Nabożeństwo<button class="small" title="Kopiuj link — po zalogowaniu otworzy to nabożeństwo" @click="share('nabozenstwo', pickedService.id)"><Icon name="link" />{{ copied === pickedService.id ? 'Skopiowano' : 'Kopiuj link' }}</button></h2>
           <p class="big">{{ pretty(pickedService.date) }}, {{ pickedService.time || DEFAULT_TIME }} · {{ pickedService.place || DEFAULT_PLACE }}</p>
           <p v-if="pickedService.sermonTitle || pickedService.passage">{{ [pickedService.sermonTitle, pickedService.passage].filter(Boolean).join(' · ') }}<template v-if="pickedService.speaker"> — {{ pickedService.speaker }}</template></p>
           <ol v-if="pickedService.program?.length" class="tl">
@@ -184,7 +186,7 @@ onMounted(() => {
         </div>
 
         <template v-else-if="draft">
-          <h2>{{ isNew ? 'Nowe wydarzenie' : 'Wydarzenie' }}</h2>
+          <h2 class="with-link">{{ isNew ? 'Nowe wydarzenie' : 'Wydarzenie' }}<button v-if="!isNew" class="small" title="Kopiuj link — po zalogowaniu otworzy to wydarzenie" @click="share('wydarzenie', draft.id)"><Icon name="link" />{{ copied === draft.id ? 'Skopiowano' : 'Kopiuj link' }}</button></h2>
           <p v-if="!canEdit" class="note">Tylko podgląd — wydarzenia zmieniają osoby z prawem edycji.</p>
           <fieldset class="plainset" :disabled="!canEdit">
             <div class="grid2">
@@ -242,4 +244,5 @@ onMounted(() => {
 .plainset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .checkrow { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .checkrow input { width: auto; }
+.with-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 </style>

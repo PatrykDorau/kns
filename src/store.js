@@ -66,6 +66,13 @@ export const loadPublicPreview = () => (cloud ? cloud.publicPreview() : Promise.
 export const loadPeople = () => (cloud ? cloud.people() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 export const setPerson = (email, status, roles) => (cloud ? cloud.setPerson(email, status, roles) : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 export const loadDirectory = () => (cloud ? cloud.directory() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
+// Link do konkretnej rzeczy na stronie (po zalogowaniu otwiera ją od razu) — do wysłania komuś.
+export async function copyLink(kind, id) {
+  const url = 'https://kns-nabo.netlify.app/?' + kind + '=' + encodeURIComponent(id)
+  try { await navigator.clipboard.writeText(url); return url } catch { return '' }
+}
+export const loadInbox = () => (cloud ? cloud.inbox() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
+export const readInbox = ids => (cloud ? cloud.inboxRead(ids) : Promise.resolve({ ok: true }))
 export const notifyPeople = (people, msg) => (cloud ? cloud.notify(people, msg) : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 export const serviceModal = ref(false) // okno „Wczytaj nabożeństwo”
 export const plannerTarget = ref(null) // nabożeństwo edytowane w organizacji — tam trafia pieśń dodana z bazy

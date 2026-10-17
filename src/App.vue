@@ -10,6 +10,7 @@ import PeopleView from './PeopleView.vue'
 import HomeBoard from './HomeBoard.vue'
 import SermonThoughts from './SermonThoughts.vue'
 import GuestBoard from './GuestBoard.vue'
+import InboxBell from './InboxBell.vue'
 import SyncButton from './SyncButton.vue'
 import * as store from './store.js'
 import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init, planAlert, planReady, role, serviceModal, services, sharedStatus, syncShared, syncing, googleExpired, googleError, loginGoogle, logoutGoogle } from './store.js'
@@ -54,6 +55,7 @@ const TILES = [
         <template v-if="ready && access.status === 'active'">
           <button v-if="googleExpired" class="small primary" @click="loginGoogle">Zaloguj ponownie</button>
           <button v-else class="kh-ib" :class="{ spin: syncing }" :disabled="syncing" :title="(access.offline ? 'Bez internetu — ostatnie sprawdzenie. ' : '') + (sharedStatus || 'Synchronizuj z bazą danych')" aria-label="Synchronizuj" @click="syncShared"><Icon name="refresh" /></button>
+          <InboxBell />
           <button v-if="access.manage" class="kh-ib" title="Osoby — zatwierdzanie kont i rangi" aria-label="Osoby" @click="role = 'people'"><Icon name="users" /></button>
           <span class="kh-me" :title="access.email">
             <span class="kh-av">{{ initials }}</span>
