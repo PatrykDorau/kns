@@ -1,5 +1,6 @@
 -- Grafiki i filmy ogłoszeń (filmy do 50 MB): publiczny kosz „ogloszenia” w Supabase Storage (odczyt przez adres pliku — nazwy są losowe),
--- zapis i usuwanie tylko dla osób z prawem edycji. Telefon zmniejsza zdjęcie przed wysłaniem (do ~1600 px, JPEG).
+-- wgrywać może każdy zatwierdzony członek (grafika do zgłaszanego ogłoszenia/wydarzenia); zmieniać i usuwać — autor pliku
+-- albo osoba z prawem edycji. Telefon zmniejsza zdjęcie przed wysłaniem (do ~1600 px, JPEG).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('ogloszenia', 'ogloszenia', true, 52428800, array['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'])
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
@@ -8,11 +9,11 @@ drop policy if exists ogloszenia_insert on storage.objects;
 drop policy if exists ogloszenia_update on storage.objects;
 drop policy if exists ogloszenia_delete on storage.objects;
 create policy ogloszenia_insert on storage.objects for insert to authenticated
-  with check (bucket_id = 'ogloszenia' and public.has_flag('edit'));
+  with check (bucket_id = 'ogloszenia' and public.is_active());
 create policy ogloszenia_update on storage.objects for update to authenticated
-  using (bucket_id = 'ogloszenia' and public.has_flag('edit'));
+  using (bucket_id = 'ogloszenia' and (public.has_flag('edit') or owner_id = auth.uid()::text));
 create policy ogloszenia_delete on storage.objects for delete to authenticated
-  using (bucket_id = 'ogloszenia' and public.has_flag('edit'));
+  using (bucket_id = 'ogloszenia' and (public.has_flag('edit') or owner_id = auth.uid()::text));
 
 -- Podgląd publiczny: ogłoszenia z grafiką i filmem.
 create or replace function public.public_preview() returns jsonb

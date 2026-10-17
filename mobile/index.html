@@ -2,6 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
+<base href="/">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1013">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -450,6 +451,12 @@
   @media (min-width: 900px) { .lc-video { aspect-ratio: auto; height: 232px; margin-top: auto; } }
   .listen-set { margin-top: 18px; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
   .listen-set summary { cursor: pointer; font-weight: 600; }
+  .qr-panel { align-items: center; text-align: center; }
+  .qr-panel .np-head { align-self: stretch; }
+  .qr-img { width: min(320px, 80vw); height: auto; margin: 6px auto; border-radius: 12px; background: #fff; image-rendering: pixelated; }
+  .qr-url { display: block; color: var(--muted); font-size: 12px; word-break: break-all; }
+  .qr-actions { gap: 8px; width: 100%; justify-content: center; }
+  .qr-actions .primary { width: auto; }
   .mn-sec { margin: 18px 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .mn-team { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .mn-team > small { display: block; margin-bottom: 6px; color: var(--muted); }
@@ -711,6 +718,7 @@
   <symbol id="monitor" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM8 21h8M12 17v4"/></symbol>
   <symbol id="pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
   <symbol id="info" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.5h.01"/></symbol>
+  <symbol id="qr" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z"/></symbol>
   <symbol id="link" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></symbol>
   <symbol id="pin" viewBox="0 0 24 24"><path d="M12 16v6M8 3h8l-1 6 3 4H6l3-4-1-6Z"/></symbol>
   <symbol id="alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/></symbol>
@@ -758,6 +766,7 @@
       <button v-if="ready" class="ghost" :class="{ 'narrow-only': !peopleView }" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
     <button v-if="ready && api.enabled && !current && !currentEvent && !currentAnn && !currentProto && !song && !tplType" class="ghost bell narrow-only" aria-label="Powiadomienia" title="Powiadomienia" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="count">{{ unread }}</span></button>
+    <button v-if="shareTarget && shareTarget[0] !== 'nabozenstwo'" class="ghost share-btn" title="Kod QR — do pobrania i wstawienia na grafikę" aria-label="Kod QR" @click="openQr(...shareTarget)"><svg class="i"><use href="#qr"/></svg><span>QR</span></button>
     <button v-if="shareTarget" class="ghost share-btn" title="Kopiuj link — można go komuś wysłać" aria-label="Kopiuj link" @click="shareLink(...shareTarget)"><svg class="i"><use href="#link"/></svg><span>Link</span></button>
   </header>
   <div v-if="toast" class="toast" role="status">{{ toast }}</div>
@@ -843,7 +852,7 @@
       </span>
       <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
     </div>
-    <p v-if="pendingLink" class="pending-note"><svg class="i"><use href="#link"/></svg>Ktoś udostępnił Ci {{ LINK_KIND[pendingLink.kind] || 'link' }} — po zalogowaniu od razu się otworzy.</p>
+    <p v-if="pendingLink && pendingLink.kind" class="pending-note"><svg class="i"><use href="#link"/></svg>{{ LINK_LABEL[pendingLink.kind] ? 'Ktoś udostępnił Ci ' + LINK_LABEL[pendingLink.kind] : 'Otwierasz link do aplikacji' }} — po zalogowaniu od razu się otworzy.</p>
     <p class="note">{{ api.enabled ? 'Zaloguj się kontem Google. Nowe konto czeka na zatwierdzenie przez administratora kościoła.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
     <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
     <div v-if="wrongOrigin" class="origin-warn">
@@ -1920,6 +1929,21 @@
     </div>
   </div>
 
+  <!-- Kod QR do wydarzenia / ogłoszenia: podgląd, pobranie PNG -->
+  <div v-if="qr" class="np-overlay" @click.self="qr = null">
+    <div class="np-panel qr-panel" role="dialog" aria-label="Kod QR">
+      <div class="np-head"><b>Kod QR</b><button class="icon" aria-label="Zamknij" @click="qr = null"><svg class="i"><use href="#x"/></svg></button></div>
+      <p class="note" style="margin-top:0">{{ qr.title }} — po zeskanowaniu otworzy się {{ qr.kind === 'wydarzenie' ? 'to wydarzenie' : 'to ogłoszenie' }} (po zalogowaniu).</p>
+      <img v-if="qr.png" class="qr-img" :src="qr.png" alt="Kod QR">
+      <p v-else class="note">{{ qr.error || 'Przygotowuję…' }}</p>
+      <small class="qr-url">{{ qr.url }}</small>
+      <div class="np-foot qr-actions">
+        <button @click="shareLink(qr.kind, qr.id, qr.title)"><svg class="i"><use href="#link"/></svg>Kopiuj link</button>
+        <a v-if="qr.png" class="button primary" :href="qr.png" :download="qr.file"><svg class="i"><use href="#download"/></svg>Pobierz PNG</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Powiadomienia w aplikacji (zawsze włączone; telefon i e-mail — dodatkowo, w ustawieniach) -->
   <div v-if="inboxOpen" class="np-overlay" @click.self="inboxOpen = false">
     <div class="np-panel" role="dialog" aria-label="Powiadomienia">
@@ -2083,7 +2107,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.62 · 17.10.2026'
+const VERSION = '2.63 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3063,9 +3087,35 @@ createApp({
     const toast = ref('')
     let toastTimer
     function showToast(t) { toast.value = t; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.value = '' }, 2500) }
+    // Adres do udostępnienia: /wydarzenie/<id>, /ogloszenie/<id>, /nabozenstwo/<id>; służba — lista z zaznaczeniem.
+    const shareUrl = (kind, id) => location.origin + (kind === 'sluzba' ? '/zaangazuj-sie?sluzba=' : '/' + kind + '/') + encodeURIComponent(id)
+    /* ---------- kod QR (biblioteka qrcode-generator, wczytywana dopiero przy pierwszym użyciu) ---------- */
+    const qr = ref(null)
+    let qrLib = null
+    const loadQrLib = () => qrLib || (qrLib = new Promise((ok, bad) => {
+      const el = document.createElement('script')
+      el.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js'
+      el.onload = () => ok(window.qrcode); el.onerror = () => { qrLib = null; bad(new Error('Nie udało się wczytać generatora kodów QR — sprawdź internet.')) }
+      document.head.appendChild(el)
+    }))
+    // PNG 1200×1200: czarne moduły na białym tle z marginesem — dobrze się skanuje także z wydruku i rzutnika.
+    function qrPng(text) {
+      const code = window.qrcode(0, 'M'); code.addData(text); code.make()
+      const n = code.getModuleCount(), quiet = 4, size = 1200, cell = Math.floor(size / (n + quiet * 2)), off = Math.floor((size - cell * n) / 2)
+      const c = document.createElement('canvas'); c.width = c.height = size
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, size, size); g.fillStyle = '#000'
+      for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (code.isDark(r, k)) g.fillRect(off + k * cell, off + r * cell, cell, cell)
+      return c.toDataURL('image/png')
+    }
+    async function openQr(kind, id, title) {
+      const url = shareUrl(kind, id)
+      const slug = String(title || kind).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
+      qr.value = { kind, id, title: title || '', url, png: '', error: '', file: 'qr-' + (slug || kind) + '.png' }
+      try { await loadQrLib(); if (qr.value?.url === url) qr.value.png = qrPng(url) } catch (e) { if (qr.value) qr.value.error = e.message }
+    }
     // Udostępnienie: na telefonie systemowe „Udostępnij”, na komputerze — kopia do schowka.
     async function shareLink(kind, id, title) {
-      const url = location.origin + location.pathname + '?' + kind + '=' + encodeURIComponent(id)
+      const url = shareUrl(kind, id)
       if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) { try { await navigator.share({ title: title || 'KNS Nabo', url }); return } catch (e) { if (e.name === 'AbortError') return } }
       try { await navigator.clipboard.writeText(url); showToast('Skopiowano link — wklej go w wiadomości') } catch { prompt('Skopiuj link:', url) }
     }
@@ -3494,29 +3544,114 @@ createApp({
     })
 
     // Link z powiadomienia (?ogloszenie=id albo ?wydarzenie=id): po wczytaniu danych otwiera wskazaną rzecz.
-    const link = new URLSearchParams(location.search)
-    const LINK_KEYS = Object.keys(LINK_KIND)
-    const linkKey = LINK_KEYS.find(k => link.get(k))
-    if (linkKey) {
-      try { localStorage.setItem('kns-link', JSON.stringify({ kind: linkKey, id: link.get(linkKey), at: Date.now() })) } catch { /* tryb prywatny */ }
-      history.replaceState(null, '', location.pathname)
+    /* ---------- adresy podstron ---------- */
+    // Każdy widok ma swój adres (/kalendarz, /wydarzenie/<id>, /ogloszenie/<id>/edycja…), więc „wstecz” w przeglądarce
+    // wraca do poprzedniego widoku w aplikacji (a nie do logowania Google), a adres można komuś wysłać.
+    // Stare linki (?wydarzenie=id, ?ogloszenie=id, ?sluzby=1…) dalej działają.
+    const ROUTE_ITEM = { wydarzenie: 'wydarzenie', ogloszenie: 'ogloszenie', nabozenstwo: 'nabozenstwo' }
+    const routePath = computed(() => {
+      const ed = on => (on ? '/edycja' : '')
+      if (current.value) return services.value.some(x => x.id === current.value.id) ? '/nabozenstwo/' + current.value.id + ed(svcEditing.value && canEdit.value) : '/nabozenstwo/nowe'
+      if (currentEvent.value) return eventSavedOnce.value ? '/wydarzenie/' + currentEvent.value.id + ed(eventEditing.value && eventEditable.value) : '/wydarzenie/nowe'
+      if (currentAnn.value) return annSavedOnce.value ? '/ogloszenie/' + currentAnn.value.id + ed(annEditing.value) : '/ogloszenie/nowe'
+      if (currentProto.value) return protoSavedOnce.value ? '/protokol/' + currentProto.value.id : '/protokol/nowy'
+      if (song.value) return song.value.isNew ? '/piesn/nowa' : '/piesn/' + song.value.id
+      if (tplType.value || tplView.value) return '/szablony'
+      if (annView.value) return '/ogloszenia'
+      if (protoView.value) return '/protokoly'
+      if (songView.value) return '/piesni'
+      if (peopleView.value) return '/osoby'
+      if (gcalView.value) return '/kalendarz-google'
+      if (profileView.value) return '/profil'
+      if (serveView.value) return '/zaangazuj-sie'
+      if (listenView.value) return '/posluchaj'
+      if (calView.value) return '/kalendarz'
+      if (moreView.value) return '/wiecej'
+      return '/'
+    })
+    // Adres z paska (albo stary link z parametrem) → ścieżka widoku.
+    function linkToPath(loc) {
+      const q = new URLSearchParams(loc.search)
+      for (const k of Object.keys(ROUTE_ITEM)) if (q.get(k)) return '/' + k + '/' + encodeURIComponent(q.get(k))
+      if (q.get('sluzba')) return '/zaangazuj-sie?sluzba=' + encodeURIComponent(q.get('sluzba'))
+      if (q.get('sluzby')) return '/zaangazuj-sie'
+      return loc.pathname.replace(/\/+$/, '') || '/'
+    }
+    function resetViews() {
+      current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
+      tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; fromCal = false
+    }
+    let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
+    async function applyRoute(path) {
+      routing++
+      try {
+        const [pathname, query = ''] = path.split('?')
+        const [, view = '', rawId = '', mode = ''] = pathname.split('/')
+        const id = decodeURIComponent(rawId), edit = mode === 'edycja'
+        resetViews()
+        if (view === 'kalendarz') openCalendar()
+        else if (view === 'wydarzenie') {
+          const e = [...events.value, ...pendingEvents.value].find(x => x.id === id)
+          if (e) { calView.value = true; openEvent(e); if (edit && eventEditable.value) eventEditing.value = true } else if (id !== 'nowe') { openCalendar(); error.value = 'Nie znaleziono tego wydarzenia — mogło zostać usunięte albo nie masz do niego dostępu.' } else openCalendar()
+        } else if (view === 'nabozenstwo') {
+          const sv = services.value.find(x => x.id === id)
+          if (sv) { open(sv); if (edit && canEdit.value) svcEditing.value = true }
+        } else if (view === 'ogloszenia') openAnns()
+        else if (view === 'ogloszenie') {
+          annView.value = true
+          const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
+          if (x) { openAnn(x); if (edit && annEditable.value) annEditing.value = true } else if (id !== 'nowe') error.value = 'Nie znaleziono tego ogłoszenia — mogło zostać usunięte albo nie masz do niego dostępu.'
+        } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(query.includes('sluzba=') ? query : 'sluzby=1'))
+        else if (view === 'posluchaj') openListen()
+        else if (view === 'profil') openProfile()
+        else if (view === 'wiecej') openMore()
+        else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); const sg = view === 'piesn' && songs.value.find(x => x.id === id); if (sg) openSong(sg) }
+        else if (view === 'osoby') { moreView.value = true; if (canManage.value) openPeople() }
+        else if (view === 'protokoly' || view === 'protokol') {
+          moreView.value = true; openProtocols()
+          if (view === 'protokol' && id !== 'nowy') { await loadProtocols(); const p = protocolsRaw.value.find(x => x.id === id); if (p) openProto(p) }
+        } else if (view === 'szablony') { moreView.value = true; openTemplates() }
+        else if (view === 'kalendarz-google') openGcal()
+        await nextTick()
+      } finally { routing-- }
+    }
+    // zmiana widoku → nowy wpis w historii (albo podmiana, gdy to przejście z paska)
+    watch(routePath, p => {
+      if (!ready.value || camera.value) return
+      const now = location.pathname + location.search
+      if (p === location.pathname && (!location.search || routing)) return
+      if (routing) history.replaceState(null, '', p)
+      else history.pushState(null, '', p)
+    })
+    const anyDirty = () => (current.value && dirty.value) || (currentEvent.value && eventDirty.value) || (currentAnn.value && annDirty.value) || (song.value && songDirty.value)
+    window.addEventListener('popstate', () => {
+      if (!ready.value || camera.value) return
+      if (anyDirty() && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) { history.pushState(null, '', routePath.value); return }
+      applyRoute(linkToPath(location))
+    })
+    // Adres przy wejściu (także link otwarty przed zalogowaniem): pamiętamy go, bo logowanie Google wraca na stronę główną.
+    const LINK_LABEL = { wydarzenie: 'wydarzenie', ogloszenie: 'ogłoszenie', nabozenstwo: 'nabożeństwo', 'zaangazuj-sie': 'listę służb' }
+    const startPath = linkToPath(location)
+    if (startPath !== '/') {
+      try { localStorage.setItem('kns-link', JSON.stringify({ path: startPath, at: Date.now() })) } catch { /* tryb prywatny */ }
     }
     const pendingLink = ref(null)
     try {
       const saved = JSON.parse(localStorage.getItem('kns-link') || 'null')
-      if (saved && Date.now() - saved.at < 3 * 3600e3) pendingLink.value = saved
+      if (saved?.path && Date.now() - saved.at < 3 * 3600e3) pendingLink.value = { ...saved, kind: saved.path.split('/')[1].split('?')[0] }
       else localStorage.removeItem('kns-link')
     } catch { /* tryb prywatny */ }
-    if (pendingLink.value) {
-      const stop = watch(ready, ok => {
-        if (!ok) return
-        stop?.()
-        const { kind, id } = pendingLink.value
-        pendingLink.value = null
-        try { localStorage.removeItem('kns-link') } catch { /* tryb prywatny */ }
-        openLink(new URLSearchParams({ [kind]: id }))
-      }, { immediate: true })
-    }
+    const stopStart = watch(ready, ok => {
+      if (!ok) return
+      stopStart?.()
+      const target = pendingLink.value?.path
+      pendingLink.value = null
+      try { localStorage.removeItem('kns-link') } catch { /* tryb prywatny */ }
+      // pod linkiem strona główna — „wstecz” wraca do aplikacji, nie do logowania Google
+      if (target) { history.replaceState(null, '', '/'); history.pushState(null, '', target.split('?')[0]); applyRoute(target) }
+      else if (location.pathname !== '/' || location.search) history.replaceState(null, '', '/')
+    }, { immediate: true })
 
     // Klasy na #app (kontener montowania — Vue nie kompiluje jego atrybutów): pasek zakładek, strona startowa, wąski widok.
     Vue.watchEffect(() => {
@@ -3531,7 +3666,7 @@ createApp({
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, toast, pendingLink, LINK_KIND, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,

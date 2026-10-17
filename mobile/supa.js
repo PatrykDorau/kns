@@ -158,7 +158,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
     // Logowanie Google przez Supabase: strona przechodzi do Google i wraca już zalogowana.
     async signIn(choose = false) {
       const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: {
-        redirectTo: location.origin + location.pathname,
+        redirectTo: location.origin + '/',
         queryParams: choose || !who() ? { prompt: 'select_account' } : { login_hint: who() },
       } })
       if (error) throw toError(error)

@@ -9,3 +9,84 @@
 
 [functions]
   directory = "netlify/functions"
+
+# Adresy podstron aplikacji (/kalendarz, /wydarzenie/<id>…) — ta sama strona; widok wybiera aplikacja.
+[[redirects]]
+  from = "/kalendarz"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/kalendarz-google"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/wydarzenie/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/nabozenstwo/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/ogloszenia"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/ogloszenie/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/zaangazuj-sie"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/posluchaj"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/profil"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/wiecej"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/piesni"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/piesn/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/osoby"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/protokoly"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/protokol/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/szablony"
+  to = "/index.html"
+  status = 200

@@ -67,8 +67,20 @@ export const loadPeople = () => (cloud ? cloud.people() : Promise.resolve({ erro
 export const setPerson = (email, status, roles) => (cloud ? cloud.setPerson(email, status, roles) : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 export const loadDirectory = () => (cloud ? cloud.directory() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 // Link do konkretnej rzeczy na stronie (po zalogowaniu otwiera ją od razu) — do wysłania komuś.
+export const linkTo = (kind, id) => 'https://kns-nabo.netlify.app/' + kind + '/' + encodeURIComponent(id)
+// Kod QR z linkiem — PNG 1200×1200 do pobrania (np. na grafikę ogłoszenia).
+export async function downloadQr(kind, id, title) {
+  const { default: qrcode } = await import('qrcode-generator')
+  const code = qrcode(0, 'M'); code.addData(linkTo(kind, id)); code.make()
+  const n = code.getModuleCount(), size = 1200, cell = Math.floor(size / (n + 8)), off = Math.floor((size - cell * n) / 2)
+  const c = document.createElement('canvas'); c.width = c.height = size
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, size, size); g.fillStyle = '#000'
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (code.isDark(r, k)) g.fillRect(off + k * cell, off + r * cell, cell, cell)
+  const slug = String(title || kind).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
+  const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'qr-' + (slug || kind) + '.png'; a.click()
+}
 export async function copyLink(kind, id) {
-  const url = 'https://kns-nabo.netlify.app/?' + kind + '=' + encodeURIComponent(id)
+  const url = linkTo(kind, id)
   try { await navigator.clipboard.writeText(url); return url } catch { return '' }
 }
 export const loadInbox = () => (cloud ? cloud.inbox() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))

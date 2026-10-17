@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
-import { copyLink, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
+import { copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
 import { videoInfo } from '../mobile/church.js'
 
 // Strona startowa (wzór: pulpit z powitaniem, pasem kart i tygodniem): najbliższe nabożeństwo i komunikaty
@@ -126,7 +126,10 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
         <span>▶ Obejrzyj film ({{ vid.kind === 'youtube' ? 'YouTube' : 'Vimeo' }}) — otworzy się w przeglądarce</span>
       </a>
       <a v-if="shown.link" class="kh-modal-link" :href="shown.link" target="_blank" rel="noopener">{{ shown.linkText || 'Otwórz link' }} ›</a>
-      <button class="kh-link kh-share" title="Kopiuj link — po zalogowaniu otworzy to ogłoszenie" @click="share(shown.id)"><Icon name="link" />{{ copied ? 'Skopiowano link' : 'Kopiuj link do ogłoszenia' }}</button>
+      <span class="kh-share-row">
+        <button class="kh-link kh-share" title="Kopiuj link — po zalogowaniu otworzy to ogłoszenie" @click="share(shown.id)"><Icon name="link" />{{ copied ? 'Skopiowano link' : 'Kopiuj link do ogłoszenia' }}</button>
+        <button class="kh-link kh-share" title="Pobiera kod QR z linkiem — np. na grafikę" @click="downloadQr('ogloszenie', shown.id, shown.title)"><Icon name="qr" />Kod QR</button>
+      </span>
     </div>
   </div>
 </template>
