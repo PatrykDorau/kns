@@ -6,7 +6,7 @@ with t as (select (extract(epoch from now()) * 1000)::bigint as ms)
 insert into public.announcements (id, audience, important, until, data, updated, updated_by)
 select id, audience, important, until,
   jsonb_build_object('id', id, 'title', title, 'text', body, 'audience', audience, 'important', important,
-    'until', coalesce(until::text, ''), 'date', (select ms from t) - age * 3600000, 'author', 'Test'),
+    'until', coalesce(until::text, ''), 'date', (select ms from t) - age * 3600000, 'author', 'Test', 'updated', (select ms from t)),
   (select ms from t), 'test'
 from (values
   ('test-a1', 'members', true,  current_date + 14, 'Zmiana miejsca nabożeństwa',
@@ -29,7 +29,7 @@ with t as (select (extract(epoch from now()) * 1000)::bigint as ms)
 insert into public.events (id, type, date, is_public, data, updated, updated_by)
 select id, type, current_date + d, null,
   jsonb_build_object('id', id, 'type', type, 'title', title, 'date', (current_date + d)::text, 'time', time, 'place', place,
-    'description', body, 'program', '[]'::jsonb, 'createdBy', 'test'),
+    'description', body, 'program', '[]'::jsonb, 'createdBy', 'test', 'updated', (select ms from t)),
   (select ms from t), 'test'
 from (values
   ('test-e1', 'studenckie',   1, 'Spotkanie studenckie',        '19:00', 'Klub Studnia',      'Rozważanie Listu do Filipian, rozdział 2.'),

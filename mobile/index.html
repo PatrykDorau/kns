@@ -21,8 +21,14 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
-  body { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 440' preserveAspectRatio='xMidYMax slice'%3E%3Cdefs%3E%3CradialGradient id='s'%3E%3Cstop offset='0' stop-color='rgb(242,165,60)' stop-opacity='0.16'/%3E%3Cstop offset='0.7' stop-color='rgb(242,165,60)' stop-opacity='0.07'/%3E%3Cstop offset='1' stop-color='rgb(242,165,60)' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='v' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='white' stop-opacity='0.075'/%3E%3Cstop offset='1' stop-color='white' stop-opacity='0.03'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='1128.4' cy='232' r='170' fill='url(%23s)'/%3E%3Cpath d='M-80 442 L44.2 232 L95.8 311.6 L137.2 279 L260.5 442ZM545.1 442 L437.5 272 L392.7 336.4 L356.9 310.1 L250 442ZM520 442 L652.5 212 L707.5 299.2 L751.7 263.5 L883.2 442ZM1197.8 442 L1081.9 252 L1033.7 324 L995.1 294.6 L880 442ZM1180 442 L1304.2 222 L1355.8 305.4 L1397.2 271.3 L1520.5 442ZM1767.8 442 L1651.9 262 L1603.7 330.2 L1565.1 302.3 L1450 442Z' fill='rgba(255,255,255,0.03)'/%3E%3Cpath d='M-140 442 L33.9 192 L106.1 286.8 L164.1 248 L336.7 442ZM761.3 442 L604 242 L538.6 317.8 L486.2 286.8 L330 442ZM1671.3 442 L1514 232 L1448.6 311.6 L1396.2 279 L1240 442Z' fill='rgba(255,255,255,0.04)'/%3E%3Cpath d='M880 442 L1128.4 112 L1231.6 237.1 L1314.4 185.9 L1561 442Z' fill='url(%23v)'/%3E%3Cpath d='M880 442 L1128.4 112 L1231.6 237.1 L1314.4 185.9 L1561 442' fill='none' stroke='rgba(242,165,60,0.45)' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M-40 442 L84.2 372 L135.8 398.5 L177.2 387.7 L300.5 442ZM605.9 442 L465.1 352 L406.7 386.1 L359.7 372.2 L220 442ZM560 442 L692.5 362 L747.5 392.3 L791.7 379.9 L923.2 442ZM1308.6 442 L1159.6 347 L1097.6 383 L1048 368.3 L900 442ZM1250 442 L1390.8 357 L1449.2 389.2 L1496.2 376 L1635.9 442ZM1840.5 442 L1716.3 372 L1664.7 398.5 L1623.3 387.7 L1500 442Z' fill='rgba(255,255,255,0.045)'/%3E%3C/svg%3E") bottom center / 100% 440px fixed no-repeat, radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%) no-repeat, radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%) no-repeat, radial-gradient(700px 420px at 50% 110%, rgba(62, 199, 176, .05), transparent 70%) fixed no-repeat, var(--bg); color: var(--text); font: 16px/1.45 "Segoe UI Variable Text", system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+  body { background: radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%) no-repeat, radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%) no-repeat, radial-gradient(700px 420px at 50% 110%, rgba(62, 199, 176, .05), transparent 70%) fixed no-repeat, var(--bg); color: var(--text); font: 16px/1.45 "Segoe UI Variable Text", system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
   [v-cloak] { display: none; }
+  /* scena na końcu strony */
+  html { background: var(--bg); } body { background-image: var(--kh-scene), radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%), radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%); background-size: max(100%, 760px) 300px, auto, auto; background-position: center bottom, 0 0, 0 0; background-repeat: no-repeat; background-attachment: fixed, scroll, scroll; min-height: 100vh; }
+  #app { position: relative; min-height: calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding-bottom: 36px; }
+  #app > .version { position: absolute; left: 0; right: 0; bottom: 6px; margin: 0; }
+  #app.tabbed > .version { bottom: 82px; }
+  @media (min-width: 1024px) { body { background-size: max(100%, 1200px) 460px, auto, auto; } #app.tabbed > .version { bottom: 6px; } }
   #app { max-width: 640px; margin: 0 auto; }
   svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   button, input, textarea { font: inherit; color: inherit; }
@@ -347,6 +353,12 @@
   .ann-tag.imp { background: rgba(224, 122, 95, .16); color: #e07a5f; }
   .ann-body { color: var(--muted); font-size: 14px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .ann-body.full { display: block; }
+  .ann-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; margin-bottom: 8px; background: var(--panel2); }
+  .ann-img.edit { aspect-ratio: auto; max-height: 340px; object-fit: contain; margin: 0 0 10px; }
+  .news-card .ann-img { aspect-ratio: 16 / 10; margin-bottom: 4px; }
+  .ann-video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 4px; border-radius: 12px; overflow: hidden; background: #000; }
+  .ann-video video, .ann-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .ann-tag.vid { background: rgba(240, 127, 180, .16); color: var(--pink, #f07fb4); }
   textarea.ann-text { min-height: 160px; }
   .static { cursor: default; }
   .public { margin-top: 8px; text-align: left; }
@@ -402,8 +414,7 @@
   .desktop-mode { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bad-soft); color: var(--bad-text); font-size: 14px; }
   @media (min-width: 720px) { #app { max-width: 760px; } }
   /* powitanie (telefon) */
-  .hello { position: relative; isolation: isolate; margin: 4px 0 14px; min-height: 92px; display: flex; flex-direction: column; justify-content: flex-end; }
-  .hello::after { content: ''; position: absolute; z-index: -1; right: -6px; bottom: -4px; width: min(320px, 72%); aspect-ratio: 640 / 246; background: var(--kh-peak) right bottom / contain no-repeat; pointer-events: none; }
+  .hello { margin: 4px 0 14px; }
   .hello h1 { margin: 0; font: 700 26px/1.2 "Segoe UI Variable Display", system-ui, "Segoe UI", sans-serif; letter-spacing: -.02em; }
   .hello p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
   .start-top .hero { margin-bottom: 14px; }
@@ -659,6 +670,29 @@
       <input id="anTitle" v-model="currentAnn.title" :class="{ invalid: !currentAnn.title.trim() }" autocomplete="off">
       <label for="anText">Treść</label>
       <textarea id="anText" v-model="currentAnn.text" class="ann-text"></textarea>
+      <template v-if="drive.uploadImage || currentAnn.image">
+        <label>Grafika (opcjonalnie)</label>
+        <img v-if="currentAnn.image" class="ann-img edit" :src="currentAnn.image" alt="">
+        <div v-if="drive.uploadImage && annEditable" class="row">
+          <button type="button" :disabled="imgBusy" @click="$refs.annImg.click()"><svg class="i"><use href="#plus"/></svg>{{ imgBusy ? 'Wysyłam…' : currentAnn.image ? 'Zmień grafikę' : 'Dodaj grafikę' }}</button>
+          <button v-if="currentAnn.image" type="button" :disabled="imgBusy" @click="currentAnn.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
+        </div>
+        <input ref="annImg" type="file" accept="image/*" hidden @change="pickAnnImage">
+      </template>
+      <label for="anVideo">Film (opcjonalnie)</label>
+      <div v-if="videoInfo(currentAnn.video)" class="ann-video">
+          <video v-if="videoInfo(currentAnn.video).kind === 'file'" :src="videoInfo(currentAnn.video).src" controls playsinline preload="metadata"></video>
+          <iframe v-else :src="videoInfo(currentAnn.video).embed" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>
+        </div>
+      <template v-if="annEditable">
+        <input v-if="!/\/ogloszenia\//.test(currentAnn.video || '')" id="anVideo" v-model.trim="currentAnn.video" placeholder="Link do YouTube lub Vimeo" autocomplete="off" inputmode="url">
+        <p v-if="currentAnn.video && !videoInfo(currentAnn.video)" class="error" style="margin:6px 0 0">To nie wygląda na link do filmu (YouTube, Vimeo).</p>
+        <div class="row" style="margin-top:8px">
+          <button v-if="drive.uploadFile" type="button" :disabled="vidBusy" @click="$refs.annVid.click()"><svg class="i"><use href="#plus"/></svg>{{ vidBusy ? 'Wysyłam film…' : 'Wgraj film (do 50 MB)' }}</button>
+          <button v-if="currentAnn.video" type="button" :disabled="vidBusy" @click="currentAnn.video = ''"><svg class="i"><use href="#trash"/></svg>Usuń film</button>
+        </div>
+        <input ref="annVid" type="file" accept="video/mp4,video/webm,video/quicktime" hidden @change="pickAnnVideo">
+      </template>
       <label for="anAud">Kto widzi</label>
       <select id="anAud" v-model="currentAnn.audience" class="field">
         <option value="public">Wszyscy — także goście bez konta</option>
@@ -688,7 +722,8 @@
     <button v-if="canAnnounce" class="primary" style="width:100%;margin-bottom:12px" @click="newAnn"><svg class="i"><use href="#plus"/></svg>Nowe ogłoszenie</button>
     <p v-if="!activeAnns.length" class="note">Nie ma aktualnych ogłoszeń.</p>
     <button v-for="a in activeAnns" :key="a.id" class="ann" :class="{ important: a.important }" @click="openAnn(a)">
-      <span class="ann-tags"><span v-if="a.important" class="ann-tag imp">Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
+      <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
+      <span class="ann-tags"><span v-if="a.video" class="ann-tag vid">▶ Film</span><span v-if="a.important" class="ann-tag imp">Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
       <b>{{ a.title }}</b>
       <span class="ann-body">{{ a.text }}</span>
     </button>
@@ -1074,7 +1109,8 @@
           <span class="kh-foot"><span class="kh-until" :class="{ live: countdown?.live }">{{ countdown?.live ? 'W trakcie' : untilText }}</span>{{ nextService.place || DEFAULT_PLACE }}<em v-if="canEdit && missing(nextService).length" class="kh-pill bad">Braki</em></span>
         </button>
         <button v-for="a in importantAnns" :key="a.id" class="kh-notice" @click="openAnn(a)">
-          <span class="kh-tag"><svg class="i"><use href="#info"/></svg>Komunikat rady zboru</span>
+          <img v-if="a.image" class="kh-card-img" :src="a.image" alt="" loading="lazy">
+          <span class="kh-tag"><svg class="i"><use href="#info"/></svg>Komunikat rady zboru<em v-if="a.video" class="kh-film">▶ Film</em></span>
           <b>{{ a.title }}</b>
           <span class="kh-body">{{ a.text }}</span>
           <span class="kh-foot">{{ shortDate(a.date) }}<template v-if="a.until"> · ważne do {{ shortDate(a.until) }}</template></span>
@@ -1087,8 +1123,9 @@
           <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie</button></div>
           <div v-if="boardNews.length" class="kh-anns">
             <button v-for="a in boardNews" :key="a.id" class="kh-ann" @click="openAnn(a)">
-              <span class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
-              <span class="kh-ann-text"><b>{{ a.title }}</b><span>{{ a.text }}</span></span>
+              <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
+              <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
+              <span class="kh-ann-text"><b>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
               <small>{{ shortDate(a.date) }}</small>
             </button>
           </div>
@@ -1138,7 +1175,8 @@
 
       <div v-if="importantAnns.length" class="notices" :class="{ single: importantAnns.length === 1 }" aria-label="Komunikaty rady zboru">
         <button v-for="a in importantAnns" :key="a.id" class="notice" @click="openAnn(a)">
-          <span class="notice-tag"><svg class="i"><use href="#megaphone"/></svg>Komunikat rady zboru</span>
+          <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
+          <span class="notice-tag"><svg class="i"><use href="#megaphone"/></svg>Komunikat rady zboru<em v-if="a.video" class="kh-film">▶ Film</em></span>
           <b>{{ a.title }}</b>
           <span class="notice-text">{{ a.text }}</span>
         </button>
@@ -1165,7 +1203,8 @@
         <p v-if="!homeAnns.length" class="note">Nie ma nowych ogłoszeń.</p>
         <div v-else class="news-grid">
           <button v-for="a in homeAnns" :key="a.id" class="news-card" @click="openAnn(a)">
-            <b>{{ a.title }}</b>
+            <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
+            <b>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b>
             <span>{{ a.text }}</span>
             <small>{{ shortDate(a.date) }}</small>
           </button>
@@ -1301,7 +1340,10 @@
     </div>
     <template v-if="pub.announcements.some(a => !a.important)">
       <div class="section"><h2>Ogłoszenia</h2></div>
-      <div v-for="a in pub.announcements.filter(a => !a.important)" :key="a.id" class="ann static"><b>{{ a.title }}</b><span class="ann-body full">{{ a.text }}</span></div>
+      <div v-for="a in pub.announcements.filter(a => !a.important)" :key="a.id" class="ann static"><img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy"><b>{{ a.title }}</b><span class="ann-body full">{{ a.text }}</span><div v-if="videoInfo(a.video)" class="ann-video">
+          <video v-if="videoInfo(a.video).kind === 'file'" :src="videoInfo(a.video).src" controls playsinline preload="metadata"></video>
+          <iframe v-else :src="videoInfo(a.video).embed" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>
+        </div></div>
     </template>
   </section>
 
@@ -1375,7 +1417,7 @@
 import { ACCEPT, createDemo, createDrive, fileType, uid } from './drive.js'
 import { createApi, createDemoApi } from './api.js'
 import { createSupa } from './supa.js'
-import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, mergeTypes, offsetOf, programFrom } from './church.js'
+import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, mergeTypes, offsetOf, programFrom, videoInfo } from './church.js'
 const KIND = { image: 'Zdjęcie', video: 'Film', pdf: 'PDF', pptx: 'Prezentacja' }
 const { createApp, ref, computed, watch } = Vue
 
@@ -1399,7 +1441,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.40 · 17.10.2026'
+const VERSION = '2.41 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2147,6 +2189,9 @@ createApp({
         if (!confirm('Ktoś inny zmienił to ogłoszenie, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?')) return
         await drive.saveAnnouncement(data, annBase, true, annAudience)
       }
+      // poprzednia grafika (zmieniona albo usunięta) znika z magazynu
+      const prev = announcements.value.find(x => x.id === data.id)
+      for (const k of ['image', 'video']) if (prev?.[k] && prev[k] !== data[k] && /\/ogloszenia\//.test(prev[k])) drive.removeImage?.(prev[k])
       announcements.value = [...announcements.value.filter(x => x.id !== data.id), data]
       openAnn(data)
       status.value = 'Zapisano o ' + clockNow()
@@ -2154,9 +2199,40 @@ createApp({
     const removeAnn = () => guard(async () => {
       const a = currentAnn.value
       await drive.removeAnnouncement({ id: a.id, audience: annAudience || a.audience })
+      const prev = announcements.value.find(x => x.id === a.id)
+      for (const k of ['image', 'video']) if (/\/ogloszenia\//.test(prev?.[k] || '')) drive.removeImage?.(prev[k])
       announcements.value = announcements.value.filter(x => x.id !== a.id)
       currentAnn.value = null
     })
+
+    // Grafika ogłoszenia: zdjęcie zmniejszone na urządzeniu (najdłuższy bok 1600 px, JPEG) — mało miejsca i szybkie wczytywanie.
+    const imgBusy = ref(false)
+    async function shrinkImage(file, max = 1600) {
+      const bmp = await createImageBitmap(file)
+      const k = Math.min(1, max / Math.max(bmp.width, bmp.height))
+      const c = document.createElement('canvas')
+      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k)
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height)
+      return new Promise((ok, bad) => c.toBlob(b => (b ? ok(b) : bad(new Error('Nie udało się przygotować grafiki.'))), 'image/jpeg', 0.82))
+    }
+    function pickAnnImage(e) {
+      const file = e.target.files?.[0]
+      e.target.value = ''
+      if (!file || !currentAnn.value) return
+      imgBusy.value = true
+      guard(async () => { currentAnn.value.image = await drive.uploadImage(await shrinkImage(file)) }).finally(() => { imgBusy.value = false })
+    }
+
+    // Film: wgrany plik do 50 MB (limit bazy) — dłuższe lepiej wrzucić na YouTube i wkleić link.
+    const vidBusy = ref(false)
+    function pickAnnVideo(e) {
+      const file = e.target.files?.[0]
+      e.target.value = ''
+      if (!file || !currentAnn.value) return
+      if (file.size > 50 * 1048576) { error.value = 'Film ma ' + Math.round(file.size / 1048576) + ' MB — limit to 50 MB. Skróć go albo wrzuć na YouTube i wklej link.'; return }
+      vidBusy.value = true
+      guard(async () => { currentAnn.value.video = await drive.uploadFile(file, (file.name.match(/\.(\w+)$/) || [, 'mp4'])[1]) }).finally(() => { vidBusy.value = false })
+    }
 
     /* ---------- newsletter ---------- */
     const newsBusy = ref(false)
@@ -2431,7 +2507,7 @@ createApp({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       STATUS, hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,

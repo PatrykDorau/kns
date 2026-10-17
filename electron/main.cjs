@@ -761,6 +761,7 @@ function createControl() {
     show: !process.env.RZUTNIK_HIDDEN, // testy automatyczne działają bez pokazywania okna
   })
   load(control)
+  control.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' } })
   control.on('moved', sendDisplays)
   control.on('closed', () => { control = null; app.quit() })
 }

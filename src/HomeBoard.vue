@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
 import { calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
+import { videoInfo } from '../mobile/church.js'
 
 // Strona startowa (wzór: pulpit z powitaniem, pasem kart i tygodniem): najbliższe nabożeństwo i komunikaty
 // rady w pasie przewijanym w bok, pod spodem ogłoszenia (newsletter) i tydzień dzień po dniu.
@@ -37,6 +38,9 @@ const until = computed(() => {
   if (c.live) return 'W trakcie'
   return c.days ? `za ${c.days} ${c.days === 1 ? 'dzień' : 'dni'} ${+c.hours} godz` : `za ${+c.hours} godz ${+c.minutes} min`
 })
+// Ogłoszenie w okienku: grafika, treść i film (wgrany gra od razu; YouTube/Vimeo — w przeglądarce).
+const shown = ref(null)
+const vid = computed(() => videoInfo(shown.value?.video))
 function openService(id) { if (canUse('planner')) { plannerRequest.value = { id }; role.value = 'planner' } else openCalendar({ kind: 'service', id }) }
 function openCalendar(req = null) { if (canUse('calendar')) { calendarRequest.value = req; role.value = 'calendar' } }
 function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalendar({ kind: it.kind, id: it.id, date: it.date }) }
@@ -51,8 +55,9 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
       <span class="kh-body">{{ [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ') || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> — {{ svc.speaker }}</template></span>
       <span class="kh-foot"><span class="kh-until" :class="{ live: countdown?.live }">{{ until }}</span>{{ svc.place || DEFAULT_PLACE }}<em v-if="planAlert && canUse('planner')" class="kh-pill bad">Braki</em></span>
     </button>
-    <article v-for="a in notices" :key="a.id" class="kh-notice">
-      <span class="kh-tag"><Icon name="info" />Komunikat rady zboru</span>
+    <article v-for="a in notices" :key="a.id" class="kh-notice kh-clickable" @click="shown = a">
+      <img v-if="a.image" class="kh-card-img" :src="a.image" alt="" loading="lazy">
+      <span class="kh-tag"><Icon name="info" />Komunikat rady zboru<em v-if="a.video" class="kh-film">▶ Film</em></span>
       <b>{{ a.title }}</b>
       <span class="kh-body">{{ a.text }}</span>
       <span class="kh-foot">{{ shortDate(a.date) }}<template v-if="a.until"> · ważne do {{ asDate(a.until).toLocaleDateString('pl', { day: 'numeric', month: 'short' }) }}</template></span>
@@ -64,9 +69,10 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
     <section class="kh-panel">
       <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span></div>
       <div v-if="news.length" class="kh-anns">
-        <article v-for="a in news" :key="a.id" class="kh-ann">
-          <span class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
-          <span class="kh-ann-text"><b>{{ a.title }}</b><span>{{ a.text }}</span></span>
+        <article v-for="a in news" :key="a.id" class="kh-ann kh-clickable" @click="shown = a">
+          <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
+          <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
+          <span class="kh-ann-text"><b>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
           <small>{{ shortDate(a.date) }}</small>
         </article>
       </div>
@@ -85,5 +91,19 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
         </div>
       </div>
     </section>
+  </div>
+
+  <div v-if="shown" class="kh-modal" role="dialog" aria-modal="true" @click.self="shown = null" @keydown.esc="shown = null">
+    <div class="kh-modal-box">
+      <button class="kh-ib kh-close" title="Zamknij" aria-label="Zamknij" @click="shown = null"><Icon name="x" /></button>
+      <img v-if="shown.image" class="kh-modal-img" :src="shown.image" alt="">
+      <h2>{{ shown.title }}</h2>
+      <p class="kh-modal-text">{{ shown.text }}</p>
+      <video v-if="vid?.kind === 'file'" :src="vid.src" controls preload="metadata"></video>
+      <a v-else-if="vid" class="kh-yt" :href="vid.link" target="_blank" rel="noopener">
+        <img v-if="vid.thumb" :src="vid.thumb" alt="">
+        <span>▶ Obejrzyj film ({{ vid.kind === 'youtube' ? 'YouTube' : 'Vimeo' }}) — otworzy się w przeglądarce</span>
+      </a>
+    </div>
   </div>
 </template>

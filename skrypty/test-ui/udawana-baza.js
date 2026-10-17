@@ -43,6 +43,12 @@
     return {
       from: table => later(() => inner.from(table)),
       rpc: (name, args) => sessionP.then(() => inner.rpc(name, args)),
+      // magazyn plików (grafiki ogłoszeń): pliki w pamięci przeglądarki
+      storage: { from: bucket => ({
+        async upload(path, blob) { (window.__files ||= {})[path] = URL.createObjectURL(blob); return { error: null } },
+        getPublicUrl: path => ({ data: { publicUrl: window.__files[path] + '#/' + bucket + '/' + path } }),
+        async remove(paths) { (window.__removed ||= []).push(...paths); return { error: null } },
+      }) },
       auth: {
         getSession: async () => ({ data: { session: await sessionP } }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),

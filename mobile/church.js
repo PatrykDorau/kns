@@ -40,6 +40,18 @@ export const DEFAULT_TYPES = [
 ]
 export const COLORS = ['#f2a53c', '#3ec7b0', '#a98bff', '#e5484d', '#6ea8ff', '#f07fb4', '#6fd39a', '#8f98a8']
 
+// Film w ogłoszeniu: link do YouTube/Vimeo (odtwarzacz w ramce) albo plik wgrany do bazy (zwykły odtwarzacz wideo).
+export function videoInfo(url) {
+  const u = String(url || '').trim()
+  if (!u) return null
+  let m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/)
+  if (m) return { kind: 'youtube', embed: 'https://www.youtube-nocookie.com/embed/' + m[1], thumb: 'https://i.ytimg.com/vi/' + m[1] + '/hqdefault.jpg', link: 'https://www.youtube.com/watch?v=' + m[1] }
+  m = u.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+  if (m) return { kind: 'vimeo', embed: 'https://player.vimeo.com/video/' + m[1], thumb: '', link: 'https://vimeo.com/' + m[1] }
+  if (/^https:\/\/.*(\/ogloszenia\/|\.(mp4|webm|mov)(\?|$))/i.test(u)) return { kind: 'file', src: u, link: u }
+  return null
+}
+
 // Godziny: '12:12' + 50 min → '13:02'; różnica w minutach w drugą stronę.
 const minutes = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0) }
 export function addMinutes(time, offset) {

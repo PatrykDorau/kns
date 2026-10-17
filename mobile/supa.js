@@ -43,6 +43,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
     if (row && !row.deleted && (row.updated || 0) > base) throw Object.assign(new Error(`Ktoś inny zmienił ${what} w międzyczasie.`), { conflict: true, row })
     return row || null
   }
+  const withUpdated = r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0) })
   const songsList = async () => (await all(() => sb.from('songs').select('id,number,title,text,updated').eq('deleted', false).order('id')))
   // Załączniki: logowanie Google z dostępem do Dysku dopiero przy pierwszym pliku.
   async function withFiles(job) {
@@ -104,16 +105,17 @@ export function createSupa(config, client = window.supabase.createClient(config.
     async load() {
       const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
       const [services, songs, events, tpl, news] = await Promise.all([
-        all(() => sb.from('services').select('data').order('id')),
+        all(() => sb.from('services').select('data,updated').order('id')),
         songsList(),
-        all(() => sb.from('events').select('data').or(`date.gte.${since},date.is.null`).order('id')),
+        all(() => sb.from('events').select('data,updated').or(`date.gte.${since},date.is.null`).order('id')),
         sb.from('templates').select('types,updated').eq('id', 'main').then(check),
-        all(() => sb.from('announcements').select('data,audience').order('id')),
+        all(() => sb.from('announcements').select('data,audience,updated').order('id')),
       ])
       return {
-        services: services.map(r => r.data), songs, events: events.map(r => r.data),
+        // „updated” z kolumny — rekordy dodane wprost w bazie mogą go nie mieć w danych (inaczej każdy zapis byłby „konfliktem”)
+        services: services.map(withUpdated), songs, events: events.map(withUpdated),
         templates: tpl[0]?.types || null, templatesUpdated: tpl[0]?.updated || 0,
-        announcements: news.map(r => ({ ...r.data, audience: r.audience })),
+        announcements: news.map(r => ({ ...withUpdated(r), audience: r.audience })),
       }
     },
     async save(payload, base = 0, force = false) {
@@ -165,6 +167,18 @@ export function createSupa(config, client = window.supabase.createClient(config.
       check(await sb.from('announcements').upsert({ id: item.id, audience: audience || 'members', important: !!item.important, until: day(item.until), data, updated: item.updated || Date.now(), updated_by: item.updatedBy || who() }))
     },
     async removeAnnouncement(item) { check(await sb.from('announcements').delete().eq('id', item.id)) },
+    // Grafiki ogłoszeń: publiczny kosz „ogloszenia” w Supabase Storage (losowe nazwy plików).
+    uploadImage(blob) { return this.uploadFile(blob, 'jpg') },
+    async uploadFile(blob, ext) {
+      const path = crypto.randomUUID() + '.' + String(ext || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const { error } = await sb.storage.from('ogloszenia').upload(path, blob, { contentType: blob.type || 'image/jpeg', cacheControl: '31536000' })
+      if (error) throw new Error('Nie udało się wysłać pliku: ' + error.message)
+      return sb.storage.from('ogloszenia').getPublicUrl(path).data.publicUrl
+    },
+    async removeImage(url) {
+      const path = String(url || '').split('/ogloszenia/')[1]
+      if (path) await sb.storage.from('ogloszenia').remove([path]).catch(() => {})
+    },
 
     searchFiles: text => withFiles(() => files.searchFiles(text)),
     attachFromDrive: (svc, file, onProgress) => withFiles(() => files.attachFromDrive(svc, file, onProgress)),
