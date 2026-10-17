@@ -109,7 +109,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
           done = true
           const ok = url.searchParams.get('state') === state && url.searchParams.get('code')
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(`<!doctype html><meta charset="utf-8"><title>Kościół Na Skale</title>
-<body style="font:18px system-ui;background:#141210;color:#f4eee6;display:grid;place-items:center;height:90vh;text-align:center">
+<body style="font:18px system-ui;background:#0f1013;color:#f4eee6;display:grid;place-items:center;height:90vh;text-align:center">
 <div>${ok ? '<h2>Zalogowano ✓</h2><p>Możesz zamknąć tę kartę i wrócić do aplikacji.</p>' : '<h2>Logowanie przerwane</h2><p>Wróć do aplikacji i spróbuj ponownie.</p>'}</div>`)
           clearTimeout(timer)
           server.close()

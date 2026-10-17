@@ -30,15 +30,15 @@ export const DEFAULT_TYPES = [
       item(40, 'modlitwa'), item(50, 'kazanie'), item(95, 'uwielbienie', 'Pieśń / kolekta'),
     ],
   },
-  { id: 'studenckie', name: 'Spotkanie studenckie', color: '#74c69d', time: '19:00', place: '', program: [] },
+  { id: 'studenckie', name: 'Spotkanie studenckie', color: '#3ec7b0', time: '19:00', place: '', program: [] },
   {
-    id: 'czlonkowskie', name: 'Spotkanie członkowskie', color: '#f5a524', time: '18:00', place: '', protocol: true,
+    id: 'czlonkowskie', name: 'Spotkanie członkowskie', color: '#a98bff', time: '18:00', place: '', protocol: true,
     program: [item(0, 'modlitwa', 'Modlitwa na rozpoczęcie'), item(10, 'porzadek', 'Sprawy bieżące'), item(80, 'modlitwa', 'Modlitwa na zakończenie')],
   },
   { id: 'rada', name: 'Spotkanie rady zboru', color: '#e5484d', time: '19:00', place: '', protocol: true, program: [item(0, 'modlitwa'), item(10, 'porzadek', 'Sprawy bieżące')] },
-  { id: 'inne', name: 'Inne', color: '#8f98a8', time: '18:00', place: '', program: [] },
+  { id: 'inne', name: 'Inne', color: '#6ea8ff', time: '18:00', place: '', program: [] },
 ]
-export const COLORS = ['#e8a33d', '#74c69d', '#f5a524', '#e5484d', '#b07cff', '#2fc6d6', '#ff7ab6', '#8f98a8']
+export const COLORS = ['#f2a53c', '#3ec7b0', '#a98bff', '#e5484d', '#6ea8ff', '#f07fb4', '#6fd39a', '#8f98a8']
 
 // Godziny: '12:12' + 50 min → '13:02'; różnica w minutach w drugą stronę.
 const minutes = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0) }

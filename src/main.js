@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import Output from './Output.vue'
 import './style.css'
+import '../mobile/home.css' // strona startowa wspólna ze stroną w przeglądarce
 
 // Jedna aplikacja, trzy rodzaje okien: panel (wybór służby i jej widok), obraz dla rzutnika (#output)
 // oraz niewidoczne okno, które zamienia slajdy prezentacji PowerPoint na obrazy (#pptx).

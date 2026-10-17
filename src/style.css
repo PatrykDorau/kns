@@ -1,13 +1,14 @@
 :root {
-  --bg: #141210; --panel: #1e1b18; --panel2: #262220; --panel3: #332d28; --line: #2c2824;
-  --text: #f4eee6; --muted: #a69c90; --accent: #e8a33d; --accent-soft: rgba(232, 163, 61, .14);
+  --bg: #0f1013; --panel: #17181c; --panel2: #1f2025; --panel3: #292a30; --line: #2a2b32;
+  --amber: #f2a53c; --coral: #f08a6e; --teal: #3ec7b0; --blue: #6ea8ff; --violet: #a98bff; --pink: #f07fb4; --green: #6fd39a;
+  --text: #f3f3f6; --muted: #9a9ca8; --accent: #f2a53c; --accent-soft: rgba(242, 165, 60, .14);
   --live: #e5534b; --ok: #74c69d; --warn: #e8957d;
   --radius: 14px;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body, #app { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+body { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 360' preserveAspectRatio='xMidYMax slice'%3E%3Cpath d='M0 232 L70 210 L122 224 L192 176 L238 196 L302 150 L344 170 L402 136 L452 160 L492 150 L552 180 L608 150 L656 164 L720 134 L760 150 L820 128 L870 146 L930 120 L980 150 L1022 140 L1070 186 L1110 160 L1160 176 L1220 140 L1270 162 L1330 132 L1380 160 L1440 146 L1500 184 L1560 170 L1600 190 L1600 360 L0 360Z' fill='rgba(255,255,255,0.03)'/%3E%3Cpath d='M0 232 L70 210 L122 224 L192 176 L238 196 L302 150 L344 170 L402 136 L452 160 L492 150 L552 180 L608 150 L656 164 L720 134 L760 150 L820 128 L870 146 L930 120 L980 150 L1022 140 L1070 186 L1110 160 L1160 176 L1220 140 L1270 162 L1330 132 L1380 160 L1440 146 L1500 184 L1560 170 L1600 190' fill='none' stroke='rgba(242,165,60,0.3)' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M0 270 L96 244 L150 260 L234 214 L294 238 L364 206 L426 234 L480 216 L570 256 L642 210 L700 232 L780 196 L850 228 L910 200 L980 240 L1078 222 L1144 250 L1216 226 L1320 260 L1400 236 L1480 262 L1600 240 L1600 360 L0 360Z' fill='rgba(255,255,255,0.035)'/%3E%3Cpath d='M300 250l40 6M760 236l56 8M1240 240l44 6M560 300l60-4M1100 296l50-4' stroke='rgba(255,255,255,0.05)' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M0 312 L120 294 L230 308 L326 282 L454 302 L566 288 L706 310 L810 292 L960 308 L1080 284 L1230 302 L1350 290 L1500 304 L1600 296 L1600 360 L0 360Z' fill='rgba(255,255,255,0.045)'/%3E%3C/svg%3E") bottom center / 100% 360px fixed no-repeat, radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%) no-repeat, radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%) no-repeat, radial-gradient(700px 420px at 50% 110%, rgba(62, 199, 176, .05), transparent 70%) fixed no-repeat, var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
 /* Okno rzutnika: bez obrazu jest przezroczyste. */
 body.output { background: transparent; cursor: none; }
 

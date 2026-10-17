@@ -694,7 +694,7 @@ let remote = null
 let remoteState = { title: '' }
 const REMOTE_PAGE = `<!doctype html><html lang="pl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Kościół Na Skale — pilot</title><style>
-body{margin:0;background:#141210;color:#f4eee6;font:17px system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;padding:16px;box-sizing:border-box;gap:12px}
+body{margin:0;background:#0f1013;color:#f4eee6;font:17px system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;padding:16px;box-sizing:border-box;gap:12px}
 #t{min-height:3em;text-align:center;color:#8f98a8;display:grid;place-items:center}
 .row{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 button{font:inherit;font-size:22px;font-weight:700;border:0;border-radius:18px;color:#fff;background:#262220;touch-action:manipulation}
@@ -755,7 +755,7 @@ const toOutput = (channel, data) => { if (output && !output.isDestroyed()) outpu
 function createControl() {
   control = new BrowserWindow({
     width: 1360, height: 840, minWidth: 1000, minHeight: 640,
-    backgroundColor: '#141210', title: 'Kościół Na Skale', autoHideMenuBar: true, ...icon,
+    backgroundColor: '#0f1013', title: 'Kościół Na Skale', autoHideMenuBar: true, ...icon,
     // Testy automatyczne: okno renderowane poza ekranem (da się robić zrzuty, nic się nie pokazuje).
     webPreferences: process.env.RZUTNIK_HIDDEN ? { ...webPreferences, offscreen: true } : webPreferences,
     show: !process.env.RZUTNIK_HIDDEN, // testy automatyczne działają bez pokazywania okna

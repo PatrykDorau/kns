@@ -3,23 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#141210">
+<meta name="theme-color" content="#0f1013">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="KNS Nabo">
 <title>KNS Nabo — Kościół Na Skale</title>
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="maskable-192.png">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="home.css">
 <style>
   :root {
-    --bg: #141210; --panel: #1e1b18; --panel2: #262220; --line: #2c2824; --text: #f4eee6; --muted: #a69c90;
-    --accent: #e8a33d; --accent-soft: rgba(232, 163, 61, .14); --bad: #e5534b; --bad-soft: rgba(229, 83, 75, .12); --bad-text: #ff8f87;
+    --bg: #0f1013; --panel: #17181c; --panel2: #1f2025; --panel3: #292a30; --line: #2a2b32; --text: #f3f3f6; --muted: #9a9ca8; --warn: #e8957d;
+    --amber: #f2a53c; --coral: #f08a6e; --teal: #3ec7b0; --blue: #6ea8ff; --violet: #a98bff; --pink: #f07fb4; --green: #6fd39a;
+    --accent: #f2a53c; --accent-soft: rgba(242, 165, 60, .14); --bad: #e5534b; --bad-soft: rgba(229, 83, 75, .12); --bad-text: #ff8f87;
     --ok: #74c69d; --ok-soft: rgba(116, 198, 157, .12);
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
-  body { background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+  body { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 360' preserveAspectRatio='xMidYMax slice'%3E%3Cpath d='M0 232 L70 210 L122 224 L192 176 L238 196 L302 150 L344 170 L402 136 L452 160 L492 150 L552 180 L608 150 L656 164 L720 134 L760 150 L820 128 L870 146 L930 120 L980 150 L1022 140 L1070 186 L1110 160 L1160 176 L1220 140 L1270 162 L1330 132 L1380 160 L1440 146 L1500 184 L1560 170 L1600 190 L1600 360 L0 360Z' fill='rgba(255,255,255,0.03)'/%3E%3Cpath d='M0 232 L70 210 L122 224 L192 176 L238 196 L302 150 L344 170 L402 136 L452 160 L492 150 L552 180 L608 150 L656 164 L720 134 L760 150 L820 128 L870 146 L930 120 L980 150 L1022 140 L1070 186 L1110 160 L1160 176 L1220 140 L1270 162 L1330 132 L1380 160 L1440 146 L1500 184 L1560 170 L1600 190' fill='none' stroke='rgba(242,165,60,0.3)' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M0 270 L96 244 L150 260 L234 214 L294 238 L364 206 L426 234 L480 216 L570 256 L642 210 L700 232 L780 196 L850 228 L910 200 L980 240 L1078 222 L1144 250 L1216 226 L1320 260 L1400 236 L1480 262 L1600 240 L1600 360 L0 360Z' fill='rgba(255,255,255,0.035)'/%3E%3Cpath d='M300 250l40 6M760 236l56 8M1240 240l44 6M560 300l60-4M1100 296l50-4' stroke='rgba(255,255,255,0.05)' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M0 312 L120 294 L230 308 L326 282 L454 302 L566 288 L706 310 L810 292 L960 308 L1080 284 L1230 302 L1350 290 L1500 304 L1600 296 L1600 360 L0 360Z' fill='rgba(255,255,255,0.045)'/%3E%3C/svg%3E") bottom center / 100% 360px fixed no-repeat, radial-gradient(900px 480px at 8% -160px, rgba(242, 165, 60, .13), transparent 65%) no-repeat, radial-gradient(800px 460px at 92% -180px, rgba(169, 139, 255, .12), transparent 65%) no-repeat, radial-gradient(700px 420px at 50% 110%, rgba(62, 199, 176, .05), transparent 70%) fixed no-repeat, var(--bg); color: var(--text); font: 16px/1.45 "Segoe UI Variable Text", system-ui, "Segoe UI", sans-serif; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
   [v-cloak] { display: none; }
   #app { max-width: 640px; margin: 0 auto; }
   svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -399,43 +401,29 @@
   .gcal-url input { font-size: 13px; }
   .desktop-mode { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bad-soft); color: var(--bad-text); font-size: 14px; }
   @media (min-width: 720px) { #app { max-width: 760px; } }
-  /* powitanie (wszędzie) */
-  .hello { margin: 4px 0 14px; }
-  .hello h1 { margin: 0; font: 600 24px/1.2 Georgia, 'Times New Roman', serif; letter-spacing: -.01em; }
+  /* powitanie (telefon) */
+  .hello { position: relative; isolation: isolate; margin: 4px 0 14px; min-height: 92px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .hello::after { content: ''; position: absolute; z-index: -1; right: -6px; bottom: -4px; width: min(320px, 72%); aspect-ratio: 640 / 246; background: var(--kh-peak) right bottom / contain no-repeat; pointer-events: none; }
+  .hello h1 { margin: 0; font: 700 26px/1.2 "Segoe UI Variable Display", system-ui, "Segoe UI", sans-serif; letter-spacing: -.02em; }
   .hello p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
   .start-top .hero { margin-bottom: 14px; }
-  .week-cols { display: none; }
-  /* Przeglądarka na komputerze: układ jak aplikacja na komputer — zakładki u góry, szeroka strona. */
+  .kh-web, .wide-only { display: none !important; }
+  .kh-web svg.i { width: 18px; height: 18px; }
+  .kh-web .kh-tile-ic svg.i { width: 22px; height: 22px; }
+  .kh-web .kh-tag svg.i { width: 14px; height: 14px; }
+  .kh-web .kh-tile-go { width: 16px; height: 16px; }
+  /* Przeglądarka na komputerze: strona startowa identyczna z aplikacją na komputer (home.css),
+     pozostałe widoki — wygodna szerokość, powrót przyciskiem „Start”. */
   @media (min-width: 1024px) {
     body { padding-left: 32px; padding-right: 32px; }
-    #app { max-width: 1180px; display: flex; flex-direction: column; }
-    #app > header { order: -2; padding-top: 18px; }
+    #app { max-width: 1180px; }
     #app.tabbed { padding-bottom: 32px; }
-    .tabbar { order: -1; position: sticky; top: 0; bottom: auto; left: auto; right: auto; justify-content: flex-start; gap: 6px; margin: 0 0 18px; padding: 8px 0;
-      background: var(--bg); border-top: 0; border-bottom: 1px solid var(--line); backdrop-filter: none; }
-    .tabbar button { flex: none; max-width: none; flex-direction: row; gap: 8px; min-height: 40px; padding: 8px 16px; font-size: 14px; }
-    .tabbar svg.i { width: 18px; height: 18px; }
-    .tabbar button .count { position: static; margin-left: 2px; }
-    .hello h1 { font-size: 32px; }
-    .start-top { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 2fr); gap: 14px; align-items: stretch; margin-bottom: 8px; }
-    .start-top .hero { margin: 0; }
-    .start-top .notices { margin: 0; padding: 0 0 6px; }
-    .start-top .notices .notice { flex: 0 0 300px; }
-    .start-panels { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-    .start-panels > section { padding: 4px 16px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
-    .start-panels .section h2 { font: 600 18px Georgia, 'Times New Roman', serif; letter-spacing: 0; text-transform: none; color: var(--text); }
-    .week-list-only { display: none; }
-    .week-cols { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
-    .wc-day { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-height: 180px; padding: 8px 6px; border-radius: 10px; background: var(--panel2); }
-    .wc-day.today { box-shadow: inset 0 0 0 1px var(--accent); }
-    .wc-wd { text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
-    .wc-n { align-self: center; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 700; margin-bottom: 4px; }
-    .wc-day.today .wc-n { background: var(--accent); color: #1f1608; }
-    button.wc-ev { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; min-height: 0; padding: 5px 6px; border: 0; border-left: 3px solid var(--c); border-radius: 6px;
-      background: color-mix(in srgb, var(--c) 16%, transparent); font-size: 12px; line-height: 1.25; text-align: left; }
-    .wc-ev small { display: block; color: var(--muted); font-size: 11px; }
-    .news-grid { grid-template-columns: 1fr; }
-    .news-card { min-height: 0; }
+    .tabbar { display: none !important; }
+    .wide-only { display: inline-flex !important; }
+    #app > .getapp { display: none !important; }
+    #app.home-wide > header, #app.home-wide > .getapp, #app.home-wide > .desktop-mode, #app.home-wide .phone-home { display: none !important; }
+    #app.home-wide .kh-web { display: flex !important; padding-top: 16px; }
+    header { padding-top: 18px; }
     /* edytory i listy: wygodna szerokość, nie na cały ekran */
     #app.narrow { max-width: 760px; }
   }
@@ -508,13 +496,16 @@
   <symbol id="drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></symbol>
   <symbol id="list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol>
   <symbol id="mail" viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 7l9 6 9-6"/></symbol>
+  <symbol id="monitor" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM8 21h8M12 17v4"/></symbol>
+  <symbol id="pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="info" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.5h.01"/></symbol>
   <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
 </svg>
 
-<div id="app" v-cloak :class="{ tabbed: showTabs, narrow: !!(current || song || currentEvent || currentProto || currentAnn || tplType || peopleView || moreView || gcalView || annView || protoView || tplView || songView) }">
+<div id="app" v-cloak>
   <header>
     <img src="znak.png" alt="">
     <h1>{{ current ? 'Nabożeństwo' : currentAnn ? 'Ogłoszenie' : annView ? 'Ogłoszenia' : currentProto ? 'Protokół' : currentEvent ? 'Wydarzenie' : protoView ? 'Protokoły' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
@@ -529,6 +520,7 @@
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
     <button v-else-if="songView || peopleView || gcalView" class="ghost" @click="songView = false; peopleView = false; gcalView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
+      <button v-if="ready && (calView || moreView)" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
       <button v-if="ready" class="ghost" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
   </header>
@@ -1039,6 +1031,82 @@
   <!-- Start: powitanie, najbliższe nabożeństwo i komunikaty rady, ten tydzień, kartki z newslettera.
        Na szerokim ekranie (przeglądarka na komputerze) — układ jak w aplikacji na komputer. -->
   <template v-else-if="!current">
+    <!-- Szeroki ekran (przeglądarka na komputerze): ten sam układ i te same style co w aplikacji na komputer (home.css). -->
+    <div class="kh kh-web">
+      <div class="kh-top">
+        <img class="kh-mark" src="znak.png" alt="">
+        <span class="kh-name">Kościół Na Skale</span>
+        <span class="kh-spacer"></span>
+        <button class="kh-ib" :class="{ spin: busy }" :disabled="busy" title="Odśwież" aria-label="Odśwież" @click="reload()"><svg class="i"><use href="#refresh"/></svg></button>
+        <button class="kh-ib" title="Więcej: pieśni, ogłoszenia, protokoły, osoby…" aria-label="Więcej" @click="openMore"><svg class="i"><use href="#menu"/></svg><span v-if="canManage && pendingCount" class="kh-count">{{ pendingCount }}</span></button>
+        <span v-if="me" class="kh-me" :title="me.email">
+          <span class="kh-av">{{ initials(me) }}</span>
+          <span class="kh-me-text"><b>{{ me.name || me.email }}</b><small>{{ myRanks || 'Członek' }}</small></span>
+        </span>
+        <button v-if="me" class="kh-ib" title="Wyloguj" aria-label="Wyloguj" @click="logout"><svg class="i"><use href="#logout"/></svg></button>
+      </div>
+
+      <div class="kh-hello">
+        <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
+        <p>Oto co dzieje się w kościele.</p>
+      </div>
+
+      <div class="kh-tiles">
+        <button v-for="t in webTiles" :key="t.id" class="kh-tile" :class="{ locked: t.locked }" :disabled="t.locked" :title="t.desc" @click="chooseTile(t)">
+          <span class="kh-tile-ic"><svg class="i"><use :href="'#' + t.icon"/></svg></span>
+          <span class="kh-tile-text">
+            <span class="kh-tile-name">{{ t.name }}<em v-if="t.pill" class="kh-pill" :class="t.pill === 'Braki' ? 'bad' : 'ok'">{{ t.pill }}</em></span>
+            <span class="kh-tile-desc">{{ t.desc }}</span>
+          </span>
+          <svg class="i kh-tile-go"><use :href="'#' + t.go"/></svg>
+        </button>
+      </div>
+
+      <div class="kh-strip">
+        <button v-if="nextService" class="kh-svc" @click="open(nextService)">
+          <span class="kh-tag"><svg class="i"><use href="#calendar"/></svg>Najbliższe nabożeństwo</span>
+          <b>{{ pretty(nextService.date).replace(/ \d{4}$/, '') }}, {{ nextService.time || DEFAULT_TIME }}</b>
+          <span class="kh-body">{{ [nextService.sermonTitle, nextService.passage].filter(Boolean).join(' · ') || 'Bez tytułu kazania' }}<template v-if="nextService.speaker"> — {{ nextService.speaker }}</template></span>
+          <span class="kh-foot"><span class="kh-until" :class="{ live: countdown?.live }">{{ countdown?.live ? 'W trakcie' : untilText }}</span>{{ nextService.place || DEFAULT_PLACE }}<em v-if="canEdit && missing(nextService).length" class="kh-pill bad">Braki</em></span>
+        </button>
+        <button v-for="a in importantAnns" :key="a.id" class="kh-notice" @click="openAnn(a)">
+          <span class="kh-tag"><svg class="i"><use href="#info"/></svg>Komunikat rady zboru</span>
+          <b>{{ a.title }}</b>
+          <span class="kh-body">{{ a.text }}</span>
+          <span class="kh-foot">{{ shortDate(a.date) }}<template v-if="a.until"> · ważne do {{ shortDate(a.until) }}</template></span>
+        </button>
+        <article v-if="!importantAnns.length" class="kh-empty"><span class="kh-tag"><svg class="i"><use href="#info"/></svg>Komunikaty rady zboru</span><span class="kh-body">Brak aktualnych komunikatów.</span></article>
+      </div>
+
+      <div class="kh-panels">
+        <section class="kh-panel">
+          <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie</button></div>
+          <div v-if="boardNews.length" class="kh-anns">
+            <button v-for="a in boardNews" :key="a.id" class="kh-ann" @click="openAnn(a)">
+              <span class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
+              <span class="kh-ann-text"><b>{{ a.title }}</b><span>{{ a.text }}</span></span>
+              <small>{{ shortDate(a.date) }}</small>
+            </button>
+          </div>
+          <p v-else class="kh-none">Nie ma nowych ogłoszeń.</p>
+        </section>
+
+        <section class="kh-panel">
+          <div class="kh-panel-h"><h2>Tydzień</h2><span class="kh-muted">{{ weekRange }}</span><span class="kh-spacer"></span><button class="kh-link" @click="openCalendar">Kalendarz</button></div>
+          <div class="kh-week">
+            <div v-for="d in weekDays" :key="d.date" class="kh-day" :class="{ today: d.date === todayStr }">
+              <span class="kh-wd">{{ d.wd }}</span>
+              <span class="kh-n">{{ d.n }}</span>
+              <button v-for="it in d.items" :key="it.kind + it.id" class="kh-ev" :style="{ '--c': typeOf(it.type).color }" :title="(it.time ? it.time + ' ' : '') + it.title" @click="openItem(it)">
+                <small v-if="it.time">{{ it.time }}</small>{{ it.kind === 'service' ? 'Nabożeństwo' : it.title }}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="phone-home">
     <div class="hello">
       <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
       <p>Oto co dzieje się w kościele.</p>
@@ -1086,16 +1154,6 @@
             <span class="week-time">{{ it.time }}</span>
           </button>
         </div>
-        <!-- szeroki ekran: 7 kolumn -->
-        <div class="week-cols">
-          <div v-for="d in weekDays" :key="d.date" class="wc-day" :class="{ today: d.date === todayStr }">
-            <span class="wc-wd">{{ d.wd }}</span>
-            <span class="wc-n">{{ d.n }}</span>
-            <button v-for="it in d.items" :key="it.kind + it.id" class="wc-ev" :style="{ '--c': typeOf(it.type).color }" :title="(it.time ? it.time + ' ' : '') + it.title" @click="openItem(it)">
-              <small v-if="it.time">{{ it.time }}</small>{{ it.kind === 'service' ? 'Nabożeństwo' : it.title }}
-            </button>
-          </div>
-        </div>
       </section>
 
       <section class="sp-news">
@@ -1109,6 +1167,7 @@
           </button>
         </div>
       </section>
+    </div>
     </div>
   </template>
 
@@ -1333,7 +1392,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.37 · 17.10.2026'
+const VERSION = '2.38 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1507,7 +1566,9 @@ createApp({
     })
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
-    const showTabs = computed(() => (demo || !!clientId) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
+    // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
+    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value)
+    const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
     let cachedTimes = []
@@ -2151,6 +2212,31 @@ createApp({
       const date = localDate(new Date(asDate(todayStr.value).getTime() + i * 86400000))
       return { date, wd: wd(date), n: day(date), items: calItems.value.filter(it => it.date === date) }
     }))
+    // Szeroki ekran: kafelki jak w aplikacji na komputer. Rzutnik i Stream działają tylko w aplikacji —
+    // dla służby technicznej kafelek pobiera instalator.
+    const webTiles = computed(() => {
+      const tech = canCamera.value
+      const app = !tech ? 'Tylko dla służby technicznej' : desktopApp.url ? 'Pobierz na komputer' + (desktopApp.size ? ' · ' + desktopApp.size : '') : 'W aplikacji na komputer'
+      const svc = nextService.value
+      return [
+        { id: 'display', icon: 'monitor', name: 'Rzutnik', desc: app, locked: !tech, go: tech ? 'download' : 'warn' },
+        { id: 'stream', icon: 'camera', name: 'Stream', desc: app, locked: !tech, go: tech ? 'download' : 'warn' },
+        { id: 'planner', icon: 'pencil', name: 'Nabożeństwa', desc: canEdit.value ? 'Kazanie, pieśni, program' : 'Dla osób z prawem edycji', locked: !canEdit.value, go: canEdit.value ? 'chev' : 'warn',
+          pill: canEdit.value && svc ? (missing(svc).length ? 'Braki' : 'Komplet') : '' },
+        { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
+      ]
+    })
+    function chooseTile(t) {
+      if (t.locked) return
+      if (t.id === 'calendar') openCalendar()
+      else if (t.id === 'planner') nextService.value ? open(nextService.value) : create(nextSundayDate)
+      else if (desktopApp.url) location.href = desktopApp.url
+    }
+    const boardNews = computed(() => activeAnns.value.filter(a => !a.important).slice(0, 8))
+    const weekRange = computed(() => {
+      const f = d => asDate(d).toLocaleDateString('pl', { day: 'numeric', month: 'short' }).replace('.', '')
+      return f(weekDays.value[0].date) + ' – ' + f(weekDays.value[6].date)
+    })
     // Powitanie: przed 18 „Dzień dobry”, potem „Dobry wieczór”; imię z konta.
     const greeting = (h => (h >= 5 && h < 18 ? 'Dzień dobry' : 'Dobry wieczór'))(new Date().getHours())
     const firstName = computed(() => { const n = me.value?.name || ''; return n && !/tryb pokazowy/.test(n) ? n.split(/\s+/)[0] : '' })
@@ -2169,7 +2255,7 @@ createApp({
     try { desktopHidden = localStorage.getItem('kns-desktop-hidden') === '1' } catch { /* tryb prywatny */ }
     const hideDesktop = ref(desktopHidden)
     function dismissDesktop() { hideDesktop.value = true; try { localStorage.setItem('kns-desktop-hidden', '1') } catch { /* tryb prywatny */ } }
-    if (desktop && !desktopHidden) {
+    if (desktop) {
       fetch('https://api.github.com/repos/PatrykDorau/kns/releases/latest').then(r => (r.ok ? r.json() : null)).then(rel => {
         const asset = rel?.assets?.find(a => /instalator.*\.exe$/i.test(a.name)) || rel?.assets?.find(a => /\.exe$/i.test(a.name))
         if (!asset) { desktopApp.error = 'Instalator nie jest jeszcze opublikowany — zajrzyj tu za jakiś czas.'; return }
@@ -2326,6 +2412,13 @@ createApp({
       else if (clientId && drive.signedIn()) guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } })
     })
 
+    // Klasy na #app (kontener montowania — Vue nie kompiluje jego atrybutów): pasek zakładek, strona startowa, wąski widok.
+    Vue.watchEffect(() => {
+      const el = document.getElementById('app')
+      el.classList.toggle('tabbed', showTabs.value)
+      el.classList.toggle('home-wide', homeWide.value)
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || moreView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value))
+    })
     return {
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
@@ -2336,7 +2429,7 @@ createApp({
       currentProto, protoDirty, protoSavedOnce, protoEditable, presentList, openProto, newProto, protoForEvent, addProtoItem, closeProto, saveProto, setProtoStatus, removeProto, printProto,
       migrating, migrated, migrate,
       gcalView, gcal, openGcal, renewGcal, copyGcal,
-      weekDays, greeting, firstName,
+      weekDays, greeting, firstName, webTiles, chooseTile, boardNews, weekRange,
       moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
