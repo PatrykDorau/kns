@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
 import {
-  bibleOpen, addLoop, addCountdown, addText, addAnnouncements, currentAnnouncements, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
+  bibleOpen, addLoop, addCountdown, addText, addAnnouncements, currentAnnouncements, projectorGraphics, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
   renameValue, renamingId, search, selectedId, startRename, visibleItems,
 } from './store.js'
 
@@ -44,7 +44,7 @@ function drop(it) {
     <button title="Odliczanie do nabożeństwa albo przez podaną liczbę minut" @click="addCountdown"><Icon name="timer" />Odliczanie</button>
     <button title="Fragment Biblii jako slajdy, np. J 3,16–21" @click="bibleOpen = true"><Icon name="book" />Biblia</button>
     <button @click="addLoop"><Icon name="loop" />Pętla</button>
-    <button :disabled="!currentAnnouncements.length" :title="currentAnnouncements.length ? 'Aktualne ogłoszenia (' + currentAnnouncements.length + ') z aplikacji na telefon jako pętla slajdów' : 'Brak aktualnych ogłoszeń — dodaje się je w aplikacji na telefon (Start → Ogłoszenia)'" @click="addAnnouncements"><Icon name="info" />Ogłoszenia</button>
+    <button :disabled="!currentAnnouncements.length && !projectorGraphics.length" :title="projectorGraphics.length ? 'Grafiki ogłoszeń i wydarzeń zaznaczonych „na rzutniku” (' + projectorGraphics.length + ') jako pętla — przed i po nabożeństwie' : currentAnnouncements.length ? 'Aktualne ogłoszenia (' + currentAnnouncements.length + ') jako pętla slajdów z tekstem — grafiki zaznacza się w aplikacji: „Pokaż grafikę na rzutniku”' : 'Brak aktualnych ogłoszeń — dodaje się je w aplikacji na telefon'" @click="addAnnouncements"><Icon name="info" />Ogłoszenia<span v-if="projectorGraphics.length" class="pill">{{ projectorGraphics.length }}</span></button>
   </div>
   <div class="searchrow">
     <label class="searchbox">

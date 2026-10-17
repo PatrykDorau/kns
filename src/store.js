@@ -523,7 +523,26 @@ export function addCountdown() {
 export const currentAnnouncements = computed(() => churchAnnouncements.value
   .filter(a => a.audience !== 'council' && (!a.until || a.until >= today()) && a.title)
   .sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || (b.date || 0) - (a.date || 0)))
+// Grafiki zaznaczone w aplikacji „Pokaż na rzutniku”: aktualne ogłoszenia i nadchodzące wydarzenia (najbliższe najpierw).
+export const projectorGraphics = computed(() => [
+  ...currentAnnouncements.value.filter(a => a.projector && a.image).map(a => ({ key: 'a' + a.id, name: a.title, image: a.image, order: a.important ? '0' : '2' })),
+  ...churchEvents.value.filter(e => e.projector && e.image && e.date && e.date >= today()).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
+    .map((e, i) => ({ key: 'e' + e.id, name: e.title || 'Wydarzenie', image: e.image, order: '1' + String(i).padStart(3, '0') })),
+].sort((a, b) => a.order.localeCompare(b.order)))
+// Pętla ogłoszeń: grafiki (gdy w aplikacji zaznaczono „na rzutniku”), a bez grafik — ogłoszenia jako tekst.
+// Grafiki są w internecie — wczytujemy je od razu, żeby w trakcie pętli były już w pamięci.
 export function addAnnouncements() {
+  const graphics = projectorGraphics.value
+  if (graphics.length) {
+    graphics.forEach(g => { const img = new Image(); img.src = g.image })
+    const slides = graphics.map(g => ({ id: uid(), type: 'image', name: g.name, path: g.image, fit: 'contain', loop: false, hidden: true }))
+    const deck = { id: uid(), type: 'scene', name: 'Ogłoszenia — grafiki', seconds: 10, volume: 0.25, transition: 'fade', fadeMs: 600, auto: true,
+      entries: slides.map(it => ({ key: uid(), ref: it.id, seconds: null })) }
+    items.value.push(...slides, deck)
+    tab.value = 'materials'
+    selectedId.value = deck.id
+    return
+  }
   const list = currentAnnouncements.value
   if (!list.length) return
   const slides = list.map(a => ({ ...TEXT_STYLE, id: uid(), type: 'text', name: a.title, text: a.title + (a.text ? '\n\n' + a.text.trim() : ''), fs: a.text && a.text.length > 160 ? 7 : 9, hidden: true }))

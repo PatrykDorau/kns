@@ -52,7 +52,7 @@ watch(() => props.item?.id, (id, old) => {
   switching = setTimeout(() => { switching = null; fadeMs.value = props.item?.fadeMs ?? 0 }, 60)
 })
 
-const mediaUrl = p => 'media://local/' + encodeURIComponent(p)
+const mediaUrl = p => (/^https:\/\//.test(p) ? p : 'media://local/' + encodeURIComponent(p)) // grafiki ogłoszeń są w internecie
 const layerStyle = computed(() => {
   const c = current.value
   // Zdjęcie i film: pasy obok obrazu w kolorze z ustawień, domyślnie czarne — na rzutniku czerń to brak

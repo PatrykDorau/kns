@@ -6,7 +6,7 @@ import { itemById } from './store.js'
 // Miniatura elementu: zdjęcie, pierwsza klatka filmu, próbka tekstu; pętla i prezentacja
 // pokazują swój pierwszy slajd ze znaczkiem pętli.
 const props = defineProps({ item: Object })
-const url = it => 'media://local/' + encodeURIComponent(it.path)
+const url = it => (/^https:\/\//.test(it.path) ? it.path : 'media://local/' + encodeURIComponent(it.path))
 
 const isLoop = computed(() => props.item?.type === 'scene')
 // To, co faktycznie rysujemy: dla pętli jej pierwszy dostępny slajd.

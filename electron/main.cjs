@@ -222,7 +222,7 @@ function loadStore(name) {
   try {
     const data = JSON.parse(fs.readFileSync(userFile(name + '.json'), 'utf8'))
     if (name !== 'library') return data
-    return data.map(it => (it.path ? { ...it, missing: !fs.existsSync(it.path) } : it))
+    return data.map(it => (it.path && !/^https:\/\//.test(it.path) ? { ...it, missing: !fs.existsSync(it.path) } : it))
   } catch { return null }
 }
 

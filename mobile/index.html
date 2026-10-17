@@ -895,6 +895,7 @@
         <span v-if="currentAnn.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady zboru</span>
         <span class="ann-tag">{{ AUDIENCE[currentAnn.audience] }}</span>
         <span v-if="currentAnn.until" class="ann-tag">ważne do {{ shortDate(currentAnn.until) }}</span>
+        <span v-if="currentAnn.projector && currentAnn.image" class="ann-tag"><svg class="i"><use href="#monitor"/></svg>Na rzutniku</span>
       </div>
       <h2 class="ann-view-title">{{ currentAnn.title }}</h2>
       <p class="ann-view-meta"><template v-if="currentAnn.author">{{ currentAnn.author }} · </template>{{ shortDate(currentAnn.date || currentAnn.updated) }}</p>
@@ -922,6 +923,7 @@
           <button v-if="currentAnn.image" type="button" :disabled="imgBusy" @click="currentAnn.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
         </div>
         <input ref="annImg" type="file" accept="image/*" hidden @change="pickAnnImage">
+        <label v-if="currentAnn.image" class="check"><input v-model="currentAnn.projector" type="checkbox">Pokaż grafikę na rzutniku — w pętli ogłoszeń przed i po nabożeństwie</label>
       </template>
       <label for="anVideo">Film (opcjonalnie)</label>
       <div v-if="videoInfo(currentAnn.video)" class="ann-video">
@@ -1065,6 +1067,7 @@
     <p v-else-if="!eventSavedOnce && !canEdit && !canReview" class="pending-note"><svg class="i"><use href="#bell"/></svg>Wydarzenie pojawi się w kalendarzu po zatwierdzeniu przez lidera newslettera, radę zboru albo administratora.</p>
     <!-- podgląd wydarzenia (zawsze najpierw; edycja po „Edytuj”) -->
     <article v-if="!eventEditable || !eventEditing" class="ann-view ev-view">
+      <img v-if="currentEvent.image" class="ann-hero" :src="currentEvent.image" alt="">
       <div class="ann-tags"><span class="ann-tag" :style="{ background: 'color-mix(in srgb, ' + typeOf(currentEvent.type).color + ' 22%, transparent)', color: typeOf(currentEvent.type).color }">{{ typeOf(currentEvent.type).name }}</span></div>
       <h2 class="ann-view-title">{{ currentEvent.title || typeOf(currentEvent.type).name }}</h2>
       <p class="ann-view-meta">{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time"> · {{ currentEvent.time }}</template><template v-if="currentEvent.place"> · {{ currentEvent.place }}</template></p>
@@ -1135,6 +1138,16 @@
       <input id="evPlace" v-model="currentEvent.place" autocomplete="off">
       <label for="evDesc">Opis</label>
       <textarea id="evDesc" v-model="currentEvent.description" placeholder="Co, dla kogo, co przygotować…"></textarea>
+      <template v-if="drive.uploadImage || currentEvent.image">
+        <label>Grafika (opcjonalnie)</label>
+        <img v-if="currentEvent.image" class="ann-img edit" :src="currentEvent.image" alt="">
+        <div v-if="drive.uploadImage" class="row">
+          <button type="button" :disabled="imgBusy" @click="$refs.evImg.click()"><svg class="i"><use href="#plus"/></svg>{{ imgBusy ? 'Wysyłam…' : currentEvent.image ? 'Zmień grafikę' : 'Dodaj grafikę' }}</button>
+          <button v-if="currentEvent.image" type="button" :disabled="imgBusy" @click="currentEvent.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
+        </div>
+        <input ref="evImg" type="file" accept="image/*" hidden @change="pickEventImage">
+        <label v-if="currentEvent.image" class="check"><input v-model="currentEvent.projector" type="checkbox">Pokaż grafikę na rzutniku — w pętli ogłoszeń przed i po nabożeństwie</label>
+      </template>
       <label v-if="api.enabled" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
       <!-- Zapisy: limit miejsc (dorośli + dzieci), dzieci, zatwierdzanie przez twórcę, termin; brak miejsc → lista rezerwowa -->
       <template v-if="api.enabled">
@@ -2070,7 +2083,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.61 · 17.10.2026'
+const VERSION = '2.62 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2978,12 +2991,20 @@ createApp({
       c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height)
       return new Promise((ok, bad) => c.toBlob(b => (b ? ok(b) : bad(new Error('Nie udało się przygotować grafiki.'))), 'image/jpeg', 0.82))
     }
+    // Grafika wydarzenia (ta sama obsługa co w ogłoszeniach; większa — nadaje się na rzutnik).
+    function pickEventImage(e) {
+      const file = e.target.files?.[0]
+      e.target.value = ''
+      if (!file || !currentEvent.value) return
+      imgBusy.value = true
+      guard(async () => { currentEvent.value.image = await drive.uploadImage(await shrinkImage(file, 1920)) }).finally(() => { imgBusy.value = false })
+    }
     function pickAnnImage(e) {
       const file = e.target.files?.[0]
       e.target.value = ''
       if (!file || !currentAnn.value) return
       imgBusy.value = true
-      guard(async () => { currentAnn.value.image = await drive.uploadImage(await shrinkImage(file)) }).finally(() => { imgBusy.value = false })
+      guard(async () => { currentAnn.value.image = await drive.uploadImage(await shrinkImage(file, 1920)) }).finally(() => { imgBusy.value = false })
     }
 
     // Film: wgrany plik do 50 MB (limit bazy) — dłuższe lepiej wrzucić na YouTube i wkleić link.
@@ -3513,7 +3534,7 @@ createApp({
       shareLink, shareTarget, toast, pendingLink, LINK_KIND, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
