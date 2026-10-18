@@ -52,6 +52,16 @@
   status = 200
 
 [[redirects]]
+  from = "/cele"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cel/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/asb"
   to = "/index.html"
   status = 200

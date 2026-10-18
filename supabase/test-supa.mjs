@@ -7,7 +7,7 @@ import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
 import { createSupa } from '../mobile/supa.js'
 
 const db = new PGlite()
-await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
+await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
 const admin = await addUser(db, 'admin@kns.pl', 'Admin')
 const ania = await addUser(db, 'ania@kns.pl', 'Ania')
 const inDays = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)

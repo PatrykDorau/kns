@@ -487,6 +487,58 @@
   .qr-url { display: block; color: var(--muted); font-size: 12px; word-break: break-all; }
   .qr-actions { gap: 8px; width: 100%; justify-content: center; }
   .qr-actions .primary { width: auto; }
+  /* Cele wsparcia */
+  .invite { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border: 1px dashed rgba(232, 163, 61, .55); border-radius: 14px; background: rgba(232, 163, 61, .06); }
+  .invite > .i { flex: none; width: 22px; height: 22px; color: var(--accent); }
+  .invite > span { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .invite small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+  .invite > button { flex: none; white-space: nowrap; }
+  .invite-cal { margin: 4px 0 12px; }
+  @media (max-width: 560px) { .invite { flex-wrap: wrap; } .invite > button { width: 100%; justify-content: center; } }
+  .goals-intro { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
+  .goal-banner { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 14px; padding: 12px 14px; border: 1px solid rgba(232, 163, 61, .5); border-radius: 14px; background: rgba(232, 163, 61, .1); text-align: left; color: var(--text); }
+  .goal-banner > .i:first-child { width: 22px; height: 22px; color: var(--accent); flex: none; }
+  .goal-banner span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .goal-banner small { color: var(--muted); }
+  .goal-confirm { margin: 0 0 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+  .goal-confirm.due { border-color: rgba(232, 163, 61, .6); background: rgba(232, 163, 61, .08); }
+  .goal-confirm.done { opacity: .75; }
+  .goal-confirm p { margin: 8px 0; }
+  .gc-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .gc-h .i { width: 18px; height: 18px; color: var(--accent); }
+  .gc-h b { text-transform: capitalize; }
+  .gc-items { list-style: none; margin: 6px 0 10px; padding: 0; }
+  .gc-items li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .gc-reduce { display: grid; grid-template-columns: 1fr 110px auto; align-items: center; gap: 8px; margin: 6px 0; }
+  .gc-reduce label { margin: 0; }
+  .goal { margin: 0 0 14px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+  .goal.focus { border-color: var(--accent); }
+  .goal.closed { opacity: .7; }
+  .goal-img { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
+  .goal-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .goal-h b { font-size: 17px; }
+  .goal-desc { margin: 6px 0 0; color: var(--muted); font-size: 14px; white-space: pre-wrap; }
+  .goal-bar { position: relative; height: 14px; margin: 12px 0 6px; border-radius: 7px; background: var(--panel2); overflow: hidden; }
+  .goal-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px; transition: width .4s ease; }
+  .goal-bar .proj { background: repeating-linear-gradient(-45deg, rgba(232, 163, 61, .35) 0 6px, rgba(232, 163, 61, .18) 6px 12px); }
+  .goal-bar .done { background: var(--accent); }
+  .goal-nums { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+  .goal-nums b { color: var(--text); }
+  .goal-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 12px; }
+  .goal-legend i { display: inline-block; width: 12px; height: 8px; border-radius: 3px; }
+  .goal-legend .lg-done { background: var(--accent); }
+  .goal-legend .lg-proj { margin-left: 8px; background: rgba(232, 163, 61, .35); }
+  .goal-mine { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .goal-mine label { margin-top: 0; }
+  .goal-mine .row input { flex: 1; min-width: 90px; }
+  .goal-admin { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .goal-people { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 13px; }
+  .goal-people th, .goal-people td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  .goal-people th { color: var(--muted); font-weight: 600; }
+  .goal-people td.miss { color: #ff8a65; }
+  .goal-form { margin-bottom: 14px; }
+  .goal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .goal-form-row input { width: 100%; }
   .asb-seasons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .asb-stats { display: flex; flex-wrap: wrap; gap: 8px; }
   .asb-stats span { flex: 1 1 120px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
@@ -809,6 +861,7 @@
   <symbol id="alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/></symbol>
   <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
+  <symbol id="heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9.2-8.8C1.3 8 3.2 4.5 6.6 4.5c2 0 3.4 1.1 4.4 2.6l1 1.4 1-1.4c1-1.5 2.4-2.6 4.4-2.6 3.4 0 5.3 3.5 3.8 6.7C19 15.6 12 20 12 20Z"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
 </svg>
@@ -832,7 +885,7 @@
   </div>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? (svcEditing && canEdit ? 'Edycja nabożeństwa' : 'Nabożeństwo') : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja materiału' : 'Nowy materiał') : MAT_TYPES[matType(currentProto)]) : currentEvent ? (eventEditing && eventEditable ? (eventSavedOnce ? 'Edycja wydarzenia' : 'Nowe wydarzenie') : 'Wydarzenie') : protoView ? 'Materiały' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : listenView ? 'Posłuchaj' : asbView ? 'ASB' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? (svcEditing && canEdit ? 'Edycja nabożeństwa' : 'Nabożeństwo') : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja materiału' : 'Nowy materiał') : MAT_TYPES[matType(currentProto)]) : currentEvent ? (eventEditing && eventEditable ? (eventSavedOnce ? 'Edycja wydarzenia' : 'Nowe wydarzenie') : 'Wydarzenie') : protoView ? 'Materiały' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : listenView ? 'Posłuchaj' : asbView ? 'ASB' : goalsView ? 'Cele wsparcia' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ svcEditing && services.some(x => x.id === current.id) ? 'Podgląd' : cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
     <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
     <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
@@ -843,7 +896,7 @@
     <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
     <button v-else-if="profileView" class="ghost" @click="profileView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="serveView || listenView || asbView" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
+    <button v-else-if="serveView || listenView || asbView || goalsView" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
     <button v-else-if="gcalView" class="ghost" @click="gcalView = false; calView = true"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="songView || peopleView" class="ghost" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
@@ -1368,6 +1421,7 @@
     <div class="filters" role="group" aria-label="Pokazywane rodzaje wydarzeń">
       <button v-for="t in types" :key="t.id" class="filter" :class="{ on: !hidden.includes(t.id) }" :aria-pressed="!hidden.includes(t.id)" @click="toggleType(t.id)"><i :style="{ background: t.color }"></i>{{ t.name }}</button>
     </div>
+    <div v-if="canSubmit" class="invite invite-cal"><svg class="i"><use href="#users"/></svg><span><b>Zaproś kościół na swoje wydarzenie</b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg>{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</button></div>
     <div class="cal-actions">
       <button v-if="canSubmit" class="primary" @click="pickType = true"><svg class="i"><use href="#plus"/></svg>{{ canEdit || canReview ? 'Nowe wydarzenie' : 'Zgłoś wydarzenie' }}</button>
       <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg>Dodaj do swojego kalendarza</button>
@@ -1594,6 +1648,88 @@
   </template>
 
   <!-- Posłuchaj: YouTube i Spotify (linki ustawia administrator) -->
+  <!-- Cele wsparcia: deklaracje z dziesięciny, potwierdzanie miesięcy, pasek postępu; rada — cele i kto ile -->
+  <template v-else-if="goalsView && !current">
+    <p class="goals-intro">Część swojej dziesięciny możesz przeznaczyć na wybrany cel. Deklarujesz kwotę <b>miesięcznie</b>, a po każdym miesiącu potwierdzasz, że Twoja dziesięcina wyniosła co najmniej sumę deklaracji — jeśli nie, zmniejszasz je. Twoje kwoty widzisz Ty i rada zboru, pozostali — tylko pasek postępu.</p>
+    <p v-if="goals.error" class="error">{{ goals.error }}</p>
+
+    <section v-for="m in goals.status.months || []" :key="m.month" class="goal-confirm" :class="{ done: m.confirmed, due: !m.confirmed && m.month < thisMonth }">
+      <div class="gc-h"><svg class="i"><use :href="m.confirmed ? '#check' : '#heart'"/></svg><b>{{ monthName(m.month) }}</b><span class="ann-tag">{{ m.confirmed ? 'potwierdzone · ' + zl(m.total) : m.month < thisMonth ? 'do potwierdzenia' : 'bieżący miesiąc' }}</span></div>
+      <template v-if="!m.confirmed">
+        <p>Czy Twoja dziesięcina {{ m.month < thisMonth ? 'w tym miesiącu wyniosła' : 'w tym miesiącu wynosi' }} co najmniej <b>{{ zl(itemsSum(m)) }}</b>?</p>
+        <ul class="gc-items"><li v-for="it in m.items || []" :key="it.goal"><span>{{ it.title }}</span><b>{{ zl(it.amount) }}</b></li></ul>
+        <template v-if="goals.reduce?.month === m.month">
+          <p class="note">Wpisz, ile faktycznie poszło na każdy cel — deklaracje zmniejszą się do tych kwot (na kolejne miesiące też).</p>
+          <div v-for="it in goals.reduce.items" :key="it.goal" class="gc-reduce"><label :for="'gr' + it.goal">{{ it.title }}</label><input :id="'gr' + it.goal" v-model.number="it.value" type="number" min="0" :max="it.amount" step="10" inputmode="numeric"><small>z {{ zl(it.amount) }}</small></div>
+          <div class="row"><button class="primary" :disabled="busy" @click="confirmMonth(m, true)">Potwierdź mniejsze kwoty</button><button :disabled="busy" @click="goals.reduce = null">Anuluj</button></div>
+        </template>
+        <div v-else class="row"><button class="primary" :disabled="busy" @click="confirmMonth(m)"><svg class="i"><use href="#check"/></svg>Tak, potwierdzam</button><button :disabled="busy" @click="startReduce(m)">Nie — zmniejszam deklaracje</button></div>
+      </template>
+    </section>
+
+    <!-- formularz celu (rada zboru, pastor, administrator) -->
+    <section v-if="goals.edit" class="goal-form">
+      <h2>{{ goals.edit._new ? 'Nowy cel' : 'Edycja celu' }}</h2>
+      <label for="gTitle">Nazwa celu</label>
+      <input id="gTitle" v-model="goals.edit.title" maxlength="120" :class="{ invalid: !goals.edit.title.trim() }" placeholder="np. Remont sali, Wyjazd młodzieży, Misja w …" autocomplete="off">
+      <label for="gDesc">Opis (na co, dlaczego)</label>
+      <textarea id="gDesc" v-model="goals.edit.description" class="ann-text"></textarea>
+      <div class="goal-form-row">
+        <span><label for="gTarget">Kwota łącznie (zł)</label><input id="gTarget" v-model.number="goals.edit.target" type="number" min="1" step="100" inputmode="numeric" :class="{ invalid: !(goals.edit.target > 0) }"></span>
+        <span><label for="gEnds">Termin</label><input id="gEnds" v-model="goals.edit.ends" type="date" :min="todayStr" :class="{ invalid: !goals.edit.ends }"></span>
+      </div>
+      <label>Grafika (opcjonalnie)</label>
+      <img v-if="goals.edit.image" class="ann-img edit" :src="goals.edit.image" alt="">
+      <div v-if="drive.uploadImage" class="row">
+        <button type="button" :disabled="imgBusy" @click="$refs.goalImg.click()"><svg class="i"><use href="#plus"/></svg>{{ imgBusy ? 'Wysyłam…' : goals.edit.image ? 'Zmień grafikę' : 'Dodaj grafikę' }}</button>
+        <button v-if="goals.edit.image" type="button" @click="goals.edit.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
+      </div>
+      <input ref="goalImg" type="file" accept="image/*" hidden @change="pickGoalImage">
+      <label v-if="!goals.edit._new" class="check"><input v-model="goals.edit.closed" type="checkbox">Zakończony — nowych deklaracji już nie przyjmuje</label>
+      <div class="bar">
+        <button class="primary" :disabled="busy || !goals.edit.title.trim() || !(goals.edit.target > 0) || !goals.edit.ends" @click="saveGoal">Zapisz cel</button>
+        <button :disabled="busy" @click="goals.edit = null">Anuluj</button>
+        <button v-if="!goals.edit._new" class="danger" :disabled="busy" @click="removeGoal(goals.edit)"><svg class="i"><use href="#trash"/></svg>Usuń</button>
+      </div>
+    </section>
+
+    <template v-else>
+      <div class="section"><h2>Cele</h2><button v-if="goals.canManage" class="small" @click="newGoal"><svg class="i"><use href="#plus"/></svg>Nowy cel</button></div>
+      <p v-if="goals.status.monthly" class="note">Razem deklarujesz <b>{{ zl(goals.status.monthly) }}</b> miesięcznie ze swojej dziesięciny.</p>
+      <div v-if="goals.busy && !goals.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 3" :key="n" class="skel skel-row"></div></div>
+      <p v-else-if="!goals.list.length" class="note">Nie ma jeszcze celów.{{ goals.canManage ? ' Dodaj pierwszy — „Nowy cel”.' : ' Ogłasza je rada zboru.' }}</p>
+      <article v-for="g in goals.list" :key="g.id" class="goal" :class="{ closed: g.closed, focus: goals.open === g.id }">
+        <img v-if="g.image" class="goal-img" :src="g.image" alt="" loading="lazy">
+        <div class="goal-h"><b>{{ g.title }}</b><span class="ann-tag">{{ g.closed ? 'zakończony' : 'do ' + shortDate(g.ends) }}</span></div>
+        <p v-if="g.description" class="goal-desc">{{ g.description }}</p>
+        <div class="goal-bar" role="progressbar" :aria-valuenow="goalPct(g)" aria-valuemin="0" aria-valuemax="100" :title="'Zebrano ' + goalPct(g) + '% · z deklaracjami do terminu ' + goalProj(g) + '%'">
+          <i class="proj" :style="{ width: goalProj(g) + '%' }"></i><i class="done" :style="{ width: goalPct(g) + '%' }"></i>
+        </div>
+        <div class="goal-nums"><span><b>{{ zl(g.confirmed) }}</b> z {{ zl(g.target) }} · {{ goalPct(g) }}%</span><span>{{ g.people }} {{ g.people === 1 ? 'osoba' : g.people % 10 >= 2 && g.people % 10 <= 4 && (g.people % 100 < 10 || g.people % 100 >= 20) ? 'osoby' : 'osób' }} · {{ zl(g.monthly) }} / mies.</span></div>
+        <small v-if="!g.closed" class="goal-legend"><i class="lg-done"></i>potwierdzone <i class="lg-proj"></i>z deklaracjami do terminu: {{ zl(goalProjAmount(g)) }}</small>
+        <div class="goal-mine">
+          <label :for="'gm' + g.id">{{ g.mine ? 'Twoja deklaracja' : 'Ile z dziesięciny co miesiąc?' }} <small>(zł miesięcznie)</small></label>
+          <div class="row">
+            <input :id="'gm' + g.id" v-model.number="goals.amount[g.id]" type="number" min="0" step="10" inputmode="numeric" :disabled="g.closed && !g.mine" placeholder="np. 100">
+            <button class="primary" :disabled="busy || !(+goals.amount[g.id] >= 0) || +goals.amount[g.id] === g.mine || (!g.mine && !+goals.amount[g.id]) || (g.closed && +goals.amount[g.id] > g.mine)" @click="savePledge(g)">{{ g.mine ? 'Zmień' : 'Deklaruję' }}</button>
+            <button v-if="g.mine" :disabled="busy" @click="withdraw(g)">Wycofaj</button>
+          </div>
+        </div>
+        <div v-if="goals.canManage" class="goal-admin">
+          <button class="small" @click="editGoal(g)"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
+          <button class="small" @click="toggleGoalPeople(g)"><svg class="i"><use href="#users"/></svg>{{ goals.people[g.id] ? 'Ukryj osoby' : 'Kto deklaruje' }}</button>
+        </div>
+        <table v-if="goals.people[g.id]" class="goal-people">
+          <thead><tr><th>Osoba</th><th>/ mies.</th><th>razem</th><th>{{ monthShort(prevMonth) }}</th><th>{{ monthShort(thisMonth) }}</th></tr></thead>
+          <tbody>
+            <tr v-for="p in goals.people[g.id]" :key="p.name"><td>{{ p.name }}</td><td>{{ zl(p.amount) }}</td><td>{{ zl(p.given) }}</td><td :class="{ miss: p.prev == null && p.since < thisMonth }">{{ p.prev == null ? (p.since < thisMonth ? 'brak' : '—') : '✓ ' + zl(p.prev) }}</td><td>{{ p.now == null ? '—' : '✓ ' + zl(p.now) }}</td></tr>
+            <tr v-if="!goals.people[g.id].length"><td colspan="5" class="muted">Nikt jeszcze nie zadeklarował.</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </template>
+  </template>
+
   <template v-else-if="listenView && !current">
     <p class="listen-intro">Chciałbyś poznać bliżej to, czym żyjemy? Kazania i uwielbienie — do obejrzenia i posłuchania.</p>
     <div class="listen-grid">
@@ -1695,6 +1831,7 @@
       <button v-if="canMsg" @click="openMsg()"><svg class="i"><use href="#megaphone"/></svg><span>Wyślij wiadomość</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openAsb"><svg class="i"><use href="#users"/></svg><span>{{ canAsb ? 'ASB — grafik spotkań' : 'ASB — terminarz spotkań' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openListen"><svg class="i"><use href="#music"/></svg><span>Posłuchaj</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="api.enabled" @click="openGoals()"><svg class="i"><use href="#heart"/></svg><span>Cele wsparcia</span><small v-if="goalDue" class="count-pill">!</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Materiały</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
@@ -1754,6 +1891,7 @@
         <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
         <p>Oto co dzieje się w kościele.</p>
       </div>
+      <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#heart"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
       <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts">
         <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
         <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
@@ -1839,6 +1977,7 @@
               </button>
             </div>
           </div>
+          <div v-if="canSubmit" class="invite invite-week"><svg class="i"><use href="#users"/></svg><span><b>Zaproś kościół na swoje wydarzenie</b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg>{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</button></div>
         </section>
       </div>
     </div>
@@ -1848,6 +1987,7 @@
       <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
       <p>Oto co dzieje się w kościele.</p>
     </div>
+    <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#heart"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
     <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts phone-thoughts">
       <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
       <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
@@ -1907,6 +2047,7 @@
             <span class="week-time">{{ it.time }}</span>
           </button>
         </div>
+        <div v-if="canSubmit" class="invite invite-week"><svg class="i"><use href="#users"/></svg><span><b>Zaproś kościół na swoje wydarzenie</b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg>{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</button></div>
       </section>
 
 
@@ -2443,7 +2584,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.74 · 18.10.2026'
+const VERSION = '2.75 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2645,7 +2786,7 @@ createApp({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
-    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value)
+    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value)
     const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
@@ -2716,7 +2857,7 @@ createApp({
       events.value = allEvents.filter(e => e.status !== 'pending'); pendingEvents.value = allEvents.filter(e => e.status === 'pending')
       types.value = mergeTypes(data.templates); typesBase = data.templatesUpdated || 0
       announcements.value = (data.announcements || []).filter(a => a.status !== 'pending'); pendingAnns.value = (data.announcements || []).filter(a => a.status === 'pending')
-      if (api.enabled) { setTimeout(loadInbox); setTimeout(loadSeenAnns) } // po ustawieniu „ready”
+      if (api.enabled) { setTimeout(loadInbox); setTimeout(loadSeenAnns); setTimeout(loadGoals) } // po ustawieniu „ready”
     }
     // Z serwerem kont nowa osoba loguje się najpierw samą tożsamością — o Dysk pytamy dopiero po zatwierdzeniu.
     const start = (choose = false) => guard(async () => {
@@ -2830,7 +2971,7 @@ createApp({
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null
       tplType.value = null; tplView.value = false; protoView.value = false; annView.value = false
     }
-    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
+    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -3023,7 +3164,7 @@ createApp({
       return visibleItems.value.filter(it => it.date >= todayStr.value && it.date <= until).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -3075,6 +3216,8 @@ createApp({
       notify.ids = []
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
     }
+    // „Zaproś kościół”: kalendarz z wyborem rodzaju nowego wydarzenia
+    function inviteEvent() { if (!calView.value) openCalendar(); pickType.value = true; nextTick(() => document.querySelector('.cal-actions')?.scrollIntoView({ block: 'center', behavior: 'smooth' })) }
     function newEvent(typeId) {
       pickType.value = false
       if (typeId === 'nabozenstwo') { create(selDay.value || undefined); fromCal = true; return }
@@ -3583,7 +3726,7 @@ createApp({
       profile.name = me.value.name || ''; profile.grupa = me.value.grupa || ''; status.value = ''
       current.value = null; currentEvent.value = null; currentAnn.value = null; currentProto.value = null
       songView.value = false; peopleView.value = false; calView.value = false; gcalView.value = false; annView.value = false; protoView.value = false; tplView.value = false
-      serveView.value = false; listenView.value = false; asbView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
+      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
       api.call('groups').then(r => { groupNames.value = r.groups || [] }, () => {})
     }
     const saveProfile = () => guard(async () => {
@@ -3885,6 +4028,76 @@ createApp({
       } catch (e) { msg.error = e.message } finally { msg.busy = false }
     }
 
+    /* ---------- Cele wsparcia ---------- */
+    // Rada ogłasza cel (kwota, termin). Członek deklaruje, ile ze SWOJEJ dziesięciny przeznacza na cel co miesiąc,
+    // a po miesiącu potwierdza, że jego dziesięcina pokryła wszystkie deklaracje — albo je zmniejsza (cele.sql).
+    const goalsView = ref(false)
+    const goals = Vue.reactive({ list: [], status: { months: [], monthly: 0 }, canManage: false, busy: false, error: '', open: '', edit: null, amount: {}, people: {}, reduce: null })
+    const zl = n => (Math.round(+n || 0)).toLocaleString('pl') + ' zł'
+    const thisMonth = computed(() => todayStr.value.slice(0, 7) + '-01')
+    const prevMonth = computed(() => { const d = new Date(thisMonth.value + 'T12:00'); d.setMonth(d.getMonth() - 1); return localDate(d).slice(0, 7) + '-01' })
+    const monthName = m => (m ? new Date(String(m).slice(0, 10) + 'T12:00').toLocaleDateString('pl', { month: 'long', year: 'numeric' }) : '')
+    const monthShort = m => (m ? new Date(String(m).slice(0, 10) + 'T12:00').toLocaleDateString('pl', { month: 'short' }).replace('.', '') : '')
+    const itemsSum = m => (m?.items || []).reduce((t, it) => t + (+it.amount || 0), 0)
+    // do potwierdzenia: poprzedni miesiąc bez potwierdzenia
+    const goalDue = computed(() => (goals.status.months || []).find(m => !m.confirmed && String(m.month).slice(0, 10) < thisMonth.value && itemsSum(m) > 0) || null)
+    const goalPct = g => Math.min(100, Math.round((g.confirmed / g.target) * 100) || 0)
+    const goalProjAmount = g => g.confirmed + Math.max(0, g.monthly * g.months_left - g.confirmed_now)
+    const goalProj = g => Math.min(100, Math.round((goalProjAmount(g) / g.target) * 100) || 0)
+    async function loadGoals() {
+      if (!api.enabled || !ready.value) return
+      goals.busy = true; goals.error = ''
+      try {
+        const [list, st, can] = await Promise.all([api.call('goals'), api.call('pledgeStatus'), api.call('canGoals')])
+        goals.list = list || []; goals.status = { months: [], monthly: 0, ...(st || {}) }; goals.canManage = !!can
+        for (const g of goals.list) goals.amount[g.id] = g.mine || ''
+      } catch (e) { goals.error = e.message || String(e) } finally { goals.busy = false }
+    }
+    function openGoals(id = '') {
+      profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
+      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false; asbView.value = false
+      goalsView.value = true; goals.open = id; goals.edit = null; goals.reduce = null; scrollTo(0, 0)
+      return loadGoals().then(() => {
+        if (id && goals.canManage) loadGoalPeople(id)
+        if (id) nextTick(() => document.querySelector('.goal.focus')?.scrollIntoView({ block: 'start' }))
+      })
+    }
+    const savePledge = g => guard(async () => {
+      const amt = Math.max(0, Math.round(+goals.amount[g.id] || 0))
+      await api.call('pledgeSet', { g: g.id, amt })
+      await loadGoals()
+      showToast(amt ? 'Deklaracja: ' + zl(amt) + ' miesięcznie na „' + g.title + '”' : 'Wycofano deklarację')
+    })
+    function withdraw(g) { if (confirm('Wycofać deklarację na „' + g.title + '”? To, co już potwierdziłeś, zostaje w zebranej kwocie.')) { goals.amount[g.id] = 0; savePledge(g) } }
+    function startReduce(m) { goals.reduce = { month: m.month, items: (m.items || []).map(it => ({ ...it, value: it.amount })) } }
+    const confirmMonth = (m, reduced) => guard(async () => {
+      const amounts = reduced ? Object.fromEntries(goals.reduce.items.map(it => [it.goal, Math.max(0, Math.min(it.amount, Math.round(+it.value || 0)))])) : {}
+      const total = await api.call('confirmMonth', { m: String(m.month).slice(0, 10), amounts })
+      goals.reduce = null
+      await loadGoals()
+      showToast('Potwierdzono ' + monthName(m.month) + ': ' + zl(total))
+    })
+    function newGoal() { goals.edit = { id: uid(), title: '', description: '', target: '', ends: '', image: '', closed: false, _new: true }; scrollTo(0, 0) }
+    function editGoal(g) { goals.edit = { id: g.id, title: g.title, description: g.description, target: g.target, ends: String(g.ends).slice(0, 10), image: g.image, closed: !!g.closed }; scrollTo(0, 0) }
+    const saveGoal = () => guard(async () => {
+      const e = goals.edit
+      if (e._new && e.ends < todayStr.value) throw new Error('Termin nie może być w przeszłości.')
+      await api.call('saveGoal', { goal: { ...e, title: e.title.trim(), target: Math.round(+e.target) } })
+      goals.edit = null
+      await loadGoals()
+      showToast('Zapisano cel.')
+    })
+    const removeGoal = g => { if (confirm('Usunąć cel „' + g.title + '” razem z deklaracjami i potwierdzeniami? Tego nie da się cofnąć.')) guard(async () => { await api.call('removeGoal', { id: g.id }); goals.edit = null; await loadGoals() }) }
+    async function loadGoalPeople(id) { try { goals.people[id] = (await api.call('goalPeople', { g: id })) || [] } catch (e) { goals.error = e.message || String(e) } }
+    function toggleGoalPeople(g) { if (goals.people[g.id]) delete goals.people[g.id]; else loadGoalPeople(g.id) }
+    function pickGoalImage(e) {
+      const file = e.target.files?.[0]
+      e.target.value = ''
+      if (!file || !goals.edit) return
+      imgBusy.value = true
+      guard(async () => { goals.edit.image = await drive.uploadImage(await shrinkImage(file, 1600)) }).finally(() => { imgBusy.value = false })
+    }
+
     /* ---------- Posłuchaj ---------- */
     const listen = ref({}), listenView = ref(false)
     const listenEdit = Vue.reactive({ youtube: '', youtubeMore: '', spotify: '' })
@@ -3909,7 +4122,7 @@ createApp({
     }
     function openListen() {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
-      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false
+      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false
       listenView.value = true; scrollTo(0, 0); loadListen()
     }
     const saveListen = () => guard(async () => { await api.call('setListen', { ...listenEdit }); await loadListen(); status.value = 'Zapisano linki.' })
@@ -3943,7 +4156,7 @@ createApp({
     function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { loadMsgOpts(); openMoreView() }
-    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -3976,6 +4189,7 @@ createApp({
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
         ...(api.enabled ? [{ id: 'serve', icon: 'users', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
         ...(api.enabled ? [{ id: 'listen', icon: 'music', name: 'Posłuchaj', desc: 'Kazania na YouTube i Spotify', locked: false, go: 'chev' }] : []),
+        ...(api.enabled ? [{ id: 'goals', icon: 'heart', name: 'Cele wsparcia', desc: 'Część dziesięciny na wybrany cel', locked: false, go: 'chev', pill: goalDue.value ? 'Potwierdź' : '' }] : []),
         ...(api.enabled ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: canAsb.value ? 'Grafik spotkań, przypomnienia i pomysły' : 'Terminarz spotkań studenckich', locked: false, go: 'chev' }] : []),
       ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
     })
@@ -3985,6 +4199,7 @@ createApp({
       else if (t.id === 'serve') openServe()
       else if (t.id === 'listen') openListen()
       else if (t.id === 'asb') openAsb()
+      else if (t.id === 'goals') openGoals()
       else if (t.id === 'planner') nextService.value ? open(nextService.value) : create(nextSundayDate)
       else if (desktopApp.url) location.href = desktopApp.url
     }
@@ -4198,6 +4413,7 @@ createApp({
       if (profileView.value) return '/profil'
       if (serveView.value) return '/zaangazuj-sie'
       if (listenView.value) return '/posluchaj'
+      if (goalsView.value) return goals.open ? '/cel/' + encodeURIComponent(goals.open) : '/cele'
       if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
       if (calView.value) return '/kalendarz'
       if (moreView.value) return '/wiecej'
@@ -4215,7 +4431,7 @@ createApp({
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; asbForm.value = null; fromCal = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; asbForm.value = null; fromCal = false
     }
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
     async function applyRoute(path) {
@@ -4240,6 +4456,7 @@ createApp({
         } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(query.includes('sluzba=') ? query : 'sluzby=1'))
         else if (view === 'posluchaj') openListen()
         else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : 'plan'; await openAsb(); if (id && id !== 'pomysly') asbOpenId(id) }
+        else if (view === 'cele' || view === 'cel') openGoals(view === 'cel' ? id : '')
         else if (view === 'profil') openProfile()
         else if (view === 'wiecej') openMore()
         else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); const sg = view === 'piesn' && songs.value.find(x => x.id === id); if (sg) openSong(sg) }
@@ -4294,7 +4511,7 @@ createApp({
       const el = document.getElementById('app')
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
-      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || annView.value || protoView.value || tplView.value || songView.value))
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return {
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
@@ -4307,6 +4524,8 @@ createApp({
       msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
       bulk, annFromImages,
       MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
+      goalsView, goals, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
+      startReduce, confirmMonth, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
@@ -4318,7 +4537,7 @@ createApp({
       migrating, migrated, migrate,
       gcalView, gcal, openGcal, renewGcal, copyGcal,
       weekDays, greeting, firstName, webTiles, chooseTile, boardNews, boardMore, weekRange,
-      moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
+      inviteEvent, moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,

@@ -136,6 +136,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
           </button>
         </div>
       </div>
+      <div v-if="access.edit && canUse('calendar')" class="invite"><Icon name="users" /><span><b>Zaproś kościół na swoje wydarzenie</b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.</small></span><button class="primary" @click="openCalendar({ kind: 'new' })"><Icon name="plus" />Dodaj wydarzenie</button></div>
     </section>
   </div>
 

@@ -137,6 +137,7 @@ onMounted(() => {
   const req = calendarRequest.value
   calendarRequest.value = null
   if (!req) return
+  if (req.kind === 'new') { if (canEdit.value) newEvent(); return }
   const it = items.value.find(x => x.kind === req.kind && x.id === req.id)
   if (it) pick(it)
   else if (req.date) { day.value = req.date; month.value = req.date.slice(0, 7) }
