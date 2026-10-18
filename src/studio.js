@@ -135,32 +135,84 @@ function timerBadge() {
   } else text('ZACZYNAMY!', W / 2, y + 90, { size: 64, weight: 800, color: '#2b2b2b', align: 'center' })
 }
 
+// Fala u góry: dwie warstwy (ciemniejsza pod spodem) z falującą dolną krawędzią.
+function topWave() {
+  const wave = (base, amp, len, phase, color) => {
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(W, 0)
+    for (let x = W; x >= 0; x -= 20) g.lineTo(x, base + amp * Math.sin((x / len) * Math.PI * 2 + phase))
+    g.closePath(); g.fillStyle = color; g.fill()
+  }
+  wave(250, 26, 760, 1.2, '#e8952f')
+  wave(222, 22, 640, 0, '#f6a836')
+}
+// Timer: ciemna plakietka z falowanym brzegiem (kolor obwódki logo), cyfry w kolorze fali.
+function timerBlob() {
+  const svc = nearestService.value
+  const start = svc ? new Date(`${svc.date}T${serviceTime(svc)}`).getTime() : 0
+  const left = Math.max(0, Math.ceil((start - Date.now()) / 1000))
+  const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), sec = left % 60
+  const clock = (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec).padStart(2, '0')
+  const cx = W / 2, cy = 165, rx = h ? 310 : 265, ry = 130
+  g.save()
+  g.beginPath()
+  for (let i = 0; i <= 120; i++) {
+    const a = (i / 120) * Math.PI * 2, wob = 1 + 0.035 * Math.sin(a * 14)
+    const x = cx + Math.cos(a) * rx * wob, y = cy + Math.sin(a) * ry * wob
+    i ? g.lineTo(x, y) : g.moveTo(x, y)
+  }
+  g.closePath()
+  g.shadowColor = 'rgba(0,0,0,0.3)'; g.shadowBlur = 30; g.shadowOffsetY = 8
+  g.fillStyle = '#2b2b2b'; g.fill()
+  g.restore()
+  text(left ? 'ZACZYNAMY ZA' : 'ZACZYNAMY', cx, cy - 46, { size: 30, weight: 800, color: '#f3e3c8', align: 'center' })
+  text(left ? clock : 'TERAZ', cx, cy + 64, { size: 112, weight: 800, color: '#f6a836', align: 'center' })
+}
+// Proste grafiki po bokach: lewy — okrąg z kropkami, prawy — szczyty jak w logo.
+function sideArt() {
+  g.save()
+  g.lineWidth = 16; g.strokeStyle = '#f6a836'
+  g.beginPath(); g.arc(150, 760, 150, 0, Math.PI * 2); g.stroke()
+  g.fillStyle = 'rgba(43,43,43,0.55)'
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(60 + k * 46, 470 + r * 46, 7, 0, Math.PI * 2); g.fill() }
+  g.lineWidth = 14; g.strokeStyle = '#2b2b2b'; g.lineJoin = 'round'
+  g.beginPath(); g.moveTo(1630, 1000); g.lineTo(1715, 870); g.lineTo(1765, 930); g.lineTo(1830, 820); g.lineTo(1910, 960); g.stroke()
+  g.fillStyle = '#f6a836'; g.beginPath(); g.arc(1800, 520, 44, 0, Math.PI * 2); g.fill()
+  g.lineWidth = 6; g.strokeStyle = 'rgba(43,43,43,0.5)'
+  g.beginPath(); for (let k = 0; k < 4; k++) { g.moveTo(1660, 610 + k * 34); g.quadraticCurveTo(1720, 590 + k * 34, 1780, 610 + k * 34); g.quadraticCurveTo(1840, 630 + k * 34, 1900, 610 + k * 34) } g.stroke()
+  g.restore()
+}
+
 /* ---------- sceny ---------- */
 const SCENE_DRAW = {
   camera(t) { camera(); lowerThird(t); lyrics(t) },
-  // Odliczanie: grafiki ogłoszeń na cały ekran (zmiana co 8 s), timer u góry — na papierowym marginesie, jak logo.
+  // „Zaraz zaczynamy”: papier, u góry pomarańczowa fala z timerem, na środku ogłoszenia jak prezentacja w pętli,
+  // po bokach proste grafiki (okrąg z kropkami, szczyty jak w logo). Bez animacji — tylko przenikanie grafik.
   countdown(t) {
+    paper()
+    sideArt()
     const c = carousel(t)
+    const pw = 1240, ph = 698, px = (W - pw) / 2, py = 330
+    g.save(); g.shadowColor = 'rgba(40,30,20,0.35)'; g.shadowBlur = 50; g.shadowOffsetY = 18
+    rounded(px, py, pw, ph, 18); g.fillStyle = '#fff'; g.fill(); g.restore()
+    g.save(); rounded(px, py, pw, ph, 18); g.clip()
     if (c) {
-      fit(c.prev, c.prev.naturalWidth, c.prev.naturalHeight, 0, 0, W, H, 'cover')
-      if (c.mix < 1) { g.save(); g.globalAlpha = c.mix; fit(c.cur, c.cur.naturalWidth, c.cur.naturalHeight, 0, 0, W, H, 'cover'); g.restore() } else fit(c.cur, c.cur.naturalWidth, c.cur.naturalHeight, 0, 0, W, H, 'cover')
+      fit(c.prev, c.prev.naturalWidth, c.prev.naturalHeight, px, py, pw, ph, 'cover')
+      if (c.mix < 1) { g.globalAlpha = c.mix; fit(c.cur, c.cur.naturalWidth, c.cur.naturalHeight, px, py, pw, ph, 'cover') }
     } else {
-      // bez grafik: plansza w tym samym stylu — papier, pomarańczowa karta, logo u dołu
+      // bez grafik: karta z najbliższym nabożeństwem
       const svc = nearestService.value
-      paper()
-      const gr = g.createLinearGradient(CARD.x, CARD.y, CARD.x + CARD.w, CARD.y + CARD.h)
-      gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#dc7a3c')
-      g.fillStyle = gr; g.fillRect(CARD.x, CARD.y, CARD.w, CARD.h)
-      text('Nabożeństwo', W / 2, 470, { size: 120, weight: 800, color: '#2a1a10', align: 'center' })
+      const gr = g.createLinearGradient(px, py, px + pw, py + ph); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#dc7a3c')
+      g.fillStyle = gr; g.fillRect(px, py, pw, ph)
+      text('Nabożeństwo', W / 2, py + 260, { size: 110, weight: 800, color: '#2a1a10', align: 'center' })
       if (svc) {
-        text(svcWhen(svc).replace(/^./, x => x.toUpperCase()), W / 2, 590, { size: 54, weight: 600, color: '#2a1a10', align: 'center' })
-        text(servicePlace(svc), W / 2, 670, { size: 44, weight: 500, color: '#3d2615', align: 'center' })
+        text(svcWhen(svc).replace(/^./, x => x.toUpperCase()) + ' · ' + servicePlace(svc), W / 2, py + 360, { size: 46, weight: 600, color: '#2a1a10', align: 'center' })
         const sermon = [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ')
-        if (sermon) text(sermon, W / 2, 780, { size: 46, weight: 700, color: '#fff7ec', align: 'center' })
+        if (sermon) text(sermon, W / 2, py + 450, { size: 44, weight: 700, color: '#fff7ec', align: 'center' })
       }
-      cardLogo()
     }
-    timerBadge()
+    g.restore()
+    topWave()
+    timerBlob()
   },
   announcements(t) {
     const c = carousel(t, 10000)
