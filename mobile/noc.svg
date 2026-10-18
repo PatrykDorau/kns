@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <!-- Gwiaździsta noc: granatowe niebo, księżyc, droga mleczna, góry z krzyżem na szczycie, ciepłe światełka w dolinie. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0f24"/><stop offset=".55" stop-color="#1c2148"/><stop offset=".8" stop-color="#3a2d52"/><stop offset="1" stop-color="#6b4152"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="880" cy="190" r="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff5dc" stop-opacity=".55"/><stop offset="1" stop-color="#fff5dc" stop-opacity="0"/></radialGradient>
+    <linearGradient id="milky" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#b9b6ff" stop-opacity="0"/><stop offset=".5" stop-color="#d8d2ff" stop-opacity=".18"/><stop offset="1" stop-color="#b9b6ff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2a4a"/><stop offset="1" stop-color="#1b1a33"/></linearGradient>
+    <linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161628"/><stop offset="1" stop-color="#0c0c18"/></linearGradient>
+    <radialGradient id="glow" cx="600" cy="300" r="140" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#f6b45a" stop-opacity=".45"/><stop offset="1" stop-color="#f6b45a" stop-opacity="0"/></radialGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .05 0"/></filter>
+    <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <path d="M-50 640 C300 420 700 260 1250 40 L1250 220 C700 380 300 540 -50 760 Z" fill="url(#milky)" filter="url(#blur)"/>
+  <g fill="#fff">
+    <circle cx="90" cy="80" r="1.6"/><circle cx="210" cy="150" r="1.2"/><circle cx="320" cy="60" r="2"/><circle cx="420" cy="190" r="1.1"/><circle cx="520" cy="90" r="1.5"/>
+    <circle cx="660" cy="140" r="1.2"/><circle cx="740" cy="60" r="1.8"/><circle cx="1010" cy="90" r="1.3"/><circle cx="1110" cy="170" r="1.7"/><circle cx="1160" cy="60" r="1.1"/>
+    <circle cx="150" cy="260" r="1.2"/><circle cx="270" cy="330" r="1.5"/><circle cx="460" cy="290" r="1"/><circle cx="1040" cy="300" r="1.2"/><circle cx="1150" cy="380" r="1.4"/>
+    <circle cx="60" cy="400" r="1"/><circle cx="380" cy="420" r="1.2"/><circle cx="820" cy="330" r="1"/><circle cx="960" cy="420" r="1.1"/><circle cx="560" cy="230" r="1.3"/>
+    <path d="M350 120 l3 9 9 3 -9 3 -3 9 -3 -9 -9 -3 9 -3Z" opacity=".9"/><path d="M1060 230 l2 7 7 2 -7 2 -2 7 -2 -7 -7 -2 7 -2Z" opacity=".8"/>
+  </g>
+  <rect width="1200" height="800" fill="url(#moon)"/>
+  <circle cx="880" cy="190" r="46" fill="#fff3d6"/><circle cx="900" cy="178" r="44" fill="#1c2148" opacity=".9"/>
+  <rect width="1200" height="800" fill="url(#glow)"/>
+  <path d="M0 640 L180 520 L300 580 L470 430 L600 330 L720 440 L860 380 L1020 500 L1200 450 V800 H0 Z" fill="url(#m1)"/>
+  <path d="M600 330 V270 M582 288 H618" stroke="#f6b45a" stroke-width="6" stroke-linecap="round"/>
+  <path d="M470 430 L600 330 L720 440" fill="none" stroke="#f6b45a" stroke-opacity=".7" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M0 720 C200 660 380 690 560 676 C760 660 940 690 1200 660 V800 H0 Z" fill="url(#m2)"/>
+  <g fill="#f6b45a"><circle cx="300" cy="712" r="3"/><circle cx="318" cy="708" r="2.4"/><circle cx="820" cy="700" r="3"/><circle cx="845" cy="704" r="2.2"/><circle cx="560" cy="714" r="2.6"/></g>
+  <rect width="1200" height="800" filter="url(#grain)"/>
+</svg>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <!-- Złote pole o zachodzie: ciepłe niebo, słońce nisko, pagórki, samotne drzewo, ścieżka przez zboże, kłosy na pierwszym planie. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4d2a2a"/><stop offset=".4" stop-color="#b8583a"/><stop offset=".7" stop-color="#f0a650"/><stop offset="1" stop-color="#fbd98f"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="380" cy="470" r="380" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff3cf"/><stop offset=".14" stop-color="#ffd07a" stop-opacity=".85"/><stop offset="1" stop-color="#ffd07a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="field" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9a64a"/><stop offset=".5" stop-color="#c9822f"/><stop offset="1" stop-color="#8a5220"/></linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a65a33"/><stop offset="1" stop-color="#8a4a2a"/></linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="13"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .08 0"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <rect width="1200" height="800" fill="url(#sun)"/>
+  <circle cx="380" cy="472" r="58" fill="#fff4d6"/>
+  <g fill="#ffc98a" opacity=".4" filter="url(#soft)"><ellipse cx="760" cy="230" rx="240" ry="16"/><ellipse cx="300" cy="300" rx="160" ry="12"/><ellipse cx="980" cy="330" rx="150" ry="10"/></g>
+  <g fill="none" stroke="#4a2418" stroke-width="3" stroke-linecap="round" opacity=".6"><path d="M800 300 q10 -9 20 0 q10 -9 20 0"/><path d="M850 270 q8 -7 16 0 q8 -7 16 0"/></g>
+  <path d="M0 520 C200 480 360 500 520 512 C700 526 880 470 1200 490 V800 H0 Z" fill="url(#hill)"/>
+  <!-- drzewo -->
+  <g fill="#3a1f16">
+    <rect x="896" y="430" width="10" height="70"/>
+    <ellipse cx="901" cy="420" rx="56" ry="38"/><ellipse cx="870" cy="440" rx="34" ry="24"/><ellipse cx="934" cy="438" rx="36" ry="24"/>
+  </g>
+  <path d="M0 580 C240 548 460 566 640 570 C840 576 1000 548 1200 556 V800 H0 Z" fill="url(#field)"/>
+  <!-- ścieżka -->
+  <path d="M560 800 C600 700 640 640 690 572 L706 572 C680 640 660 720 680 800 Z" fill="#f7cf86" opacity=".55"/>
+  <!-- rzędy zboża -->
+  <g stroke="#f6c46a" stroke-opacity=".35" stroke-width="2"><path d="M0 620 C300 600 900 600 1200 612"/><path d="M0 670 C300 650 900 652 1200 664"/><path d="M0 730 C300 712 900 714 1200 726"/></g>
+  <!-- kłosy na pierwszym planie -->
+  <g stroke="#6b3b17" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M60 800 Q70 700 96 640"/><path d="M110 800 Q112 710 132 660"/><path d="M1100 800 Q1090 700 1068 650"/><path d="M1150 800 Q1150 720 1132 676"/>
+  </g>
+  <g fill="#8a4e1e">
+    <ellipse cx="96" cy="632" rx="7" ry="22" transform="rotate(18 96 632)"/><ellipse cx="132" cy="652" rx="6" ry="19" transform="rotate(12 132 652)"/>
+    <ellipse cx="1068" cy="642" rx="7" ry="22" transform="rotate(-18 1068 642)"/><ellipse cx="1132" cy="668" rx="6" ry="19" transform="rotate(-10 1132 668)"/>
+  </g>
+  <rect width="1200" height="800" filter="url(#grain)"/>
+</svg>

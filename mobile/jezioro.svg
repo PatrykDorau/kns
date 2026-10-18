@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <!-- Jezioro o świcie: pastelowe niebo, słońce nad horyzontem, las na brzegu, odbicie w wodzie, pomost, trzciny. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b4a6b"/><stop offset=".35" stop-color="#9a8aa6"/><stop offset=".55" stop-color="#e9b48f"/><stop offset=".62" stop-color="#f6d3a1"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e7b48c"/><stop offset=".25" stop-color="#9b8aa0"/><stop offset="1" stop-color="#2d3550"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="740" cy="470" r="300" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff2d4"/><stop offset=".15" stop-color="#ffd59a" stop-opacity=".8"/><stop offset="1" stop-color="#ffd59a" stop-opacity="0"/></radialGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="9"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <rect width="1200" height="500" fill="url(#sky)"/>
+  <rect width="1200" height="800" fill="url(#sun)"/>
+  <circle cx="740" cy="478" r="46" fill="#fff4dc"/>
+  <g fill="#f8dcc0" opacity=".45" filter="url(#soft)"><ellipse cx="260" cy="220" rx="190" ry="14"/><ellipse cx="900" cy="300" rx="220" ry="12"/><ellipse cx="560" cy="160" rx="140" ry="10"/></g>
+  <!-- las na brzegu -->
+  <path d="M0 500 V430 l20 -40 l18 40 l14 -60 l20 60 l16 -30 l14 30 l22 -70 l20 70 l18 -40 l16 40 l20 -55 l20 55 l14 -25 l18 25 l20 -45 l16 45 l14 -20 l18 20 L380 470 C520 470 600 486 700 492 L1200 486 V500 Z" fill="#3e3a4c"/>
+  <path d="M760 492 l18 -46 l16 46 l14 -30 l14 30 l20 -60 l20 60 l16 -36 l16 36 l18 -50 l18 50 l14 -24 l16 24 l20 -44 l18 44 L1200 486 V500 H760Z" fill="#35324a"/>
+  <rect y="500" width="1200" height="300" fill="url(#water)"/>
+  <!-- odbicie słońca -->
+  <g fill="#fff0cf" opacity=".75">
+    <rect x="712" y="512" width="56" height="5" rx="2.5"/><rect x="700" y="530" width="80" height="4" rx="2"/><rect x="718" y="548" width="44" height="4" rx="2"/>
+    <rect x="690" y="570" width="100" height="3" rx="1.5" opacity=".7"/><rect x="722" y="592" width="36" height="3" rx="1.5" opacity=".6"/><rect x="705" y="618" width="70" height="3" rx="1.5" opacity=".45"/>
+  </g>
+  <g stroke="#f6e1c4" stroke-opacity=".25" stroke-width="2"><path d="M80 560 H260"/><path d="M380 600 H520"/><path d="M900 580 H1100"/><path d="M160 660 H360"/><path d="M820 690 H1040"/></g>
+  <!-- pomost -->
+  <path d="M120 800 L330 620 H360 L190 800 Z" fill="#5a4033"/>
+  <g stroke="#3d2a20" stroke-width="5"><path d="M330 620 V660"/><path d="M290 655 V700"/><path d="M250 690 V740"/></g>
+  <!-- trzciny -->
+  <g stroke="#2b2b3a" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M1060 800 Q1050 700 1066 640"/><path d="M1080 800 Q1084 690 1098 620"/><path d="M1100 800 Q1112 720 1130 660"/><path d="M1040 800 Q1022 730 1018 680"/>
+  </g>
+  <g fill="#2b2b3a"><ellipse cx="1066" cy="636" rx="6" ry="18"/><ellipse cx="1098" cy="616" rx="6" ry="18"/><ellipse cx="1130" cy="656" rx="5" ry="15"/></g>
+  <rect width="1200" height="800" filter="url(#grain)"/>
+</svg>

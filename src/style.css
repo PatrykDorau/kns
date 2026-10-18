@@ -973,8 +973,43 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-ov-note.ok { color: #3ccf73; }
 .desk-media-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .desk-media-txt { flex: 1; min-width: 200px; padding: 6px 10px; font-size: 13px; }
-.desk-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 2px; }
-.desk-media-it { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-height: 0; padding: 6px; border-radius: 12px; text-align: left; }
+.desk-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; max-height: 340px; overflow-y: auto; padding: 2px; }
+/* nakładki, zakładki, panel */
+.desk-ovl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel2); }
+.desk-ovl > button { display: inline-flex; align-items: center; gap: 6px; }
+.desk-ovl .i { width: 16px; height: 16px; }
+.desk-lbl { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-right: 2px; }
+.desk-ovl-media { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 3px 4px 3px 3px; border: 1px dashed var(--line); border-radius: 12px; }
+.desk-ovl-media.on { border: 1px solid #3ccf73; background: rgba(60, 207, 115, .06); }
+.desk-ovl-media.live { border-color: #e5484d; background: rgba(229, 72, 77, .07); }
+.desk-ovl-media .thumb { width: 52px; height: 30px; border-radius: 6px; }
+.desk-ovl-name { max-width: 160px; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-ovl-add { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--muted); font-size: 13px; }
+.desk-seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--bg); }
+.desk-seg button { padding: 4px 9px; border: 0; border-radius: 7px; background: none; font-size: 12px; }
+.desk-seg button.on { background: var(--panel3); color: var(--accent); }
+.desk-x { padding: 4px; border: 0; background: none; color: var(--muted); }
+.desk-x .i { width: 15px; height: 15px; }
+.desk-tabs { display: flex; gap: 4px; margin-top: 12px; border-bottom: 1px solid var(--line); }
+.desk-tabs button { position: relative; padding: 8px 14px; border: 0; border-radius: 10px 10px 0 0; background: none; color: var(--muted); font-weight: 600; font-size: 13px; }
+.desk-tabs button.on { color: var(--text); background: var(--panel2); }
+.desk-tabs button.on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
+.desk-tabs em { margin-left: 4px; font-style: normal; font-size: 11px; color: var(--muted); }
+.desk-panel { padding: 10px 2px 2px; }
+.desk-panel .desk-opt-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 6px 0; }
+.desk-panel .desk-opt-group .thumb { width: 64px; height: 36px; border-radius: 6px; }
+.desk-help { margin: 0 0 8px; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.desk-help b { color: var(--text); }
+.desk-media-pic { padding: 0; border: 0; background: none; border-radius: 8px; overflow: hidden; }
+.desk-media-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.desk-media-act { display: flex; flex-direction: row; gap: 4px; }
+.desk-media-act button { flex: 1 1 0; width: auto; min-width: 0; min-height: 0; padding: 4px 6px; font-size: 11.5px; border-radius: 8px; white-space: nowrap; }
+.desk-media-act button.on { border-color: #3ccf73; color: #3ccf73; }
+.desk-media-auto { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.desk-media-auto select { padding: 1px 4px; font-size: 11.5px; }
+.desk-media-it em.pv { background: #2f9e5c; }
+.desk-air-name { font-weight: 600; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-media-it { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-height: 0; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); text-align: left; }
 .desk-media-it .thumb { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 8px; }
 .desk-media-it > span { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 .desk-media-it b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

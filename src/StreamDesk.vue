@@ -5,7 +5,7 @@ import Thumb from './Thumb.vue'
 import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from './store.js'
 import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from './lyricsFeed.js'
 import { remote as remoteScreen } from './screenShare.js'
-import { OVERLAYS, SCENES, mediaCtl, mediaSlide, setMedia, setMediaMode, setMediaPos, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
+import { OVERLAYS, SCENES, airMedia, mediaCtl, mediaSlide, setMediaPos, setOverlayMode, showMediaFull, showMediaOverlay, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -100,19 +100,35 @@ const STREAM_LABEL = { idle: 'gotowy', connecting: 'łączy się…', streaming:
 // Zdjęcie, film, napis albo prezentacja — na cały ekran (scena „Media”) albo jako nakładka na kamerze/rzutniku.
 const mediaList = computed(() => items.value.filter(it => !it.hidden && !it.missing && ['image', 'video', 'text', 'scene'].includes(it.type)))
 const mediaKind = it => ({ image: 'Zdjęcie', video: 'Film', text: 'Napis', scene: 'Prezentacja' })[it.type] || ''
-const mediaPicked = computed(() => items.value.find(x => x.id === studio.preview.media) || null)
-const mediaAir = computed(() => (studio.program.scene === 'media' || studio.program.ovl !== 'off') ? items.value.find(x => x.id === studio.program.media) || null : null)
-const airSlide = computed(() => (mediaAir.value ? mediaSlide(mediaAir.value.id) : null))
-const mediaMode = computed(() => (studio.preview.scene === 'media' ? 'scene' : studio.preview.ovl))
-function pickMedia(it) { setMedia(it.id); if (studio.preview.scene !== 'media' && studio.preview.ovl === 'off') setMediaMode(it.type === 'text' ? 'full' : 'scene') }
-async function addMediaFiles() { const before = new Set(items.value.map(x => x.id)); await pickFiles(null); const added = items.value.filter(x => !before.has(x.id) && !x.hidden).at(-1); if (added) pickMedia(added) }
+const itemOf = id => (id ? items.value.find(x => x.id === id) || null : null)
+const pvFull = computed(() => (studio.preview.scene === 'media' ? itemOf(studio.preview.media) : null)) // na ekran (podgląd)
+const pvOver = computed(() => (studio.preview.ovl !== 'off' && studio.preview.scene !== 'media' ? itemOf(studio.preview.omedia) : null)) // nakładka (podgląd)
+const pgOver = computed(() => (studio.program.ovl !== 'off' && studio.program.scene !== 'media' ? itemOf(studio.program.omedia) : null))
+const onAirIds = computed(() => airMedia())
+const mediaAir = computed(() => itemOf(onAirIds.value[0]))
+// sterowanie tym, co na wizji (film, prezentacja) — dla każdego materiału na wizji
+const airCtl = computed(() => onAirIds.value.map(id => ({ item: itemOf(id), slide: mediaSlide(id) })).filter(x => x.item && x.slide && (x.slide.type === 'video' || x.slide.deckOf)))
+const pickMedia = it => (it.type === 'text' ? showMediaOverlay(it.id) : showMediaFull(it.id))
+// zakładki pod scenami: same przechodzą na tę, która pasuje do wybranej sceny
+const deskTab = ref(studio.preview.scene === 'media' ? 'media' : studio.preview.scene === 'announcements' ? 'slides' : 'scene')
+watch(() => studio.preview.scene, sc => { deskTab.value = sc === 'media' ? 'media' : sc === 'announcements' ? 'slides' : 'scene' })
+const SCENE_HELP = {
+  camera: 'Obraz z kamery (ATEM po USB). Napisy, pasek mówcy i grafikę włączasz wyżej, w „Nakładkach”.',
+  projector: 'Obraz z rzutnika — z tego komputera albo przez sieć z laptopa przy rzutniku.',
+  projectorPip: 'Rzutnik na całym ekranie, kamera w okienku.',
+  countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku, na końcu „Zaraz zaczynamy”.',
+  announcements: 'Ogłoszenia w pętli — które i jak często: zakładka „Ogłoszenia”.',
+  media: 'Materiał z biblioteki na cały ekran — wybierz go w zakładce „Media”.',
+  end: 'Podziękowanie z kodami QR (wsparcie, YouTube, Spotify) — dane w „Plansza końcowa” w prawej kolumnie.',
+}
+async function addMediaFiles() { const before = new Set(items.value.map(x => x.id)); await pickFiles(null); const added = items.value.filter(x => !before.has(x.id) && !x.hidden).at(-1); if (added) deskTab.value = 'media' }
 const newText = ref('')
 function addMediaText() {
   const text = newText.value.trim()
   if (!text) return
   const it = { ...TEXT_STYLE, id: uid(), type: 'text', name: text.split('\n')[0].slice(0, 40), text, fs: 9, valign: 'bottom', shadow: true }
   items.value.push(it); newText.value = ''
-  pickMedia(it)
+  showMediaOverlay(it.id)
 }
 const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0')
 
@@ -422,99 +438,127 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <div class="desk-scenes" role="group" aria-label="Sceny transmisji">
             <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.preview.scene === id, live: studio.program.scene === id }" :aria-pressed="studio.preview.scene === id" :title="studio.program.scene === id ? 'Na wizji' : ''" @click="setScene(id)">{{ name }}</button>
           </div>
-          <div class="desk-opts">
-            <span class="desk-opt-group">
-              <button :class="{ on: studio.program.lyricsOn, live: studio.program.lyricsOn, idle: !OVERLAYS.lyrics.includes(studio.program.scene) }" :aria-pressed="studio.program.lyricsOn"
-                      :title="'Napisy pieśni — włączają się i wyłączają od razu na wizji. Widać je na scenach: Kamera, Rzutnik, Rzutnik + kamera' + (OVERLAYS.lyrics.includes(studio.program.scene) ? '' : ' (na tej scenie wizji ich nie ma)')" @click="toggleLyrics">Napisy {{ studio.program.lyricsOn ? 'wł.' : 'wył.' }}</button>
-              <button :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird, idle: !OVERLAYS.lowerThird.includes(studio.preview.scene) }" :aria-pressed="studio.preview.lowerThird"
-                      :title="'Pasek z mówcą — najpierw na podglądzie, na wizję po „Na wizję”. Widać go na scenach: Kamera, Rzutnik + kamera' + (OVERLAYS.lowerThird.includes(studio.preview.scene) ? '' : ' (na tej scenie go nie ma)')" @click="toggleLowerThird">Pasek mówcy</button>
-              <small v-if="['projector', 'projectorPip'].includes(studio.preview.scene)" class="desk-ov-note" :class="remoteScreen.state === 'on' ? 'ok' : 'muted'">{{ remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć' : remoteScreen.state === 'connecting' ? 'czekam na obraz z laptopa przy rzutniku…' : studio.projector.kind !== 'none' ? 'Rzutnik na tym komputerze' : 'Rzutnik nic nie pokazuje — włącz udostępnianie obrazu na laptopie przy rzutniku' }}</small>
-              <small v-if="!OVERLAYS.lyrics.includes(studio.preview.scene)" class="muted desk-ov-note">Na tej scenie bez napisów i paska mówcy</small>
-              <small v-else-if="!OVERLAYS.lowerThird.includes(studio.preview.scene)" class="muted desk-ov-note">Na tej scenie bez paska mówcy</small>
+          <!-- Nakładki: na obrazie z kamery i rzutnika — zawsze pod ręką -->
+          <div class="desk-ovl">
+            <small class="desk-lbl">Nakładki</small>
+            <button :class="{ on: studio.program.lyricsOn, live: studio.program.lyricsOn, idle: !OVERLAYS.lyrics.includes(studio.program.scene) }" :aria-pressed="studio.program.lyricsOn"
+                    :title="'Napisy pieśni — włączają się i wyłączają od razu na wizji. Sceny: Kamera, Rzutnik, Rzutnik + kamera, Media' + (OVERLAYS.lyrics.includes(studio.program.scene) ? '' : ' (na tej scenie wizji ich nie ma)')" @click="toggleLyrics"><Icon name="music" />Napisy {{ studio.program.lyricsOn ? 'wł.' : 'wył.' }}</button>
+            <button :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird, idle: !OVERLAYS.lowerThird.includes(studio.preview.scene) }" :aria-pressed="studio.preview.lowerThird"
+                    :title="'Pasek z mówcą — najpierw na podglądzie, na wizję po „Na wizję”. Sceny: Kamera, Rzutnik + kamera, Media' + (OVERLAYS.lowerThird.includes(studio.preview.scene) ? '' : ' (na tej scenie go nie ma)')" @click="toggleLowerThird"><Icon name="text" />Pasek mówcy</button>
+            <span class="desk-ovl-media" :class="{ on: pvOver, live: pgOver }">
+              <template v-if="pvOver">
+                <Thumb :item="pvOver" />
+                <span class="desk-ovl-name" :title="label(pvOver)">{{ label(pvOver) }}</span>
+                <span class="desk-seg" role="group" aria-label="Gdzie">
+                  <button :class="{ on: studio.preview.ovl === 'corner' }" title="Okienko w rogu" @click="setOverlayMode('corner')">W rogu</button>
+                  <button :class="{ on: studio.preview.ovl === 'full' }" title="Na całym kadrze — grafika PNG z przezroczystym tłem albo napis bez tła" @click="setOverlayMode('full')">Cały kadr</button>
+                </span>
+                <template v-if="studio.preview.ovl === 'corner'">
+                  <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.mpos.corner === id }" :title="lbl" :aria-label="lbl" @click="setMediaPos({ corner: id })">{{ arrow }}</button>
+                  <button class="desk-corner" :title="studio.preview.mpos.size === 'large' ? 'Mniejsze okienko' : 'Większe okienko'" @click="setMediaPos({ size: studio.preview.mpos.size === 'large' ? 'small' : 'large' })">{{ studio.preview.mpos.size === 'large' ? 'L' : 'S' }}</button>
+                </template>
+                <button class="desk-x" title="Zdejmij nakładkę" aria-label="Zdejmij nakładkę" @click="setOverlayMode('off')"><Icon name="x" /></button>
+              </template>
+              <button v-else class="desk-ovl-add" title="Grafika, logo albo napis na obrazie z kamery/rzutnika" @click="deskTab = 'media'"><Icon name="image" />Grafika / napis…</button>
             </span>
-            <span v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
-              <small class="muted">Timer</small>
-              <button :class="{ on: !studio.countdownTo }" title="Odliczanie do godziny nabożeństwa" @click="setCountdown(0)">do nabożeństwa</button>
-              <button v-for="m in [5, 10, 15]" :key="m" @click="setCountdown(m)">{{ m }} min</button>
-              <button title="Dodaj minutę" @click="addCountdown(1)">+1</button>
-              <small class="desk-left-time">{{ countdownInfo }}</small>
-              <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
-            </span>
-            <span v-if="studio.preview.scene === 'projectorPip'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
-              <small class="muted">Okienko</small>
-              <button v-for="[id, arrow, label] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="label" :aria-label="label" @click="pip({ corner: id })">{{ arrow }}</button>
-              <button :class="{ on: studio.preview.pip.size !== 'large' }" @click="pip({ size: 'small' })">Małe</button>
-              <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
-            </span>
+            <small v-if="!OVERLAYS.lyrics.includes(studio.preview.scene)" class="muted desk-ov-note">na tej scenie bez nakładek</small>
           </div>
-          <!-- Media: zdjęcia, filmy, napisy, prezentacje na transmisji (bez ATEM i drugiego laptopa) -->
-          <details class="desk-slides desk-media" :open="settings.mediaOpen !== false" @toggle="settings.mediaOpen = $event.target.open">
-            <summary>Media <small class="muted">zdjęcia, filmy, napisy, prezentacje — na cały ekran albo jako nakładka{{ mediaAir ? ' · na wizji: ' + label(mediaAir) : '' }}</small></summary>
-            <div class="desk-media-bar">
-              <button class="small" :disabled="!!busy" title="Zdjęcie, film, PDF albo PowerPoint (prezentacja — jako slajdy)" @click="addMediaFiles"><Icon name="plus" />{{ busy || 'Dodaj pliki' }}</button>
-              <input v-model="newText" class="desk-media-txt" placeholder="Napis na transmisję, np. „Zbiórka na remont — BLIK 789 571 542”" aria-label="Nowy napis" @keydown.enter="addMediaText">
-              <button class="small" :disabled="!newText.trim()" @click="addMediaText"><Icon name="text" />Dodaj napis</button>
-            </div>
-            <div v-if="mediaList.length" class="desk-media-grid">
-              <button v-for="it in mediaList" :key="it.id" class="desk-media-it" :class="{ on: studio.preview.media === it.id, live: mediaAir?.id === it.id }" :title="label(it)" @click="pickMedia(it)">
-                <Thumb :item="it" />
-                <span><b>{{ label(it) }}</b><small>{{ mediaKind(it) }}</small></span>
-                <em v-if="mediaAir?.id === it.id">NA WIZJI</em>
-              </button>
-            </div>
-            <p v-else class="note">Biblioteka jest pusta — dodaj pliki albo napis. To te same materiały, co w Rzutniku.</p>
-            <div v-if="mediaPicked" class="desk-media-mode">
-              <small class="muted">Pokaż „{{ label(mediaPicked) }}”:</small>
-              <span class="desk-opt-group" role="group" aria-label="Jak pokazać">
-                <button :class="{ on: mediaMode === 'scene' }" title="Na cały ekran (scena Media) — z paskiem mówcy i napisami pieśni" @click="setMediaMode('scene')">Cały ekran</button>
-                <button :class="{ on: mediaMode === 'full' }" title="Na kamerze/rzutniku, cały kadr: grafika PNG z przezroczystym tłem albo napis bez tła" @click="setMediaMode('full')">Nakładka</button>
-                <button :class="{ on: mediaMode === 'corner' }" title="Okienko w rogu na kamerze/rzutniku" @click="setMediaMode('corner')">W rogu</button>
-                <button :class="{ on: mediaMode === 'off' && studio.preview.scene !== 'media' }" @click="setMediaMode('off')">Ukryj</button>
-              </span>
-              <span v-if="mediaMode === 'corner'" class="desk-opt-group" role="group" aria-label="Róg">
-                <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.mpos.corner === id }" :title="lbl" :aria-label="lbl" @click="setMediaPos({ corner: id })">{{ arrow }}</button>
-                <button :class="{ on: studio.preview.mpos.size !== 'large' }" @click="setMediaPos({ size: 'small' })">Małe</button>
-                <button :class="{ on: studio.preview.mpos.size === 'large' }" @click="setMediaPos({ size: 'large' })">Duże</button>
-              </span>
-              <textarea v-if="mediaPicked.type === 'text'" v-model="mediaPicked.text" class="desk-media-edit" rows="2" aria-label="Treść napisu" title="Zmiany widać od razu (także na wizji)"></textarea>
-            </div>
-            <!-- sterowanie tym, co jest na wizji: film i slajdy działają od razu -->
-            <div v-if="airSlide && (airSlide.type === 'video' || airSlide.deckOf)" class="desk-media-ctl">
-              <b class="live-dot">Na wizji</b>
-              <template v-if="airSlide.deckOf">
-                <button class="small" title="Poprzedni slajd" @click="mediaCtl('slide', { id: airSlide.deckOf, d: -1 })">◀</button>
-                <span>slajd {{ airSlide.slideNo }} z {{ airSlide.slideCount }}</span>
-                <button class="small" title="Następny slajd" @click="mediaCtl('slide', { id: airSlide.deckOf, d: 1 })">▶</button>
-              </template>
-              <template v-if="airSlide.type === 'video'">
-                <button class="small" @click="mediaCtl('play')"><Icon :name="studio.mplay.playing ? 'pause' : 'play'" />{{ studio.mplay.playing ? 'Pauza' : 'Graj' }}</button>
-                <button class="small" title="Od początku" @click="mediaCtl('restart')"><Icon name="undo" /></button>
-                <input class="desk-media-seek" type="range" min="0" :max="studio.mplay.duration || 1" step="0.5" :value="studio.mplay.time" aria-label="Pozycja filmu" @change="mediaCtl('seek', +$event.target.value)">
-                <small class="muted">{{ mmss(studio.mplay.time) }} / {{ mmss(studio.mplay.duration) }}</small>
-                <label class="check"><input type="checkbox" :checked="studio.mplay.loop" @change="mediaCtl('loop')"> pętla</label>
-                <label class="desk-media-vol" title="Głośność filmu w transmisji"><Icon name="volume" /><input type="range" min="0" max="1" step="0.05" :value="studio.mplay.volume" @input="mediaCtl('volume', $event.target.value)"></label>
-              </template>
-            </div>
-          </details>
-          <details class="desk-slides" :open="['countdown', 'announcements'].includes(studio.preview.scene) || ['countdown', 'announcements'].includes(studio.program.scene)">
-            <summary>Ogłoszenia na transmisji <small class="muted">{{ shownSlides }} z {{ slideList.length }} · tylko „dla wszystkich” z „Pokaż na nabożeństwie”</small></summary>
-            <div class="desk-slide-bar">
-              <label>Zmiana co <select v-model.number="settings.studioSlideSec"><option v-for="v in [5, 8, 10, 15, 20]" :key="v" :value="v">{{ v }} s</option></select></label>
-              <small class="muted">Kliknij grafikę — pokaże się teraz. Oko — w pętli albo pominięte.</small>
-            </div>
-            <div class="desk-slide-grid">
-              <div v-for="sl in slideList" :key="sl.id" class="desk-slide" :class="{ off: studio.hidden.includes(sl.id), now: studio.slideId === sl.id && !studio.hidden.includes(sl.id) }">
-                <button class="desk-slide-pic" :disabled="studio.hidden.includes(sl.id)" :title="'Pokaż teraz: ' + sl.title" @click="showSlide(sl.id)">
-                  <img v-if="sl.image" :src="sl.image" alt="" loading="lazy">
-                  <span v-else class="desk-slide-txt"><b>{{ sl.title }}</b><small v-if="sl.text">{{ sl.text }}</small><small v-if="sl.service">{{ upcomingService() ? 'data, miejsce i kazanie' : '⚠ brak zaplanowanego — uzupełnij w Organizacji' }}</small></span>
-                  <em v-if="studio.slideId === sl.id && !studio.hidden.includes(sl.id)">TERAZ</em>
-                </button>
-                <span class="desk-slide-name">{{ sl.title }}</span>
-                <button class="desk-slide-eye" :title="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" :aria-label="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" @click="toggleSlide(sl.id)"><Icon :name="studio.hidden.includes(sl.id) ? 'eyeoff' : 'eye'" /></button>
+
+          <!-- zakładki: ustawienia wybranej sceny, media, ogłoszenia -->
+          <div class="desk-tabs" role="tablist" aria-label="Ustawienia">
+            <button role="tab" :aria-selected="deskTab === 'scene'" :class="{ on: deskTab === 'scene' }" @click="deskTab = 'scene'">Scena: {{ SCENE_NAME[studio.preview.scene] }}</button>
+            <button role="tab" :aria-selected="deskTab === 'media'" :class="{ on: deskTab === 'media' }" @click="deskTab = 'media'">Media <em>{{ mediaList.length }}</em></button>
+            <button role="tab" :aria-selected="deskTab === 'slides'" :class="{ on: deskTab === 'slides' }" @click="deskTab = 'slides'">Ogłoszenia <em>{{ shownSlides }}/{{ slideList.length }}</em></button>
+          </div>
+          <div class="desk-panel" role="tabpanel">
+            <template v-if="deskTab === 'scene'">
+              <p class="desk-help">{{ SCENE_HELP[studio.preview.scene] }}</p>
+              <div v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
+                <small class="muted">Zegar</small>
+                <button :class="{ on: !studio.countdownTo }" title="Odliczanie do godziny nabożeństwa" @click="setCountdown(0)">do nabożeństwa</button>
+                <button v-for="m in [5, 10, 15]" :key="m" @click="setCountdown(m)">{{ m }} min</button>
+                <button title="Dodaj minutę" @click="addCountdown(1)">+1</button>
+                <small class="desk-left-time">{{ countdownInfo }}</small>
+                <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
               </div>
-            </div>
-            <p class="note">Inne ogłoszenia dodasz albo wyłączysz w Ogłoszeniach („Pokaż na nabożeństwie”, „Dla wszystkich”). Lista zmienia się sama.</p>
-          </details>
+              <div v-if="studio.preview.scene === 'projectorPip'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
+                <small class="muted">Okienko z kamerą</small>
+                <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="lbl" :aria-label="lbl" @click="pip({ corner: id })">{{ arrow }}</button>
+                <button :class="{ on: studio.preview.pip.size !== 'large' }" @click="pip({ size: 'small' })">Małe</button>
+                <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
+              </div>
+              <p v-if="['projector', 'projectorPip'].includes(studio.preview.scene)" class="desk-ov-note" :class="remoteScreen.state === 'on' ? 'ok' : 'muted'">{{ remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć' : remoteScreen.state === 'connecting' ? 'czekam na obraz z laptopa przy rzutniku…' : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze' : 'Rzutnik nic nie pokazuje — włącz udostępnianie obrazu na laptopie przy rzutniku (Ustawienia aplikacji).' }}</p>
+              <div v-if="studio.preview.scene === 'media'" class="desk-opt-group">
+                <template v-if="pvFull"><Thumb :item="pvFull" /><b>{{ label(pvFull) }}</b><button @click="deskTab = 'media'">Zmień</button></template>
+                <button v-else class="primary" @click="deskTab = 'media'">Wybierz materiał</button>
+              </div>
+            </template>
+
+            <template v-else-if="deskTab === 'media'">
+              <div class="desk-media-bar">
+                <button class="small" :disabled="!!busy" title="Zdjęcie, film, PDF albo PowerPoint (prezentacja — jako slajdy)" @click="addMediaFiles"><Icon name="plus" />{{ busy || 'Dodaj pliki' }}</button>
+                <input v-model="newText" class="desk-media-txt" placeholder="Napis na transmisję, np. „Zbiórka na remont — BLIK 789 571 542”" aria-label="Nowy napis" @keydown.enter="addMediaText">
+                <button class="small" :disabled="!newText.trim()" @click="addMediaText"><Icon name="text" />Dodaj napis</button>
+              </div>
+              <p class="desk-help"><b>Na ekran</b> — materiał zamiast obrazu z kamery (scena „Media”). <b>Nakładka</b> — na obrazie z kamery albo rzutnika: w rogu albo na całym kadrze (logo PNG, napis).</p>
+              <div v-if="mediaList.length" class="desk-media-grid">
+                <div v-for="it in mediaList" :key="it.id" class="desk-media-it" :class="{ on: pvFull?.id === it.id || pvOver?.id === it.id, live: onAirIds.includes(it.id) }">
+                  <button class="desk-media-pic" :title="'Podgląd: ' + label(it)" @click="pickMedia(it)"><Thumb :item="it" /></button>
+                  <span class="desk-media-meta"><b :title="label(it)">{{ label(it) }}</b><small>{{ mediaKind(it) }}<template v-if="it.type === 'scene'"> · {{ (it.entries || []).length }} slajdów</template></small></span>
+                  <span class="desk-media-act">
+                    <button :class="{ on: pvFull?.id === it.id }" title="Na cały ekran (scena Media)" @click="showMediaFull(it.id)">Na ekran</button>
+                    <button :class="{ on: pvOver?.id === it.id }" title="Nakładka na kamerze/rzutniku" @click="showMediaOverlay(it.id)">Nakładka</button>
+                  </span>
+                  <label v-if="it.type === 'scene'" class="desk-media-auto" title="Slajdy zmieniają się same, gdy prezentacja jest na wizji">
+                    <input type="checkbox" :checked="!!it.mAuto" @change="it.mAuto = $event.target.checked"> same co
+                    <select :value="it.mSec || 8" @change="it.mSec = +$event.target.value"><option v-for="v in [4, 6, 8, 10, 15, 20, 30]" :key="v" :value="v">{{ v }} s</option></select>
+                  </label>
+                  <em v-if="onAirIds.includes(it.id)">NA WIZJI</em><em v-else-if="pvFull?.id === it.id || pvOver?.id === it.id" class="pv">PODGLĄD</em>
+                </div>
+              </div>
+              <p v-else class="note">Biblioteka jest pusta — dodaj pliki albo napis. To te same materiały, co w Rzutniku.</p>
+              <textarea v-if="(pvOver || pvFull)?.type === 'text'" v-model="(pvOver || pvFull).text" class="desk-media-edit" rows="2" aria-label="Treść napisu" title="Zmiany widać od razu (także na wizji)"></textarea>
+            </template>
+
+            <template v-else>
+              <div class="desk-slide-bar">
+                <label>Zmiana co <select v-model.number="settings.studioSlideSec"><option v-for="v in [5, 8, 10, 15, 20]" :key="v" :value="v">{{ v }} s</option></select></label>
+                <small class="muted">Kliknij grafikę — pokaże się teraz. Oko — w pętli albo pominięte. Tylko „dla wszystkich” z „Pokaż na nabożeństwie”.</small>
+              </div>
+              <div class="desk-slide-grid">
+                <div v-for="sl in slideList" :key="sl.id" class="desk-slide" :class="{ off: studio.hidden.includes(sl.id), now: studio.slideId === sl.id && !studio.hidden.includes(sl.id) }">
+                  <button class="desk-slide-pic" :disabled="studio.hidden.includes(sl.id)" :title="'Pokaż teraz: ' + sl.title" @click="showSlide(sl.id)">
+                    <img v-if="sl.image" :src="sl.image" alt="" loading="lazy">
+                    <span v-else class="desk-slide-txt"><b>{{ sl.title }}</b><small v-if="sl.text">{{ sl.text }}</small><small v-if="sl.service">{{ upcomingService() ? 'data, miejsce i kazanie' : '⚠ brak zaplanowanego — uzupełnij w Organizacji' }}</small></span>
+                    <em v-if="studio.slideId === sl.id && !studio.hidden.includes(sl.id)">TERAZ</em>
+                  </button>
+                  <span class="desk-slide-name">{{ sl.title }}</span>
+                  <button class="desk-slide-eye" :title="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" :aria-label="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" @click="toggleSlide(sl.id)"><Icon :name="studio.hidden.includes(sl.id) ? 'eyeoff' : 'eye'" /></button>
+                </div>
+              </div>
+              <p class="note">Inne ogłoszenia dodasz albo wyłączysz w Ogłoszeniach („Pokaż na nabożeństwie”, „Dla wszystkich”). Lista zmienia się sama.</p>
+            </template>
+          </div>
+
+          <!-- na wizji: film i prezentacja — sterowanie działa od razu -->
+          <div v-for="c in airCtl" :key="c.item.id" class="desk-media-ctl">
+            <b class="live-dot">● Na wizji</b><span class="desk-air-name">{{ label(c.item) }}</span>
+            <template v-if="c.slide.deckOf">
+              <button class="small" title="Poprzedni slajd" @click="mediaCtl('slide', { id: c.item.id, d: -1 })">◀</button>
+              <span>slajd {{ c.slide.slideNo }} z {{ c.slide.slideCount }}</span>
+              <button class="small" title="Następny slajd" @click="mediaCtl('slide', { id: c.item.id, d: 1 })">▶</button>
+              <label class="check" title="Slajdy zmieniają się same"><input type="checkbox" :checked="!!c.item.mAuto" @change="c.item.mAuto = $event.target.checked"> same co
+                <select :value="c.item.mSec || 8" @change="c.item.mSec = +$event.target.value"><option v-for="v in [4, 6, 8, 10, 15, 20, 30]" :key="v" :value="v">{{ v }} s</option></select></label>
+            </template>
+            <template v-if="c.slide.type === 'video'">
+              <button class="small" @click="mediaCtl('play')"><Icon :name="studio.mplay.playing ? 'pause' : 'play'" />{{ studio.mplay.playing ? 'Pauza' : 'Graj' }}</button>
+              <button class="small" title="Od początku" @click="mediaCtl('restart')"><Icon name="undo" /></button>
+              <input class="desk-media-seek" type="range" min="0" :max="studio.mplay.duration || 1" step="0.5" :value="studio.mplay.time" aria-label="Pozycja filmu" @change="mediaCtl('seek', +$event.target.value)">
+              <small class="muted">{{ mmss(studio.mplay.time) }} / {{ mmss(studio.mplay.duration) }}</small>
+              <label class="check"><input type="checkbox" :checked="studio.mplay.loop" @change="mediaCtl('loop')"> pętla</label>
+              <label class="desk-media-vol" title="Głośność filmu w transmisji"><Icon name="volume" /><input type="range" min="0" max="1" step="0.05" :value="studio.mplay.volume" @input="mediaCtl('volume', $event.target.value)"></label>
+            </template>
+          </div>
         </template>
         <p v-if="engine === 'studio' && studio.error" class="note bad">{{ studio.error }}</p>
       </section>

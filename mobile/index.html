@@ -2016,6 +2016,7 @@
       <!-- najbliższe nabożeństwo: duża karta (data po lewej, szczegóły i przycisk po prawej) -->
       <article class="hw-feature">
         <div class="hw-visual">
+          <span v-for="(a, i) in HERO_ART" :key="a" class="hw-art" :class="{ on: i === heroArt }" :style="{ backgroundImage: 'url(' + a + ')' }" aria-hidden="true"></span>
           <span class="hw-step">1</span><span class="hw-kicker">Najbliższe nabożeństwo</span>
           <template v-if="nextService">
             <div class="hw-date"><b>{{ asDate(nextService.date).getDate() }}</b><span>{{ asDate(nextService.date).toLocaleDateString('pl', { month: 'long' }) }}<small>{{ asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) }}</small></span></div>
@@ -2331,10 +2332,10 @@
         <input v-model="query" type="search" :placeholder="`Szukaj: numer, tytuł, tekst (${songs.length})`" autocomplete="off">
       </div>
       <div class="found">
-        <button v-for="song in results" :key="song.id" @click="addSong(song, songSheetSlot)">
+        <button v-for="song in results" :key="song.id" :class="{ chosen: chosen(song) }" :aria-pressed="!!chosen(song)" @click="addSong(song, songSheetSlot)">
           <span class="ph">{{ song.number || '♪' }}</span>
           <span class="meta"><b>{{ song.title }}</b><small>{{ lines(song.text) }}</small></span>
-          <svg v-if="chosen(song)" class="i added"><use href="#check"/></svg>
+          <span v-if="chosen(song)" class="chosen-mark"><svg class="i"><use href="#check"/></svg>Wybrana</span>
           <svg v-else class="i"><use href="#plus"/></svg>
         </button>
       </div>
@@ -2752,7 +2753,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.86 · 18.10.2026'
+const VERSION = '2.87 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3150,6 +3151,10 @@ createApp({
       document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#f5efe6' : '#0f1013')
     }
     if (theme.value === 'light') document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#f5efe6')
+    // Ilustracje w karcie najbliższego nabożeństwa — zmieniają się co 9 s (płynnie).
+    const HERO_ART = ['swit.svg', 'pole.svg', 'jezioro.svg', 'noc.svg']
+    const heroArt = ref(0)
+    setInterval(() => { if (!document.hidden) heroArt.value = (heroArt.value + 1) % HERO_ART.length }, 9000)
     const mapLink = place => (/^(online|zoom|teams|meet)\b/i.test(String(place).trim()) ? null : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place))
     const sideNav = computed(() => {
       const tech = canCamera.value
@@ -4793,7 +4798,7 @@ createApp({
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return {
-      sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, asDate, boardAll,
+      sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, asDate, boardAll,
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,

@@ -19,9 +19,9 @@ export const SCENES = [
   ['media', 'Media'],
   ['end', 'Koniec'],
 ]
-// media — wybrany materiał (id z biblioteki: zdjęcie, film, tekst, prezentacja); ovl — ten materiał jako nakładka
-// na innej scenie: 'off', 'full' (cały kadr, np. PNG z przezroczystym tłem albo napis), 'corner' (okienko w rogu)
-const look = () => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small' }, lowerAt: 0, lowerOff: 0, media: '', ovl: 'off', mpos: { corner: 'tr', size: 'small' } })
+// media — materiał na cały ekran (scena „Media”); omedia — materiał jako nakładka na kamerze/rzutniku,
+// ovl: 'off', 'full' (cały kadr — PNG z przezroczystym tłem, napis bez tła), 'corner' (okienko w rogu, mpos)
+const look = () => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small' }, lowerAt: 0, lowerOff: 0, media: '', omedia: '', ovl: 'off', mpos: { corner: 'tr', size: 'small' } })
 export const studio = reactive({
   program: look(), // to, co idzie na YouTube
   preview: look(), // to, co przygotowujemy
@@ -535,37 +535,60 @@ function mediaBox(it, pos) {
   g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
 }
 function mediaOverlay() {
-  if (S.ovl === 'off' || S.scene === 'media') return
-  const it = mediaSlide(S.media)
+  if (S.ovl === 'off') return
+  const it = mediaSlide(S.omedia)
   if (!it) return
   if (S.ovl === 'corner') mediaBox(it, S.mpos); else drawMedia(it, false)
 }
+// Co jest na wizji: materiał sceny „Media” i materiał nakładki (scena „Media” — bez nakładki).
+export function airMedia(L = studio.program) {
+  const ids = []
+  if (L.scene === 'media' && L.media) ids.push(L.media)
+  if (L.ovl !== 'off' && L.omedia && L.scene !== 'media' && !ids.includes(L.omedia)) ids.push(L.omedia)
+  return ids
+}
 // Filmy: grają tylko te na wizji (dźwięk w transmisji); film, który właśnie wszedł na wizję — od początku.
-let mediaOnAir = ''
+// Prezentacje z „automatycznie”: następny slajd co ustawioną liczbę sekund.
+let onAir = new Set(); const stepAt = {}
 function syncVideos() {
-  const P = studio.program, M = studio.mplay
-  const it = (P.scene === 'media' || P.ovl !== 'off') ? mediaSlide(P.media) : null
-  const air = it?.type === 'video' ? it.id : ''
-  if (air !== mediaOnAir) { const v = air && mediaVideo(it); if (v) { v.currentTime = 0; M.playing = true } mediaOnAir = air }
+  const M = studio.mplay, now = performance.now()
+  const air = airMedia()
+  const vids = new Set()
+  for (const id of air) {
+    const it = mediaSlide(id)
+    if (it?.type === 'video') { vids.add(it.id); if (!onAir.has(it.id)) { const v = mediaVideo(it); v.currentTime = 0; M.playing = true } }
+    const deck = itemById(id)
+    if (deck?.type === 'scene') {
+      if (!onAir.has(id)) stepAt[id] = now
+      if (deck.mAuto && now - (stepAt[id] || now) > (deck.mSec || 8) * 1000 && it?.type !== 'video') { stepAt[id] = now; M.slides = { ...M.slides, [id]: (M.slides[id] || 0) + 1 } }
+    }
+  }
+  onAir = new Set([...air, ...vids])
   for (const [id, v] of videos) {
     v.loop = M.loop; v.volume = Math.max(0, Math.min(1, M.volume))
-    if (id === air && M.playing) { if (v.paused) v.play().catch(() => {}) } else if (!v.paused) v.pause()
+    if (vids.has(id) && M.playing) { if (v.paused) v.play().catch(() => {}) } else if (!v.paused) v.pause()
   }
-  const v = air && videos.get(air)
+  const first = [...vids][0], v = first && videos.get(first)
   M.time = v ? v.currentTime : 0; M.duration = v && isFinite(v.duration) ? v.duration : 0
 }
 export function mediaCtl(cmd, val) {
-  const M = studio.mplay, P = studio.program
+  const M = studio.mplay
+  const vid = () => { for (const id of airMedia()) { const it = mediaSlide(id); if (it?.type === 'video') return videos.get(it.id) } return null }
   if (cmd === 'play') M.playing = !M.playing
-  else if (cmd === 'restart') { const it = mediaSlide(P.media); const v = it && videos.get(it.id); if (v) v.currentTime = 0; M.playing = true }
-  else if (cmd === 'seek') { const it = mediaSlide(P.media); const v = it && videos.get(it.id); if (v && isFinite(val)) v.currentTime = val }
+  else if (cmd === 'restart') { const v = vid(); if (v) v.currentTime = 0; M.playing = true }
+  else if (cmd === 'seek') { const v = vid(); if (v && isFinite(val)) v.currentTime = val }
   else if (cmd === 'loop') M.loop = !M.loop
   else if (cmd === 'volume') M.volume = +val
-  else if (cmd === 'slide') { const id = val.id; M.slides = { ...M.slides, [id]: (M.slides[id] || 0) + val.d } }
+  else if (cmd === 'slide') { const id = val.id; stepAt[id] = performance.now(); M.slides = { ...M.slides, [id]: (M.slides[id] || 0) + val.d } }
 }
-// Wybór materiału i sposobu pokazania — jak inne zmiany: najpierw podgląd, na wizję po „Na wizję”.
-export function setMedia(id) { change(l => { l.media = id }) }
-export function setMediaMode(mode) { change(l => { if (mode === 'scene') { l.scene = 'media'; l.ovl = 'off' } else { l.ovl = mode; if (l.scene === 'media' && mode !== 'off') l.scene = 'camera' } }) }
+// Wybór materiału — jak inne zmiany: najpierw podgląd, na wizję po „Na wizję”.
+// „Na ekran”: scena Media z tym materiałem. „Nakładka”: ten materiał na kamerze/rzutniku (napis — na cały kadr, reszta — w rogu).
+export function showMediaFull(id) { change(l => { l.media = id; l.scene = 'media' }) }
+export function showMediaOverlay(id) {
+  const it = itemById(id)
+  change(l => { l.omedia = id; if (l.ovl === 'off') l.ovl = it?.type === 'text' ? 'full' : 'corner'; if (l.scene === 'media') l.scene = 'camera' })
+}
+export function setOverlayMode(mode) { change(l => { l.ovl = mode }) }
 export function setMediaPos(p) { change(l => { l.mpos = { ...l.mpos, ...p } }) }
 
 /* ---------- pętla rysowania i kodowanie ---------- */
@@ -604,7 +627,7 @@ function getScratch() { if (!scratch) { scratch = document.createElement('canvas
 /* ---------- podgląd → wizja ---------- */
 const snap = l => ({ ...l, pip: { ...l.pip }, mpos: { ...l.mpos } })
 const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size
-  && a.media === b.media && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
+  && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
 export const differs = () => !same(studio.preview, studio.program)
 function toProgram(fn) {
   const before = snap(studio.program)
@@ -628,7 +651,7 @@ export const OVERLAYS = { lyrics: ['camera', 'projector', 'projectorPip', 'media
 export function setPip(p) { change(l => { l.pip = { ...l.pip, ...p } }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
-export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, pip: p.pip, media: p.media, ovl: p.ovl, mpos: p.mpos }) }) }
+export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }) }
 export function setDirect(v) { studio.direct = !!v; if (v) take() }
 // Wygląd na start (zapamiętane okienko): ten sam na podglądzie i wizji.
 export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip } }

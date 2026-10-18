@@ -120,6 +120,9 @@ button.card, button.ann, button.song, .more-list button, button.ev { transition:
 /* ---------- arkusze i okna ---------- */
 .np-panel { border: 1px solid var(--edge-hi); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .9); }
 .np-overlay { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: ui-fade .2s ease; }
+/* okna i arkusze zawsze na cały ekran (nie dziedziczą szerokości kolumny treści) */
+.np-overlay, #app > .sheet, .camera, #app > .toast { max-width: none !important; margin: 0 !important; }
+.np-overlay { z-index: 70 !important; }
 .np-panel { animation: ui-sheet .32s var(--ease); }
 @keyframes ui-fade { from { opacity: 0; } }
 @keyframes ui-sheet { from { opacity: 0; transform: translateY(24px); } }
@@ -346,7 +349,9 @@ a.fact:not([href]) { pointer-events: none; }
 .svc-view .ann-tag.pin { display: none; }
 
 /* ---------- karta najbliższego nabożeństwa: ilustracja świtu ---------- */
-.hw-visual { background: url("swit.svg") center 70% / cover no-repeat, #2a1d17 !important; }
+.hw-visual { background: #2a1d17 !important; }
+.hw-art { position: absolute; inset: 0; z-index: 0 !important; background: center 70% / cover no-repeat; opacity: 0; transform: scale(1.06); transition: opacity 1.4s ease, transform 10s linear; }
+.hw-art.on { opacity: 1; transform: scale(1); }
 .hw-visual::after { content: ''; position: absolute; inset: 0; height: auto; background: linear-gradient(180deg, rgba(20, 12, 8, .35), transparent 35%, transparent 55%, rgba(20, 12, 8, .72)); opacity: 1; }
 .hw-visual .hw-step, .hw-kicker { color: #fff8ec; text-shadow: 0 1px 8px rgba(0, 0, 0, .45); }
 .hw-date b { background: linear-gradient(180deg, #fff, #ffe2b0); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .35)); }
@@ -369,6 +374,41 @@ a.fact:not([href]) { pointer-events: none; }
 .invite { border-radius: 18px !important; }
 .invite b, .goal-banner b { color: var(--p-ink); }
 .hw-banner .kh-new { background: var(--p-accent); color: #fff; }
+
+/* ---------- wybór pieśni: wybrana wyraźnie zaznaczona ---------- */
+.sheet .found button { transition: background-color .15s, border-color .15s, box-shadow .15s; border: 1px solid var(--edge); }
+.sheet .found button.chosen { border-color: rgba(242, 165, 60, .65); background: linear-gradient(90deg, rgba(242, 165, 60, .2), rgba(242, 165, 60, .06)) !important; box-shadow: inset 3px 0 0 var(--accent); }
+.sheet .found button.chosen .ph { background: var(--accent); color: #1f1608; font-weight: 800; }
+.sheet .found button.chosen .meta b { color: var(--accent); }
+.chosen-mark { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 6px; border-radius: 999px; background: var(--accent); color: #1f1608; font-size: 12.5px; font-weight: 700; }
+.chosen-mark svg.i { width: 15px; height: 15px; stroke-width: 3; }
+/* arkusz (wybór pieśni, rodzaju wydarzenia) na komputerze — okno na środku zamiast całego ekranu */
+@media (min-width: 1024px) {
+  .sheet { inset: 5vh auto auto 50% !important; max-width: none !important; margin: 0 !important; transform: translateX(-50%); width: min(760px, 90vw); height: 90vh; border-radius: 22px; border: 1px solid var(--edge-hi);
+    box-shadow: 0 0 0 100vmax rgba(5, 6, 8, .55), 0 30px 80px -20px rgba(0, 0, 0, .9); padding: 18px 20px !important; animation: ui-sheet .3s var(--ease); z-index: 70; }
+}
+
+/* ---------- formularz celu: zwykła karta ---------- */
+.goal-form { padding: 18px 18px 6px; border-radius: var(--r-lg); border: 1px solid var(--edge); }
+.goal-form h2 { margin: 0 0 4px; font: 700 20px/1.2 var(--display); color: var(--text); text-transform: none; letter-spacing: -.01em; }
+.goal-form .ann-img.edit { max-height: 220px; width: auto; max-width: 100%; object-fit: contain; border-radius: 14px; background: var(--panel2); }
+.goal-form .bar { margin-left: -6px; margin-right: -6px; }
+
+/* ---------- zapisy na wydarzenie ---------- */
+.signup-card { gap: 14px !important; padding: 18px !important; border-radius: var(--r-lg) !important; background: var(--surface) !important; border-color: var(--edge) !important; box-shadow: var(--shadow-1); }
+.su-head b { font: 700 19px/1.2 var(--display); }
+.su-count { padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent) !important; font-size: 13px !important; font-weight: 600; }
+.su-bar { height: 8px !important; border-radius: 4px !important; }
+.su-bar span { background: linear-gradient(90deg, #f2a53c, #f7c56f) !important; border-radius: 4px; }
+.su-form { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px !important; }
+.su-form > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 8px 8px 14px; border: 1px solid var(--edge); border-radius: 14px; background: var(--field); }
+.su-form label { margin: 0 !important; color: var(--text); font-weight: 600; font-size: 15px; }
+.stepper { gap: 6px !important; }
+.stepper button { width: 36px !important; height: 36px !important; min-height: 0; border-radius: 50% !important; font-size: 18px !important; font-weight: 700; }
+.stepper b { min-width: 24px !important; font: 700 18px/1 var(--display); }
+.su-actions { display: flex !important; }
+.su-actions .primary { flex: 1; }
+.su-mine { border: 1px solid currentColor; background: transparent !important; font-weight: 600; }
 
 /* ---------- tryb jasny (domyślnie ciemny; przełącznik w bocznym pasku i w „Więcej”) ---------- */
 html[data-theme="light"] {
