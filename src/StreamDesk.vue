@@ -54,6 +54,8 @@ watch(() => settings.streamFps, f => setFps(f))
 // ustawienia scen zapamiętane między uruchomieniami
 if (!studio.live) { initLook({ corner: settings.pipCorner || 'br', size: settings.pipSize || 'small' }); studio.direct = !!settings.studioDirect }
 if (!settings.donateInit) { if (!settings.donatePhone) settings.donatePhone = '789 571 542'; settings.donateInit = true }
+// ikonka w zwiniętej kolumnie: rozwija kolumnę i daną sekcję
+function unrail(which) { settings.railFolded = false; settings[{ yt: 'ytFolded', cue: 'cueFolded', svc: 'svcFolded' }[which]] = false }
 function pip(p) { setPip(p); if (p.corner) settings.pipCorner = p.corner; if (p.size) settings.pipSize = p.size }
 function direct(v) { settings.studioDirect = v; setDirect(v) }
 // ogłoszenia na transmisji: które są w pętli i co ile sekund
@@ -398,7 +400,15 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
       </div>
 
       <!-- Prawa kolumna: YouTube i (ze Stream) sygnały dla kamerzysty — obie sekcje zwijane -->
-      <div class="desk-right">
+      <div class="desk-right" :class="{ rail: settings.railFolded }">
+      <!-- zwinięta kolumna: same ikonki (transmisja, sygnały, nabożeństwo) — podgląd i wizja na całą szerokość -->
+      <nav v-if="settings.railFolded" class="desk-rail" aria-label="Zwinięta kolumna">
+        <button class="rail-btn rail-toggle" title="Rozwiń kolumnę" aria-label="Rozwiń kolumnę" @click="settings.railFolded = false"><Icon name="left" /></button>
+        <button class="rail-btn" :class="{ live: liveOn }" :title="liveOn ? 'YouTube — NA ŻYWO' : 'YouTube'" aria-label="YouTube" @click="unrail('yt')"><Icon name="play" /><i v-if="liveOn" class="rail-dot"></i></button>
+        <slot name="rail" :open="unrail" />
+      </nav>
+      <template v-else>
+      <button class="rail-fold" title="Zwiń kolumnę do ikonek — więcej miejsca na podgląd i wizję" @click="settings.railFolded = true"><Icon name="right" />Zwiń kolumnę</button>
       <section class="desk-ctrl" :class="{ folded: settings.ytFolded }">
         <div class="desk-head">
           <button class="desk-fold" :aria-expanded="!settings.ytFolded" :title="settings.ytFolded ? 'Rozwiń' : 'Zwiń'" @click="settings.ytFolded = !settings.ytFolded"><Icon :name="settings.ytFolded ? 'right' : 'down'" /></button>
@@ -514,6 +524,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
         </template>
       </section>
       <slot name="side" />
+      </template>
       </div>
     </div>
 
