@@ -814,3 +814,51 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
   .modal { animation: kns-rise .24s cubic-bezier(.2, .8, .2, 1) backwards; }
   .members li, .kh-ev, .cm-item { animation: kns-rise .2s ease-out backwards; }
 }
+
+/* Pulpit streamu: ATEM (wizja / podgląd, CUT, AUTO) i YouTube (klucz, transmisje) */
+.desk { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; margin-bottom: 12px; flex-shrink: 0; }
+@media (max-width: 1250px) { .desk { grid-template-columns: minmax(0, 1fr); } }
+.desk-box { min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel2); }
+.desk-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.desk-head h2 { margin: 0; font-size: 15px; }
+.desk-head .spacer { flex: 1; }
+.desk-head .muted, .desk .muted { color: var(--muted); font-size: 12px; }
+.desk-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.desk-dot.ok { background: #3fb950; box-shadow: 0 0 0 3px rgba(63, 185, 80, .2); }
+.desk-dot.wait { background: #e8a33d; animation: kns-fade 1s ease-in-out infinite alternate; }
+.desk-ip { width: 210px; padding: 5px 9px; font-size: 13px; }
+.desk-cams { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.desk-cam { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; flex: 1 1 100px; min-width: 100px; min-height: 72px; padding: 8px 12px;
+  border: 2px solid var(--line); border-radius: 12px; background: var(--panel); text-align: left; }
+.desk-cam b { font-size: 18px; letter-spacing: .02em; }
+.desk-cam span { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
+.desk-cam em { font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+.desk-cam.pvw { border-color: #3fb950; background: rgba(63, 185, 80, .12); }
+.desk-cam.pvw em { color: #3fb950; }
+.desk-cam.pgm { border-color: #e5484d; background: rgba(229, 72, 77, .18); box-shadow: 0 0 0 3px rgba(229, 72, 77, .18); }
+.desk-cam.pgm em { color: #ff6b70; }
+.desk-cam.black { min-width: 80px; }
+.desk-trans { display: flex; gap: 8px; width: 100%; }
+.desk-trans button { flex: 1; }
+.desk-cut, .desk-auto { min-width: 84px; padding: 8px 14px; font-weight: 800; letter-spacing: .06em; border-radius: 10px; }
+.desk-cut { background: #e5484d; border-color: #e5484d; color: #fff; }
+.desk-auto { background: var(--panel); }
+.desk-status { margin: 8px 0 0; }
+.desk-status b.live { color: #ff6b70; }
+.desk-badge { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--panel); color: var(--muted); }
+.desk-badge.ok { background: rgba(63, 185, 80, .16); color: #3fb950; }
+.desk-badge.bad { background: rgba(229, 72, 77, .18); color: #ff6b70; }
+.desk-key { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 6px 8px; align-items: center; }
+.desk-key > span { display: flex; flex-direction: column; min-width: 0; }
+.desk-key > span:first-child { grid-column: 1 / 4; }
+.desk-key code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.desk-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.desk-bc { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.desk-bc.live { border-color: #e5484d; }
+.desk-bc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.desk-bc-text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.desk-bc-text small { color: var(--muted); font-size: 12px; }
+.desk-bc.live em { color: #ff6b70; font-weight: 800; font-style: normal; }
+.desk-new { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; }
+.desk-new > span { flex: 1; min-width: 160px; display: flex; flex-direction: column; }
+.desk-new select { width: auto; padding: 4px 8px; font-size: 13px; }

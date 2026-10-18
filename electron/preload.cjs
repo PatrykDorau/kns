@@ -75,6 +75,19 @@ contextBridge.exposeInMainWorld('api', {
   // pilot w telefonie
   setRemote: invoke('remote:set'),
   setLyrics: invoke('lyrics:set'),
+  // pulpit streamu: ATEM przez sieć i YouTube
+  atemConnect: invoke('atem:connect'),
+  atemDisconnect: invoke('atem:disconnect'),
+  atemState: invoke('atem:state'),
+  atemRun: invoke('atem:run'),
+  onAtemState: on('atem:state'),
+  ytStatus: invoke('yt:status'),
+  ytLogin: invoke('yt:login'),
+  ytLogout: invoke('yt:logout'),
+  ytOverview: invoke('yt:overview'),
+  ytCreate: invoke('yt:create'),
+  ytUpdate: invoke('yt:update'),
+  ytEnd: invoke('yt:end'),
   remoteState: state => ipcRenderer.send('remote:state', state),
   onRemoteCmd: on('remote:cmd'),
 

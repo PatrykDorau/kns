@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker, shell, safeStorage } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -6,6 +6,8 @@ const http = require('node:http')
 const { Readable } = require('node:stream')
 const { execFile } = require('node:child_process')
 const createGoogleDrive = require('./gdrive.cjs')
+const { Atem } = require('./atem.cjs')
+const createYouTube = require('./youtube.cjs')
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL
 // Dane zostają w dotychczasowym folderze niezależnie od nazwy programu — zmiana nazwy
@@ -1007,6 +1009,27 @@ app.whenReady().then(() => {
   ipcMain.handle('backup:export', () => exportBackup())
   ipcMain.handle('backup:import', () => importBackup())
   ipcMain.handle('remote:set', (e, on, token) => setRemote(on, token))
+
+  /* ---------- pulpit streamu: ATEM (sieć) i YouTube ---------- */
+  const atem = new Atem()
+  atem.on('state', st => toControl('atem:state', st))
+  ipcMain.handle('atem:connect', (e, address) => { atem.connect(typeof address === 'string' ? address : ''); return atem.state })
+  ipcMain.handle('atem:disconnect', () => { atem.disconnect(); return atem.state })
+  ipcMain.handle('atem:state', () => ({ ...atem.state, address: atem.address }))
+  ipcMain.handle('atem:run', (e, name, arg) => { try { atem.run(name, arg); return { ok: true } } catch (err) { return { error: err.message } } })
+  const secure = safeStorage.isEncryptionAvailable()
+  const youtube = createYouTube({
+    dir: () => app.getPath('userData'), open: url => shell.openExternal(url),
+    encrypt: text => (secure ? safeStorage.encryptString(text) : Buffer.from(text)), decrypt: buf => (secure ? safeStorage.decryptString(buf) : buf.toString()),
+  })
+  const yt = job => async (e, ...args) => { try { return await job(...args) } catch (err) { return { error: err.message, needLogin: !!err.needLogin } } }
+  ipcMain.handle('yt:status', yt(() => youtube.status()))
+  ipcMain.handle('yt:login', yt(() => youtube.login()))
+  ipcMain.handle('yt:logout', yt(() => { youtube.logout(); return youtube.status() }))
+  ipcMain.handle('yt:overview', yt(() => youtube.overview()))
+  ipcMain.handle('yt:create', yt(b => youtube.createBroadcast(b)))
+  ipcMain.handle('yt:update', yt(b => youtube.updateBroadcast(b)))
+  ipcMain.handle('yt:end', yt(id => youtube.endBroadcast(id)))
   ipcMain.handle('lyrics:set', (e, on) => setLyrics(!!on))
   // Podpis autora zmian w nabożeństwie, gdy komputer nie jest zalogowany do Google.
   // Stream jako nakładka w OBS: małe okno (bez minimalnego rozmiaru panelu) i opcjonalnie zawsze na wierzchu.

@@ -4,6 +4,7 @@ import Icon from './Icon.vue'
 import SyncButton from './SyncButton.vue'
 import Brand from './Brand.vue'
 import Countdown from './Countdown.vue'
+import StreamDesk from './StreamDesk.vue'
 import { api, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from './store.js'
 import { addMinutes, categoryName } from '../mobile/church.js'
 
@@ -204,6 +205,7 @@ onBeforeUnmount(() => {
 
     <main class="stream" :class="{ wide: !showInfo || overlay }">
       <section>
+        <StreamDesk v-if="!overlay" :service="service" />
         <div v-if="!overlay" class="cue">
           <div class="cue-head">
             <h2>Sygnały dla kamerzysty</h2>

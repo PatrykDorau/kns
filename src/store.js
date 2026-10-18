@@ -26,6 +26,7 @@ export const settings = reactive({
   sharedDir: '', // folder wspólny z nabożeństwami i bazą pieśni (ten sam na wszystkich komputerach)
   cue: false, // sygnały dla kamerzysty (stream)
   cueToken: '',
+  atemAddress: '', atemDirect: false, ytPrivacy: 'public', // pulpit streamu: ATEM przez sieć i YouTube
   camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu
