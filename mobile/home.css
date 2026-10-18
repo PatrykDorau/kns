@@ -216,3 +216,14 @@ img.kh-note-ic { object-fit: cover; padding: 0; }
 .kh-top2.solo > .kh-svc .kh-body { grid-area: body; }
 .kh-top2.solo > .kh-svc .kh-foot { grid-area: foot; margin: 0; align-self: center; flex-direction: column; align-items: flex-end; }
 @media (max-width: 700px) { .kh-top2.solo > .kh-svc { display: flex; } .kh-top2.solo > .kh-svc .kh-foot { align-items: flex-start; flex-direction: row; } }
+/* Brak zaplanowanego nabożeństwa: kafelek zostaje, z informacją i „Zaplanuj”. */
+.kh-svc-empty { border: 1px dashed rgba(232, 163, 61, .55); background: color-mix(in srgb, var(--panel) 85%, transparent); }
+.kh-svc-empty b { color: var(--muted) !important; }
+.kh-svc-empty .kh-link { display: inline-flex; align-items: center; gap: 6px; }
+.kh-svc-empty .kh-link svg, .kh-svc-empty .kh-link .icon { width: 15px; height: 15px; }
+/* Nagłówki paneli: przycisk po prawej, a przy wąskim panelu — w nowej linii zamiast poza ramką. */
+.kh-panel-h { flex-wrap: wrap; row-gap: 8px; }
+.kh-panel-h .kh-link { margin-left: auto; }
+.kh-panel-h .kh-spacer + .kh-link { margin-left: 0; }
+/* Sekcje stron: wyraźny początek panelu */
+.kh-panel { border-color: color-mix(in srgb, var(--line) 60%, #fff 12%); }

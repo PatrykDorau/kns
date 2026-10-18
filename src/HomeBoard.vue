@@ -59,12 +59,19 @@ const copied = ref(false)
 async function share(id) { if (await copyLink('ogloszenie', id)) { copied.value = true; setTimeout(() => { copied.value = false }, 2500) } }
 function openService(id) { if (canUse('planner')) { plannerRequest.value = { id }; role.value = 'planner' } else openCalendar({ kind: 'service', id }) }
 function openCalendar(req = null) { if (canUse('calendar')) { calendarRequest.value = req; role.value = 'calendar' } }
+function planNew() { plannerRequest.value = { date: '' }; role.value = 'planner' }
 function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalendar({ kind: it.kind, id: it.id, date: it.date }) }
 </script>
 
 <template>
   <!-- Góra: najbliższe nabożeństwo i panel komunikatów rady zboru (lista, „Nowe”). Style: mobile/home.css. -->
   <div class="kh-top2" :class="{ solo: !notices.length }">
+    <article v-if="!svc" class="kh-svc kh-svc-empty">
+      <span class="kh-tag"><Icon name="calendar" />Najbliższe nabożeństwo</span>
+      <b>Jeszcze nie zaplanowane</b>
+      <span class="kh-body">Następne nabożeństwo czeka na wypełnienie{{ canUse('planner') ? ' — dodaj datę, kazanie i pieśni.' : '.' }}</span>
+      <span class="kh-foot"><button v-if="canUse('planner')" class="kh-link" @click="planNew"><Icon name="plus" />Zaplanuj</button></span>
+    </article>
     <button v-if="svc" class="kh-svc" @click="openService(svc.id)">
       <span class="kh-tag"><Icon name="calendar" />Najbliższe nabożeństwo</span>
       <b>{{ svcWhen }}</b>

@@ -323,7 +323,11 @@ main.stream { grid-template-columns: minmax(0, 1fr) 380px; }
 input[type=date] { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 .form textarea.short { height: 72px; min-height: 72px; }
-h2.sub { margin: 24px 0 10px; }
+/* Sekcje: wyraźny początek — linia, pomarańczowy akcent, jaśniejszy tytuł */
+h2.sub { display: flex; align-items: center; gap: 9px; margin: 30px 0 12px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--text); font-size: 12.5px; }
+h2.sub::before { content: ''; flex: none; width: 4px; height: 15px; border-radius: 2px; background: var(--accent); }
+.panel-head h2 { display: flex; align-items: center; gap: 9px; color: var(--text); }
+.panel-head h2::before { content: ''; flex: none; width: 4px; height: 15px; border-radius: 2px; background: var(--accent); }
 .form .finder { margin-bottom: 10px; }
 .wide-rows li { cursor: default; padding: 6px 8px; }
 .wide-rows .num { min-width: 34px; font-size: 12px; }
