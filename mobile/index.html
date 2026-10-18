@@ -2584,7 +2584,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.75 · 18.10.2026'
+const VERSION = '2.76 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3448,28 +3448,24 @@ createApp({
     // Zwykłe ogłoszenia — osoby z prawem edycji; komunikaty rady i ogłoszenia dla rady — rada i pastor.
     const annEditable = computed(() => !!currentAnn.value && mayChange(currentAnn.value, annSavedOnce.value) && (hasCouncil.value || (!currentAnn.value.important && currentAnn.value.audience !== 'council' && annAudience !== 'council')))
     function openAnns() { annView.value = true; scrollTo(0, 0) }
-    // „Nowe”: ogłoszenie z ostatnich 30 dni, którego ta osoba jeszcze nie otworzyła. Zalogowanym pamięta konto
-    // (telefon i komputer razem), gościom — przeglądarka.
-    const seenAnns = ref((() => { try { return JSON.parse(localStorage.getItem('kns-seen-anns') || '[]') } catch { return [] } })())
-    const annIsNew = a => !seenAnns.value.includes(a.id) && Date.now() - (+a.date || 0) < 30 * 864e5
+    // „Nowe”: ogłoszenie z ostatnich 30 dni, którego ta osoba jeszcze nie otworzyła (otwarcie = przeczytane).
+    // Pamięta KONTO (telefon, strona i komputer razem) — nie przeglądarka, więc inne konto na tym samym
+    // urządzeniu ma własną listę. Bez połączenia z bazą (tryb próbny) — przeglądarka.
+    const seenAnns = ref((() => { if (api.enabled) return []; try { return JSON.parse(localStorage.getItem('kns-seen-anns') || '[]') } catch { return [] } })())
+    const seenReady = ref(!api.enabled) // do wczytania listy z konta nic nie jest „Nowe” (bez mignięcia)
+    const annIsNew = a => seenReady.value && !seenAnns.value.includes(a.id) && Date.now() - (+a.date || 0) < 30 * 864e5
     const newAnnCount = computed(() => importantAnns.value.filter(annIsNew).length)
-    const keepSeen = () => { try { localStorage.setItem('kns-seen-anns', JSON.stringify(seenAnns.value.slice(-300))) } catch { /* tryb prywatny */ } }
+    const keepSeen = () => { if (api.enabled) return; try { localStorage.setItem('kns-seen-anns', JSON.stringify(seenAnns.value.slice(-300))) } catch { /* tryb prywatny */ } }
     function markAnnSeen(id) {
       if (!id || seenAnns.value.includes(id)) return
       seenAnns.value = [...seenAnns.value, id]
       keepSeen()
       if (api.enabled) api.call('markSeen', { ids: [id] }).catch(() => {})
     }
-    // Po zalogowaniu: przeczytane z konta + to, co otwarto w tej przeglądarce wcześniej (dopisane na konto).
+    // Po zalogowaniu: przeczytane tego konta (plus otwarte przed chwilą, zanim lista doszła).
     async function loadSeenAnns() {
       if (!api.enabled) return
-      try {
-        const remote = (await api.call('seenAnns')) || []
-        const local = seenAnns.value.filter(id => !remote.includes(id) && announcements.value.some(a => a.id === id))
-        seenAnns.value = [...new Set([...remote, ...seenAnns.value])]
-        keepSeen()
-        if (local.length) api.call('markSeen', { ids: local }).catch(() => {})
-      } catch { /* gość albo brak sieci — zostaje pamięć przeglądarki */ }
+      try { seenAnns.value = [...new Set([...((await api.call('seenAnns')) || []), ...seenAnns.value])]; seenReady.value = true } catch { /* bez sieci — bez „Nowe” */ }
     }
     function openAnn(a) {
       markAnnSeen(a?.id)

@@ -47,26 +47,23 @@ const until = computed(() => {
 })
 // Ogłoszenie w okienku: grafika, treść i film (wgrany gra od razu; YouTube/Vimeo — w przeglądarce).
 const shown = ref(null)
-// „Nowe”: ogłoszenie z ostatnich 30 dni, którego ta osoba jeszcze nie otworzyła — pamięta konto (strona, telefon
-// i komputer razem); bez połączenia — ten komputer.
-const seen = ref((() => { try { return JSON.parse(localStorage.getItem('kns-seen-anns') || '[]') } catch { return [] } })())
-const isNew = a => !seen.value.includes(a.id) && Date.now() - (+a.date || 0) < 30 * 864e5
+// „Nowe”: ogłoszenie z ostatnich 30 dni, którego ta osoba jeszcze nie otworzyła (otwarcie = przeczytane).
+// Pamięta KONTO (strona, telefon i komputer razem) — inne konto na tym komputerze ma własną listę.
+const seen = ref([])
+const seenReady = ref(false) // do wczytania listy z konta nic nie jest „Nowe”
+const isNew = a => seenReady.value && !seen.value.includes(a.id) && Date.now() - (+a.date || 0) < 30 * 864e5
 const newCount = computed(() => notices.value.filter(isNew).length)
-const keepSeen = () => { try { localStorage.setItem('kns-seen-anns', JSON.stringify(seen.value.slice(-300))) } catch { /* bez zapisu */ } }
 function openNotice(a) {
   shown.value = a
   if (seen.value.includes(a.id)) return
   seen.value = [...seen.value, a.id]
-  keepSeen()
   markSeenAnns([a.id])
 }
 onMounted(async () => {
   const res = await loadSeenAnns()
-  if (!res?.ids) return
-  const local = seen.value.filter(id => !res.ids.includes(id) && churchAnnouncements.value.some(a => a.id === id))
+  if (!res?.ids) return // bez połączenia — bez „Nowe”
   seen.value = [...new Set([...res.ids, ...seen.value])]
-  keepSeen()
-  if (local.length) markSeenAnns(local)
+  seenReady.value = true
 })
 const vid = computed(() => videoInfo(shown.value?.video))
 const copied = ref(false)
