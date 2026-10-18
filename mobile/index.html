@@ -537,6 +537,10 @@
   .goal-people th { color: var(--muted); font-weight: 600; }
   .goal-people td.miss { color: #ff8a65; }
   .goal-form { margin-bottom: 14px; }
+  .ev-people { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .ev-person { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); font-size: 13.5px; }
+  .ev-person .i { width: 14px; height: 14px; color: var(--muted); }
+  .ev-person button { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; color: var(--muted); }
   .gc-final { margin-top: 12px; padding: 12px; border: 1px solid rgba(232, 163, 61, .45); border-radius: 12px; background: rgba(0, 0, 0, .15); }
   .gc-transfer { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 10px 0; font-size: 14px; }
   .gc-transfer dt { color: var(--muted); }
@@ -1247,6 +1251,10 @@
       <h2 class="ann-view-title">{{ currentEvent.title || typeOf(currentEvent.type).name }}</h2>
       <p class="ann-view-meta">{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time"> · {{ currentEvent.time }}</template><template v-if="currentEvent.place"> · {{ currentEvent.place }}</template></p>
       <div v-if="currentEvent.description" class="ann-view-text">{{ currentEvent.description }}</div>
+      <template v-if="(currentEvent.people || []).length">
+        <h3 class="view-h">Biorą udział</h3>
+        <div class="ev-people"><span v-for="p in currentEvent.people" :key="p.id" class="ev-person"><svg class="i"><use href="#user"/></svg>{{ p.name }}</span></div>
+      </template>
       <template v-if="(currentEvent.program || []).length">
         <h3 class="view-h">Program</h3>
         <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" readonly></program-editor>
@@ -1317,6 +1325,14 @@
       <input id="evPlace" v-model="currentEvent.place" autocomplete="off">
       <label for="evDesc">Opis</label>
       <textarea id="evDesc" v-model="currentEvent.description" placeholder="Co, dla kogo, co przygotować…"></textarea>
+      <template v-if="canNotify">
+        <label>Osoby biorące udział (opcjonalnie)</label>
+        <div v-if="(currentEvent.people || []).length" class="ev-people edit">
+          <span v-for="p in currentEvent.people" :key="p.id" class="ev-person">{{ p.name }}<button type="button" :aria-label="'Usuń ' + p.name" @click="currentEvent.people = currentEvent.people.filter(x => x.id !== p.id)"><svg class="i"><use href="#x"/></svg></button></span>
+        </div>
+        <button type="button" class="songsbtn" :disabled="busy" @click="openNotify('people')"><svg class="i"><use href="#users"/></svg>{{ (currentEvent.people || []).length ? 'Zmień osoby (' + currentEvent.people.length + ')' : 'Dodaj osoby' }}<svg class="i chev"><use href="#chev"/></svg></button>
+        <p class="note" style="margin:6px 0 0">Nowo dodane osoby po zapisaniu dostaną powiadomienie (dzwonek i telefon), a w wydarzeniu widać, kto bierze udział.</p>
+      </template>
       <template v-if="drive.uploadImage || currentEvent.image">
         <label>Grafika (opcjonalnie)</label>
         <img v-if="currentEvent.image" class="ann-img edit" :src="currentEvent.image" alt="">
@@ -2497,9 +2513,9 @@
   </div>
 
   <!-- Wybór odbiorców powiadomienia: grupy (wszyscy, rangi) albo pojedyncze osoby. -->
-  <div v-if="notify.open" class="np-overlay" @click.self="notify.open = false">
-  <div class="np-panel" role="dialog" aria-label="Kogo powiadomić">
-    <div class="np-head"><b>Kogo powiadomić?</b><button class="icon" aria-label="Zamknij" @click="notify.open = false"><svg class="i"><use href="#x"/></svg></button></div>
+  <div v-if="notify.open" class="np-overlay" @click.self="closeNotify">
+  <div class="np-panel" role="dialog" :aria-label="notify.mode === 'people' ? 'Kto bierze udział' : 'Kogo powiadomić'">
+    <div class="np-head"><b>{{ notify.mode === 'people' ? 'Kto bierze udział?' : 'Kogo powiadomić?' }}</b><button class="icon" aria-label="Zamknij" @click="closeNotify"><svg class="i"><use href="#x"/></svg></button></div>
     <div class="searchbox"><svg class="i"><use href="#search"/></svg><input v-model="notify.query" type="search" placeholder="Szukaj osoby albo grupki" autocomplete="off"></div>
     <p v-if="notify.error" class="error">{{ notify.error }}</p>
     <div v-else-if="!directory.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 6" :key="n" class="skel skel-row"></div></div>
@@ -2514,7 +2530,7 @@
       </label>
       <p v-if="directory.length && !directoryShown.length" class="note">Nikogo takiego nie ma.</p>
     </div>
-    <div class="np-foot"><button class="primary" @click="notify.open = false"><svg class="i"><use href="#check"/></svg>Gotowe · wybrano {{ notify.ids.length }}</button></div>
+    <div class="np-foot"><button class="primary" @click="closeNotify"><svg class="i"><use href="#check"/></svg>Gotowe · wybrano {{ notify.ids.length }}</button></div>
   </div>
   </div>
 
@@ -2618,7 +2634,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.77 · 18.10.2026'
+const VERSION = '2.78 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3298,6 +3314,12 @@ createApp({
         await drive.saveEvent(data, eventBase, true)
       }
       const wasNew = !eventSavedOnce.value
+      // nowo dodane osoby biorące udział → powiadomienie razem z wybranymi odbiorcami (opublikowane wydarzenie)
+      if (!submitted) {
+        const before = new Set(((eventSaved ? JSON.parse(eventSaved) : {}).people || []).map(p => p.id))
+        const added = (data.people || []).map(p => p.id).filter(id => !before.has(id))
+        if (added.length) notify.ids = [...new Set([...notify.ids, ...added])]
+      }
       place(events, pendingEvents, data)
       if (submitted && wasNew && api.enabled) api.call('pushInbox').catch(() => {})
       const sent = (submitted ? ' · czeka na zatwierdzenie' : approving ? ' · opublikowane' : '') + await sendNotify({ title: data.title || typeOf(data.type).name, body: [pretty(data.date) + (data.time ? ', ' + data.time : ''), data.place].filter(Boolean).join(' · '), url: './?wydarzenie=' + encodeURIComponent(data.id) })
@@ -3766,11 +3788,21 @@ createApp({
 
     /* ---------- powiadomienia do wybranych osób ---------- */
     const canNotify = computed(() => api.enabled && useSupa && canEdit.value)
-    const notify = Vue.reactive({ open: false, ids: [], error: '', query: '' })
+    const notify = Vue.reactive({ open: false, ids: [], error: '', query: '', mode: 'notify', keep: [] })
     const directory = ref([])
-    function openNotify() {
+    // To samo okienko wybiera odbiorców powiadomienia albo osoby biorące udział w wydarzeniu (mode: 'people').
+    function openNotify(mode = 'notify') {
+      notify.mode = mode === 'people' ? 'people' : 'notify'
+      if (notify.mode === 'people') { notify.keep = notify.ids; notify.ids = (currentEvent.value?.people || []).map(p => p.id) }
       notify.open = true; notify.error = ''; notify.query = ''
       if (!directory.value.length) api.call('directory').then(r => { directory.value = r.people || [] }, e => { notify.error = e.message })
+    }
+    function closeNotify() {
+      notify.open = false
+      if (notify.mode !== 'people') return
+      const known = new Map((currentEvent.value?.people || []).map(p => [p.id, p.name]))
+      if (currentEvent.value) currentEvent.value.people = notify.ids.map(id => ({ id, name: directory.value.find(p => p.id === id)?.name || known.get(id) || 'Osoba' }))
+      notify.ids = notify.keep; notify.keep = []; notify.mode = 'notify'
     }
     // Grupy: wszyscy i każda ranga (z liczbą osób).
     const notifyGroups = computed(() => [
@@ -4576,7 +4608,7 @@ createApp({
       shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
