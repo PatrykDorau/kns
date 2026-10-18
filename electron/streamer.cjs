@@ -163,6 +163,8 @@ class Streamer extends EventEmitter {
     proc.on('exit', code => {
       if (this.proc === proc) this.proc = null
       if (!this.want) { this.emitState({ running: false, starting: false }); return }
+      // zmiana źródła dźwięku w trakcie — od razu nowy FFmpeg z tym samym koderem (ok. 1–2 s przerwy)
+      if (this.switching === proc) { this.switching = null; this.launch(encoder); return }
       // Koder karty niedostępny (inna karta, stary sterownik) → następny: NVIDIA → AMD → procesor (720p).
       if (encoder === 'nvenc' && /nvenc|nvcuda|CUDA|No capable devices|Driver does not support/i.test(log)) { this.launch('amf'); return }
       if (encoder === 'amf' && /amf|AMF|amfrt/i.test(log)) {
@@ -177,6 +179,23 @@ class Streamer extends EventEmitter {
       // zerwane łącze, chwilowy błąd — wznowienie, dopóki transmisja ma trwać
       setTimeout(() => { if (this.want && !this.proc) this.launch(encoder) }, 3000)
     })
+  }
+
+  // Tryb prosty: dźwięk otwiera FFmpeg (DirectShow), więc zmiana źródła = krótki restart z nowym wejściem.
+  // W studiu dźwięk miksuje aplikacja — tam zmiana jest bez przerwy (studio.js → setAudio).
+  switchAudio(audio) {
+    if (!this.want || this.want.studio) return this.state
+    audio = String(audio || '')
+    if (audio === (this.want.audio || '')) return this.state
+    this.want.audio = audio
+    const proc = this.proc
+    if (proc) {
+      this.switching = proc
+      this.emitState({ starting: true, running: false, error: '' })
+      try { proc.stdin.write('q') } catch { /* już zamknięty */ }
+      setTimeout(() => { if (proc.exitCode == null) proc.kill() }, 2500)
+    }
+    return this.state
   }
 
   /* ---------- tryb studia: obraz składa i koduje aplikacja (karta graficzna), dźwięk miksuje aplikacja ---------- */

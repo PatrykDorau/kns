@@ -96,6 +96,7 @@ contextBridge.exposeInMainWorld('api', {
   streamState: invoke('stream:state'),
   streamStart: invoke('stream:start'),
   streamStop: invoke('stream:stop'),
+  streamAudio: invoke('stream:audio'),
   streamLyrics: text => ipcRenderer.send('stream:lyrics', text),
   onStreamState: on('stream:state'),
   streamStartStudio: invoke('stream:startStudio'),

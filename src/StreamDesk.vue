@@ -190,10 +190,29 @@ const kbpsNow = computed(() => parseFloat(String(live.value.bitrate || '').repla
 // przepływność z ostatnich 60 s (wykres)
 const rateHistory = ref([])
 watch(() => live.value.time, () => { if (!liveOn.value) { rateHistory.value = []; return } rateHistory.value = [...rateHistory.value, kbpsNow.value].slice(-60) })
+const sparkMax = computed(() => Math.max(kbps.value * 1.3, ...rateHistory.value, 1))
 const sparkPoints = computed(() => {
-  const h = rateHistory.value, max = Math.max(kbps.value * 1.3, ...h, 1)
-  return h.map((v, i) => (i / Math.max(1, h.length - 1)) * 60 + ',' + (16 - (v / max) * 15).toFixed(1)).join(' ')
+  const h = rateHistory.value
+  return h.map((v, i) => (i / Math.max(1, h.length - 1)) * 60 + ',' + (19 - (v / sparkMax.value) * 17).toFixed(1)).join(' ')
 })
+const sparkTarget = computed(() => (19 - (kbps.value / sparkMax.value) * 17).toFixed(1)) // przerywana linia: cel
+const DH_ICON = {
+  rate: ['M12 19V5', 'm5 12 7-7 7 7'],
+  lag: ['M12 7v5l3 2', 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'],
+  fps: ['M4 6h16v12H4z', 'M8 6v12', 'M16 6v12'],
+  net: ['M2 9a15 15 0 0 1 20 0', 'M5 12.5a10 10 0 0 1 14 0', 'M8.5 16a5 5 0 0 1 7 0', 'M12 19.5h.01'],
+  yt: ['M3 8.5C3 6.6 4.6 5 6.5 5h11C19.4 5 21 6.6 21 8.5v7c0 1.9-1.6 3.5-3.5 3.5h-11C4.6 19 3 17.4 3 15.5Z', 'm10 9 5 3-5 3Z'],
+  audio: ['M11 5 6 9H3v6h3l5 4Z', 'M15.5 8.5a5 5 0 0 1 0 7', 'M18.5 5.5a9 9 0 0 1 0 13'],
+  rs: ['M21 12a9 9 0 1 1-3-6.7L21 8', 'M21 3v5h-5'],
+  mic: ['M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z', 'M5 11a7 7 0 0 0 14 0', 'M12 18v3'],
+}
+// Tryb prosty: dźwięk otwiera FFmpeg — zmiana w trakcie to restart nadawania na 1–2 s.
+async function switchSimpleAudio(e) {
+  const v = e.target.value
+  if (live.value.running && !confirm('W trybie prostym zmiana dźwięku przerywa nadawanie na 1–2 sekundy. Zmienić?')) { e.target.value = settings.streamAudio; return }
+  settings.streamAudio = v
+  if (liveOn.value) await api.streamAudio?.(v)
+}
 const liveBc = computed(() => (yt.value.broadcasts || []).find(b => b.id === liveBroadcast.value?.id) || (yt.value.broadcasts || []).find(b => b.status === 'live') || null)
 const health = computed(() => {
   const L = live.value, chips = [], target = kbps.value
@@ -215,7 +234,8 @@ const health = computed(() => {
   if (st) chips.push({ id: 'yt', label: 'YouTube odbiera', value: st.status !== 'active' ? 'brak obrazu' : (HEALTH[st.health] || st.health || '—'), cls: st.status !== 'active' ? 'bad' : st.health === 'bad' ? 'bad' : st.health === 'ok' ? 'warn' : 'ok', tip: (st.issues || []).map(i => i.text || i.reason).join(' · ') || 'Ocena YouTube (odświeżana co 15 s).' })
   if (liveBc.value?.viewers != null) chips.push({ id: 'view', label: 'Widzowie', value: String(liveBc.value.viewers), cls: '' })
   // dźwięk (studio)
-  if (engine.value === 'studio') chips.push({ id: 'audio', label: 'Dźwięk', value: !settings.studioAudio ? 'bez dźwięku' : studio.silentFor > 10 ? 'cisza' : studio.audioDb > -1 ? 'przester' : 'jest', cls: !settings.studioAudio || studio.silentFor > 10 ? 'warn' : studio.audioDb > -1 ? 'warn' : 'ok', tip: 'Poziom dźwięku z miksera (ATEM po USB).' })
+  if (engine.value === 'studio') chips.push({ id: 'audio', label: 'Dźwięk', value: !settings.studioAudio ? 'wyłączony' : studio.silentFor > 10 ? 'cisza ' + studio.silentFor + ' s' : studio.audioDb > -1 ? 'przester' : 'jest', cls: !settings.studioAudio || studio.silentFor > 10 ? 'warn' : studio.audioDb > -1 ? 'warn' : 'ok', tip: 'Poziom dźwięku z miksera (ATEM po USB). Źródło można zmienić w trakcie — bez przerwy w transmisji.' })
+  else chips.push({ id: 'audio', label: 'Dźwięk', value: settings.streamAudio ? 'z urządzenia' : 'wyłączony', cls: settings.streamAudio ? 'ok' : 'warn', tip: 'Źródło dźwięku. W trybie prostym zmiana w trakcie przerywa nadawanie na 1–2 s.' })
   if (L.restarts) chips.push({ id: 'rs', label: 'Wznowienia', value: String(L.restarts), cls: 'warn', tip: 'Ile razy połączenie z YouTube zerwało się i wróciło samo.' })
   // podpowiedź — najważniejszy problem
   let alert = null
@@ -227,7 +247,9 @@ const health = computed(() => {
   else if (st && st.status === 'active' && st.health === 'bad') alert = { cls: 'warn', text: 'YouTube ocenia sygnał jako słaby' + ((st.issues || []).length ? ': ' + st.issues.map(i => i.text || i.reason).join(' · ') : '.') }
   else if (engine.value === 'studio' && settings.studioAudio && studio.silentFor > 10) alert = { cls: 'warn', text: 'Od ' + studio.silentFor + ' s nie ma dźwięku — sprawdź mikser (ATEM) i kabel USB.' }
   else if (engine.value === 'studio' && studio.skipped > 50 && live.value.running) alert = { cls: 'warn', text: 'Karta graficzna nie nadąża z kodowaniem — spróbuj 30 kl./s albo 720p.' }
-  return { chips, alert }
+  const level = chips.some(c => c.cls === 'bad') || alert?.cls === 'bad' ? 'bad' : chips.some(c => c.cls === 'warn') || alert ? 'warn' : L.running ? 'ok' : 'wait'
+  const title = { bad: 'Problem z transmisją', warn: 'Uwaga', ok: 'Transmisja stabilna', wait: 'Łączę z YouTube…' }[level]
+  return { chips: chips.filter(c => c.id !== 'view'), alert, level, title } // widzowie — w podsumowaniu
 })
 const videoLabel = computed(() => (engine.value === 'studio' ? settings.studioCamera || 'brak kamery' : devices.value.screens.find(x => x.value === settings.streamVideo)?.label || settings.streamVideo || 'brak obrazu'))
 async function goLive() {
@@ -328,15 +350,32 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
           <small v-else class="muted">{{ live.encoder }}</small>
         </div>
-        <!-- stan transmisji: wysyłanie, internet, YouTube, widzowie, dźwięk; poniżej podpowiedź, gdy coś nie gra -->
-        <div v-if="liveOn" class="desk-health">
-          <span v-for="c in health.chips" :key="c.id" class="dh-chip" :class="c.cls" :title="c.tip">
-            <small>{{ c.label }}</small><b>{{ c.value }}</b>
-            <svg v-if="c.id === 'rate' && rateHistory.length > 1" class="dh-spark" viewBox="0 0 60 16" preserveAspectRatio="none" aria-hidden="true"><polyline :points="sparkPoints" /></svg>
-            <i v-if="c.id === 'audio'" class="dh-meter"><i :style="{ width: Math.max(0, Math.min(100, (studio.audioDb + 60) / 60 * 100)) + '%' }"></i></i>
-          </span>
+        <!-- stan transmisji: ogólna ocena, wysyłanie (wykres), opóźnienie, klatki, internet, YouTube, dźwięk
+             (miernik i zmiana źródła w trakcie); na dole podpowiedź przy najważniejszym problemie -->
+        <div v-if="liveOn" class="dh" :class="'dh-' + health.level">
+          <div class="dh-row">
+            <div class="dh-sum">
+              <i class="dh-led"></i>
+              <span><b>{{ health.title }}</b><small>{{ live.time || 'łączę…' }}{{ liveBc?.viewers != null ? ' · ' + liveBc.viewers + ' ogląda' : '' }}</small></span>
+            </div>
+            <div v-for="c in health.chips" :key="c.id" class="dh-cell" :class="['s-' + (c.cls || 'none'), 'dh-' + c.id]" :title="c.tip">
+              <svg class="dh-ic" viewBox="0 0 24 24" aria-hidden="true"><path v-for="(d, k) in DH_ICON[c.id]" :key="k" :d="d" /></svg>
+              <!-- dźwięk: poziom, stan i wybór źródła (zmiana także w trakcie transmisji) -->
+              <span v-if="c.id === 'audio'" class="dh-txt">
+                <small>Dźwięk · <em>{{ c.value }}</em></small>
+                <select v-if="engine === 'studio'" :value="settings.studioAudio" aria-label="Źródło dźwięku" title="Źródło dźwięku — zmiana w trakcie bez przerwy" @change="chooseAudio($event.target.value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select>
+                <select v-else :value="settings.streamAudio" aria-label="Źródło dźwięku" title="Źródło dźwięku — zmiana w trakcie przerywa nadawanie na 1–2 s" @change="switchSimpleAudio($event)"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select>
+                <i v-if="engine === 'studio'" class="dh-meter" aria-hidden="true"><i :style="{ width: Math.max(0, Math.min(100, (studio.audioDb + 60) / 60 * 100)) + '%' }"></i></i>
+              </span>
+              <span v-else class="dh-txt"><small>{{ c.label }}</small><b>{{ c.value }}</b></span>
+              <svg v-if="c.id === 'rate' && rateHistory.length > 1" class="dh-spark" viewBox="0 0 60 20" preserveAspectRatio="none" aria-hidden="true">
+                <line x1="0" x2="60" :y1="sparkTarget" :y2="sparkTarget" class="dh-target" />
+                <polygon :points="'0,20 ' + sparkPoints + ' 60,20'" /><polyline :points="sparkPoints" />
+              </svg>
+            </div>
+          </div>
+          <p v-if="health.alert" class="dh-alert" :class="health.alert.cls" role="status"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{{ health.alert.text }}</p>
         </div>
-        <p v-if="liveOn && health.alert" class="desk-alert" :class="health.alert.cls" role="status"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{{ health.alert.text }}</p>
         <div v-if="engine === 'studio'" class="studio-mons" :class="{ single: studio.direct }">
           <figure v-if="!studio.direct" class="mon pvw">
             <figcaption>Podgląd <small>{{ SCENE_NAME[studio.preview.scene] }}</small></figcaption>
@@ -517,6 +556,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </fieldset>
             <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
+            <p v-if="liveOn" class="note">W trakcie transmisji ustawienia są zablokowane — źródło dźwięku zmienisz na pasku stanu nad podglądem.</p>
             <p class="note">Przepływność: YouTube zaleca dla 1080p 4,5–9 Mb/s (przy 50/60 kl./s górna część). Internet w kościele musi wysyłać ok. 1,5× tyle — sprawdź na speedtest.net („Upload”). Gdy YouTube pokazuje „słaby sygnał”, zmniejsz.</p>
             <p class="note">Klatki na sekundę ustaw tak jak w ATEM (ATEM Software Control → Ustawienia → Standard wideo, np. 1080p50 → 50).</p>
             <p v-if="engine === 'simple' && !devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>

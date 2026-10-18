@@ -1071,6 +1071,7 @@ app.whenReady().then(() => {
   ipcMain.handle('stream:state', () => streamer.state)
   ipcMain.handle('stream:start', yt(o => streamer.start({ ...o, ...(process.env.KNS_STREAM_TEST ? { testInput: true, encoder: 'x264' } : {}) })))
   ipcMain.handle('stream:stop', () => streamer.stop())
+  ipcMain.handle('stream:audio', (e, audio) => streamer.switchAudio(audio))
   ipcMain.on('stream:lyrics', (e, text) => streamer.setLyrics(text))
   // studio: obraz i dźwięk składa aplikacja (okno), tutaj tylko wysyłka
   ipcMain.handle('stream:startStudio', yt(o => streamer.startStudio(o)))

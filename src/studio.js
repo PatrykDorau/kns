@@ -625,15 +625,22 @@ function connectMedia(el) {
 export async function setAudio(deviceId) {
   studio.audio = deviceId || ''
   await audioGraph()
-  micSource?.disconnect(); micStream?.getTracks().forEach(tr => tr.stop())
+  // Także w trakcie transmisji: nowe źródło otwierane, zanim odepniemy stare — dźwięk płynie bez przerwy
+  // (mikser ma stałe źródło ciszy, więc nawet chwila bez mikrofonu nie zrywa strumienia do YouTube).
+  const oldSource = micSource, oldStream = micStream
+  const drop = () => { oldSource?.disconnect(); oldStream?.getTracks().forEach(tr => tr.stop()) }
   micSource = null; micStream = null
-  if (!deviceId) return
+  if (!deviceId) { drop(); return }
   try {
     // dźwięk z miksera bez „poprawiania” (bez tłumienia echa i szumów)
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2, sampleRate: 48000 }, video: false })
-    micSource = ac.createMediaStreamSource(micStream)
+    const st = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2, sampleRate: 48000 }, video: false })
+    if (studio.audio !== deviceId) { st.getTracks().forEach(tr => tr.stop()); return } // w międzyczasie wybrano inne
+    micStream = st
+    micSource = ac.createMediaStreamSource(st)
     micSource.connect(mix)
+    if (studio.error.startsWith('Nie mogę otworzyć dźwięku')) studio.error = ''
   } catch (e) { studio.error = 'Nie mogę otworzyć dźwięku: ' + (e?.message || e) }
+  drop()
 }
 
 /* ---------- kodowanie ---------- */
@@ -664,3 +671,5 @@ export function stopEncoding() {
 }
 // FFmpeg wystartował od nowa (np. po zerwaniu łącza) — następna klatka kluczowa, żeby YouTube od razu miał obraz.
 export function requestKeyFrame() { needKey = true }
+// stan dźwięku (konsola i testy)
+export const audioInfo = () => ({ state: ac?.state || 'brak', rate: ac?.sampleRate, mic: micStream?.getAudioTracks().map(t => t.label + ' · ' + t.readyState + (t.muted ? ' · wyciszony' : '')) || [], settings: micStream?.getAudioTracks()[0]?.getSettings() })

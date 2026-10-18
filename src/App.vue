@@ -10,7 +10,7 @@ import PeopleView from './PeopleView.vue'
 import HomeBoard from './HomeBoard.vue'
 import WebShell from './WebShell.vue'
 import { lyricsFeed, startLyricsFeed } from './lyricsFeed.js'
-import { startEncoding, stopEncoding, studio } from './studio.js'
+import { audioInfo, startEncoding, stopEncoding, studio } from './studio.js'
 import SermonThoughts from './SermonThoughts.vue'
 import GuestBoard from './GuestBoard.vue'
 import InboxBell from './InboxBell.vue'
@@ -23,7 +23,7 @@ import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init
 const ready = ref(false)
 onMounted(async () => {
   window.rzutnik = store // uchwyt do podglądania stanu z konsoli i w testach
-  window.rzutnikStream = { studio, lyricsFeed, startEncoding, stopEncoding }
+  window.rzutnikStream = { studio, lyricsFeed, startEncoding, stopEncoding, audioInfo }
   await init()
   startLyricsFeed() // napisy na stream niezależnie od otwartego ekranu
   ready.value = true
