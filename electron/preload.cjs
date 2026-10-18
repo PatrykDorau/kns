@@ -74,6 +74,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // pilot w telefonie
   setRemote: invoke('remote:set'),
+  setLyrics: invoke('lyrics:set'),
   remoteState: state => ipcRenderer.send('remote:state', state),
   onRemoteCmd: on('remote:cmd'),
 

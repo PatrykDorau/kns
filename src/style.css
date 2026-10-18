@@ -791,3 +791,8 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
 /* Ekran startowy: służba niedostępna dla tego konta */
 .role-cards button small.locked { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--warn); font-size: 12px; }
 .role-cards button small.locked .icon { width: 14px; height: 14px; }
+
+/* Stream: podpowiedź przy zajętej kamerze */
+.busy-tip { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.45; }
+.busy-tip b { color: var(--text); }
+.busy-tip ul { margin: 6px 0; padding-left: 18px; }

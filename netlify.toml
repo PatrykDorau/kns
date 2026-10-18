@@ -100,3 +100,10 @@
   from = "/szablony"
   to = "/index.html"
   status = 200
+
+# Każdy inny adres (np. odświeżenie podstrony, której nie ma wyżej) — też aplikacja, zamiast „Page not found”.
+# Pliki i funkcje (/api/...) mają pierwszeństwo, bo ta reguła działa tylko, gdy nic innego nie pasuje.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 404

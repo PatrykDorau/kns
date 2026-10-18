@@ -136,3 +136,22 @@ begin
 end $$;
 revoke all on function public.request_test_newsletter() from public, anon;
 grant execute on function public.request_test_newsletter() to authenticated;
+
+-- Wpisy od samej bazy (np. przypomnienia dla prowadzących ASB — bez nadawcy) → telefony. Wywołuje je codziennie
+-- funkcja Netlify bez logowania: dostaje tylko świeże, jeszcze niewysłane wpisy dla ich właścicieli, więc
+-- najwyżej przyspieszy ich wysłanie.
+create or replace function public.inbox_push_due() returns table (id text, subscription jsonb, title text, body text, url text)
+language plpgsql security definer set search_path = public as $$
+begin
+  return query
+    with fresh as (
+      update inbox i set pushed = true
+      where i.sender is null and not i.pushed and i.created > now() - interval '1 day'
+      returning i.person, i.title, i.body, i.url
+    )
+    select d.id, d.data -> 'subscription', f.title, f.body, f.url
+    from fresh f join push_devices d on d.person = f.person
+    where d.data ? 'subscription';
+end $$;
+revoke all on function public.inbox_push_due() from public;
+grant execute on function public.inbox_push_due() to anon, authenticated;

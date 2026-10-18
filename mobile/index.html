@@ -471,7 +471,7 @@
   .asb-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .asb-kinds .chipbtn { display: inline-flex; align-items: center; gap: 6px; }
   .asb-kinds .chipbtn i { width: 9px; height: 9px; border-radius: 50%; background: var(--k); }
-  .asb-add { display: flex; justify-content: center; width: 100%; margin-top: 10px; margin-bottom: 4px; }
+  .asb-add { display: flex; justify-content: center; width: 100%; }
   .asb-row { display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 6px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); text-align: left; color: inherit; font: inherit; cursor: pointer; }
   .asb-row { border-left: 4px solid var(--k, var(--line)); border-radius: 0 12px 12px 0; }
   .asb-row.past { opacity: .6; }
@@ -486,6 +486,18 @@
   .asb-kind-pick button.on { background: color-mix(in srgb, var(--k) 18%, var(--panel2)); border-color: var(--k); color: var(--text); font-weight: 600; }
   .asb-files { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
   .asb-files .mn-person b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asb-row.incomplete { border-color: var(--bad); border-left-color: var(--k); background: color-mix(in srgb, var(--bad) 7%, var(--panel)); }
+  .asb-body .asb-miss { display: inline-flex; align-items: center; gap: 4px; color: var(--bad-text); font-weight: 600; }
+  .asb-body .asb-miss svg.i { width: 14px; height: 14px; }
+  .asb-kinds .chipbtn.miss { color: var(--bad-text); }
+  .asb-kinds .chipbtn.miss.on { background: var(--bad-soft); border-color: var(--bad); }
+  div.asb-row { cursor: default; }
+  .asb-pub-more { margin-top: 6px; }
+  .asb-tools { display: flex; gap: 8px; margin-top: 10px; }
+  .asb-tools .primary { flex: 1; }
+  .asb-tools button { margin: 0; }
+  .asb-hint.bad { color: var(--bad-text); }
+  .msg-targets { display: flex; flex-wrap: wrap; gap: 6px; }
   .asb-cal { display: flex; gap: 8px; align-items: flex-start; }
   .asb-cal svg.i { flex: none; width: 18px; height: 18px; margin-top: 1px; }
   @media (max-width: 420px) { .asb-kind-pick button { font-size: 13px; padding: 6px 4px; } }
@@ -1456,6 +1468,23 @@
   </template>
 
   <!-- ASB: grafik spotkań studenckich (dawniej arkusz „ASB | GRAFIK”) i osobno lista pomysłów -->
+  <template v-else-if="asbView && !current && !canAsb">
+    <p class="listen-intro">Terminarz spotkań studenckich (ASB). Grafik z prowadzącymi i notatkami widzą osoby z rangą ASB.</p>
+    <p v-if="asb.busy && !asb.pub.length" class="note">Wczytuję terminarz…</p>
+    <p v-else-if="asb.error" class="error">{{ asb.error }}</p>
+    <p v-else-if="!asbPubUpcoming.length" class="note">Na razie nie ma zaplanowanych spotkań.</p>
+    <template v-for="g in asbPubGroups" :key="g.month">
+      <h2 class="mn-sec">{{ g.month }}</h2>
+      <div v-for="m in g.list" :key="m.id" class="asb-row" :class="['k-' + m.kind, { past: m.date < todayStr }]">
+        <span class="asb-date"><small>{{ wd(m.date) }}</small><b>{{ day(m.date) }}</b><small>{{ month(m.date) }}</small></span>
+        <span class="asb-body">
+          <span v-if="m.kind !== 'cykliczne'" class="asb-badge">{{ asbKindName(m.kind) }}</span>
+          <b>{{ m.topic || 'Spotkanie ASB' }}</b>
+          <small v-if="m.time || m.place">{{ [m.time, m.place].filter(Boolean).join(' · ') }}</small>
+        </span>
+      </div>
+    </template>
+  </template>
   <template v-else-if="asbView && !current">
     <div class="seg asb-tabs" role="tablist" aria-label="ASB">
       <button role="tab" :aria-selected="asb.tab === 'plan'" :class="{ on: asb.tab === 'plan' }" @click="asb.tab = 'plan'">Grafik</button>
@@ -1488,18 +1517,23 @@
       <div class="asb-kinds" role="group" aria-label="Rodzaj spotkań">
         <button class="chipbtn" :class="{ on: !asb.kind }" @click="asb.kind = ''">Wszystkie</button>
         <button v-for="k in ASB_KINDS" :key="k.id" class="chipbtn" :class="['k-' + k.id, { on: asb.kind === k.id }]" @click="asb.kind = asb.kind === k.id ? '' : k.id"><i></i>{{ k.plural }} · {{ asbList.filter(m => m.kind === k.id && !asbPause(m)).length }}</button>
+        <button v-if="asbMissingCount" class="chipbtn miss" :class="{ on: asb.kind === 'braki' }" title="Najbliższe spotkania bez tematu, prowadzącego albo miejsca" @click="asb.kind = asb.kind === 'braki' ? '' : 'braki'"><svg class="i"><use href="#warn"/></svg>Do uzupełnienia · {{ asbMissingCount }}</button>
       </div>
-      <button class="primary asb-add" @click="asbEdit()"><svg class="i"><use href="#plus"/></svg>Dodaj spotkanie</button>
+      <div class="asb-tools">
+        <button class="primary asb-add" @click="asbEdit()"><svg class="i"><use href="#plus"/></svg>Dodaj spotkanie</button>
+        <button v-if="msgRanks.some(r => r.id === 'asb')" title="Powiadomienie dla wszystkich z rangą ASB" @click="openMsg({ ranks: ['asb'] })"><svg class="i"><use href="#megaphone"/></svg>Wiadomość</button>
+      </div>
       <p v-if="!asbGroups.length" class="note">W tym roku nie ma jeszcze takich spotkań.</p>
       <template v-for="g in asbGroups" :key="g.month">
         <h2 class="mn-sec">{{ g.month }}</h2>
         <template v-for="m in g.list" :key="m.id">
           <p v-if="m.conceptStart" class="asb-concept">{{ m.concept }}</p>
-          <button class="asb-row" :class="['k-' + m.kind, { past: m.date && m.date < todayStr, next: asbNext && m.id === asbNext.id, pause: asbPause(m) }]" @click="asbEdit(m)">
+          <button class="asb-row" :class="['k-' + m.kind, { past: m.date && m.date < todayStr, next: asbNext && m.id === asbNext.id, pause: asbPause(m), incomplete: asbMissing(m).length }]" @click="asbEdit(m)">
             <span class="asb-date"><small>{{ m.date ? wd(m.date) : '' }}</small><b>{{ m.date ? day(m.date) : '—' }}</b><small>{{ m.date ? month(m.date) : '' }}</small></span>
             <span class="asb-body">
               <span v-if="m.kind !== 'cykliczne'" class="asb-badge">{{ asbKindName(m.kind) }}</span>
               <b>{{ asbTitle(m) }}</b>
+              <small v-if="asbMissing(m).length" class="asb-miss"><svg class="i"><use href="#warn"/></svg>Brakuje: {{ asbMissing(m).join(', ') }}</small>
               <small v-if="m.leader && !asbPause(m)">Prowadzi: {{ m.leader }}<template v-if="m.helper && m.helper !== m.leader"> · pomaga: {{ m.helper }}</template></small>
               <small v-if="(m.kind !== 'cykliczne' && m.time) || m.place">{{ [m.kind !== 'cykliczne' ? m.time : '', m.place].filter(Boolean).join(' · ') }}</small>
               <small v-if="m.int_idea || m.int_date || m.int_organizer" class="asb-int">Integracja: {{ [m.int_idea, m.int_date, m.int_organizer].filter(Boolean).join(' · ') }}</small>
@@ -1614,7 +1648,8 @@
 
   <template v-else-if="moreView && !current">
     <nav class="more-list" aria-label="Więcej">
-      <button v-if="canAsb" @click="openAsb"><svg class="i"><use href="#users"/></svg><span>ASB — grafik spotkań</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="canMsg" @click="openMsg()"><svg class="i"><use href="#megaphone"/></svg><span>Wyślij wiadomość</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="api.enabled" @click="openAsb"><svg class="i"><use href="#users"/></svg><span>{{ canAsb ? 'ASB — grafik spotkań' : 'ASB — terminarz spotkań' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openListen"><svg class="i"><use href="#music"/></svg><span>Posłuchaj</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
@@ -2026,6 +2061,24 @@
       </div>
   </section>
 
+  <!-- Strona dla gości: terminarz ASB (spotkania studenckie; bez spotkań wewnętrznych, prowadzących i notatek) -->
+  <section v-if="!ready && !embedded && asbPubShown.length" id="asb-terminarz" class="public">
+    <div class="section"><h2>ASB — spotkania studenckie</h2></div>
+    <p class="listen-intro">Terminy, tematy i miejsca najbliższych spotkań studenckich.</p>
+    <template v-for="g in asbPubGroups" :key="g.month">
+      <h2 class="mn-sec">{{ g.month }}</h2>
+      <div v-for="m in g.list" :key="m.id" class="asb-row" :class="['k-' + m.kind, { past: m.date < todayStr }]">
+        <span class="asb-date"><small>{{ wd(m.date) }}</small><b>{{ day(m.date) }}</b><small>{{ month(m.date) }}</small></span>
+        <span class="asb-body">
+          <span v-if="m.kind !== 'cykliczne'" class="asb-badge">{{ asbKindName(m.kind) }}</span>
+          <b>{{ m.topic || 'Spotkanie ASB' }}</b>
+          <small v-if="m.time || m.place">{{ [m.time, m.place].filter(Boolean).join(' · ') }}</small>
+        </span>
+      </div>
+    </template>
+    <button v-if="!asb.pubAll && asbPubShown.length < asbPubUpcoming.length" class="ghost asb-pub-more" @click="asb.pubAll = true">Cały terminarz ({{ asbPubUpcoming.length }})</button>
+  </section>
+
   <!-- Dodawanie osoby do służby (lider) -->
   <div v-if="addTo" class="np-overlay" @click.self="addTo = null">
     <div class="np-panel" role="dialog" :aria-label="'Dodaj osobę: ' + addTo.name">
@@ -2056,6 +2109,27 @@
     </div>
   </div>
 
+  <!-- Wiadomość do rang i służb (pastor, rada, administrator; lider ASB → ASB; lider służby → jego służba) -->
+  <div v-if="msg.open" class="np-overlay" @click.self="msg.open = false">
+    <div class="np-panel" role="dialog" aria-label="Wiadomość">
+      <div class="np-head"><b>Wiadomość</b><button class="icon" aria-label="Zamknij" @click="msg.open = false"><svg class="i"><use href="#x"/></svg></button></div>
+      <div class="np-list">
+        <label style="margin-top:0">Do kogo</label>
+        <div class="msg-targets" role="group" aria-label="Odbiorcy">
+          <button v-for="r in msgRanks" :key="'r' + r.id" type="button" class="chipbtn" :class="{ on: msg.ranks.includes(r.id) }" :aria-pressed="msg.ranks.includes(r.id)" @click="msgToggle('ranks', r.id)">{{ r.name }} · {{ r.count }}</button>
+          <button v-for="m in msgMinistries" :key="'m' + m.id" type="button" class="chipbtn" :class="{ on: msg.ministries.includes(m.id) }" :aria-pressed="msg.ministries.includes(m.id)" @click="msgToggle('ministries', m.id)">Służba: {{ m.name }} · {{ m.count }}</button>
+        </div>
+        <label for="msgTitle">Tytuł</label>
+        <input id="msgTitle" v-model="msg.title" maxlength="120" placeholder="np. Modlitwa w czwartek o 19:00" autocomplete="off">
+        <label for="msgBody">Treść</label>
+        <textarea id="msgBody" v-model="msg.body" maxlength="340" placeholder="Co chcesz przekazać?"></textarea>
+        <p class="note">Przyjdzie w aplikacji (dzwonek), a kto włączył powiadomienia — także na telefon. Na końcu dopiszę Twoje imię.</p>
+        <p v-if="msg.error" class="error">{{ msg.error }}</p>
+      </div>
+      <div class="np-foot"><button class="primary" :disabled="msg.busy || !msg.title.trim() || !(msg.ranks.length + msg.ministries.length)" @click="sendMsg"><svg class="i"><use href="#megaphone"/></svg>{{ msg.busy ? 'Wysyłam…' : 'Wyślij' }}</button></div>
+    </div>
+  </div>
+
   <!-- ASB: edycja spotkania -->
   <div v-if="asbForm" class="np-overlay" @click.self="asbForm = null">
     <div class="np-panel" role="dialog" aria-label="Spotkanie ASB">
@@ -2073,9 +2147,11 @@
         <input id="asTopic" v-model="asbForm.topic" list="asb-ideas" :placeholder="asbForm.kind === 'wewnetrzne' ? 'np. Spotkanie organizacyjne — plan semestru' : asbForm.kind === 'ewangelizacyjne' ? 'np. Pytania o wiarę na kampusie' : 'np. Czy chrześcijaństwo ma sens? Dzieje 17:16-34'" autocomplete="off">
         <datalist id="asb-ideas"><option v-for="i in asb.ideas" :key="i.id" :value="i.topic"></option></datalist>
         <div class="row">
-          <div><label for="asLeader">Prowadzący</label><input id="asLeader" v-model="asbForm.leader" autocomplete="off"></div>
-          <div><label for="asHelper">Prowadzący pomocniczy</label><input id="asHelper" v-model="asbForm.helper" autocomplete="off"></div>
+          <div><label for="asLeader">Prowadzący</label><input id="asLeader" v-model="asbForm.leader" list="asb-names" autocomplete="off"></div>
+          <div><label for="asHelper">Prowadzący pomocniczy</label><input id="asHelper" v-model="asbForm.helper" list="asb-names" autocomplete="off"></div>
         </div>
+        <datalist id="asb-names"><option v-for="p in asb.people" :key="p.id" :value="p.name"></option></datalist>
+        <p v-for="h in asbLeaderHints" :key="h.text" class="note asb-cal asb-hint" :class="{ bad: h.bad }"><svg class="i"><use :href="h.bad ? '#warn' : '#bell'"/></svg><span>{{ h.text }}</span></p>
         <div class="row">
           <div><label for="asPlace">Miejsce</label><input id="asPlace" v-model="asbForm.place" list="asb-places" autocomplete="off"></div>
           <div><label for="asAtt">Frekwencja</label><input id="asAtt" v-model.number="asbForm.attendance" type="number" min="0" inputmode="numeric" placeholder="—"></div>
@@ -2282,7 +2358,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.67 · 17.10.2026'
+const VERSION = '2.68 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3445,7 +3521,7 @@ createApp({
     }))
     /* ---------- ASB: grafik spotkań i pomysły ---------- */
     const asbView = ref(false), asbForm = ref(null)
-    const asb = Vue.reactive({ meetings: [], ideas: [], season: '', tab: 'plan', kind: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
+    const asb = Vue.reactive({ meetings: [], ideas: [], people: [], pub: [], pubAll: false, season: '', tab: 'plan', kind: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
     const canAsb = computed(() => api.enabled && (canManage.value || (me.value?.roles || []).includes('asb')))
     // Rodzaje spotkań (kolory w CSS: .k-cykliczne, .k-wewnetrzne, .k-ewangelizacyjne).
     const ASB_KINDS = [{ id: 'cykliczne', name: 'Cykliczne', plural: 'Cykliczne' }, { id: 'wewnetrzne', name: 'Wewnętrzne', plural: 'Wewnętrzne' }, { id: 'ewangelizacyjne', name: 'Ewangelizacyjne', plural: 'Ewangelizacyjne' }]
@@ -3465,7 +3541,7 @@ createApp({
       const out = []
       let prevConcept = null
       for (const m of asbList.value) {
-        if (asb.kind && m.kind !== asb.kind) continue
+        if (asb.kind === 'braki' ? !asbMissing(m).length : asb.kind && m.kind !== asb.kind) continue
         const key = m.month || 'Bez miesiąca'
         let g = out[out.length - 1]
         if (!g || g.month !== key) out.push(g = { month: key, list: [] })
@@ -3475,6 +3551,43 @@ createApp({
       }
       return out
     })
+    // Najbliższe spotkania (od dziś), którym czegoś brakuje.
+    const asbMissing = m => (!m.date || m.date < todayStr.value || asbPause(m) ? [] : [!m.topic.trim() && 'tematu', !m.leader.trim() && 'prowadzącego', !m.place.trim() && 'miejsca'].filter(Boolean))
+    const asbMissingCount = computed(() => asbList.value.filter(m => asbMissing(m).length).length)
+    // Kto dostanie przypomnienie 3 dni przed (tak samo jak baza: imię i nazwisko albo jednoznaczne imię z rangą ASB).
+    const asbWho = name => {
+      const n = (name || '').trim().toLowerCase()
+      if (!n) return null
+      const full = asb.people.find(p => p.name.trim().toLowerCase() === n)
+      if (full) return full
+      const first = asb.people.filter(p => p.name.trim().toLowerCase().split(' ')[0] === n)
+      return first.length === 1 ? first[0] : null
+    }
+    const asbLeaderHints = computed(() => {
+      const m = asbForm.value
+      if (!m || asbPause(m) || !asb.people.length) return []
+      return [...new Set([m.leader, m.helper].map(x => (x || '').trim()).filter(Boolean))].map(x => {
+        const p = asbWho(x)
+        return p ? { text: p.name + ' dostanie przypomnienie 3 dni przed spotkaniem.' }
+          : { bad: true, text: '„' + x + '” — brak osoby z rangą ASB o tym imieniu (albo jest kilka takich), więc przypomnienie nie dojdzie. Wpisz imię i nazwisko jak w aplikacji.' }
+      })
+    })
+    // Terminarz publiczny (goście i osoby bez rangi ASB).
+    const asbPubUpcoming = computed(() => asb.pub.filter(m => m.date >= todayStr.value))
+    const asbPubShown = computed(() => (asb.pubAll ? asbPubUpcoming.value : asbPubUpcoming.value.slice(0, 4)))
+    const asbPubGroups = computed(() => {
+      const out = []
+      for (const m of (canAsb.value || !ready.value ? asbPubShown.value : asbPubUpcoming.value)) {
+        const key = MONTHS_UP[+m.date.slice(5, 7) - 1]
+        let g = out[out.length - 1]
+        if (!g || g.month !== key) out.push(g = { month: key, list: [] })
+        g.list.push(m)
+      }
+      return out
+    })
+    async function loadAsbPublic() {
+      try { asb.pub = ((await api.call('asbPublic')) || []).map(m => ({ ...m, date: String(m.date).slice(0, 10) })) } catch { /* dodatek */ }
+    }
     const asbNext = computed(() => asbList.value.find(m => m.date && m.date >= todayStr.value && !asbPause(m)) || null)
     const asbAvg = computed(() => { const a = asbList.value.filter(m => m.attendance != null); return a.length ? Math.round(a.reduce((n, m) => n + m.attendance, 0) / a.length) : 0 })
     const asbPlaces = computed(() => [...new Set(asb.meetings.map(m => m.place).filter(Boolean))])
@@ -3490,13 +3603,16 @@ createApp({
     async function loadAsb() {
       asb.busy = true; asb.error = ''
       try {
+        if (!canAsb.value) { asb.tab = 'plan'; await loadAsbPublic(); return }
+        api.call('asbPeople').then(p => { asb.people = p || [] }, () => {})
         const r = await api.call('asbLoad')
         asb.meetings = r.meetings.map(m => ({ ...m, kind: m.kind || 'cykliczne', time: m.time ?? '', files: Array.isArray(m.files) ? m.files : [] })); asb.ideas = r.ideas
         if (!asb.season || !asbSeasons.value.includes(asb.season)) asb.season = asbSeasons.value.includes(seasonOf(todayStr.value)) ? seasonOf(todayStr.value) : asbSeasons.value[0] || seasonOf(todayStr.value)
       } catch (e) { asb.error = e.message } finally { asb.busy = false }
     }
     function openAsb() {
-      if (!canAsb.value) return Promise.resolve()
+      if (!api.enabled) return Promise.resolve()
+      loadMsgOpts()
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false
       asbView.value = true; scrollTo(0, 0); return loadAsb()
@@ -3567,6 +3683,30 @@ createApp({
     const asbIdeaAdd = () => { if (asb.ideaTopic.trim()) guard(async () => { await api.call('asbIdea', { id: uid(), topic: asb.ideaTopic.trim(), author: asb.ideaAuthor.trim() || me.value?.name?.split(' ')[0] || '' }); asb.ideaTopic = ''; asb.ideaAuthor = ''; await loadAsb() }) }
     function asbIdeaDelete(i) { if (confirm('Usunąć pomysł „' + i.topic + '”?')) guard(async () => { await api.call('asbIdeaDelete', { id: i.id }); await loadAsb() }) }
 
+    /* ---------- wiadomości do rang i służb ---------- */
+    const msg = Vue.reactive({ open: false, opts: null, title: '', body: '', ranks: [], ministries: [], busy: false, error: '' })
+    const msgRanks = computed(() => msg.opts?.ranks || [])
+    const msgMinistries = computed(() => msg.opts?.ministries || [])
+    const canMsg = computed(() => !!(msgRanks.value.length || msgMinistries.value.length))
+    let msgLoading = null
+    function loadMsgOpts() {
+      if (!api.enabled || !useSupa || me.value?.status !== 'active') return Promise.resolve()
+      return msgLoading || (msgLoading = api.call('broadcastOptions').then(o => { msg.opts = o }, () => { msgLoading = null }))
+    }
+    async function openMsg(pre = {}) {
+      Object.assign(msg, { open: true, title: '', body: '', ranks: pre.ranks || [], ministries: pre.ministries || [], error: '' })
+      await loadMsgOpts()
+    }
+    function msgToggle(key, id) { msg[key] = msg[key].includes(id) ? msg[key].filter(x => x !== id) : [...msg[key], id] }
+    async function sendMsg() {
+      msg.busy = true; msg.error = ''
+      try {
+        const r = await api.call('broadcast', { title: msg.title.trim(), body: msg.body.trim(), ranks: msg.ranks, ministries: msg.ministries })
+        msg.open = false
+        showToast(r.count ? 'Wysłano do ' + r.count + (r.count === 1 ? ' osoby' : ' osób') + (r.sent ? ' · ' + r.sent + ' na telefon' : '') : 'Nikt poza Tobą nie jest w tej grupie.')
+      } catch (e) { msg.error = e.message } finally { msg.busy = false }
+    }
+
     /* ---------- Posłuchaj ---------- */
     const listen = ref({}), listenView = ref(false)
     const listenEdit = Vue.reactive({ youtube: '', youtubeMore: '', spotify: '' })
@@ -3596,6 +3736,10 @@ createApp({
     }
     const saveListen = () => guard(async () => { await api.call('setListen', { ...listenEdit }); await loadListen(); status.value = 'Zapisano linki.' })
     loadListen()
+    // Gość: terminarz ASB na stronie startowej; link /asb otwiera go w całości.
+    loadAsbPublic().then(() => {
+      if (!ready.value && /^\/asb/.test(location.pathname)) { asb.pubAll = true; nextTick(() => document.getElementById('asb-terminarz')?.scrollIntoView({ block: 'start' })) }
+    })
     async function loadPublic() {
       if (!api.enabled || pub.value) return
       try { pub.value = await api.call('public') } catch { /* podgląd jest tylko dodatkiem */ }
@@ -3620,7 +3764,8 @@ createApp({
     function openGcal() { calView.value = false; moreView.value = false; gcalView.value = true; scrollTo(0, 0); if (!gcal.url) loadGcal() }
     function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
-    function openMore() { serveView.value = false; listenView.value = false; asbView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMore() { loadMsgOpts(); openMoreView() }
+    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -3653,7 +3798,7 @@ createApp({
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
         ...(api.enabled ? [{ id: 'serve', icon: 'users', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
         ...(api.enabled ? [{ id: 'listen', icon: 'music', name: 'Posłuchaj', desc: 'Kazania na YouTube i Spotify', locked: false, go: 'chev' }] : []),
-        ...(canAsb.value ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: 'Grafik spotkań, przypomnienia i pomysły', locked: false, go: 'chev' }] : []),
+        ...(api.enabled ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: canAsb.value ? 'Grafik spotkań, przypomnienia i pomysły' : 'Terminarz spotkań studenckich', locked: false, go: 'chev' }] : []),
       ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
     })
     function chooseTile(t) {
@@ -3971,7 +4116,8 @@ createApp({
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
       asb, asbView, asbForm, canAsb, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete,
-      ASB_KINDS, asbWhen, asbKindName, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
+      ASB_KINDS, asbWhen, asbKindName, asbMissing, asbMissingCount, asbLeaderHints, asbPubUpcoming, asbPubShown, asbPubGroups,
+      msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,

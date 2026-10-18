@@ -83,6 +83,8 @@ function onCueKey(e) {
 }
 
 const stop = cam => cam.stream?.getTracks().forEach(t => t.stop())
+let retryTimer = 0
+const anyBusy = computed(() => cams.value.some(c => c.busy))
 
 async function refresh() {
   try {
@@ -99,13 +101,18 @@ async function refresh() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: d.deviceId }, width: { ideal: 1280 } } })
         cam = { id: d.deviceId, label, stream: markRaw(stream) }
-      } catch {
-        cam = { id: d.deviceId, label, error: 'Brak obrazu — kamera może być zajęta przez inny program.' }
+      } catch (e) {
+        // NotReadableError / AbortError: urządzenie trzyma inny program (np. OBS) — Windows daje obraz tylko jednemu.
+        const busy = ['NotReadableError', 'AbortError', 'TrackStartError'].includes(e?.name)
+        cam = { id: d.deviceId, label, busy, error: busy ? 'Kamera zajęta przez inny program (np. OBS). Spróbuję ponownie sam.' : 'Brak obrazu z tej kamery.' }
       }
     }
     next.push(cam)
   }
   cams.value = next
+  // Zajęta kamera: co 10 s kolejna próba — gdy drugi program ją zwolni, obraz pojawi się sam.
+  clearTimeout(retryTimer)
+  if (next.some(c => c.busy)) retryTimer = setTimeout(refresh, 10000)
   status.value = next.length ? '' : 'Nie znaleziono żadnej kamery. Podłącz kamerę — pojawi się tu sama.'
 }
 
@@ -166,6 +173,7 @@ onBeforeUnmount(() => {
   if (overlay.value) api.setCompact(false)
   api.setOnTop(false)
   navigator.mediaDevices.removeEventListener('devicechange', refresh)
+  clearTimeout(retryTimer)
   cams.value.forEach(stop)
 })
 </script>
@@ -245,6 +253,14 @@ onBeforeUnmount(() => {
             <span v-else class="placeholder">{{ cam.error }}</span>
             <span v-if="settings.camLabels" class="cam-label">{{ cam.label }}</span>
           </button>
+        </div>
+        <div v-if="anyBusy && !overlay" class="busy-tip">
+          <b>Kamera zajęta?</b> Windows zwykle daje obraz z kamery (także z ATEM Mini po USB) tylko jednemu programowi naraz. Co możesz zrobić:
+          <ul>
+            <li>Windows 11: Ustawienia → Bluetooth i urządzenia → Kamery → wybierz kamerę (np. Blackmagic Design) → włącz „Zezwalaj wielu aplikacjom na jednoczesne używanie kamery”, potem uruchom OBS ponownie.</li>
+            <li>Albo w OBS kliknij „Uruchom wirtualną kamerę” i odśwież kamery tutaj — pojawi się „OBS Virtual Camera” z obrazem z OBS.</li>
+          </ul>
+          ATEM Mini wysyła przez USB jeden obraz (to, co jest na wyjściu programu), nie osobno każdą kamerę.
         </div>
         <!-- Nakładka: pasek sygnałów pod kamerami (w OBS można go przyciąć). -->
         <div v-if="overlay && settings.cue && settings.camCueBar" class="ov-cues">

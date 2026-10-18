@@ -560,6 +560,7 @@ async function sharedAccount(dir) {
 // Telefon kamerzysty otwiera stronę z tego komputera (ta sama sieć Wi-Fi) i ze słuchawką w uchu
 // dostaje sygnał dźwiękowy, gdy operator streamu oznaczy go jako „na wizji”, „przygotuj się” lub „poza wizją”.
 const CUE_PORT = 8766
+const LYRICS_PORT = 8767
 let cue = null
 const CUE_PAGE = "<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,user-scalable=no\"><title>Sygnał dla kamery</title><style>\nhtml,body{margin:0;height:100%}\nbody{font:600 20px system-ui,sans-serif;color:#fff;background:#14161a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:20px;box-sizing:border-box;transition:background .15s}\nbody.live{background:#d92c22}body.ready{background:#c98a00}body.off{background:#14161a}\n#big{font-size:13vw;font-weight:900;letter-spacing:.02em;line-height:1.05}\n#net{font-size:15px;opacity:.75;min-height:1.3em}\nbutton{font:inherit;font-size:22px;padding:18px 26px;border:0;border-radius:16px;background:#fff;color:#14161a}\n</style></head><body class=\"off\">\n<div id=\"big\">POZA WIZJĄ</div>\n<button id=\"start\">Dotknij, aby włączyć dźwięk</button>\n<div id=\"net\">Łączenie…</div>\n<script>\nconst TEXT = { live: 'NA WIZJI', ready: 'PRZYGOTUJ SIĘ', off: 'POZA WIZJĄ' }\n// Sygnały: na wizji — dwa wysokie krótkie; przygotuj się — jeden średni; poza wizją — jeden niski długi.\nconst TONES = { live: [[880, 0, .14], [880, .22, .14]], ready: [[660, 0, .28]], off: [[330, 0, .55]] }\nconst BUZZ = { live: [120, 80, 120], ready: [250], off: [500] }\nlet audio = null, first = true\nfunction beep(freq, at, len) {\n  const osc = audio.createOscillator(), gain = audio.createGain()\n  osc.frequency.value = freq\n  gain.gain.setValueAtTime(.0001, audio.currentTime + at)\n  gain.gain.exponentialRampToValueAtTime(.6, audio.currentTime + at + .02)\n  gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + at + len)\n  osc.connect(gain).connect(audio.destination)\n  osc.start(audio.currentTime + at); osc.stop(audio.currentTime + at + len + .05)\n}\nfunction signal(state) {\n  if (audio) { audio.resume(); for (const t of TONES[state] || []) beep(...t) }\n  if (navigator.vibrate) navigator.vibrate(BUZZ[state] || 0)\n}\nfunction show(state) { document.body.className = state; big.textContent = TEXT[state] || '' }\nasync function keepAwake() { try { await navigator.wakeLock?.request('screen') } catch {} }\nstart.onclick = () => {\n  audio = new (window.AudioContext || window.webkitAudioContext)()\n  beep(660, 0, .12)\n  start.remove()\n  keepAwake()\n}\ndocument.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake() })\nconst base = location.pathname.replace(/\\/$/, '')\nconst es = new EventSource(base + '/events')\nes.onopen = () => { net.textContent = 'Połączono z komputerem'; first = true }\nes.onerror = () => { net.textContent = 'Brak połączenia — próbuję ponownie…' }\nes.onmessage = e => {\n  const s = JSON.parse(e.data)\n  show(s.state)\n  // Pierwsza wiadomość po połączeniu to tylko bieżący stan — bez sygnału.\n  if (!first) signal(s.state)\n  first = false\n}\n</script></body></html>"
 const cueNotify = () => toControl('cue:clients', cue ? cue.clients.size : 0)
@@ -734,6 +735,67 @@ function setRemote(on, token) {
     server.listen(REMOTE_PORT, () => {
       remote = { server, token }
       resolve({ url: `http://${lanAddress()}:${REMOTE_PORT}/${token}` })
+    })
+  })
+}
+
+/* ---------- napisy pieśni dla OBS (przezroczyste tło) ---------- */
+// Strona http://localhost:8767/napisy — w OBS źródło „Przeglądarka” (1920×1080) nałożone na kamerę. Pokazuje bieżącą
+// zwrotkę pieśni z rzutnika (bez tła), znika przy „Ukryj” i gdy na rzutniku nie ma pieśni.
+// Parametry adresu: ?pozycja=dol|srodek|gora&rozmiar=6 (wysokość liter w % ekranu)&pasek=1 (półprzezroczysty pasek pod tekstem).
+let lyrics = null
+let lyricsBlank = false
+const LYRICS_PAGE = `<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Napisy — Kościół Na Skale</title><style>
+html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+body{display:flex;flex-direction:column;align-items:center;justify-content:var(--v,flex-end);padding:4vh 5vw 7vh;box-sizing:border-box}
+#t{max-width:90vw;color:#fff;font:700 var(--s,6vh)/1.25 "Segoe UI",system-ui,sans-serif;text-align:center;white-space:pre-line;
+  -webkit-text-stroke:.07em rgba(0,0,0,.85);paint-order:stroke fill;text-shadow:0 .05em .25em rgba(0,0,0,.8);transition:opacity .35s;opacity:0}
+#t.bar{background:rgba(0,0,0,.55);padding:.25em .6em;border-radius:.25em;-webkit-text-stroke:0}
+#t.on{opacity:1}
+</style></head><body><div id="t"></div><script>
+const q = new URLSearchParams(location.search), t = document.getElementById('t')
+document.body.style.setProperty('--v', { gora: 'flex-start', srodek: 'center' }[q.get('pozycja')] || 'flex-end')
+document.body.style.setProperty('--s', (parseFloat(q.get('rozmiar')) || 6) + 'vh')
+if (q.get('pasek') === '1') t.classList.add('bar')
+let last = ''
+function set(text) {
+  if (text === last) return
+  last = text
+  t.classList.remove('on')
+  setTimeout(() => { t.textContent = text; if (text) t.classList.add('on') }, text && t.textContent ? 200 : 0)
+}
+const es = new EventSource('/napisy/events')
+es.onmessage = e => set(JSON.parse(e.data).text || '')
+es.onerror = () => set('')
+</script></body></html>`
+const lyricsText = () => (!lyricsBlank && live?.type === 'text' && live.song ? String(live.text || '') : '')
+function lyricsPush() {
+  if (!lyrics) return
+  const data = 'data: ' + JSON.stringify({ text: lyricsText() }) + '\n\n'
+  for (const res of lyrics.clients) res.write(data)
+}
+function lyricsHandler(req, res) {
+  const url = req.url.split('?')[0]
+  if (req.method === 'GET' && (url === '/napisy' || url === '/napisy/')) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }).end(LYRICS_PAGE); return }
+  if (req.method === 'GET' && url === '/napisy/events') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' })
+    res.write('data: ' + JSON.stringify({ text: lyricsText() }) + '\n\n')
+    lyrics.clients.add(res)
+    req.on('close', () => lyrics?.clients.delete(res))
+    return
+  }
+  res.writeHead(404).end()
+}
+function setLyrics(on) {
+  return new Promise(resolve => {
+    if (lyrics) { clearInterval(lyrics.beat); for (const r of lyrics.clients) r.end(); lyrics.server.close(); lyrics.server.closeAllConnections?.(); lyrics = null }
+    if (!on) return resolve({})
+    const server = http.createServer(lyricsHandler)
+    server.once('error', e => resolve({ error: e.code === 'EADDRINUSE' ? `port ${LYRICS_PORT} jest zajęty przez inny program.` : e.message }))
+    server.listen(LYRICS_PORT, () => {
+      const beat = setInterval(() => { for (const r of lyrics?.clients || []) r.write(': \n\n') }, 15000)
+      lyrics = { server, clients: new Set(), beat }
+      resolve({ url: `http://localhost:${LYRICS_PORT}/napisy`, lan: `http://${lanAddress()}:${LYRICS_PORT}/napisy` })
     })
   })
 }
@@ -945,6 +1007,7 @@ app.whenReady().then(() => {
   ipcMain.handle('backup:export', () => exportBackup())
   ipcMain.handle('backup:import', () => importBackup())
   ipcMain.handle('remote:set', (e, on, token) => setRemote(on, token))
+  ipcMain.handle('lyrics:set', (e, on) => setLyrics(!!on))
   // Podpis autora zmian w nabożeństwie, gdy komputer nie jest zalogowany do Google.
   // Stream jako nakładka w OBS: małe okno (bez minimalnego rozmiaru panelu) i opcjonalnie zawsze na wierzchu.
   let normalBounds = null
@@ -985,8 +1048,8 @@ app.whenReady().then(() => {
   ipcMain.handle('cue:send', (e, state) => sendCue(state))
 
   ipcMain.on('remote:state', (e, state) => { remoteState = state })
-  ipcMain.on('output:show', (e, payload) => { live = payload; toOutput('show', live) })
-  ipcMain.on('output:video', (e, cmd) => toOutput('video:cmd', cmd))
+  ipcMain.on('output:show', (e, payload) => { live = payload; toOutput('show', live); lyricsPush() })
+  ipcMain.on('output:video', (e, cmd) => { toOutput('video:cmd', cmd); if (cmd?.type === 'blank') { lyricsBlank = !!cmd.value; lyricsPush() } })
   ipcMain.on('output:ready', () => toOutput('show', live))
   ipcMain.on('output:video-state', (e, state) => toControl('video:state', state))
 

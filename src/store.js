@@ -17,6 +17,7 @@ export const settings = reactive({
   fadeMs: 350, // 0 = bez przejścia
   copyFiles: true,
   remote: false,
+  lyrics: false, lyricsPos: 'dol', lyricsSize: 6, lyricsBar: false, // napisy pieśni dla OBS
   remoteToken: '',
   songSort: 'number', // 'number' | 'title'
   service: [], // pieśni na najbliższe nabożeństwo: [{ key, songId }]
@@ -104,6 +105,7 @@ export const volume = ref(0.25)
 export const notice = ref('')
 export const busy = ref('')
 export const remoteUrl = ref('')
+export const overlayUrl = ref('') // napisy pieśni na przezroczystym tle (źródło „Przeglądarka” w OBS)
 export const renamingId = ref(null)
 export const renameValue = ref('')
 export const confirmId = ref(null)
@@ -170,7 +172,7 @@ export function view(it, index = 0) {
   if (it.type === 'song') {
     const all = verses(it)
     const i = clamp(index, 0, Math.max(0, all.length - 1))
-    return { ...settings.songStyle, id: it.id, type: 'text', text: all[i] || '', slideKey: i, fadeMs: settings.fadeMs }
+    return { ...settings.songStyle, id: it.id, type: 'text', song: true, text: all[i] || '', slideKey: i, fadeMs: settings.fadeMs }
   }
   if (it.type === 'text' && it.text?.includes(COUNTDOWN)) {
     return { ...it, fadeMs: settings.fadeMs, target: it.countMode === 'minutes' ? it.target || 0 : nextServiceStart.value || 0 }
@@ -1292,6 +1294,11 @@ export async function init() {
   // Powrót do okna: synchronizacja, a bez połączonego folderu — ponowne szukanie go (np. po dodaniu skrótu).
   window.addEventListener('focus', () => (settings.sharedDir ? syncIfStale() : findSharedDir()))
   watch(settings, () => saveSoon('settings'), { deep: true })
+  watch(() => settings.lyrics, async on => {
+    const res = await api.setLyrics?.(!!on)
+    overlayUrl.value = res?.url || ''
+    if (res?.error) { notice.value = 'Napisy dla OBS: ' + res.error; settings.lyrics = false }
+  }, { immediate: true })
   watch(() => settings.remote, async on => {
     const res = await api.setRemote(on, settings.remoteToken)
     remoteUrl.value = res.url || ''

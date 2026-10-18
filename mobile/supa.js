@@ -75,6 +75,8 @@ export function createSupa(config, client = window.supabase.createClient(config.
       // „Posłuchaj”: linki YouTube i Spotify (czyta każdy, także gość; zmienia administrator).
       if (action === 'listen') return (check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {}
       if (action === 'setListen') return check(await sb.rpc('set_site_setting', { k: 'posluchaj', v: { youtube: data.youtube || '', youtubeMore: data.youtubeMore || '', spotify: data.spotify || '' } }))
+      // Terminarz ASB — także dla gości (bez prowadzących i notatek).
+      if (action === 'asbPublic') return check(await sb.rpc('asb_public'))
       if (!session) throw Object.assign(new Error('Brak logowania.'), { auth: true })
       if (action === 'me') {
         const [rows, ranks] = await Promise.all([sb.from('people').select('*').eq('id', session.user.id), sb.from('ranks').select('*').order('sort')].map(q => q.then(check)))
@@ -146,6 +148,14 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'asbSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_meetings').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
       // Przypomnienie: dzwonek dla wszystkich z rangą ASB, a kto włączył — także telefon.
       if (action === 'asbRemind') { const n = check(await sb.rpc('asb_remind', { meeting: data.id })); await pushInbox(); return n }
+      if (action === 'asbPeople') return check(await sb.rpc('asb_people'))
+      // Wiadomość do rang i służb: wpisy w dzwonku robi baza, telefony — /api/push { inbox: true }.
+      if (action === 'broadcastOptions') return check(await sb.rpc('broadcast_options'))
+      if (action === 'broadcast') {
+        const count = check(await sb.rpc('broadcast_send', { title: data.title, body: data.body || '', url: data.url || '', ranks: data.ranks || [], ministries: data.ministries || [] }))
+        const out = await pushInbox()
+        return { count, sent: out?.sent || 0 }
+      }
       if (action === 'asbDelete') return check(await sb.from('asb_meetings').delete().eq('id', data.id))
       if (action === 'asbIdea') return check(await sb.from('asb_ideas').upsert({ id: data.id, author: data.author || '', topic: data.topic }))
       if (action === 'asbIdeaDelete') return check(await sb.from('asb_ideas').delete().eq('id', data.id))

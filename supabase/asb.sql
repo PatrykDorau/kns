@@ -110,3 +110,61 @@ grant execute on function public.asb_remind(text) to authenticated;
 
 -- Istniejące spotkania → kalendarz (ponowne uruchomienie tylko odświeża).
 update public.asb_meetings set kind = kind;
+
+/* ---------- terminarz dla wszystkich, przypomnienia dla prowadzących ---------- */
+-- Terminarz bez logowania (strona /asb dla gości i członków bez rangi ASB): najbliższe pół roku, bez spotkań
+-- wewnętrznych i przerw; tylko data, godzina, rodzaj, temat i miejsce (bez prowadzących, notatek i frekwencji).
+create or replace function public.asb_public() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'date', m.date, 'time', m.time, 'kind', m.kind, 'topic', m.topic, 'place', m.place)
+    order by m.date, m.sort), '[]'::jsonb)
+  from asb_meetings m
+  where m.date between current_date - 7 and current_date + 183 and m.kind <> 'wewnetrzne'
+    and not (m.topic = '' and lower(m.leader) in ('przerwa', 'brak'))
+$$;
+revoke all on function public.asb_public() from public;
+grant execute on function public.asb_public() to anon, authenticated;
+
+-- Konto prowadzącego: osoba z rangą ASB o tym imieniu i nazwisku albo (jeśli jedna taka) o tym imieniu.
+create or replace function public.asb_person(who text) returns uuid
+language sql stable security definer set search_path = public as $$
+  with c as (select p.id, lower(trim(p.name)) as name from people p
+             where p.status = 'active' and 'asb' = any (p.roles) and trim(coalesce(who, '')) <> '')
+  select coalesce((select id from c where name = lower(trim(who)) limit 1),
+    (select min(id::text)::uuid from c where split_part(name, ' ', 1) = lower(trim(who)) having count(*) = 1))
+$$;
+revoke all on function public.asb_person(text) from public, anon, authenticated;
+
+-- Osoby z rangą ASB (podpowiedzi „Prowadzący” — kto dostanie przypomnienie).
+create or replace function public.asb_people() returns table (id uuid, name text)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not is_asb() then raise exception 'Brak dostępu.'; end if;
+  return query select p.id, p.name from people p where p.status = 'active' and 'asb' = any (p.roles) and p.name <> '' order by lower(p.name);
+end $$;
+revoke all on function public.asb_people() from public, anon;
+grant execute on function public.asb_people() to authenticated;
+
+-- Przypomnienie dla prowadzącego i pomocnika na 3 dni przed spotkaniem (raz na termin). Wywołuje je codziennie
+-- funkcja Netlify (netlify/functions/przypomnienia.mjs) — ponowne wywołanie niczego nie dubluje.
+alter table public.asb_meetings add column if not exists leader_reminded date;
+create or replace function public.asb_leader_reminders() returns int
+language plpgsql security definer set search_path = public as $$
+declare m asb_meetings; n int := 0; t uuid[]; d int;
+begin
+  for m in select * from asb_meetings where date between current_date and current_date + 3 and leader_reminded is distinct from date
+           and not (topic = '' and lower(leader) in ('przerwa', 'brak')) order by date loop
+    t := array_remove(array[asb_person(m.leader), case when m.helper <> m.leader then asb_person(m.helper) end], null);
+    d := m.date - current_date;
+    if cardinality(t) > 0 then
+      n := n + inbox_add(t, 'Prowadzisz spotkanie ASB ' || case d when 0 then 'dziś' when 1 then 'jutro' else 'za ' || d || ' dni' end,
+        concat_ws(' · ', coalesce(nullif(m.topic, ''), 'temat do ustalenia'), to_char(m.date, 'DD.MM'), nullif(m.time, ''), nullif(m.place, ''),
+          case when m.study <> '' or m.files <> '[]'::jsonb then 'rozważanie w aplikacji' end),
+        './?asb=' || m.id);
+    end if;
+    update asb_meetings set leader_reminded = m.date where id = m.id;
+  end loop;
+  return n;
+end $$;
+revoke all on function public.asb_leader_reminders() from public;
+grant execute on function public.asb_leader_reminders() to anon, authenticated;
