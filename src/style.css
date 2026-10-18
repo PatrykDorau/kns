@@ -826,7 +826,15 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
 .desk-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
 .desk-dot.ok { background: #3fb950; box-shadow: 0 0 0 3px rgba(63, 185, 80, .2); }
 .desk-dot.wait { background: #e8a33d; animation: kns-fade 1s ease-in-out infinite alternate; }
-.desk-ip { width: 210px; padding: 5px 9px; font-size: 13px; }
+.desk-ip { width: 180px; height: 32px; margin: 0; padding: 4px 10px; font-size: 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+.desk-ip:focus { outline: none; border-color: var(--accent); }
+.desk-head .small { height: 32px; }
+.desk-yt-login { margin-top: 10px; }
+.desk-help { margin-top: 4px; color: var(--muted); font-size: 13px; }
+.desk-help summary { cursor: pointer; color: var(--text); font-weight: 600; }
+.desk-help p { margin: 8px 0 4px; }
+.desk-help ol { margin: 4px 0 0; padding-left: 20px; line-height: 1.5; }
+.desk-help b { color: var(--text); }
 .desk-cams { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 .desk-cam { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; flex: 1 1 100px; min-width: 100px; min-height: 72px; padding: 8px 12px;
   border: 2px solid var(--line); border-radius: 12px; background: var(--panel); text-align: left; }

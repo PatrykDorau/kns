@@ -46,7 +46,15 @@ let ytTimer = 0
 async function loadYt() {
   const res = await api.ytOverview?.()
   if (!res) return
-  if (res.error) { ytError.value = res.error; if (res.needLogin) yt.value = { loggedIn: false }; return }
+  if (res.error) {
+    // zalogowane, ale YouTube zgłosił błąd (np. chwilowy po swojej stronie) — kanał zostaje, a komunikat mówi, co się nie udało
+    ytError.value = res.error
+    const st = res.needLogin ? { loggedIn: false } : await api.ytStatus()
+    yt.value = { ...yt.value, ...st }
+    clearInterval(ytTimer)
+    if (st.loggedIn) ytTimer = setInterval(loadYt, 30000)
+    return
+  }
   ytError.value = ''
   yt.value = res
   clearInterval(ytTimer)
@@ -116,13 +124,22 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <button class="small" @click="disconnect">Rozłącz</button>
         </template>
         <template v-else>
-          <input v-model="address" class="desk-ip" placeholder="IP miksera, np. 192.168.1.240" aria-label="Adres IP miksera ATEM" @keydown.enter="connect">
+          <input v-model="address" class="desk-ip" placeholder="np. 192.168.10.240" aria-label="Adres IP miksera ATEM" inputmode="decimal" @keydown.enter="connect">
           <button class="small primary" @click="connect">Połącz</button>
         </template>
       </div>
       <p v-if="atemError" class="note bad">{{ atemError }}</p>
-      <p v-if="!atem.connected && !connecting" class="note">Mikser podłączony kablem sieciowym do tego samego routera co laptop. Adres IP jest w ATEM Software Control → Ustawienia miksera → Sieć.</p>
-      <p v-else-if="connecting" class="note">Nie widzę miksera — sprawdź kabel sieciowy i adres IP. Łączę się ponownie co kilka sekund.</p>
+      <details v-if="!atem.connected" class="desk-help">
+        <summary>Opcjonalnie: przełączanie kamer z aplikacji — jak podłączyć</summary>
+        <p>Do samego streamu przez OBS to niepotrzebne. Kabel sieciowy daje tylko klikanie kamer tutaj i podgląd, która jest na wizji (USB-C dalej wysyła obraz). Wystarczy krótki kabel sieciowy prosto między mikserem a laptopem; ustawia się to raz:</p>
+        <ol>
+          <li>Kabel sieciowy: gniazdo <b>ETHERNET</b> w ATEM ↔ gniazdo sieciowe laptopa (albo przejściówka USB → Ethernet).</li>
+          <li><b>ATEM Setup</b> (mikser podłączony po USB): Configure → Network → adres stały <b>192.168.10.240</b>, maska 255.255.255.0 → Save.</li>
+          <li>Windows: Ustawienia → Sieć i internet → Ethernet → Przypisanie IP → Edytuj → Ręcznie → IPv4: adres <b>192.168.10.10</b>, maska 255.255.255.0 (bramy nie wpisuj — internet dalej przez Wi-Fi).</li>
+          <li>Tutaj wpisz <b>192.168.10.240</b> → Połącz.</li>
+        </ol>
+      </details>
+      <p v-if="connecting" class="note">Nie widzę miksera — sprawdź kabel sieciowy i adresy IP (mikser i laptop w tej samej podsieci, np. 192.168.10.x). Łączę się ponownie co kilka sekund.</p>
       <template v-if="atem.connected">
         <div class="desk-cams" role="group" aria-label="Kamery w mikserze">
           <button v-for="i in cameras" :key="i.id" class="desk-cam" :class="{ pgm: atem.program === i.id, pvw: atem.preview === i.id }"
@@ -156,7 +173,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
       <p v-if="ytError" class="note bad">{{ ytError }}</p>
       <template v-if="!yt.loggedIn">
         <p class="note">Połącz aplikację z kanałem kościoła — w przeglądarce wybierz konto (albo konto marki) kanału. Potem transmisję na niedzielę tworzy się jednym przyciskiem, z tytułem i opisem z nabożeństwa.</p>
-        <button class="primary" :disabled="ytBusy" @click="ytLogin"><Icon name="play" />{{ ytBusy ? 'Czekam na logowanie w przeglądarce…' : 'Połącz z YouTube' }}</button>
+        <button class="primary desk-yt-login" :disabled="ytBusy" @click="ytLogin"><Icon name="play" />{{ ytBusy ? 'Czekam na logowanie w przeglądarce…' : 'Połącz z YouTube' }}</button>
       </template>
       <template v-else>
         <div v-if="yt.stream" class="desk-key">

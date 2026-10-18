@@ -15,6 +15,9 @@ const TOKEN = TEST_BASE ? TEST_BASE + '/token' : 'https://oauth2.googleapis.com/
 const SCOPE = 'https://www.googleapis.com/auth/youtube'
 const STREAM_TITLE = 'KNS Nabo — stały klucz'
 
+// Który krok się nie udał (do komunikatu i dziennika).
+const STEP = { channels: 'odczyt kanału', liveStreams: 'klucz transmisji', liveBroadcasts: 'transmisje' }
+const stepOf = p => STEP[(p.match(/^\/(\w+)/) || [])[1]] || 'YouTube'
 // Błędy YouTube po ludzku (najczęstsze przy pierwszym ustawianiu).
 function explain(status, data) {
   const reason = data?.error?.errors?.[0]?.reason || data?.error?.status || ''
@@ -24,6 +27,7 @@ function explain(status, data) {
   if (/youtubeSignupRequired|noChannel/i.test(reason)) return 'To konto Google nie ma kanału YouTube — zaloguj się kontem (albo kontem marki) kanału kościoła.'
   if (/insufficientPermissions|forbidden/i.test(reason) || status === 403) return 'Brak uprawnień do tego kanału — zaloguj się kontem właściciela albo menedżera kanału.'
   if (/quotaExceeded|rateLimitExceeded/i.test(reason)) return 'Dzienny limit zapytań do YouTube się wyczerpał — spróbuj jutro.'
+  if (status >= 500) return 'YouTube zgłosił błąd po swojej stronie („' + (msg || 'Internal error') + '”). Spróbuj ponownie za chwilę.'
   return msg || `YouTube odpowiedział błędem ${status}.`
 }
 
@@ -32,6 +36,14 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
   let auth = null // { refresh, access, expires, channel, channelId, streamId }
   try { auth = JSON.parse(decrypt(fs.readFileSync(file()))) } catch { auth = null }
   const save = () => fs.writeFileSync(file(), encrypt(JSON.stringify(auth)))
+  // Dziennik błędów (bez tokenów i kluczy): youtube-bledy.txt w folderze danych aplikacji — do diagnozy.
+  function logError(line) {
+    try {
+      const f = path.join(dir(), 'youtube-bledy.txt')
+      const old = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').slice(-80).join('\n') : ''
+      fs.writeFileSync(f, old + new Date().toISOString() + ' ' + line + '\n')
+    } catch { /* dziennik nie jest konieczny */ }
+  }
   const needLogin = () => Object.assign(new Error('Połącz aplikację z kanałem YouTube (logowanie wygasło albo nie było go).'), { needLogin: true })
 
   async function tokenRequest(params) {
@@ -54,13 +66,31 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
     save()
     return auth.access
   }
-  async function call(method, pathAndQuery, body, retry = true) {
+  // Zapytanie do YouTube: 401 → nowy token; błąd po stronie Google (5xx) → do dwóch powtórek.
+  async function call(method, pathAndQuery, body, attempt = 0) {
     const token = await accessToken()
     const res = await fetch(API + pathAndQuery, { method, headers: { Authorization: 'Bearer ' + token, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined })
-    if (res.status === 401 && retry) { auth.access = ''; return call(method, pathAndQuery, body, false) }
+    if (res.status === 401 && attempt === 0) { auth.access = ''; return call(method, pathAndQuery, body, 1) }
     const data = res.status === 204 ? {} : await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(explain(res.status, data))
+    if (res.status >= 500 && attempt < 2) {
+      logError(`${method} ${pathAndQuery.split('?')[0]} ${res.status} ${data?.error?.message || ''} — powtarzam`)
+      await new Promise(r => setTimeout(r, TEST_BASE ? 10 : 800 * (attempt + 1)))
+      return call(method, pathAndQuery, body, attempt + 1)
+    }
+    if (!res.ok) {
+      const reason = data?.error?.errors?.[0]?.reason || data?.error?.status || ''
+      logError(`${method} ${pathAndQuery.split('?')[0]} ${res.status} ${reason} ${data?.error?.message || ''}`)
+      throw new Error(stepOf(pathAndQuery) + ': ' + explain(res.status, data))
+    }
     return data
+  }
+  // Nazwa kanału (po zalogowaniu; błąd po stronie Google nie przekreśla logowania — spróbujemy później).
+  async function loadChannel() {
+    const ch = (await call('GET', '/channels?part=snippet&mine=true')).items?.[0]
+    if (!ch) throw new Error('To konto Google nie ma kanału YouTube — wybierz konto (albo konto marki) kanału kościoła.')
+    auth.channel = ch.snippet?.title || ''
+    auth.channelId = ch.id
+    save()
   }
 
   // Logowanie w przeglądarce (jak Dysk): zgoda Google → powrót na chwilowy adres 127.0.0.1.
@@ -96,13 +126,14 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
         })
       }))
     }
-    const data = await tokenRequest({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: redirect })
+    let data
+    try { data = await tokenRequest({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: redirect }) } catch (e) { logError('token ' + (e.code || '') + ' ' + e.message); throw e }
     auth = { refresh: data.refresh_token, access: data.access_token, expires: Date.now() + (Number(data.expires_in) || 3600) * 1000 }
-    const ch = (await call('GET', '/channels?part=snippet&mine=true')).items?.[0]
-    if (!ch) { auth = null; throw new Error('To konto Google nie ma kanału YouTube — wybierz konto (albo konto marki) kanału kościoła.') }
-    auth.channel = ch.snippet?.title || ''
-    auth.channelId = ch.id
     save()
+    try { await loadChannel() } catch (e) {
+      if (/nie ma kanału/.test(e.message)) { logout(); throw e }
+      throw e // zalogowane — nazwa kanału dojdzie przy następnym odświeżeniu
+    }
     return status()
   }
   function logout() { auth = null; fs.rmSync(file(), { force: true }) }
@@ -162,6 +193,7 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
   // Wszystko dla pulpitu naraz: kanał, klucz ze stanem sygnału, transmisje.
   async function overview() {
     if (!auth?.refresh) return { ...status() }
+    if (!auth.channelId) await loadChannel()
     const [stream, list] = await Promise.all([streamKey(), broadcasts()])
     return { ...status(), stream, broadcasts: list }
   }

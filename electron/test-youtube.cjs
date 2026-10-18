@@ -7,7 +7,7 @@ const path = require('node:path')
 
 const calls = []
 const streams = [], broadcasts = []
-let id = 0
+let id = 0, fail = 0
 const server = http.createServer(async (req, res) => {
   let body = ''
   for await (const ch of req) body += ch
@@ -17,6 +17,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/token') return send({ access_token: 'acc', refresh_token: 'ref', expires_in: 3600 })
   if (req.headers.authorization !== 'Bearer acc') return send({ error: { message: 'unauth' } }, 401)
   const p = url.pathname.replace('/youtube/v3', '')
+  if (p === '/channels' && fail > 0) { fail--; return send({ error: { code: 500, message: 'Internal error encountered.', errors: [{ reason: 'backendError' }] } }, 500) }
   if (p === '/channels') return send({ items: [{ id: 'UC1', snippet: { title: 'Kościół Na Skale' } }] })
   if (p === '/liveStreams' && req.method === 'GET') {
     const list = url.searchParams.get('id') ? streams.filter(s => s.id === url.searchParams.get('id')) : streams
@@ -48,7 +49,9 @@ server.listen(0, '127.0.0.1', async () => {
     const yt = createYouTube({ dir: () => dir, open: () => {} })
     assert.deepEqual(yt.status(), { loggedIn: false, channel: '', channelId: '' })
     await assert.rejects(yt.broadcasts(), /Połącz aplikację z kanałem YouTube/)
+    fail = 2 // błąd po stronie Google dwa razy — trzecia próba się udaje
     assert.equal((await yt.login()).channel, 'Kościół Na Skale')
+    assert.match(fs.readFileSync(path.join(dir, 'youtube-bledy.txt'), 'utf8'), /channels 500 Internal error encountered/)
 
     // stały klucz: tworzony raz, potem ten sam
     const k1 = await yt.streamKey(), k2 = await yt.streamKey()
