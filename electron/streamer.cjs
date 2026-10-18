@@ -26,8 +26,9 @@ function listDevices() {
 }
 
 const QUALITY = {
-  '1080': { w: 1920, h: 1080, nvenc: '6800k', x264: '4500k' }, // YouTube zaleca dla 1080p ok. 6800 kb/s
-  '720': { w: 1280, h: 720, nvenc: '3500k', x264: '3000k' },
+  // przepływność wg zaleceń YouTube; przy 50/60 kl./s wyższa
+  '1080': { w: 1920, h: 1080, nvenc: '6800k', x264: '4500k', nvenc60: '9000k', x264_60: '6000k' },
+  '720': { w: 1280, h: 720, nvenc: '3500k', x264: '3000k', nvenc60: '5000k', x264_60: '4000k' },
 }
 // Napisy: trzy warstwy tego samego tekstu — dwie przezroczyste obwódki (miękki cień) i biały tekst z obrysem.
 function lyricsFilter(file, h) {
@@ -81,30 +82,33 @@ class Streamer extends EventEmitter {
   }
 
   args(o, encoder) {
-    const q = QUALITY[o.quality] || QUALITY['1080']
+    const q0 = QUALITY[o.quality] || QUALITY['1080']
+    // klatki na sekundę — tyle, ile wysyła ATEM (Standard wideo w mikserze); 25, 30, 50 albo 60
+    const fps = [25, 30, 50, 60].includes(+o.fps) ? +o.fps : 30
+    const q = fps > 30 ? { ...q0, nvenc: q0.nvenc60, x264: q0.x264_60 } : q0
     // Ekran (próba bez ATEM): „screen:x,y,w,h” w pikselach fizycznych pulpitu.
     const scr = String(o.video || '').match(/^screen:(-?\d+),(-?\d+),(\d+),(\d+)$/)
     const audioIn = o.audio ? ['-f', 'dshow', '-thread_queue_size', '1024', '-i', `audio=${o.audio}`] : ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']
     const input = scr && !o.testInput
-      ? ['-f', 'gdigrab', '-framerate', '30', '-offset_x', scr[1], '-offset_y', scr[2], '-video_size', scr[3] + 'x' + scr[4], '-draw_mouse', '0', '-thread_queue_size', '1024', '-i', 'desktop', ...audioIn]
+      ? ['-f', 'gdigrab', '-framerate', String(fps), '-offset_x', scr[1], '-offset_y', scr[2], '-video_size', scr[3] + 'x' + scr[4], '-draw_mouse', '0', '-thread_queue_size', '1024', '-i', 'desktop', ...audioIn]
       : o.testInput
       ? ['-re', '-f', 'lavfi', '-i', 'testsrc2=s=1280x720:r=30', '-re', '-f', 'lavfi', '-i', 'sine=f=440:r=48000']
       : o.audio
         ? ['-f', 'dshow', '-rtbufsize', '256M', '-thread_queue_size', '1024', '-i', `video=${o.video}:audio=${o.audio}`]
         : ['-f', 'dshow', '-rtbufsize', '256M', '-thread_queue_size', '1024', '-i', `video=${o.video}`, '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo'] // YouTube chce dźwięku — cisza
     const audioMap = o.testInput || !o.audio || scr ? '1:a' : '0:a'
-    const scale = `scale=${q.w}:${q.h}:force_original_aspect_ratio=decrease,pad=${q.w}:${q.h}:(ow-iw)/2:(oh-ih)/2,fps=30,${lyricsFilter(this.textFile(), q.h)},format=yuv420p`
-    const graph = `[0:v]${scale},split=2[out][pv];[pv]scale=640:-2,fps=10[pvo]`
-    const rate = ['-b:v', q.nvenc, '-maxrate', q.nvenc, '-bufsize', String(parseInt(q.nvenc) * 2) + 'k', '-g', '60']
+    const scale = `scale=${q.w}:${q.h}:force_original_aspect_ratio=decrease,pad=${q.w}:${q.h}:(ow-iw)/2:(oh-ih)/2,fps=${fps},${lyricsFilter(this.textFile(), q.h)},format=yuv420p`
+    const graph = `[0:v]${scale},split=2[out][pv];[pv]scale=960:-2,fps=15[pvo]`
+    const rate = ['-b:v', q.nvenc, '-maxrate', q.nvenc, '-bufsize', String(parseInt(q.nvenc) * 2) + 'k', '-g', String(fps * 2)]
     const video = encoder === 'nvenc'
       ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'cbr', ...rate, '-bf', '2', '-profile:v', 'high']
       : encoder === 'amf'
       ? ['-c:v', 'h264_amf', '-usage', 'transcoding', '-quality', 'balanced', '-rc', 'cbr', '-filler_data', '1', '-enforce_hrd', '1', ...rate, '-profile:v', 'high'] // dopełnianie: stała przepływność także przy nieruchomym obrazie
-      : ['-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-b:v', q.x264, '-maxrate', q.x264, '-bufsize', String(parseInt(q.x264) * 2) + 'k', '-g', '60', '-profile:v', 'main']
+      : ['-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-b:v', q.x264, '-maxrate', q.x264, '-bufsize', String(parseInt(q.x264) * 2) + 'k', '-g', String(fps * 2), '-profile:v', 'main']
     return ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1', ...input,
       '-filter_complex', graph,
       '-map', '[out]', '-map', audioMap, ...video, '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2', '-f', 'flv', o.url.replace(/\/$/, '') + '/' + o.key,
-      '-map', '[pvo]', '-c:v', 'mjpeg', '-q:v', '7', '-f', 'mpjpeg', 'pipe:1']
+      '-map', '[pvo]', '-c:v', 'mjpeg', '-q:v', '4', '-f', 'mpjpeg', 'pipe:1'] // podgląd: 960 px, 15 kl./s — ostro, a lekko dla komputera
   }
 
   async start(o) {
