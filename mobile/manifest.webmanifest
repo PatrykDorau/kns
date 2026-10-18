@@ -9,19 +9,6 @@
   "orientation": "portrait",
   "background_color": "#0f1013",
   "theme_color": "#0f1013",
-  "shortcuts": [
-    {
-      "name": "Kamera — sygnały od operatora",
-      "short_name": "Kamera",
-      "url": "./#kamera",
-      "icons": [
-        {
-          "src": "icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    }
-  ],
   "icons": [
     {
       "src": "icon-192.png?v=3",

@@ -87,6 +87,16 @@
   status = 200
 
 [[redirects]]
+  from = "/materialy"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/material/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/protokoly"
   to = "/index.html"
   status = 200

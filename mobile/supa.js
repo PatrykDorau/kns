@@ -148,6 +148,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'asbSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_meetings').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
       // Przypomnienie: dzwonek dla wszystkich z rangą ASB, a kto włączył — także telefon.
       if (action === 'asbRemind') { const n = check(await sb.rpc('asb_remind', { meeting: data.id })); await pushInbox(); return n }
+      if (action === 'bandPeople') return check(await sb.rpc('band_people'))
       if (action === 'asbPeople') return check(await sb.rpc('asb_people'))
       // Wiadomość do rang i służb: wpisy w dzwonku robi baza, telefony — /api/push { inbox: true }.
       if (action === 'broadcastOptions') return check(await sb.rpc('broadcast_options'))

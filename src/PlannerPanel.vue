@@ -11,7 +11,7 @@ import { addMinutes, category, categoryName, programFrom } from '../mobile/churc
 import { ago, songHistory } from './stats.js'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
-  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay, churchTypes, plannerRequest,
+  removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay, churchTypes, plannerRequest, loadBandPeople,
 } from './store.js'
 
 // Organizacja nabożeństw: plan, z którego korzystają potem rzutnik i stream.
@@ -28,7 +28,7 @@ watch(current, svc => { plannerTarget.value = svc }, { immediate: true })
 
 function load(svc, fresh = false) {
   currentId.value = svc?.id ?? null
-  const withDefaults = s => ({ time: DEFAULT_TIME, place: DEFAULT_PLACE, program: [], ...copy(s) })
+  const withDefaults = s => withBand({ time: DEFAULT_TIME, place: DEFAULT_PLACE, program: [], ...copy(s) })
   const draft = svc ? withDefaults(svc) : null
   // Nabożeństwo bez programu: od razu program z szablonu (zapisze się razem z pierwszą zmianą).
   if (draft && !draft.program.length) draft.program = programFrom(serviceType.value, uid)
@@ -39,6 +39,40 @@ function load(svc, fresh = false) {
   message.value = ''
   conflict.value = null
 }
+/* ---------- skład zespołu: osoby ze służby muzycznej + instrument ---------- */
+const INSTRUMENTS = ['Wokal prowadzący', 'Wokal', 'Gitara akustyczna', 'Gitara elektryczna', 'Gitara basowa', 'Klawisze', 'Perkusja', 'Cajon', 'Skrzypce', 'Saksofon', 'Dźwięk (realizacja)']
+// Stary zapis tekstem („Ania — wokal, Marek — gitara”) → lista; zmiany listy → tekst (newsletter, stream, starsze wersje).
+function withBand(sv) {
+  if (!Array.isArray(sv.bandList)) sv.bandList = String(sv.band || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean)
+    .map(x => { const [name, ...rest] = x.split(/\s+[—–-]\s+/); return { key: uid(), name: name.trim(), instrument: rest.join(' — ').trim() } })
+  return sv
+}
+const bandText = list => list.map(b => b.name + (b.instrument ? ' — ' + b.instrument.toLowerCase() : '')).join(', ')
+watch(() => current.value?.bandList, (list, old) => { if (list && list === old && current.value) { const t = bandText(list); if (t !== current.value.band) current.value.band = t } }, { deep: true })
+const bandPick = ref(null) // { query, people, busy, error }
+let bandPeople = null
+const bandList = computed(() => {
+  const p = bandPick.value
+  if (!p) return []
+  const q = p.query.trim().toLowerCase(), taken = (current.value?.bandList || []).map(b => b.name.toLowerCase())
+  return p.people.filter(x => !taken.includes(x.name.toLowerCase()) && (!q || x.name.toLowerCase().includes(q)))
+})
+async function openBandPick() {
+  bandPick.value = { query: '', people: bandPeople || [], busy: !bandPeople, error: '' }
+  if (bandPeople) return
+  const res = await loadBandPeople()
+  if (!bandPick.value) return
+  if (res.error) bandPick.value.error = res.error
+  else bandPeople = bandPick.value.people = res.people
+  bandPick.value.busy = false
+}
+function bandAdd(name) {
+  const b = { key: uid(), name: name.trim(), instrument: '' }
+  current.value.bandList.push(b)
+  bandPick.value = null
+  setTimeout(() => { const el = document.querySelector('[data-band="' + b.key + '"]'); el?.focus(); try { el?.showPicker?.() } catch { /* nie zawsze */ } }, 50)
+}
+
 // Zmiana nabożeństwa albo wyjście z niezapisanymi zmianami wymaga potwierdzenia.
 const leaveOk = () => !dirty.value || confirm('Masz niezapisane zmiany w tym nabożeństwie. Porzucić je?')
 function select(svc) { if (svc.id !== currentId.value && leaveOk()) load(svc) }
@@ -314,8 +348,33 @@ else load(nearestService.value)
             </ol>
           </template>
 
-          <label for="pBand">Skład zespołu (opcjonalnie)</label>
-          <textarea id="pBand" v-model="current.band" class="short" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
+          <label>Skład zespołu (opcjonalnie)</label>
+          <ol v-if="current.bandList.length" class="members wide-rows band-rows">
+            <li v-for="(b, i) in current.bandList" :key="b.key">
+              <span class="num"><Icon name="users" /></span>
+              <span class="name">{{ b.name }}</span>
+              <select v-model="b.instrument" :class="{ empty: !b.instrument }" :aria-label="'Instrument — ' + b.name" :data-band="b.key">
+                <option value="">Wybierz instrument…</option>
+                <option v-for="x in INSTRUMENTS" :key="x" :value="x">{{ x }}</option>
+                <option v-if="b.instrument && !INSTRUMENTS.includes(b.instrument)" :value="b.instrument">{{ b.instrument }}</option>
+              </select>
+              <button class="iconbtn danger" :title="'Usuń ' + b.name + ' ze składu'" :aria-label="'Usuń ' + b.name + ' ze składu'" @click="current.bandList.splice(i, 1)"><Icon name="x" /></button>
+            </li>
+          </ol>
+          <button class="small band-add" @click="openBandPick"><Icon name="plus" />Dodaj osobę</button>
+          <div v-if="bandPick" class="overlay" @click.self="bandPick = null" @keydown.esc="bandPick = null">
+            <div class="modal" role="dialog" aria-modal="true" aria-label="Dodaj osobę do składu">
+              <div class="modal-head"><h3>Dodaj osobę do składu</h3><button class="iconbtn" aria-label="Zamknij" @click="bandPick = null"><Icon name="x" /></button></div>
+              <input v-model="bandPick.query" :ref="el => el?.focus()" placeholder="Szukaj albo wpisz imię i nazwisko" @keydown.enter="bandPick.query.trim() && bandAdd(bandPick.query)">
+              <p v-if="bandPick.busy" class="note">Wczytuję służbę muzyczną…</p>
+              <p v-else-if="bandPick.error" class="note bad">{{ bandPick.error }}</p>
+              <p v-else-if="!bandPick.people.length" class="note">Nie znalazłem służby muzycznej z osobami (nazwa z „muzy”, „uwielb” albo „zesp”) — wpisz imię i nazwisko.</p>
+              <div class="band-pick">
+                <button v-for="p in bandList" :key="p.id" @click="bandAdd(p.name)"><Icon name="users" />{{ p.name }}</button>
+                <button v-if="bandPick.query.trim() && !bandList.some(p => p.name.toLowerCase() === bandPick.query.trim().toLowerCase())" @click="bandAdd(bandPick.query)"><Icon name="plus" />Dodaj „{{ bandPick.query.trim() }}”</button>
+              </div>
+            </div>
+          </div>
 
           <h2 class="sub">Załączniki dla rzutnika</h2>
           <p class="note">Np. prezentacja kaznodziei (PowerPoint lub PDF), zdjęcia, filmy. Służba rzutnika dostanie je razem z pieśniami.</p>

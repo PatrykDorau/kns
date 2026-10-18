@@ -796,3 +796,21 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
 .busy-tip { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.45; }
 .busy-tip b { color: var(--text); }
 .busy-tip ul { margin: 6px 0; padding-left: 18px; }
+
+/* Skład zespołu (Nabożeństwa) */
+.band-rows select { flex: 0 0 210px; padding: 4px 8px; font-size: 13px; }
+.band-rows select.empty { color: var(--bad, #e5534b); }
+.band-rows li { cursor: default; }
+.band-add { margin-top: 8px; align-self: flex-start; }
+.band-pick { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; max-height: 50vh; overflow-y: auto; }
+.band-pick button { justify-content: flex-start; }
+
+/* Proste animacje: nowy ekran łagodnie się pojawia, okienka wysuwają się, nowe wiersze list wjeżdżają. */
+@keyframes kns-fade { from { opacity: 0; } }
+@keyframes kns-rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: no-preference) {
+  #app > * { animation: kns-fade .22s ease-out backwards; }
+  .overlay { animation: kns-fade .16s ease-out backwards; }
+  .modal { animation: kns-rise .24s cubic-bezier(.2, .8, .2, 1) backwards; }
+  .members li, .kh-ev, .cm-item { animation: kns-rise .2s ease-out backwards; }
+}

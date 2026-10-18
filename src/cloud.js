@@ -87,6 +87,8 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     publicPreview: () => safe(async () => check(await sb.rpc('public_preview'))),
     // „Posłuchaj”: linki YouTube i Spotify (czyta też gość).
     listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
+    // Skład zespołu: osoby ze służby muzycznej (dla osób z prawem edycji).
+    bandPeople: () => safe(async () => { await active(); return { people: check(await sb.rpc('band_people')) || [] } }),
     // Osoby (administrator): lista, zatwierdzanie, rangi.
     people: () => safe(async () => {
       await active()

@@ -420,6 +420,26 @@
   /* wąski ekran: „QR” i „Link” jako same ikony, przyciski bez zawijania — nie nachodzą na nazwę strony */
   header > button { flex: none; white-space: nowrap; }
   @media (max-width: 600px) { .share-btn span { display: none; } header > button.ghost { padding-left: 8px; padding-right: 8px; } header { gap: 2px; } }
+  /* Proste animacje: nowy widok łagodnie się pojawia, okienka wysuwają się, nowe wiersze list wjeżdżają. */
+  @keyframes kns-fade { from { opacity: 0; } }
+  @keyframes kns-rise { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes kns-sheet { from { opacity: 0; transform: translateY(24px); } }
+  @media (prefers-reduced-motion: no-preference) {
+    #app > :not(header):not(nav):not(.tabbar):not(.kh-bar):not(.version):not(.toast) { animation: kns-fade .24s ease-out backwards; }
+    .np-overlay { animation: kns-fade .18s ease-out backwards; }
+    .np-panel { animation: kns-sheet .26s cubic-bezier(.2, .8, .2, 1) backwards; }
+    .asb-row, .mn-person, .ev, .kh-ev, .cm-item, .notify-person, .band-row, .inbox-item { animation: kns-rise .22s ease-out backwards; }
+    .toast { animation: kns-fade .2s ease-out backwards; }
+  }
+  .band { display: flex; flex-direction: column; gap: 6px; }
+  .band-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; gap: 8px; align-items: center; padding: 6px 6px 6px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+  .band-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .band-row select { margin: 0; min-width: 0; }
+  .band-row select.empty { color: var(--bad-text); }
+  @media (max-width: 480px) { .band-row { grid-template-columns: minmax(0, 1fr) auto; } .band-row select { grid-column: 1; grid-row: 2; } .band-row .icon { grid-column: 2; grid-row: 1; } }
+  .band-pick .np-list button { justify-content: flex-start; width: 100%; margin-bottom: 6px; }
+  .mat-tag.t-protokol { --c: var(--violet); } .mat-tag.t-instrukcja { --c: var(--teal); } .mat-tag.t-plik { --c: var(--blue); }
+  .mat-tag { background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); }
   .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); z-index: 80; transform: translateX(-50%); padding: 10px 16px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); font-size: 14px; white-space: nowrap; }
   .signup-set { margin: 6px 0 4px; padding: 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); }
   .signup-set label:first-child { margin-top: 0; }
@@ -451,7 +471,7 @@
   .lc-title { margin: 0; padding: 0 14px 10px; font-size: 14px; color: var(--muted); }
   .lc-video { position: relative; aspect-ratio: 16 / 9; }
   .lc-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .lc-spotify { display: block; width: 100%; height: 232px; border: 0; margin-top: auto; }
+  .lc-spotify { display: block; width: 100%; height: 232px; border: 0; margin-top: auto; border-radius: 12px; background: transparent; color-scheme: normal; }
   @media (min-width: 900px) { .lc-video { aspect-ratio: auto; height: 232px; margin-top: auto; } }
   .listen-set { margin-top: 18px; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
   .listen-set summary { cursor: pointer; font-weight: 600; }
@@ -806,11 +826,11 @@
   </div>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? (svcEditing && canEdit ? 'Edycja nabożeństwa' : 'Nabożeństwo') : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja protokołu' : 'Nowy protokół') : 'Protokół') : currentEvent ? (eventEditing && eventEditable ? (eventSavedOnce ? 'Edycja wydarzenia' : 'Nowe wydarzenie') : 'Wydarzenie') : protoView ? 'Biblioteka protokołów' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : listenView ? 'Posłuchaj' : asbView ? 'ASB' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? (svcEditing && canEdit ? 'Edycja nabożeństwa' : 'Nabożeństwo') : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja materiału' : 'Nowy materiał') : MAT_TYPES[matType(currentProto)]) : currentEvent ? (eventEditing && eventEditable ? (eventSavedOnce ? 'Edycja wydarzenia' : 'Nowe wydarzenie') : 'Wydarzenie') : protoView ? 'Materiały' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : listenView ? 'Posłuchaj' : asbView ? 'ASB' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ svcEditing && services.some(x => x.id === current.id) ? 'Podgląd' : cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
     <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
     <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="currentProto" class="ghost" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Biblioteka' }}</button>
+    <button v-else-if="currentProto" class="ghost" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Materiały' }}</button>
     <button v-else-if="currentEvent" class="ghost" @click="closeEvent"><svg class="i"><use href="#back"/></svg>{{ eventEditing && eventSavedOnce ? 'Podgląd' : 'Kalendarz' }}</button>
     <button v-else-if="tplType" class="ghost" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
     <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
@@ -1060,50 +1080,57 @@
     </template>
   </template>
 
-  <!-- protokół: podgląd (otwarcie pliku) albo edycja (plik, tytuł, data, widoczność, spotkanie) -->
+  <!-- materiał (protokół, instrukcja, plik pomocniczy): podgląd (otwarcie pliku) albo edycja -->
   <template v-else-if="currentProto">
     <article v-if="!protoEditing" class="ann-view">
       <div class="ann-tags">
+        <span class="ann-tag mat-tag" :class="'t-' + matType(currentProto)">{{ MAT_TYPES[matType(currentProto)] }}</span>
         <span class="ann-tag" :class="{ imp: currentProto.kind === 'rada' }">{{ VISIBILITY[currentProto.kind] }}</span>
         <span v-if="currentProto.eventId && eventTitle(currentProto.eventId)" class="ann-tag">{{ eventTitle(currentProto.eventId) }}</span>
       </div>
       <h2 class="ann-view-title">{{ currentProto.title }}</h2>
       <p class="ann-view-meta">{{ pretty(currentProto.date) }}<template v-if="currentProto.updatedBy"> · dodał(a) {{ currentProto.updatedBy }}</template></p>
       <div v-if="currentProto.note" class="ann-view-text">{{ currentProto.note }}</div>
-      <a v-if="protoUrl" class="button ann-link" :href="protoUrl" target="_blank" rel="noopener"><svg class="i"><use href="#list"/></svg>Otwórz protokół<small class="proto-fname">{{ currentProto.fileName }}</small><svg class="i chev"><use href="#chev"/></svg></a>
+      <a v-if="protoUrl" class="button ann-link" :href="protoUrl" target="_blank" rel="noopener"><svg class="i"><use href="#file"/></svg>Otwórz plik<small class="proto-fname">{{ currentProto.fileName }}</small><svg class="i chev"><use href="#chev"/></svg></a>
       <p v-else-if="currentProto.file" class="note">Przygotowuję plik…</p>
       <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
       <button v-if="protoEditable" class="ann-edit-btn" @click="protoEditing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
     </article>
     <template v-else>
-      <label>Plik protokołu <span class="req">*</span></label>
+      <label for="prType">Rodzaj</label>
+      <select id="prType" v-model="currentProto.type" class="field" @change="protoTypeChanged">
+        <option v-if="canWriteProto('czlonkowskie') || hasCouncil" value="protokol">Protokół spotkania</option>
+        <option value="instrukcja">Instrukcja (np. obsługa rzutnika)</option>
+        <option value="plik">Plik pomocniczy</option>
+      </select>
+      <label>Plik <span class="req">*</span></label>
       <div class="proto-file">
         <svg class="i"><use href="#list"/></svg>
-        <span>{{ protoFile ? protoFile.name : currentProto.fileName || 'Nie wybrano pliku (PDF, Word, zdjęcie)' }}</span>
+        <span>{{ protoFile ? protoFile.name : currentProto.fileName || 'Nie wybrano pliku (PDF, Word, PowerPoint, Excel, zdjęcie)' }}</span>
         <button type="button" :disabled="busy" @click="$refs.protoFileIn.click()">{{ currentProto.file || protoFile ? 'Zmień' : 'Wybierz plik' }}</button>
       </div>
-      <input ref="protoFileIn" type="file" accept=".pdf,.doc,.docx,.odt,.txt,image/*" hidden @change="pickProtoFile">
+      <input ref="protoFileIn" type="file" accept=".pdf,.doc,.docx,.odt,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,image/*" hidden @change="pickProtoFile">
       <label for="prTitle">Tytuł <span class="req">*</span></label>
       <input id="prTitle" v-model="currentProto.title" :class="{ invalid: !currentProto.title.trim() }" autocomplete="off">
-      <label for="prDate">Data spotkania</label>
+      <label for="prDate">{{ currentProto.type === 'protokol' ? 'Data spotkania' : 'Data' }}</label>
       <input id="prDate" v-model="currentProto.date" type="date">
       <label for="prKind">Kto widzi</label>
-      <select id="prKind" v-model="currentProto.kind" class="field">
-        <option value="czlonkowskie">Wszyscy członkowie</option>
+      <select id="prKind" :value="currentProto.kind === 'rada' ? 'rada' : 'all'" class="field" @change="protoAudience($event.target.value)">
+        <option value="all">Wszyscy członkowie</option>
         <option v-if="hasCouncil" value="rada">Tylko rada zboru</option>
       </select>
-      <label for="prEvent">Spotkanie (opcjonalnie)</label>
-      <select id="prEvent" v-model="currentProto.eventId" class="field">
+      <label v-if="currentProto.type === 'protokol'" for="prEvent">Spotkanie (opcjonalnie)</label>
+      <select v-if="currentProto.type === 'protokol'" id="prEvent" v-model="currentProto.eventId" class="field">
         <option value="">— bez spotkania (tylko biblioteka) —</option>
         <option v-for="e in meetingEvents.filter(e => currentProto.kind === 'rada' || e.type !== 'rada')" :key="e.id" :value="e.id">{{ (e.title || typeOf(e.type).name) + ' · ' + shortDate(e.date) }}</option>
       </select>
       <label for="prNote">Notatka (opcjonalnie)</label>
-      <textarea id="prNote" v-model="currentProto.note" placeholder="np. najważniejsze ustalenia"></textarea>
+      <textarea id="prNote" v-model="currentProto.note" :placeholder="currentProto.type === 'protokol' ? 'np. najważniejsze ustalenia' : 'np. do czego służy, dla kogo'"></textarea>
       <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
       <div class="bar">
         <template v-if="protoSavedOnce">
           <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeProto">Na pewno usuń</button>
-          <button v-else :disabled="busy" aria-label="Usuń protokół" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
+          <button v-else :disabled="busy" aria-label="Usuń materiał" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
         </template>
         <button class="primary" :disabled="busy || !protoDirty || !currentProto.title.trim() || (!currentProto.file && !protoFile)" @click="saveProto()">
           <svg v-if="!protoDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : protoDirty ? 'Zapisz' : 'Zapisane' }}
@@ -1112,20 +1139,20 @@
     </template>
   </template>
 
-  <!-- biblioteka protokołów -->
+  <!-- materiały: protokoły, instrukcje i pliki pomocnicze -->
   <template v-else-if="protoView">
     <div class="notify-groups">
       <button class="chipbtn" :class="{ on: protoKind === 'all' }" @click="protoKind = 'all'">Wszystkie</button>
-      <button class="chipbtn" :class="{ on: protoKind === 'czlonkowskie' }" @click="protoKind = 'czlonkowskie'">Dla członków</button>
+      <button v-for="(name, id) in MAT_PLURAL" :key="id" class="chipbtn" :class="{ on: protoKind === id }" @click="protoKind = id">{{ name }}</button>
       <button v-if="hasCouncil" class="chipbtn" :class="{ on: protoKind === 'rada' }" @click="protoKind = 'rada'">Rada zboru</button>
     </div>
-    <button v-if="canAddProto" class="primary" style="width:100%;margin-bottom:12px" @click="newProto()"><svg class="i"><use href="#plus"/></svg>Dodaj protokół</button>
-    <p v-if="protoBusy && !protocols.length" class="note">Wczytuję protokoły…</p>
+    <button v-if="canAddProto" class="primary" style="width:100%;margin-bottom:12px" @click="newProto()"><svg class="i"><use href="#plus"/></svg>Dodaj materiał</button>
+    <p v-if="protoBusy && !protocols.length" class="note">Wczytuję materiały…</p>
     <p v-else-if="protoError" class="error">{{ protoError }}</p>
-    <p v-else-if="!protocols.length" class="note">W bibliotece nie ma jeszcze protokołów.</p>
-    <button v-for="p in protocols" :key="p.id" class="ev" :style="{ '--c': typeOf(p.kind).color }" @click="openProto(p)">
+    <p v-else-if="!protocols.length" class="note">{{ protoKind === 'all' ? 'W materiałach nie ma jeszcze nic.' : 'Nic tu jeszcze nie ma.' }}</p>
+    <button v-for="p in protocols" :key="p.id" class="ev" :style="{ '--c': MAT_COLOR[matType(p)] }" @click="openProto(p)">
       <span class="when"><small>{{ wd(p.date) }}</small><b>{{ day(p.date) }}</b><small>{{ month(p.date) }}</small></span>
-      <span class="body"><b>{{ p.title }}</b><small>{{ VISIBILITY[p.kind] }}<template v-if="p.eventId && eventTitle(p.eventId)"> · {{ eventTitle(p.eventId) }}</template></small></span>
+      <span class="body"><b>{{ p.title }}</b><small>{{ MAT_TYPES[matType(p)] }} · {{ VISIBILITY[p.kind] }}<template v-if="p.eventId && eventTitle(p.eventId)"> · {{ eventTitle(p.eventId) }}</template></small></span>
       <svg class="i chev"><use href="#chev"/></svg>
     </button>
   </template>
@@ -1653,7 +1680,7 @@
       <button v-if="api.enabled" @click="openListen"><svg class="i"><use href="#music"/></svg><span>Posłuchaj</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
-      <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Biblioteka protokołów</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Materiały</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
@@ -1890,7 +1917,7 @@
         <h3 class="view-h">Pieśni</h3>
         <span class="view-songs"><span v-for="e in current.songs" :key="e.key">♪ {{ songTitle(e) }}</span></span>
       </template>
-      <template v-if="current.band"><h3 class="view-h">Zespół</h3><div class="ann-view-text">{{ current.band }}</div></template>
+      <template v-if="current.band"><h3 class="view-h">Zespół</h3><div class="ann-view-text">{{ (current.bandList || []).length ? current.bandList.map(b => b.name + (b.instrument ? ' — ' + b.instrument : '')).join('\n') : current.band }}</div></template>
       <template v-if="current.notes"><h3 class="view-h">Informacje</h3><div class="ann-view-text">{{ current.notes }}</div></template>
       <p v-if="canEdit && missing(current).length" class="pending-note"><svg class="i"><use href="#warn"/></svg>Brakuje: {{ missing(current).join(', ') }}</p>
       <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
@@ -1985,8 +2012,19 @@
     </div>
     </template>
 
-    <label for="band">Skład zespołu</label>
-    <textarea id="band" v-model="current.band" placeholder="np. Ania — wokal, Marek — gitara…"></textarea>
+    <label>Skład zespołu</label>
+    <div class="band">
+      <div v-for="(b, i) in current.bandList" :key="b.key" class="band-row">
+        <b>{{ b.name }}</b>
+        <select v-model="b.instrument" class="field" :class="{ empty: !b.instrument }" :aria-label="'Instrument — ' + b.name" :data-band="b.key">
+          <option value="">Wybierz instrument…</option>
+          <option v-for="x in INSTRUMENTS" :key="x" :value="x">{{ x }}</option>
+          <option v-if="b.instrument && !INSTRUMENTS.includes(b.instrument)" :value="b.instrument">{{ b.instrument }}</option>
+        </select>
+        <button type="button" class="icon" :aria-label="'Usuń ' + b.name + ' ze składu'" title="Usuń ze składu" @click="current.bandList.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
+      </div>
+      <button type="button" class="songsbtn" @click="openBandPick"><svg class="i"><use href="#plus"/></svg>Dodaj osobę<svg class="i chev"><use href="#chev"/></svg></button>
+    </div>
     <label for="notes">Dodatkowe informacje</label>
     <textarea id="notes" v-model="current.notes" placeholder="np. chrzest po kazaniu, błogosławieństwo dzieci, rocznica…"></textarea>
     <label>Załączniki dla rzutnika</label>
@@ -2078,6 +2116,21 @@
     </template>
     <button v-if="!asb.pubAll && asbPubShown.length < asbPubUpcoming.length" class="ghost asb-pub-more" @click="asb.pubAll = true">Cały terminarz ({{ asbPubUpcoming.length }})</button>
   </section>
+
+  <!-- Skład zespołu: wybór osoby ze służby muzycznej (instrument wybiera się potem w wierszu) -->
+  <div v-if="bandPick.open" class="np-overlay band-pick" @click.self="bandPick.open = false">
+    <div class="np-panel" role="dialog" aria-label="Dodaj osobę do składu">
+      <div class="np-head"><b>Dodaj osobę do składu</b><button class="icon" aria-label="Zamknij" @click="bandPick.open = false"><svg class="i"><use href="#x"/></svg></button></div>
+      <div class="searchbox"><svg class="i"><use href="#search"/></svg><input v-model="bandPick.query" type="search" placeholder="Szukaj albo wpisz imię i nazwisko" autocomplete="off" @keydown.enter="bandPickFree"></div>
+      <div class="np-list">
+        <p v-if="bandPick.busy" class="note">Wczytuję służbę muzyczną…</p>
+        <p v-else-if="bandPick.error" class="error">{{ bandPick.error }}</p>
+        <button v-for="p in bandPickList" :key="p.id" type="button" @click="bandAdd(p.name)"><svg class="i"><use href="#user"/></svg>{{ p.name }}</button>
+        <p v-if="!bandPick.busy && !bandPick.people.length && !bandPick.error" class="note">Nie znalazłem służby muzycznej z osobami (nazwa z „muzy”, „uwielb” albo „zesp”). Wpisz imię i nazwisko wyżej.</p>
+        <button v-if="bandPick.query.trim() && !bandPickList.some(p => p.name.toLowerCase() === bandPick.query.trim().toLowerCase())" type="button" @click="bandPickFree"><svg class="i"><use href="#plus"/></svg>Dodaj „{{ bandPick.query.trim() }}”</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Dodawanie osoby do służby (lider) -->
   <div v-if="addTo" class="np-overlay" @click.self="addTo = null">
@@ -2358,7 +2411,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.68 · 18.10.2026'
+const VERSION = '2.69 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2621,7 +2674,7 @@ createApp({
     const continueToDrive = () => guard(async () => { await drive.signIn(false, 'drive'); await enter() })
     const fetchAll = async () => {
       const data = await drive.load()
-      services.value = data.services.map(s => ({ band: '', notes: '', songs: [], files: [], ...s }))
+      services.value = data.services.map(s => withBand({ band: '', notes: '', songs: [], files: [], ...s }))
       // Terminy na odliczanie przed zalogowaniem (ekran logowania).
       try { localStorage.setItem('kns-times', JSON.stringify(services.value.filter(s => s.date >= today()).map(({ date, time, place }) => ({ date, time, place })))) } catch { /* tryb prywatny */ }
       songs.value = data.songs
@@ -2709,7 +2762,7 @@ createApp({
       const existing = services.value.find(s => s.date === day)
       if (existing) { open(existing); status.value = 'Na ten dzień jest już nabożeństwo — otwarto je.'; return }
       const tpl = typeOf('nabozenstwo')
-      open({ id: uid(), date: day, time: tpl.time || DEFAULT_TIME, place: tpl.place || DEFAULT_PLACE, program: programFrom(tpl, uid), sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: drive.account() || 'telefon' })
+      open({ id: uid(), date: day, time: tpl.time || DEFAULT_TIME, place: tpl.place || DEFAULT_PLACE, program: programFrom(tpl, uid), sermonTitle: '', passage: '', speaker: '', band: '', bandList: [], notes: '', songs: [], files: [], createdBy: drive.account() || 'telefon' })
       saved.value = '' // nowe nabożeństwo od razu jest „do zapisania”
       svcEditing.value = true
     }
@@ -3096,12 +3149,21 @@ createApp({
     // opcjonalnie dołączony do spotkania członkowskiego albo rady. Dodają protokolant i rada zboru.
     const hasCouncil = computed(() => hasFlag('council'))
     const canApprove = computed(() => hasFlag('council'))
-    const canWriteProto = kind => (kind === 'rada' ? hasFlag('council') : hasFlag('protocols') || hasFlag('council'))
-    const canAddProto = computed(() => !!drive.uploadProtocolFile && canWriteProto('czlonkowskie'))
-    const VISIBILITY = { czlonkowskie: 'Wszyscy członkowie', rada: 'Tylko rada zboru' }
+    // Materiały: protokoły (protokolant, rada) oraz instrukcje i pliki pomocnicze (też prawo edycji, technika, administrator).
+    const canWriteMaterial = () => hasFlag('edit') || hasFlag('protocols') || hasFlag('council') || hasFlag('manage') || (me.value?.roles || []).includes('technika')
+    const canWriteProto = kind => (kind === 'rada' ? hasFlag('council') : kind === 'material' ? canWriteMaterial() : hasFlag('protocols') || hasFlag('council'))
+    const canAddProto = computed(() => !!drive.uploadProtocolFile && (canWriteProto('czlonkowskie') || canWriteProto('material')))
+    const VISIBILITY = { czlonkowskie: 'Wszyscy członkowie', material: 'Wszyscy członkowie', rada: 'Tylko rada zboru' }
+    const MAT_TYPES = { protokol: 'Protokół', instrukcja: 'Instrukcja', plik: 'Plik pomocniczy' }
+    const MAT_PLURAL = { protokol: 'Protokoły', instrukcja: 'Instrukcje', plik: 'Pliki' }
+    const MAT_COLOR = { protokol: '#a98bff', instrukcja: '#3ec7b0', plik: '#6ea8ff' }
+    const matType = p => p?.type || (p?.kind === 'material' ? 'plik' : 'protokol')
+    // Widoczność i rodzaj → kind w bazie: rada (tylko rada), czlonkowskie (protokół), material (instrukcja, plik).
+    function protoAudience(v) { const p = currentProto.value; p.kind = v === 'rada' ? 'rada' : p.type === 'protokol' ? 'czlonkowskie' : 'material' }
+    function protoTypeChanged() { const p = currentProto.value; if (p.kind !== 'rada') protoAudience('all'); if (p.type !== 'protokol') p.eventId = '' }
     const dateTime = t => new Date(t).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
     const protoView = ref(false), protoKind = ref('all'), protocolsRaw = ref([]), protoBusy = ref(false), protoError = ref('')
-    const protocols = computed(() => protocolsRaw.value.filter(p => protoKind.value === 'all' || p.kind === protoKind.value).sort((a, b) => (b.date || '').localeCompare(a.date || '')))
+    const protocols = computed(() => protocolsRaw.value.filter(p => protoKind.value === 'all' || (protoKind.value === 'rada' ? p.kind === 'rada' : matType(p) === protoKind.value)).sort((a, b) => (b.date || '').localeCompare(a.date || '')))
     let protoLoaded = false
     async function loadProtocols(force = false) {
       if (protoLoaded && !force) return
@@ -3120,14 +3182,18 @@ createApp({
     const protoEditable = computed(() => !!currentProto.value && canWriteProto(currentProto.value.kind))
     function openProto(p) {
       currentProto.value = { title: '', date: today(), kind: 'czlonkowskie', eventId: '', note: '', file: '', fileName: '', ...JSON.parse(JSON.stringify(p)) }
+      currentProto.value.type = matType(currentProto.value)
       protoSaved = JSON.stringify(currentProto.value); protoBase = p.updated || 0
       protoFile.value = null; protoEditing.value = false; protoUrl.value = ''
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
       // adres pliku (prywatny, ważny godzinę) — od razu, żeby link otwierał się bez czekania
       if (p.file && drive.protocolUrl) drive.protocolUrl(p.file).then(u => { if (currentProto.value?.id === p.id) protoUrl.value = u }, e => { error.value = e.message })
     }
-    function newProto(kind = 'czlonkowskie', ev = null) {
-      openProto({ id: uid(), kind, eventId: ev?.id || '', title: ev ? 'Protokół — ' + (ev.title || typeOf(ev.type).name) : '', date: ev?.date || today() })
+    function newProto(kind = null, ev = null) {
+      // bez prawa do protokołów — od razu instrukcja (np. technika dodaje obsługę rzutnika)
+      const proto = !!ev || canWriteProto('czlonkowskie') || hasCouncil.value
+      kind = kind || (proto ? 'czlonkowskie' : 'material')
+      openProto({ id: uid(), kind, type: kind === 'material' ? 'instrukcja' : 'protokol', eventId: ev?.id || '', title: ev ? 'Protokół — ' + (ev.title || typeOf(ev.type).name) : '', date: ev?.date || today() })
       protoSaved = ''; protoEditing.value = true
     }
     function protoForEvent(ev) { loadProtocols(); newProto(ev.type === 'rada' ? 'rada' : 'czlonkowskie', ev) }
@@ -3140,7 +3206,7 @@ createApp({
       if (!currentProto.value.title.trim()) currentProto.value.title = f.name.replace(/\.[^.]+$/, '')
     }
     function closeProto() {
-      if (protoEditing.value && protoDirty.value && protoSavedOnce.value && !confirm('Masz niezapisane zmiany w protokole. Wyjść bez zapisywania?')) return
+      if (protoEditing.value && protoDirty.value && protoSavedOnce.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
       if (protoEditing.value && protoSavedOnce.value) { const p = protocolsRaw.value.find(x => x.id === currentProto.value.id); if (p) { openProto(p); return } }
       currentProto.value = null
     }
@@ -3150,7 +3216,7 @@ createApp({
       if (f) Object.assign(data, { file: await drive.uploadProtocolFile(f), fileName: f.name, fileType: f.type, size: f.size })
       try { await drive.saveProtocol(data, protoBase) } catch (e) {
         if (!e.conflict) throw e
-        if (!confirm('Ktoś inny zmienił ten protokół, odkąd go otworzyłeś. Zapisać mimo to?')) return
+        if (!confirm('Ktoś inny zmienił ten materiał, odkąd go otworzyłeś. Zapisać mimo to?')) return
         await drive.saveProtocol(data, protoBase, true)
       }
       if (f && old && old !== data.file) drive.removeProtocolFile?.(old)
@@ -3495,7 +3561,9 @@ createApp({
           const st = await api.call('mailStatus', { id }).catch(() => null)
           if (st?.sent) { mailTest.text = 'E-mail wysłany na ' + me.value.email + ' — sprawdź skrzynkę (także Spam).'; return }
         }
-        mailTest.text = 'E-mail jeszcze nie wyszedł — skrypt newslettera (Google) może nie być ustawiony. Daj znać administratorowi.'; mailTest.bad = true
+        mailTest.text = canManage.value ? 'E-mail jeszcze nie wyszedł. Wysyła go skrypt Google (skrypty/baza.gs) — wklej jego nową wersję w Apps Script i raz uruchom „ustawNewsletterBazy”. Włączony newsletter nie jest potrzebny.'
+          : 'E-mail jeszcze nie wyszedł — skrypt wysyłający (Google) nie jest jeszcze ustawiony. Daj znać administratorowi.'
+        mailTest.bad = true
       } catch (e) { mailTest.text = e.message; mailTest.bad = true } finally { mailTest.busy = false }
     }
     async function toggleNewsletter() {
@@ -3682,6 +3750,37 @@ createApp({
     }
     const asbIdeaAdd = () => { if (asb.ideaTopic.trim()) guard(async () => { await api.call('asbIdea', { id: uid(), topic: asb.ideaTopic.trim(), author: asb.ideaAuthor.trim() || me.value?.name?.split(' ')[0] || '' }); asb.ideaTopic = ''; asb.ideaAuthor = ''; await loadAsb() }) }
     function asbIdeaDelete(i) { if (confirm('Usunąć pomysł „' + i.topic + '”?')) guard(async () => { await api.call('asbIdeaDelete', { id: i.id }); await loadAsb() }) }
+
+    /* ---------- skład zespołu ---------- */
+    const INSTRUMENTS = ['Wokal prowadzący', 'Wokal', 'Gitara akustyczna', 'Gitara elektryczna', 'Gitara basowa', 'Klawisze', 'Perkusja', 'Cajon', 'Skrzypce', 'Saksofon', 'Dźwięk (realizacja)']
+    // Stary zapis tekstem („Ania — wokal, Marek — gitara”) → lista; lista → tekst (dla newslettera, streamu i aplikacji na komputer).
+    function withBand(sv) {
+      if (!Array.isArray(sv.bandList)) sv.bandList = String(sv.band || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean)
+        .map(x => { const [name, ...rest] = x.split(/\s+[—–-]\s+/); return { key: uid(), name: name.trim(), instrument: rest.join(' — ').trim() } })
+      return sv
+    }
+    const bandText = list => list.map(b => b.name + (b.instrument ? ' — ' + b.instrument.toLowerCase() : '')).join(', ')
+    // tylko zmiana tej samej listy (dodanie, usunięcie, instrument) — samo otwarcie nabożeństwa niczego nie zmienia
+    watch(() => current.value?.bandList, (list, old) => { if (list && list === old && current.value) { const t = bandText(list); if (t !== current.value.band) current.value.band = t } }, { deep: true })
+    const bandPick = Vue.reactive({ open: false, query: '', people: [], busy: false, error: '', loaded: false })
+    const bandPickList = computed(() => {
+      const q = plain(bandPick.query.trim()), taken = (current.value?.bandList || []).map(b => b.name.toLowerCase())
+      return bandPick.people.filter(p => !taken.includes(p.name.toLowerCase()) && (!q || plain(p.name).includes(q)))
+    })
+    async function openBandPick() {
+      Object.assign(bandPick, { open: true, query: '', error: '' })
+      if (bandPick.loaded || !api.enabled) return
+      bandPick.busy = true
+      try { bandPick.people = (await api.call('bandPeople')) || []; bandPick.loaded = true } catch (e) { bandPick.error = e.message } finally { bandPick.busy = false }
+    }
+    function bandAdd(name) {
+      const b = { key: uid(), name: name.trim(), instrument: '' }
+      current.value.bandList.push(b)
+      bandPick.open = false
+      // od razu wybór instrumentu dla tej osoby
+      nextTick(() => { const el = document.querySelector('[data-band="' + b.key + '"]'); el?.focus(); try { el?.showPicker?.() } catch { /* nie każda przeglądarka */ } })
+    }
+    function bandPickFree() { if (bandPick.query.trim()) bandAdd(bandPick.query) }
 
     /* ---------- wiadomości do rang i służb ---------- */
     const msg = Vue.reactive({ open: false, opts: null, title: '', body: '', ranks: [], ministries: [], busy: false, error: '' })
@@ -4001,11 +4100,11 @@ createApp({
       if (current.value) return services.value.some(x => x.id === current.value.id) ? '/nabozenstwo/' + current.value.id + ed(svcEditing.value && canEdit.value) : '/nabozenstwo/nowe'
       if (currentEvent.value) return eventSavedOnce.value ? '/wydarzenie/' + currentEvent.value.id + ed(eventEditing.value && eventEditable.value) : '/wydarzenie/nowe'
       if (currentAnn.value) return annSavedOnce.value ? '/ogloszenie/' + currentAnn.value.id + ed(annEditing.value) : '/ogloszenie/nowe'
-      if (currentProto.value) return protoSavedOnce.value ? '/protokol/' + currentProto.value.id : '/protokol/nowy'
+      if (currentProto.value) return protoSavedOnce.value ? '/material/' + currentProto.value.id : '/material/nowy'
       if (song.value) return song.value.isNew ? '/piesn/nowa' : '/piesn/' + song.value.id
       if (tplType.value || tplView.value) return '/szablony'
       if (annView.value) return '/ogloszenia'
-      if (protoView.value) return '/protokoly'
+      if (protoView.value) return '/materialy'
       if (songView.value) return '/piesni'
       if (peopleView.value) return '/osoby'
       if (gcalView.value) return '/kalendarz-google'
@@ -4058,9 +4157,9 @@ createApp({
         else if (view === 'wiecej') openMore()
         else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); const sg = view === 'piesn' && songs.value.find(x => x.id === id); if (sg) openSong(sg) }
         else if (view === 'osoby') { moreView.value = true; if (canManage.value) openPeople() }
-        else if (view === 'protokoly' || view === 'protokol') {
+        else if (['protokoly', 'protokol', 'materialy', 'material'].includes(view)) {
           moreView.value = true; openProtocols()
-          if (view === 'protokol' && id !== 'nowy') { await loadProtocols(); const p = protocolsRaw.value.find(x => x.id === id); if (p) openProto(p) }
+          if ((view === 'protokol' || view === 'material') && id !== 'nowy') { await loadProtocols(); const p = protocolsRaw.value.find(x => x.id === id); if (p) openProto(p) }
         } else if (view === 'szablony') { moreView.value = true; openTemplates() }
         else if (view === 'kalendarz-google') openGcal()
         await nextTick()
@@ -4117,7 +4216,8 @@ createApp({
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
       asb, asbView, asbForm, canAsb, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete,
       ASB_KINDS, asbWhen, asbKindName, asbMissing, asbMissingCount, asbLeaderHints, asbPubUpcoming, asbPubShown, asbPubGroups,
-      msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
+      msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
+      MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,

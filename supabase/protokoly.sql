@@ -17,3 +17,17 @@ create policy protokoly_insert on storage.objects for insert to authenticated
   with check (bucket_id = 'protokoly' and (public.has_flag('protocols') or public.has_flag('council')));
 create policy protokoly_delete on storage.objects for delete to authenticated
   using (bucket_id = 'protokoly' and (public.has_flag('protocols') or public.has_flag('council')));
+
+-- Materiały (najpierw materialy.sql — funkcja can_write_material): także prezentacje i arkusze (instrukcje), do 25 MB; wgrywać i usuwać mogą wszyscy, którzy dodają materiały.
+update storage.buckets set allowed_mime_types = array['application/pdf', 'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.oasis.opendocument.text',
+  'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.oasis.opendocument.presentation', 'application/vnd.oasis.opendocument.spreadsheet',
+  'image/jpeg', 'image/png', 'image/webp', 'text/plain'] where id = 'protokoly';
+drop policy if exists protokoly_insert on storage.objects;
+drop policy if exists protokoly_delete on storage.objects;
+create policy protokoly_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'protokoly' and public.can_write_material());
+create policy protokoly_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'protokoly' and public.can_write_material());
