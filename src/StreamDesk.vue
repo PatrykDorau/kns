@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import { api, cameraLock, listenLyrics, loadListen, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
-import { SCENES, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
+import { SCENES, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -345,7 +345,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <div v-for="sl in slideList" :key="sl.id" class="desk-slide" :class="{ off: studio.hidden.includes(sl.id), now: studio.slideId === sl.id && !studio.hidden.includes(sl.id) }">
                 <button class="desk-slide-pic" :disabled="studio.hidden.includes(sl.id)" :title="'Pokaż teraz: ' + sl.title" @click="showSlide(sl.id)">
                   <img v-if="sl.image" :src="sl.image" alt="" loading="lazy">
-                  <span v-else class="desk-slide-txt"><b>{{ sl.title }}</b><small v-if="sl.text">{{ sl.text }}</small><small v-if="sl.service">data, miejsce i kazanie</small></span>
+                  <span v-else class="desk-slide-txt"><b>{{ sl.title }}</b><small v-if="sl.text">{{ sl.text }}</small><small v-if="sl.service">{{ upcomingService() ? 'data, miejsce i kazanie' : '⚠ brak zaplanowanego — uzupełnij w Organizacji' }}</small></span>
                   <em v-if="studio.slideId === sl.id && !studio.hidden.includes(sl.id)">TERAZ</em>
                 </button>
                 <span class="desk-slide-name">{{ sl.title }}</span>

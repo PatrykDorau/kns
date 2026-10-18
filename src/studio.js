@@ -8,7 +8,7 @@
 // Działa niezależnie od otwartego widoku (moduł), żeby wyjście z ekranu Stream nie przerwało transmisji.
 import { reactive } from 'vue'
 import qrcode from 'qrcode-generator'
-import { api, currentAnnouncements, nearestService, projectorGraphics, serviceTime, servicePlace } from './store.js'
+import { api, currentAnnouncements, nearestService, projectorGraphics, serviceTime, servicePlace, sortedServices } from './store.js'
 
 export const SCENES = [
   ['camera', 'Kamera'],
@@ -150,16 +150,39 @@ function drawSlide(sl, x, y, w, h) {
   else if (sl.service) serviceCard(x, y, w, h)
   else textSlide(sl, x, y, w, h)
 }
-// Karta najbliższego nabożeństwa (gdy nie ma ogłoszeń albo włączona w pętli).
+// Następne nabożeństwo, które się jeszcze NIE zaczęło (dzisiejsze po godzinie rozpoczęcia już nie).
+export function upcomingService() {
+  const now = Date.now()
+  return [...sortedServices.value].reverse().find(s => s.date && new Date(`${s.date}T${serviceTime(s)}`).getTime() > now) || null
+}
+// Karta najbliższego nabożeństwa (gdy nie ma ogłoszeń albo włączona w pętli): logo, data, godzina i miejsce, kazanie.
 function serviceCard(x, y, w, h) {
-  const k = w / 1240, svc = nearestService.value
-  const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#dc7a3c')
+  const k = w / 1240, svc = upcomingService(), cx = x + w / 2
+  const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#d9733a')
   g.fillStyle = gr; g.fillRect(x, y, w, h)
-  text('Nabożeństwo', x + w / 2, y + 260 * k, { size: Math.round(110 * k), weight: 800, color: '#2a1a10', align: 'center' })
-  if (!svc) return
-  text(svcWhen(svc).replace(/^./, c => c.toUpperCase()) + ' · ' + servicePlace(svc), x + w / 2, y + 360 * k, { size: Math.round(46 * k), weight: 600, color: '#2a1a10', align: 'center' })
-  const sermon = [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ')
-  if (sermon) text(fitLine(sermon, w - 160 * k, Math.round(44 * k), Math.round(30 * k), 700).str, x + w / 2, y + 450 * k, { size: fitLine(sermon, w - 160 * k, Math.round(44 * k), Math.round(30 * k), 700).size, weight: 700, color: '#fff7ec', align: 'center' })
+  // delikatne koło w tle (jak słońce w logo)
+  g.save(); g.globalAlpha = 0.12; g.fillStyle = '#fff'; g.beginPath(); g.arc(x + w * 0.86, y + h * 0.18, 260 * k, 0, Math.PI * 2); g.fill(); g.restore()
+  // logo w białym kółku
+  g.save(); g.shadowColor = 'rgba(60,30,10,0.35)'; g.shadowBlur = 24 * k; g.shadowOffsetY = 6 * k
+  g.beginPath(); g.arc(cx, y + 118 * k, 74 * k, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.restore()
+  const lg = img('./znak-obrys.png')
+  if (lg) g.drawImage(lg, cx - 56 * k, y + 62 * k, 112 * k, 112 * k)
+  text('NAJBLIŻSZE NABOŻEŃSTWO', cx, y + 248 * k, { size: Math.round(28 * k), weight: 800, color: '#5c2d0c', align: 'center' })
+  if (!svc) {
+    text('Termin wkrótce', cx, y + 360 * k, { size: Math.round(88 * k), weight: 800, color: '#2a1a10', align: 'center' })
+    text('Szczegóły na kns-nabo.netlify.app', cx, y + 440 * k, { size: Math.round(38 * k), weight: 600, color: '#3b2312', align: 'center' })
+    return
+  }
+  const day = new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase())
+  const d = fitLine(day, w - 140 * k, Math.round(84 * k), Math.round(56 * k), 800)
+  text(d.str, cx, y + 350 * k, { size: d.size, weight: 800, color: '#2a1a10', align: 'center' })
+  text('godz. ' + serviceTime(svc) + ' · ' + servicePlace(svc), cx, y + 418 * k, { size: Math.round(42 * k), weight: 600, color: '#3b2312', align: 'center' })
+  const sermon = svc.sermonTitle || '', more = [svc.passage, svc.speaker].filter(Boolean).join(' · ')
+  if (sermon || more) {
+    g.fillStyle = 'rgba(42,26,16,0.25)'; g.fillRect(cx - 90 * k, y + 458 * k, 180 * k, 4 * k)
+    if (sermon) { const t = fitLine('„' + sermon + '”', w - 160 * k, Math.round(48 * k), Math.round(32 * k), 800); text(t.str, cx, y + 540 * k, { size: t.size, weight: 800, color: '#fff', align: 'center', shadow: 8 * k }) }
+    if (more) { const m = fitLine(more, w - 160 * k, Math.round(36 * k), Math.round(26 * k), 600); text(m.str, cx, y + (sermon ? 600 : 540) * k, { size: m.size, weight: 600, color: '#fff3e0', align: 'center' }) }
+  }
 }
 // Jedna linia, która musi się zmieścić: najpierw mniejsza czcionka (do min), potem skrót z „…”.
 function fitLine(str, maxW, size, min, weight) {
@@ -333,8 +356,8 @@ const SCENE_DRAW = {
     const lg = img('./znak-obrys.png')
     if (lg) g.drawImage(lg, W / 2 - 85, 110, 170, 170)
     text('Dziękujemy, że byliście z nami!', W / 2, 375, { size: 80, weight: 800, color: '#d9862a', align: 'center' })
-    const svc = nearestService.value
-    if (svc && svc.date > new Date().toISOString().slice(0, 10)) text('Do zobaczenia: ' + svcWhen(svc) + ' · ' + servicePlace(svc), W / 2, 445, { size: 38, weight: 600, color: '#2b2b2b', align: 'center' })
+    const svc = upcomingService()
+    if (svc) text('Do zobaczenia: ' + svcWhen(svc) + ' · ' + servicePlace(svc), W / 2, 445, { size: 38, weight: 600, color: '#2b2b2b', align: 'center' })
     const e = studio.end, bank = bankQr(e), phone = String(e.phone || '').replace(/[^\d+]/g, '').replace(/^(\+?48)?(\d{3})(\d{3})(\d{3})$/, '$2 $3 $4')
     const tiles = []
     if (bank || phone) tiles.push({ head: 'Wesprzyj kościół', qr: bank, lines: [bank && 'Zeskanuj w aplikacji banku', phone && 'albo BLIK na numer ' + phone].filter(Boolean) })
