@@ -951,3 +951,37 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-opt-group > small.muted { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; }
 .desk-opts .desk-corner { width: 34px; padding: 6px 0; font-size: 15px; }
 .desk-left-time { font-variant-numeric: tabular-nums; color: var(--text); }
+
+/* Studio: podgląd (zielony) i wizja (czerwony) jak w ATEM; „Na wizję” */
+.studio-mons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.studio-mons.single { grid-template-columns: 1fr; }
+.mon { margin: 0; min-width: 0; }
+.mon figcaption { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.mon figcaption small { font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.mon.pvw figcaption { color: #3ccf73; }
+.mon.pgm figcaption { color: #ff5a5f; }
+.mon-scr { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; border: 3px solid; }
+.mon.pvw .mon-scr { border-color: #2fae5f; }
+.mon.pgm .mon-scr { border-color: #e5484d; }
+.desk-take { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+.desk-take .spacer { flex: 1; }
+.desk-take-btn { padding: 9px 22px; font-weight: 800; border-radius: 9px; }
+.desk-take-btn.ready { background: #e5484d; border-color: #e5484d; color: #fff; }
+.desk-scenes button.live, .desk-opts button.live { box-shadow: inset 0 -3px 0 #e5484d; }
+.desk-slides { margin-top: 10px; }
+.desk-slides > summary { cursor: pointer; font-weight: 700; font-size: 13px; }
+.desk-slides > summary small { font-weight: 500; margin-left: 6px; }
+.desk-slide-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 8px 0; font-size: 13px; }
+.desk-slide-bar select { margin-left: 6px; }
+.desk-slide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.desk-slide { position: relative; min-width: 0; }
+.desk-slide-pic { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; overflow: hidden; border-radius: 8px; border: 2px solid var(--line); background: linear-gradient(135deg, #f0a24f, #dc7a3c); }
+.desk-slide-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.desk-slide-txt { display: flex; flex-direction: column; justify-content: center; gap: 3px; height: 100%; padding: 8px; color: #2a1a10; text-align: center; font-size: 12px; line-height: 1.2; }
+.desk-slide-txt small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 10.5px; opacity: .8; }
+.desk-slide-pic em { position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 5px; background: #e5484d; color: #fff; font-style: normal; font-size: 10px; font-weight: 800; }
+.desk-slide.now .desk-slide-pic { border-color: #e5484d; }
+.desk-slide.off .desk-slide-pic { opacity: .3; filter: grayscale(1); }
+.desk-slide-name { display: block; margin-top: 3px; padding-right: 30px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-slide-eye { position: absolute; right: 0; bottom: -3px; padding: 3px 6px; }
+.desk-slide-eye svg { width: 14px; height: 14px; }

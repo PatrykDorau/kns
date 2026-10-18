@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
       <button title="Małe okno z samymi kamerami — do ustawienia w OBS jako nakładka" @click="toggleOverlay"><Icon name="shrink" />Tryb nakładki</button>
       <button @click="refresh"><Icon name="camera" />Odśwież kamery</button>
       <button :aria-pressed="showInfo" :title="showInfo ? 'Chowa panel z danymi nabożeństwa' : 'Pokazuje panel z danymi nabożeństwa'" @click="showInfo = !showInfo">
-        <Icon :name="showInfo ? 'right' : 'left'" />{{ showInfo ? 'Schowaj panel' : 'Pokaż panel' }}
+        <Icon :name="showInfo ? 'right' : 'left'" />{{ showInfo ? 'Schowaj nabożeństwo' : 'Pokaż nabożeństwo' }}
       </button>
     </header>
 

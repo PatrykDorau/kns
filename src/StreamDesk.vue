@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import { api, cameraLock, listenLyrics, loadListen, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
-import { SCENES, addCountdown, checkHardware, setCountdown, listCameras, pauseIdle, requestKeyFrame, setAudio, setCamera, setFps, setScene, startEncoding, stopEncoding, studio, studioCanvas, toggleLowerThird } from './studio.js'
+import { SCENES, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -37,7 +37,9 @@ let offKey = null
 const engine = computed(() => (settings.streamEngine === 'simple' || studio.hardware === false ? 'simple' : 'studio'))
 const studioDevices = ref({ video: [], audio: [] })
 const stageEl = ref(null)
+const pvEl = ref(null)
 watch([stageEl, engine], ([el, eng]) => { if (el && eng === 'studio') { setFps(settings.streamFps); el.appendChild(studioCanvas()) } }, { flush: 'post' })
+watch(pvEl, el => { if (el) el.appendChild(previewCanvas()) }, { flush: 'post' })
 async function loadStudioDevices() {
   studioDevices.value = await listCameras()
   const pick = (list, saved) => list.find(d => d.label === saved) || list.find(d => /blackmagic|atem/i.test(d.label)) || (saved === '' ? null : null)
@@ -50,8 +52,17 @@ function chooseCamera(label) { settings.studioCamera = label; const d = studioDe
 function chooseAudio(label) { settings.studioAudio = label; const d = studioDevices.value.audio.find(x => x.label === label); setAudio(d?.deviceId || '') }
 watch(() => settings.streamFps, f => setFps(f))
 // ustawienia scen zapamiętane między uruchomieniami
-watch(() => [settings.pipCorner, settings.pipSize, settings.studioAutoCamera, settings.donateAccount, settings.donatePhone, settings.donateName, settings.donateTitle], () => {
-  studio.pip = { corner: settings.pipCorner || 'br', size: settings.pipSize || 'small' }
+if (!studio.live) { initLook({ corner: settings.pipCorner || 'br', size: settings.pipSize || 'small' }); studio.direct = !!settings.studioDirect }
+function pip(p) { setPip(p); if (p.corner) settings.pipCorner = p.corner; if (p.size) settings.pipSize = p.size }
+function direct(v) { settings.studioDirect = v; setDirect(v) }
+// ogłoszenia na transmisji: które są w pętli i co ile sekund
+const slideList = computed(() => slideCandidates())
+watch(() => [settings.studioHidden, settings.studioSlideSec], () => { studio.hidden = [...(settings.studioHidden || ['svc'])]; studio.slideEvery = +settings.studioSlideSec || 8 }, { immediate: true, deep: true })
+function toggleSlide(id) { const h = new Set(settings.studioHidden || []); h.has(id) ? h.delete(id) : h.add(id); settings.studioHidden = [...h] }
+const shownSlides = computed(() => slideList.value.filter(x => !studio.hidden.includes(x.id)).length)
+const pending = computed(() => !studio.direct && differs())
+const SCENE_NAME = Object.fromEntries(SCENES)
+watch(() => [settings.studioAutoCamera, settings.donateAccount, settings.donatePhone, settings.donateName, settings.donateTitle], () => {
   studio.autoCamera = !!settings.studioAutoCamera
   Object.assign(studio.end, { account: settings.donateAccount, phone: settings.donatePhone, name: settings.donateName || 'Kościół Na Skale', title: settings.donateTitle || 'Darowizna' })
 }, { immediate: true })
@@ -277,21 +288,36 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
           <small v-else class="muted">{{ live.encoder }}</small>
         </div>
-        <div class="desk-screen">
-          <div v-if="engine === 'studio'" ref="stageEl" class="studio-host"></div>
-          <img v-else-if="liveOn && live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
+        <div v-if="engine === 'studio'" class="studio-mons" :class="{ single: studio.direct }">
+          <figure v-if="!studio.direct" class="mon pvw">
+            <figcaption>Podgląd <small>{{ SCENE_NAME[studio.preview.scene] }}</small></figcaption>
+            <div class="mon-scr"><div ref="pvEl" class="studio-host"></div></div>
+          </figure>
+          <figure class="mon pgm">
+            <figcaption>Na wizji <small>{{ SCENE_NAME[studio.program.scene] }}</small></figcaption>
+            <div class="mon-scr"><div ref="stageEl" class="studio-host"></div></div>
+          </figure>
+        </div>
+        <div v-else class="desk-screen">
+          <img v-if="liveOn && live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
           <slot v-else name="preview" />
         </div>
         <template v-if="engine === 'studio'">
+          <div class="desk-take">
+            <button class="desk-take-btn" :class="{ ready: pending }" :disabled="studio.direct || !pending" title="Podgląd przechodzi na wizję (płynnie)" @click="take">Na wizję ▸</button>
+            <small class="muted">{{ studio.direct ? 'Zmiany idą od razu na wizję' : pending ? 'Podgląd różni się od wizji — sprawdź i kliknij „Na wizję”' : 'Podgląd = wizja' }}</small>
+            <span class="spacer"></span>
+            <label class="check" title="Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube"><input :checked="studio.direct" type="checkbox" @change="direct($event.target.checked)"> Od razu na wizję</label>
+          </div>
           <div class="desk-scenes" role="group" aria-label="Sceny transmisji">
-            <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.scene === id }" :aria-pressed="studio.scene === id" @click="setScene(id)">{{ name }}</button>
+            <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.preview.scene === id, live: studio.program.scene === id }" :aria-pressed="studio.preview.scene === id" :title="studio.program.scene === id ? 'Na wizji' : ''" @click="setScene(id)">{{ name }}</button>
           </div>
           <div class="desk-opts">
             <span class="desk-opt-group">
-              <button :class="{ on: studio.lyricsOn }" :aria-pressed="studio.lyricsOn" title="Napisy pieśni na obrazie" @click="studio.lyricsOn = !studio.lyricsOn">Napisy</button>
-              <button :class="{ on: studio.lowerThird }" :aria-pressed="studio.lowerThird" title="Pasek z mówcą i tytułem kazania (na scenie Kamera)" @click="toggleLowerThird">Pasek mówcy</button>
+              <button :class="{ on: studio.preview.lyricsOn, live: studio.program.lyricsOn }" :aria-pressed="studio.preview.lyricsOn" title="Napisy pieśni na obrazie" @click="toggleLyrics">Napisy</button>
+              <button :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird }" :aria-pressed="studio.preview.lowerThird" title="Pasek z mówcą i tytułem kazania (na scenie Kamera)" @click="toggleLowerThird">Pasek mówcy</button>
             </span>
-            <span v-if="studio.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
+            <span v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
               <small class="muted">Timer</small>
               <button :class="{ on: !studio.countdownTo }" title="Odliczanie do godziny nabożeństwa" @click="setCountdown(0)">do nabożeństwa</button>
               <button v-for="m in [5, 10, 15]" :key="m" @click="setCountdown(m)">{{ m }} min</button>
@@ -299,13 +325,32 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <small class="desk-left-time">{{ countdownInfo }}</small>
               <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
             </span>
-            <span v-if="studio.scene === 'projectorPip'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
+            <span v-if="studio.preview.scene === 'projectorPip'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
               <small class="muted">Okienko</small>
-              <button v-for="[id, arrow, label] in CORNERS" :key="id" class="desk-corner" :class="{ on: settings.pipCorner === id }" :title="label" :aria-label="label" @click="settings.pipCorner = id">{{ arrow }}</button>
-              <button :class="{ on: settings.pipSize !== 'large' }" @click="settings.pipSize = 'small'">Małe</button>
-              <button :class="{ on: settings.pipSize === 'large' }" @click="settings.pipSize = 'large'">Duże</button>
+              <button v-for="[id, arrow, label] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="label" :aria-label="label" @click="pip({ corner: id })">{{ arrow }}</button>
+              <button :class="{ on: studio.preview.pip.size !== 'large' }" @click="pip({ size: 'small' })">Małe</button>
+              <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
             </span>
           </div>
+          <details class="desk-slides" :open="['countdown', 'announcements'].includes(studio.preview.scene) || ['countdown', 'announcements'].includes(studio.program.scene)">
+            <summary>Ogłoszenia na transmisji <small class="muted">{{ shownSlides }} z {{ slideList.length }} · tylko „dla wszystkich” z „Pokaż na nabożeństwie”</small></summary>
+            <div class="desk-slide-bar">
+              <label>Zmiana co <select v-model.number="settings.studioSlideSec"><option v-for="v in [5, 8, 10, 15, 20]" :key="v" :value="v">{{ v }} s</option></select></label>
+              <small class="muted">Kliknij grafikę — pokaże się teraz. Oko — w pętli albo pominięte.</small>
+            </div>
+            <div class="desk-slide-grid">
+              <div v-for="sl in slideList" :key="sl.id" class="desk-slide" :class="{ off: studio.hidden.includes(sl.id), now: studio.slideId === sl.id && !studio.hidden.includes(sl.id) }">
+                <button class="desk-slide-pic" :disabled="studio.hidden.includes(sl.id)" :title="'Pokaż teraz: ' + sl.title" @click="showSlide(sl.id)">
+                  <img v-if="sl.image" :src="sl.image" alt="" loading="lazy">
+                  <span v-else class="desk-slide-txt"><b>{{ sl.title }}</b><small v-if="sl.text">{{ sl.text }}</small><small v-if="sl.service">data, miejsce i kazanie</small></span>
+                  <em v-if="studio.slideId === sl.id && !studio.hidden.includes(sl.id)">TERAZ</em>
+                </button>
+                <span class="desk-slide-name">{{ sl.title }}</span>
+                <button class="desk-slide-eye" :title="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" :aria-label="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" @click="toggleSlide(sl.id)"><Icon :name="studio.hidden.includes(sl.id) ? 'eyeoff' : 'eye'" /></button>
+              </div>
+            </div>
+            <p class="note">Inne ogłoszenia dodasz albo wyłączysz w Ogłoszeniach („Pokaż na nabożeństwie”, „Dla wszystkich”). Lista zmienia się sama.</p>
+          </details>
         </template>
         <p v-if="engine === 'studio' && studio.error" class="note bad">{{ studio.error }}</p>
       </section>

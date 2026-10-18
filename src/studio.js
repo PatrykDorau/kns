@@ -2,7 +2,9 @@
 // z prawdziwym cieniem, sceny (odliczanie z ogłoszeniami, pętla ogłoszeń, rzutnik, rzutnik + kamera w okienku,
 // plansza końcowa) i pasek z mówcą. Kodowanie: WebCodecs, sprzętowo na karcie graficznej (H.264 High, stała
 // przepływność, klatka kluczowa co 2 s) → FFmpeg w procesie głównym tylko wysyła na YouTube. Dźwięk: ATEM (USB)
-// + dźwięk filmów ze scen, zmiksowany tutaj (PCM 48 kHz) → FFmpeg koduje AAC. Podgląd = to samo płótno.
+// + dźwięk filmów ze scen, zmiksowany tutaj (PCM 48 kHz) → FFmpeg koduje AAC.
+// Jak w ATEM i na rzutniku: zmiany (scena, pasek mówcy, napisy, okienko) najpierw idą na Podgląd, a na wizję
+// dopiero po „Na wizję” — chyba że włączone „Od razu na wizję”. Podgląd rysowany w połowie rozdzielczości.
 // Działa niezależnie od otwartego widoku (moduł), żeby wyjście z ekranu Stream nie przerwało transmisji.
 import { reactive } from 'vue'
 import qrcode from 'qrcode-generator'
@@ -16,23 +18,30 @@ export const SCENES = [
   ['announcements', 'Ogłoszenia'],
   ['end', 'Koniec'],
 ]
+const look = () => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small' }, lowerAt: 0, lowerOff: 0 })
 export const studio = reactive({
-  scene: 'camera', lyricsOn: true, lowerThird: false, lyrics: '',
+  program: look(), // to, co idzie na YouTube
+  preview: look(), // to, co przygotowujemy
+  direct: false, // „Od razu na wizję” — zmiany od razu na wizji (bez podglądu)
+  lyrics: '',
+  slideEvery: 8, // co ile sekund następne ogłoszenie
+  hidden: ['svc'], // wyłączone slajdy (id); „svc” — karta najbliższego nabożeństwa
+  slideId: '', // slajd na wizji teraz
   camera: '', audio: '', fps: 30, bitrate: 6800000, live: false, error: '', encoder: '',
   hardware: null, // null — nie sprawdzono; true/false — czy karta koduje H.264
   projector: { kind: 'none' }, // to, co pokazuje rzutnik (etap 2): { kind: 'image'|'video'|'text'|'none', url, text, style, playing, time, at }
   countdownTo: 0, // odliczanie do tej chwili (ms); 0 — do godziny najbliższego nabożeństwa
   left: 0, // ile sekund zostało (do pulpitu)
   autoCamera: false, // po zerze (i 3 s „Zaczynamy”) samo przełącza na Kamerę
-  pip: { corner: 'br', size: 'small' }, // okienko z kamerą na scenie „Rzutnik + kamera”
   end: { account: '', phone: '', name: 'Kościół Na Skale', title: 'Darowizna', youtube: '', spotify: '' }, // plansza końcowa
 })
 const W = 1920, H = 1080
 let canvas = null, g = null, timer = 0, frameNo = 0, needKey = true
 let camVideo = null, camStream = null, encoder = null
-let sceneFrom = null, sceneAt = 0 // przejście między scenami (przenikanie)
+let progFrom = null, progAt = 0 // przejście na wizji (przenikanie z poprzedniego wyglądu)
 let lyricShown = '', lyricPrev = '', lyricAt = 0
-let lowerAt = 0
+let S = null // wygląd, który właśnie rysujemy (wizja albo podgląd)
+let slideBase = 0
 const images = new Map() // adres → obraz (grafiki ogłoszeń, logo, rzutnik)
 
 /* ---------- pomocnicze ---------- */
@@ -78,21 +87,34 @@ function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'lef
 function logo(x, y, h) { const im = img('./znak.png'); if (im) g.drawImage(im, x, y, h * im.naturalWidth / im.naturalHeight, h) }
 const svcWhen = svc => (svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + serviceTime(svc) : '')
 // Slajdy ogłoszeń (zaznaczone „Pokaż na nabożeństwie”, tylko „dla wszystkich” — transmisja jest publiczna):
-// najpierw grafiki, potem ogłoszenia bez grafiki jako karty z tekstem. Kolejno co 8 s, z przenikaniem.
-function slides() {
+// najpierw grafiki, potem ogłoszenia bez grafiki jako karty z tekstem, na końcu (jeśli włączona) karta nabożeństwa.
+export function slideCandidates() {
   const pub = currentAnnouncements.value.filter(a => a.projector && (a.audience || 'public') === 'public')
-  const list = [
-    ...pub.filter(a => a.image).map(a => img(a.image)).filter(Boolean).map(im => ({ im })),
-    ...projectorGraphics.value.filter(x => x.key.startsWith('e')).map(x => img(x.image)).filter(Boolean).map(im => ({ im })),
-    ...pub.filter(a => !a.image).map(a => ({ title: a.title, text: a.text || '' })),
+  return [
+    ...pub.filter(a => a.image).map(a => ({ id: 'a' + a.id, title: a.title, image: a.image })),
+    ...projectorGraphics.value.filter(x => x.key.startsWith('e')).map(x => ({ id: x.key, title: x.name, image: x.image })),
+    ...pub.filter(a => !a.image).map(a => ({ id: 'a' + a.id, title: a.title, text: a.text || '' })),
+    { id: 'svc', title: 'Najbliższe nabożeństwo', service: true },
   ]
-  return list
 }
-function carousel(t, every = 8000) {
+function slides() {
+  return slideCandidates().filter(c => !studio.hidden.includes(c.id))
+    .map(c => (c.image ? (img(c.image) ? { ...c, im: img(c.image) } : null) : c)).filter(Boolean)
+}
+function carousel(t) {
   const list = slides()
   if (!list.length) return null
-  const i = Math.floor(t / every) % list.length, k = (t % every) / 600
+  const every = Math.max(3, +studio.slideEvery || 8) * 1000, d = Math.max(0, t - slideBase)
+  const i = Math.floor(d / every) % list.length, k = (d % every) / 600
+  if (S === studio.program && studio.slideId !== list[i].id) studio.slideId = list[i].id
   return { cur: list[i], prev: list[(i - 1 + list.length) % list.length], mix: list.length > 1 ? Math.min(1, k) : 1 }
+}
+// Kliknięcie ogłoszenia na pulpicie: od razu ono, potem dalej po kolei.
+export function showSlide(id) {
+  const list = slides(), idx = list.findIndex(x => x.id === id)
+  if (idx < 0) return
+  const every = Math.max(3, +studio.slideEvery || 8) * 1000
+  slideBase = performance.now() - idx * every - 600
 }
 // Tekst w kilku liniach (zawijanie po słowach), najwyżej max linii.
 function wrap(str, width, size, weight, max) {
@@ -125,7 +147,33 @@ function textSlide(sl, x, y, w, h) {
 }
 function drawSlide(sl, x, y, w, h) {
   if (sl.im) fit(sl.im, sl.im.naturalWidth, sl.im.naturalHeight, x, y, w, h, 'cover')
+  else if (sl.service) serviceCard(x, y, w, h)
   else textSlide(sl, x, y, w, h)
+}
+// Karta najbliższego nabożeństwa (gdy nie ma ogłoszeń albo włączona w pętli).
+function serviceCard(x, y, w, h) {
+  const k = w / 1240, svc = nearestService.value
+  const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#dc7a3c')
+  g.fillStyle = gr; g.fillRect(x, y, w, h)
+  text('Nabożeństwo', x + w / 2, y + 260 * k, { size: Math.round(110 * k), weight: 800, color: '#2a1a10', align: 'center' })
+  if (!svc) return
+  text(svcWhen(svc).replace(/^./, c => c.toUpperCase()) + ' · ' + servicePlace(svc), x + w / 2, y + 360 * k, { size: Math.round(46 * k), weight: 600, color: '#2a1a10', align: 'center' })
+  const sermon = [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ')
+  if (sermon) text(fitLine(sermon, w - 160 * k, Math.round(44 * k), Math.round(30 * k), 700).str, x + w / 2, y + 450 * k, { size: fitLine(sermon, w - 160 * k, Math.round(44 * k), Math.round(30 * k), 700).size, weight: 700, color: '#fff7ec', align: 'center' })
+}
+// Jedna linia, która musi się zmieścić: najpierw mniejsza czcionka (do min), potem skrót z „…”.
+function fitLine(str, maxW, size, min, weight) {
+  g.save()
+  const width = sz => { g.font = `${weight} ${sz}px "Segoe UI", system-ui, sans-serif`; return g.measureText(str).width }
+  while (size > min && width(size) > maxW) size -= 2
+  let out = String(str)
+  if (width(size) > maxW) {
+    g.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`
+    while (out.length > 1 && g.measureText(out + '…').width > maxW) out = out.slice(0, -1)
+    out = out.replace(/[\s·,.-]+$/, '') + '…'
+  }
+  g.restore()
+  return { str: out, size }
 }
 function drawCarousel(c, x, y, w, h) {
   drawSlide(c.prev, x, y, w, h)
@@ -228,7 +276,7 @@ function timerBlob() {
   g.fillStyle = '#2b2b2b'; g.fill()
   g.restore()
   text(left ? 'ZACZYNAMY ZA' : 'ZARAZ', cx, cy - 46, { size: 30, weight: 800, color: '#f3e3c8', align: 'center' })
-  text(left ? clock : 'ZACZYNAMY', cx, cy + (left ? 64 : 52), { size: left ? 112 : 84, weight: 800, color: '#f6a836', align: 'center' })
+  text(left ? clock : 'ZACZYNAMY', cx, cy + (left ? 64 : 46), { size: left ? 112 : 64, weight: 800, color: '#f6a836', align: 'center' })
   return left
 }
 // Proste grafiki po bokach: lewy — okrąg z kropkami, prawy — szczyty jak w logo.
@@ -260,30 +308,20 @@ const SCENE_DRAW = {
     rounded(px, py, pw, ph, 18); g.fillStyle = '#fff'; g.fill(); g.restore()
     g.save(); rounded(px, py, pw, ph, 18); g.clip()
     if (c) drawCarousel(c, px, py, pw, ph)
-    else {
-      // bez ogłoszeń: karta z najbliższym nabożeństwem
-      const svc = nearestService.value
-      const gr = g.createLinearGradient(px, py, px + pw, py + ph); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#dc7a3c')
-      g.fillStyle = gr; g.fillRect(px, py, pw, ph)
-      text('Nabożeństwo', W / 2, py + 260, { size: 110, weight: 800, color: '#2a1a10', align: 'center' })
-      if (svc) {
-        text(svcWhen(svc).replace(/^./, x => x.toUpperCase()) + ' · ' + servicePlace(svc), W / 2, py + 360, { size: 46, weight: 600, color: '#2a1a10', align: 'center' })
-        const sermon = [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ')
-        if (sermon) text(sermon, W / 2, py + 450, { size: 44, weight: 700, color: '#fff7ec', align: 'center' })
-      }
-    }
+    else serviceCard(px, py, pw, ph)
     g.restore()
     topWave()
     const left = timerBlob()
     // po zerze: 3 s „Zaraz zaczynamy”, potem sama Kamera (gdy zaznaczone)
-    if (left > 0) { armed = true; zeroAt = 0 } else if (armed && studio.autoCamera && studio.scene === 'countdown') {
+    if (S !== studio.program) return
+    if (left > 0) { armed = true; zeroAt = 0 } else if (armed && studio.autoCamera) {
       zeroAt = zeroAt || t
-      if (t - zeroAt > 3000) { armed = false; setScene('camera') }
+      if (t - zeroAt > 3000) { armed = false; studio.preview.scene = 'camera'; toProgram(p => { p.scene = 'camera' }) }
     }
   },
   announcements(t) {
-    const c = carousel(t, 10000)
-    if (!c) { paper(); text('Brak ogłoszeń dla wszystkich z „Pokaż na nabożeństwie”', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }); return }
+    const c = carousel(t)
+    if (!c) { paper(); text('Brak ogłoszeń — włącz je na liście pod podglądem', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }); return }
     drawCarousel(c, 0, 0, W, H)
   },
   // Koniec: logo, podziękowanie, najbliższe nabożeństwo i kafelki z kodami QR (wsparcie, YouTube, Spotify).
@@ -297,7 +335,7 @@ const SCENE_DRAW = {
     if (svc && svc.date > new Date().toISOString().slice(0, 10)) text('Do zobaczenia: ' + svcWhen(svc) + ' · ' + servicePlace(svc), W / 2, 445, { size: 38, weight: 600, color: '#2b2b2b', align: 'center' })
     const e = studio.end, bank = bankQr(e), phone = String(e.phone || '').replace(/[^\d+]/g, '').replace(/^(\+?48)?(\d{3})(\d{3})(\d{3})$/, '$2 $3 $4')
     const tiles = []
-    if (bank || phone) tiles.push({ head: 'Wesprzyj kościół', qr: bank, lines: [bank && 'Zeskanuj w aplikacji banku', phone && 'BLIK na telefon: ' + phone].filter(Boolean) })
+    if (bank || phone) tiles.push({ head: 'Wesprzyj kościół', qr: bank, lines: [bank && 'Zeskanuj w aplikacji banku', phone && 'albo BLIK na numer ' + phone].filter(Boolean) })
     if (e.youtube) tiles.push({ head: 'YouTube', qr: e.youtube, lines: ['Kazania i transmisje'] })
     if (e.spotify) tiles.push({ head: 'Spotify', qr: e.spotify, lines: ['Kazania jako podcast'] })
     if (!tiles.length) { text('Kościół Na Skale · kns-nabo.netlify.app', W / 2, 640, { size: 38, weight: 500, color: '#6b6258', align: 'center' }); return }
@@ -308,7 +346,7 @@ const SCENE_DRAW = {
       g.fillStyle = '#f6a836'; rounded(x, y, tw, 8, 4); g.fill()
       text(tl.head, x + tw / 2, y + 66, { size: 40, weight: 800, color: '#2b2b2b', align: 'center' })
       if (tl.qr) qr(tl.qr, x + (tw - 250) / 2, y + 92, 250)
-      else { tl.lines = []; text('BLIK na telefon', x + tw / 2, y + 190, { size: 34, weight: 600, color: '#6b6258', align: 'center' }); text(phone, x + tw / 2, y + 270, { size: 60, weight: 800, color: '#e8952f', align: 'center' }) }
+      else { tl.lines = []; text('Przelew BLIK na numer', x + tw / 2, y + 180, { size: 34, weight: 600, color: '#6b6258', align: 'center' }); text(phone, x + tw / 2, y + 265, { size: 64, weight: 800, color: '#e8952f', align: 'center' }); text('Dziękujemy za każde wsparcie!', x + tw / 2, y + 360, { size: 28, weight: 500, color: '#6b6258', align: 'center' }) }
       tl.lines.forEach((l, k) => text(l, x + tw / 2, y + (tl.qr ? 385 : 300) + k * 38, { size: k ? 30 : 27, weight: k ? 800 : 500, color: k ? '#2b2b2b' : '#6b6258', align: 'center' }))
     })
   },
@@ -316,8 +354,8 @@ const SCENE_DRAW = {
   projectorPip(t) {
     projectorFrame(t)
     // okienko z kamerą (z ATEM — to, co jest na wizji): wybrany róg, małe albo duże
-    const w = studio.pip.size === 'large' ? 800 : 512, h = w * 9 / 16, m = 48
-    const x = studio.pip.corner.includes('l') ? m : W - w - m, y = studio.pip.corner.includes('t') ? m : H - h - m
+    const w = S.pip.size === 'large' ? 800 : 512, h = w * 9 / 16, m = 48
+    const x = S.pip.corner.includes('l') ? m : W - w - m, y = S.pip.corner.includes('t') ? m : H - h - m
     g.save(); g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 40; rounded(x, y, w, h, 22); g.fillStyle = '#000'; g.fill(); g.restore()
     g.save(); rounded(x, y, w, h, 22); g.clip(); camera(x, y, w, h); g.restore()
     g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
@@ -325,7 +363,7 @@ const SCENE_DRAW = {
 }
 // Napisy pieśni: biały tekst, miękki cień, przenikanie przy zmianie zwrotki.
 function lyrics(t) {
-  if (!studio.lyricsOn) return
+  if (!S.lyricsOn) return
   if (studio.lyrics !== lyricShown) { lyricPrev = lyricShown; lyricShown = studio.lyrics; lyricAt = t }
   const k = Math.min(1, (t - lyricAt) / 300)
   const draw = (str, alpha) => {
@@ -339,12 +377,17 @@ function lyrics(t) {
 // Pasek z mówcą i tytułem kazania (wjeżdża z lewej), z logo kościoła w białym kółku.
 function lowerThird(t) {
   const svc = nearestService.value
-  if (!studio.lowerThird || !svc || !(svc.speaker || svc.sermonTitle)) return
-  const k = Math.min(1, (t - lowerAt) / 500), e = 1 - Math.pow(1 - k, 3)
-  const sub = [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ')
-  g.save(); g.font = '800 46px "Segoe UI", system-ui, sans-serif'; const w1 = g.measureText(svc.speaker || 'Kazanie').width
-  g.font = '500 32px "Segoe UI", system-ui, sans-serif'; const w2 = g.measureText(sub).width; g.restore()
-  const w = Math.min(1500, Math.max(620, 230 + Math.max(w1, w2) + 60)), bh = 150
+  if (!svc || !(svc.speaker || svc.sermonTitle)) return
+  // po wyłączeniu pasek wyjeżdża w lewo (pół sekundy)
+  const off = !S.lowerThird
+  if (off && !(S.lowerOff && t - S.lowerOff < 500)) return
+  const k = off ? 1 - Math.min(1, (t - S.lowerOff) / 500) : Math.min(1, (t - S.lowerAt) / 500), e = 1 - Math.pow(1 - k, 3)
+  const maxText = 1500 - 282
+  const name = fitLine(svc.speaker || 'Kazanie', maxText, 46, 34, 800)
+  const sub = fitLine([svc.sermonTitle, svc.passage].filter(Boolean).join(' · '), maxText, 32, 24, 500)
+  g.save(); g.font = `800 ${name.size}px "Segoe UI", system-ui, sans-serif`; const w1 = g.measureText(name.str).width
+  g.font = `500 ${sub.size}px "Segoe UI", system-ui, sans-serif`; const w2 = g.measureText(sub.str).width; g.restore()
+  const w = Math.min(1500, Math.max(620, 222 + Math.max(w1, w2) + 60)), bh = 150
   const x = -w + (w + 60) * e, y = H - 250
   g.save(); g.globalAlpha = e
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30
@@ -357,8 +400,8 @@ function lowerThird(t) {
   const lg = img('./znak-obrys.png')
   if (lg) g.drawImage(lg, cx - 72, cy - 72, 144, 144)
   g.restore()
-  text(svc.speaker || 'Kazanie', x + 222, y + 66, { size: 46, weight: 800, alpha: e })
-  text(sub, x + 222, y + 116, { size: 32, weight: 500, color: '#d6d8e0', alpha: e })
+  text(name.str, x + 222, y + 66, { size: name.size, weight: 800, alpha: e })
+  text(sub.str, x + 222, y + 116, { size: sub.size, weight: 500, color: '#d6d8e0', alpha: e })
 }
 // To, co pokazuje rzutnik (etap 2): grafika, film, tekst/slajd.
 let projVideo = null
@@ -395,16 +438,22 @@ function projectorFrame(t) {
 /* ---------- pętla rysowania i kodowanie ---------- */
 function frame() {
   const t = performance.now()
-  if (studio.scene === 'countdown') { const l = countdownLeft(); if (l !== studio.left) studio.left = l }
-  const draw = SCENE_DRAW[studio.scene] || SCENE_DRAW.camera
-  draw(t)
-  if (sceneFrom && t - sceneAt < 500) {
-    // przenikanie: poprzednia scena znika
-    g.save(); g.globalAlpha = 1 - (t - sceneAt) / 500
-    const tmp = getScratch(); const sg = tmp.getContext('2d'); const keep = g; g = sg
-    try { (SCENE_DRAW[sceneFrom] || SCENE_DRAW.camera)(t) } finally { g = keep }
+  if (studio.program.scene === 'countdown' || studio.preview.scene === 'countdown') { const l = countdownLeft(); if (l !== studio.left) studio.left = l }
+  S = studio.program
+  ;(SCENE_DRAW[S.scene] || SCENE_DRAW.camera)(t)
+  if (progFrom && t - progAt < 500) {
+    // przenikanie: poprzedni wygląd wizji znika
+    g.save(); g.globalAlpha = 1 - (t - progAt) / 500
+    const tmp = getScratch(); const sg = tmp.getContext('2d'); const keep = g; g = sg; S = progFrom
+    try { (SCENE_DRAW[S.scene] || SCENE_DRAW.camera)(t) } finally { g = keep; S = studio.program }
     g.drawImage(tmp, 0, 0); g.restore()
-  } else sceneFrom = null
+  } else progFrom = null
+  // podgląd: co drugą klatkę, w połowie rozdzielczości (słabszy komputer)
+  if (pvCanvas?.isConnected && !studio.direct && frameNo2++ % 2 === 0) {
+    const keep = g; g = pv; S = studio.preview
+    g.setTransform(PV, 0, 0, PV, 0, 0)
+    try { (SCENE_DRAW[S.scene] || SCENE_DRAW.camera)(t) } finally { g.setTransform(1, 0, 0, 1, 0, 0); g = keep; S = studio.program }
+  }
   if (encoder && encoder.state === 'configured') {
     if (encoder.encodeQueueSize > 4) return // karta nie nadąża — klatka pominięta zamiast opóźnienia
     const vf = new VideoFrame(canvas, { timestamp: Math.round(t * 1000) })
@@ -418,12 +467,45 @@ function frame() {
 let scratch = null
 function getScratch() { if (!scratch) { scratch = document.createElement('canvas'); scratch.width = W; scratch.height = H } return scratch }
 
-export function setScene(id) {
-  if (id === studio.scene) return
-  sceneFrom = studio.scene; sceneAt = performance.now()
-  studio.scene = id
+/* ---------- podgląd → wizja ---------- */
+const snap = l => ({ ...l, pip: { ...l.pip } })
+const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.lyricsOn === b.lyricsOn && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size
+export const differs = () => !same(studio.preview, studio.program)
+function toProgram(fn) {
+  const before = snap(studio.program)
+  fn(studio.program)
+  if (studio.program.lowerThird && !before.lowerThird) studio.program.lowerAt = performance.now()
+  if (!studio.program.lowerThird && before.lowerThird) studio.program.lowerOff = performance.now()
+  // sam pasek mówcy wjeżdża/wyjeżdża — bez przenikania całego obrazu
+  if (!same({ ...before, lowerThird: studio.program.lowerThird }, studio.program)) { progFrom = before; progAt = performance.now() }
 }
-export function toggleLowerThird() { studio.lowerThird = !studio.lowerThird; lowerAt = performance.now() }
+// Zmiana idzie na podgląd; przy „Od razu na wizję” — też na wizję.
+function change(fn) {
+  fn(studio.preview)
+  if (studio.preview.lowerThird) studio.preview.lowerAt = studio.preview.lowerAt || performance.now()
+  if (studio.direct) toProgram(fn)
+}
+export function setScene(id) { change(l => { l.scene = id }) }
+export function toggleLowerThird() { change(l => { l.lowerThird = !l.lowerThird; l[l.lowerThird ? 'lowerAt' : 'lowerOff'] = performance.now() }) }
+export function toggleLyrics() { change(l => { l.lyricsOn = !l.lyricsOn }) }
+export function setPip(p) { change(l => { l.pip = { ...l.pip, ...p } }) }
+// „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
+export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, lyricsOn: p.lyricsOn, pip: p.pip }) }) }
+export function setDirect(v) { studio.direct = !!v; if (v) take() }
+// Wygląd na start (zapamiętane okienko): ten sam na podglądzie i wizji.
+export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip } }
+
+let pvCanvas = null, pv = null, frameNo2 = 0
+const PV = 0.5
+export function previewCanvas() {
+  if (!pvCanvas) {
+    pvCanvas = document.createElement('canvas')
+    pvCanvas.width = W * PV; pvCanvas.height = H * PV
+    pvCanvas.className = 'studio-canvas'
+    pv = pvCanvas.getContext('2d', { alpha: false })
+  }
+  return pvCanvas
+}
 
 // Płótno studia (podgląd w oknie — ten sam obraz, który idzie na YouTube).
 export function studioCanvas() {
