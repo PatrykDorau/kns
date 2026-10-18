@@ -841,6 +841,7 @@
   .account .roles { color: var(--text); }
   .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
 </style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <!-- Ikony (kreskowe 24×24), używane przez <svg class="i"><use href="#..."></svg> -->
@@ -895,6 +896,34 @@
 </svg>
 
 <div id="app" v-cloak>
+  <!-- Szeroki ekran: stały boczny pasek — wszystkie części aplikacji, konto na dole. -->
+  <aside v-if="ready" class="side" aria-label="Nawigacja">
+    <div class="side-top">
+      <button class="side-brand" title="Strona startowa" @click="navTo('home')"><img src="znak.png" alt=""><span><b>Kościół Na Skale</b><small>KNS Nabo</small></span></button>
+      <button v-if="api.enabled" class="side-ib" :class="{ on: inboxOpen }" title="Powiadomienia" aria-label="Powiadomienia" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="side-dot">{{ unread }}</span></button>
+      <button class="side-ib" :class="{ spin: busy }" :disabled="busy" title="Odśwież" aria-label="Odśwież" @click="reload()"><svg class="i"><use href="#refresh"/></svg></button>
+    </div>
+    <nav class="side-nav">
+      <template v-for="grp in sideNav" :key="grp.title">
+        <small v-if="grp.title" class="side-sec">{{ grp.title }}</small>
+        <button v-for="it in grp.items" :key="it.id" class="side-it" :class="{ on: navOn(it.id) }" :aria-current="navOn(it.id) ? 'page' : null" @click="navTo(it.id)">
+          <svg class="i"><use :href="'#' + it.icon"/></svg><span>{{ it.name }}</span><em v-if="it.badge" class="side-badge">{{ it.badge }}</em>
+        </button>
+      </template>
+    </nav>
+    <div v-if="desktop && !inApp && canCamera && desktopApp.url" class="side-app">
+      <b>Rzutnik i Stream</b><small>aplikacja na komputer</small>
+      <a class="button" :href="desktopApp.url"><svg class="i"><use href="#download"/></svg>Pobierz</a>
+    </div>
+    <div v-if="me" class="side-me">
+      <button class="side-me-btn" :class="{ on: profileView }" title="Mój profil" @click="navTo('profile')">
+        <span class="kh-av">{{ initials(me) }}</span>
+        <span class="side-me-text"><b>{{ me.name || me.email }}</b><small>{{ myRanks || 'Członek' }}</small></span>
+        <svg v-if="needsName" class="i kh-warn" aria-label="Uzupełnij imię i nazwisko"><use href="#warn"/></svg>
+      </button>
+      <button class="side-ib" title="Wyloguj" aria-label="Wyloguj" @click="logout"><svg class="i"><use href="#logout"/></svg></button>
+    </div>
+  </aside>
   <!-- Szeroki ekran: pasek konta na górze każdego widoku (jak w aplikacji na komputer). -->
   <div v-if="ready" class="kh kh-bar">
       <div class="kh-top">
@@ -914,21 +943,21 @@
   <header>
     <img src="znak.png" alt="">
     <h1>{{ current ? (svcEditing && canEdit ? 'Edycja nabożeństwa' : 'Nabożeństwo') : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja materiału' : 'Nowy materiał') : MAT_TYPES[matType(currentProto)]) : currentEvent ? (eventEditing && eventEditable ? (eventSavedOnce ? 'Edycja wydarzenia' : 'Nowe wydarzenie') : 'Wydarzenie') : protoView ? 'Materiały' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : listenView ? 'Posłuchaj' : asbView ? 'ASB' : goalsView ? 'Cele wsparcia' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
-    <button v-if="current" class="ghost" @click="back"><svg class="i"><use href="#back"/></svg>{{ svcEditing && services.some(x => x.id === current.id) ? 'Podgląd' : cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
-    <button v-else-if="currentAnn" class="ghost" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
-    <button v-else-if="annView" class="ghost" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="currentProto" class="ghost" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Materiały' }}</button>
-    <button v-else-if="currentEvent" class="ghost" @click="closeEvent"><svg class="i"><use href="#back"/></svg>{{ eventEditing && eventSavedOnce ? 'Podgląd' : 'Kalendarz' }}</button>
-    <button v-else-if="tplType" class="ghost" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
-    <button v-else-if="tplView" class="ghost" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="protoView" class="ghost" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="song" class="ghost" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
-    <button v-else-if="profileView" class="ghost" @click="profileView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="serveView || listenView || asbView || goalsView" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
-    <button v-else-if="gcalView" class="ghost" @click="gcalView = false; calView = true"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
-    <button v-else-if="songView || peopleView" class="ghost" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
+    <button v-if="current" class="ghost back" @click="back"><svg class="i"><use href="#back"/></svg>{{ svcEditing && services.some(x => x.id === current.id) ? 'Podgląd' : cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
+    <button v-else-if="currentAnn" class="ghost back" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
+    <button v-else-if="annView" class="ghost back to-start" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
+    <button v-else-if="currentProto" class="ghost back" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Materiały' }}</button>
+    <button v-else-if="currentEvent" class="ghost back" @click="closeEvent"><svg class="i"><use href="#back"/></svg>{{ eventEditing && eventSavedOnce ? 'Podgląd' : 'Kalendarz' }}</button>
+    <button v-else-if="tplType" class="ghost back" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
+    <button v-else-if="tplView" class="ghost back to-start" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
+    <button v-else-if="protoView" class="ghost back to-start" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
+    <button v-else-if="song" class="ghost back" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
+    <button v-else-if="profileView" class="ghost back to-start" @click="profileView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
+    <button v-else-if="serveView || listenView || asbView || goalsView" class="ghost wide-only back to-start" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
+    <button v-else-if="gcalView" class="ghost back" @click="gcalView = false; calView = true"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
+    <button v-else-if="songView || peopleView" class="ghost back to-start" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
-      <button v-if="ready && (calView || moreView)" class="ghost wide-only" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
+      <button v-if="ready && (calView || moreView)" class="ghost wide-only back to-start" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
       <button v-if="ready" class="ghost" :class="{ 'narrow-only': !peopleView }" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
     </template>
     <button v-if="ready && api.enabled && !current && !currentEvent && !currentAnn && !currentProto && !song && !tplType" class="ghost bell narrow-only" aria-label="Powiadomienia" title="Powiadomienia" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="count">{{ unread }}</span></button>
@@ -1264,7 +1293,10 @@
       <div class="ann-tags"><span class="ann-tag" :style="{ background: 'color-mix(in srgb, ' + typeOf(currentEvent.type).color + ' 22%, transparent)', color: typeOf(currentEvent.type).color }">{{ typeOf(currentEvent.type).name }}</span></div>
       <h2 class="ann-view-title">{{ currentEvent.title || typeOf(currentEvent.type).name }}</h2>
       <p v-if="typeOf(currentEvent.type).community" class="ev-community"><svg class="i"><use href="#users"/></svg>Inicjatywa członków kościoła{{ currentEvent.createdBy ? ' — organizuje: ' + currentEvent.createdBy : '' }}</p>
-      <p class="ann-view-meta">{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time"> · {{ currentEvent.time }}</template><template v-if="currentEvent.place"> · {{ currentEvent.place }}</template></p>
+      <div class="facts">
+        <span class="fact"><svg class="i"><use href="#calendar"/></svg><span><small>Kiedy</small><b>{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time">, {{ currentEvent.time }}</template></b></span></span>
+        <a v-if="currentEvent.place" class="fact" :href="mapLink(currentEvent.place)" target="_blank" rel="noopener"><svg class="i"><use href="#pin"/></svg><span><small>Gdzie · mapa</small><b>{{ currentEvent.place }}</b></span></a>
+      </div>
       <div v-if="currentEvent.description" class="ann-view-text">{{ currentEvent.description }}</div>
       <template v-if="(currentEvent.people || []).length">
         <h3 class="view-h">Biorą udział</h3>
@@ -1464,7 +1496,7 @@
     </div>
     <div v-if="canSubmit" class="invite invite-cal"><svg class="i"><use href="#users"/></svg><span><b>Zaproś kościół na swoje wydarzenie</b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg>{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</button></div>
     <div class="cal-actions">
-      <button v-if="canSubmit" class="primary" @click="pickType = true"><svg class="i"><use href="#plus"/></svg>{{ canEdit || canReview ? 'Nowe wydarzenie' : 'Zgłoś wydarzenie' }}</button>
+      <!-- nowe wydarzenie: przycisk w karcie zaproszenia powyżej -->
       <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg>Dodaj do swojego kalendarza</button>
       <button v-if="canEdit" @click="openTemplates">Szablony</button>
     </div>
@@ -1969,48 +2001,42 @@
         <ul class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
       </section>
 
-      <div class="kh-tiles">
-        <button v-for="t in webTiles" :key="t.id" class="kh-tile" :class="{ locked: t.locked }" :disabled="t.locked" :title="t.desc" @click="chooseTile(t)">
-          <span class="kh-tile-ic"><svg class="i"><use :href="'#' + t.icon"/></svg></span>
-          <span class="kh-tile-text">
-            <span class="kh-tile-name">{{ t.name }}<em v-if="t.pill" class="kh-pill" :class="t.pill === 'Braki' ? 'bad' : 'ok'">{{ t.pill }}</em></span>
-            <span class="kh-tile-desc">{{ t.desc }}</span>
-          </span>
-          <svg class="i kh-tile-go"><use :href="'#' + t.go"/></svg>
-        </button>
-      </div>
+      <!-- komunikaty rady: baner na górze -->
+      <button v-for="a in importantAnns" :key="a.id" class="hw-banner" :class="{ fresh: annIsNew(a) }" @click="openAnn(a)">
+        <span class="hw-banner-ic"><svg class="i"><use href="#megaphone"/></svg></span>
+        <span class="hw-banner-text"><small>Komunikat rady zboru<em v-if="annIsNew(a)" class="kh-new">Nowe</em></small><b>{{ a.title }}</b><span>{{ a.text }}</span></span>
+        <span class="hw-go">Czytaj<svg class="i"><use href="#chev"/></svg></span>
+      </button>
 
-      <div class="kh-top2" :class="{ solo: !importantAnns.length }">
-        <button v-if="nextService" class="kh-svc" @click="open(nextService)">
-          <span class="kh-tag"><svg class="i"><use href="#calendar"/></svg>Najbliższe nabożeństwo</span>
-          <b>{{ pretty(nextService.date).replace(/ \d{4}$/, '') }}, {{ nextService.time || DEFAULT_TIME }}</b>
-          <span class="kh-body">{{ [nextService.sermonTitle, nextService.passage].filter(Boolean).join(' · ') || 'Bez tytułu kazania' }}<template v-if="nextService.speaker"> — {{ nextService.speaker }}</template></span>
-          <span class="kh-foot"><span class="kh-until" :class="{ live: countdown?.live }">{{ countdown?.live ? 'W trakcie' : untilText }}</span>{{ nextService.place || DEFAULT_PLACE }}<em v-if="canEdit && missing(nextService).length" class="kh-pill bad">Braki</em></span>
-        </button>
-        <article v-if="!nextService" class="kh-svc kh-svc-empty">
-          <span class="kh-tag"><svg class="i"><use href="#calendar"/></svg>Najbliższe nabożeństwo</span>
-          <b>Jeszcze nie zaplanowane</b>
-          <span class="kh-body">Następne nabożeństwo czeka na wypełnienie{{ canEdit ? ' — dodaj datę, kazanie i pieśni.' : '.' }}</span>
-          <span class="kh-foot"><button v-if="canEdit" class="kh-link" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(planSunday) }}</button></span>
-        </article>
-        <section v-if="importantAnns.length" class="kh-panel">
-          <div class="kh-panel-h"><h2>Komunikaty rady zboru</h2><span v-if="importantAnns.length" class="kh-count">{{ importantAnns.length }}</span><span v-if="newAnnCount" class="kh-muted">{{ newAnnCount }} {{ newAnnCount === 1 ? 'nowy' : 'nowe' }}</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie ogłoszenia</button></div>
-          <div v-if="importantAnns.length" class="kh-notes">
-            <button v-for="a in importantAnns" :key="a.id" class="kh-note" :class="{ fresh: annIsNew(a) }" @click="openAnn(a)">
-              <img v-if="a.image" class="kh-note-ic" :src="a.image" alt="" loading="lazy">
-              <span v-else class="kh-note-ic"><svg class="i"><use href="#megaphone"/></svg></span>
-              <span class="kh-note-text">
-                <b><span style="overflow:hidden;text-overflow:ellipsis">{{ a.title }}</span><em v-if="annIsNew(a)" class="kh-new">Nowe</em><em v-if="a.video" class="kh-film">▶ Film</em></b>
-                <span class="kh-note-body">{{ a.text }}</span>
-                <small>{{ shortDate(a.date) }}<template v-if="a.until"> · ważne do {{ shortDate(a.until) }}</template></small>
-              </span>
-              <svg class="i"><use href="#chev"/></svg>
-            </button>
-          </div>
-          <p v-else class="kh-none">Brak aktualnych komunikatów.</p>
-        </section>
-      </div>
-
+      <!-- najbliższe nabożeństwo: duża karta (data po lewej, szczegóły i przycisk po prawej) -->
+      <article class="hw-feature">
+        <div class="hw-visual">
+          <span class="hw-step">1</span><span class="hw-kicker">Najbliższe nabożeństwo</span>
+          <template v-if="nextService">
+            <div class="hw-date"><b>{{ asDate(nextService.date).getDate() }}</b><span>{{ asDate(nextService.date).toLocaleDateString('pl', { month: 'long' }) }}<small>{{ asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) }}</small></span></div>
+            <span class="hw-until" :class="{ live: countdown?.live }"><i></i>{{ countdown?.live ? 'Trwa teraz' : untilText }}</span>
+          </template>
+          <div v-else class="hw-date"><b>—</b><span>wkrótce<small>termin do uzupełnienia</small></span></div>
+        </div>
+        <div class="hw-info">
+          <template v-if="nextService">
+            <h2>{{ nextService.sermonTitle || 'Nabożeństwo' }}</h2>
+            <p>{{ [nextService.passage, nextService.speaker].filter(Boolean).join(' — ') || 'Temat kazania pojawi się wkrótce.' }}</p>
+            <dl class="hw-rows">
+              <div><dt>Godzina</dt><dd>{{ nextService.time || DEFAULT_TIME }}</dd></div>
+              <div><dt>Miejsce</dt><dd>{{ nextService.place || DEFAULT_PLACE }}</dd></div>
+              <div v-if="(nextService.songs || []).length"><dt>Pieśni</dt><dd>{{ nextService.songs.length }}</dd></div>
+              <div v-if="canEdit"><dt>Przygotowanie</dt><dd :class="missing(nextService).length ? 'bad' : 'ok'">{{ missing(nextService).length ? 'brakuje: ' + missing(nextService).join(', ') : 'komplet' }}</dd></div>
+            </dl>
+            <button class="primary hw-cta" @click="open(nextService)">{{ canEdit && missing(nextService).length ? 'Uzupełnij nabożeństwo' : 'Zobacz nabożeństwo' }}<svg class="i"><use href="#chev"/></svg></button>
+          </template>
+          <template v-else>
+            <h2>Jeszcze nie zaplanowane</h2>
+            <p>Następne nabożeństwo czeka na wypełnienie{{ canEdit ? ' — dodaj datę, kazanie i pieśni.' : '.' }}</p>
+            <button v-if="canEdit" class="primary hw-cta" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(planSunday) }}</button>
+          </template>
+        </div>
+      </article>
 
       <section v-if="reviewItems.length" class="kh-panel kh-review">
         <div class="kh-panel-h"><h2>{{ canReview ? 'Do zatwierdzenia' : 'Twoje zgłoszenia' }}</h2><span class="kh-muted">{{ canReview ? 'czekają na Twoją decyzję' : 'czekają na zatwierdzenie' }}</span></div>
@@ -2022,7 +2048,57 @@
           </button>
         </div>
       </section>
-      <div class="kh-panels">
+
+      <!-- trzy kolumny: ogłoszenia, tydzień, wspólnota -->
+      <div class="hw-cols">
+        <section class="hw-col">
+          <h3 class="hw-h"><span class="hw-step">2</span>Ogłoszenia<small v-if="newAnnCount">{{ newAnnCount }} {{ newAnnCount === 1 ? 'nowe' : 'nowych' }}</small></h3>
+          <button v-for="a in boardNews.slice(0, 5)" :key="a.id" class="hw-row" :class="{ fresh: annIsNew(a) }" @click="openAnn(a)">
+            <img v-if="a.image" class="hw-thumb" :src="a.image" alt="" loading="lazy"><span v-else class="hw-thumb">{{ a.title.trim()[0]?.toUpperCase() }}</span>
+            <span class="hw-row-text"><b>{{ a.title }}</b><small>{{ shortDate(a.date) }}<template v-if="annIsNew(a)"> · <em>nowe</em></template></small></span>
+            <svg class="i hw-arr"><use href="#chev"/></svg>
+          </button>
+          <p v-if="!boardNews.length" class="hw-none">Nie ma nowych ogłoszeń.</p>
+          <button class="hw-link" @click="openAnns">Wszystkie ogłoszenia<template v-if="boardMore.n"> ({{ boardAll.length }})</template><svg class="i"><use href="#chev"/></svg></button>
+        </section>
+        <section class="hw-col">
+          <h3 class="hw-h"><span class="hw-step">3</span>Ten tydzień<small>{{ weekRange }}</small></h3>
+          <template v-for="d in weekDays" :key="d.date">
+            <button v-for="it in d.items" :key="it.kind + it.id" class="hw-row hw-ev" :class="{ today: d.date === todayStr }" :style="{ '--c': typeOf(it.type).color }" @click="openItem(it)">
+              <span class="hw-day"><small>{{ d.date === todayStr ? 'dziś' : d.wd }}</small><b>{{ d.n }}</b></span>
+              <span class="hw-row-text"><b>{{ it.kind === 'service' ? 'Nabożeństwo' : it.title }}</b><small><i></i>{{ it.time || 'cały dzień' }} · {{ typeOf(it.type).name }}</small></span>
+              <svg class="i hw-arr"><use href="#chev"/></svg>
+            </button>
+          </template>
+          <p v-if="!weekDays.some(d => d.items.length)" class="hw-none">Spokojny tydzień — nic nie zaplanowano.</p>
+          <div class="hw-links">
+            <button class="hw-link" @click="openCalendar">Kalendarz<svg class="i"><use href="#chev"/></svg></button>
+            <button v-if="canSubmit" class="hw-link" title="Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie." @click="inviteEvent"><svg class="i"><use href="#plus"/></svg>Zaproś na swoje wydarzenie</button>
+          </div>
+        </section>
+        <section v-if="api.enabled" class="hw-col">
+          <h3 class="hw-h"><span class="hw-step">4</span>Wspólnota</h3>
+          <button v-if="goalDue" class="hw-row hw-due" @click="openGoals()">
+            <span class="hw-thumb"><svg class="i"><use href="#money"/></svg></span>
+            <span class="hw-row-text"><b>Potwierdź {{ monthName(goalDue.month).split(' ')[0] }}</b><small>dziesięcina co najmniej {{ zl(itemsSum(goalDue)) }}</small></span>
+            <svg class="i hw-arr"><use href="#chev"/></svg>
+          </button>
+          <button v-for="g in goals.list.filter(x => !x.closed).slice(0, 2)" :key="g.id" class="hw-row hw-goal" @click="openGoals(g.id)">
+            <span class="hw-row-text"><b>{{ g.title }}</b><span class="hw-bar"><i :style="{ width: goalPct(g) + '%' }"></i></span><small>{{ zl(g.confirmed) }} z {{ zl(g.target) }} · {{ goalPct(g) }}%</small></span>
+            <svg class="i hw-arr"><use href="#chev"/></svg>
+          </button>
+          <button v-if="serve.list.some(m => m.seeking)" class="hw-row" @click="openServe">
+            <span class="hw-thumb"><svg class="i"><use href="#serve"/></svg></span>
+            <span class="hw-row-text"><b>Szukają chętnych</b><small>{{ serve.list.filter(m => m.seeking).map(m => m.name).join(', ') }}</small></span>
+            <svg class="i hw-arr"><use href="#chev"/></svg>
+          </button>
+          <div class="hw-links">
+            <button class="hw-link" @click="openGoals()">Cele wsparcia<svg class="i"><use href="#chev"/></svg></button>
+            <button class="hw-link" @click="openServe">Zaangażuj się<svg class="i"><use href="#chev"/></svg></button>
+          </div>
+        </section>
+      </div>
+      <div class="kh-panels hw-old">
         <section class="kh-panel">
           <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie</button></div>
           <div v-if="boardNews.length" class="kh-anns">
@@ -2142,15 +2218,17 @@
   <template v-else>
     <!-- podgląd nabożeństwa (bez prawa edycji) -->
     <article v-if="!canEdit || !svcEditing" class="ann-view svc-view">
-      <div class="ann-tags"><span class="ann-tag pin">Nabożeństwo</span></div>
-      <h2 class="ann-view-title">{{ pretty(current.date).replace(/ \d{4}$/, '').replace(/^./, c => c.toUpperCase()) }}</h2>
-      <p class="ann-view-meta">{{ current.time || DEFAULT_TIME }} · {{ current.place || DEFAULT_PLACE }}</p>
-      <div v-if="current.sermonTitle || current.passage || current.speaker" class="view-card">
-        <small>Kazanie</small>
-        <b>{{ current.sermonTitle || 'Bez tytułu' }}</b>
-        <span>{{ [current.passage, current.speaker].filter(Boolean).join(' — ') }}</span>
-        <ul v-if="thoughtList(current).length" class="kh-th-list"><li v-for="(t, i) in thoughtList(current)" :key="i">{{ t }}</li></ul>
+      <div class="dv-hero">
+        <div class="ann-tags"><span class="ann-tag pin">Nabożeństwo</span><span v-if="canEdit" class="ann-tag" :class="missing(current).length ? 'dv-bad' : 'dv-ok'">{{ missing(current).length ? 'Braki: ' + missing(current).length : 'Komplet' }}</span></div>
+        <h2 class="ann-view-title">{{ pretty(current.date).replace(/ \d{4}$/, '').replace(/^./, c => c.toUpperCase()) }}</h2>
+        <div class="facts">
+          <span class="fact"><svg class="i"><use href="#calendar"/></svg><span><small>Godzina</small><b>{{ current.time || DEFAULT_TIME }}</b></span></span>
+          <a class="fact" :href="mapLink(current.place || DEFAULT_PLACE)" target="_blank" rel="noopener"><svg class="i"><use href="#pin"/></svg><span><small>Miejsce · mapa</small><b>{{ current.place || DEFAULT_PLACE }}</b></span></a>
+          <span v-if="current.speaker" class="fact"><svg class="i"><use href="#mic"/></svg><span><small>Kazanie</small><b>{{ current.speaker }}</b></span></span>
+        </div>
       </div>
+      <div class="dv-grid">
+      <div class="dv-main">
       <template v-if="(current.program || []).length">
         <h3 class="view-h">Harmonogram</h3>
         <program-editor :items="current.program" :start="current.time || DEFAULT_TIME" readonly :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }">
@@ -2161,11 +2239,25 @@
         <h3 class="view-h">Pieśni</h3>
         <span class="view-songs"><span v-for="e in current.songs" :key="e.key">♪ {{ songTitle(e) }}</span></span>
       </template>
-      <template v-if="current.band"><h3 class="view-h">Zespół</h3><div class="ann-view-text">{{ (current.bandList || []).length ? current.bandList.map(b => b.name + (b.instrument ? ' — ' + b.instrument : '')).join('\n') : current.band }}</div></template>
-      <template v-if="current.notes"><h3 class="view-h">Informacje</h3><div class="ann-view-text">{{ current.notes }}</div></template>
-      <p v-if="canEdit && missing(current).length" class="pending-note"><svg class="i"><use href="#warn"/></svg>Brakuje: {{ missing(current).join(', ') }}</p>
+      </div>
+      <aside class="dv-side">
+        <p v-if="canEdit && missing(current).length" class="pending-note"><svg class="i"><use href="#warn"/></svg>Brakuje: {{ missing(current).join(', ') }}</p>
+        <div v-if="current.sermonTitle || current.passage || current.speaker" class="view-card">
+          <small>Kazanie</small>
+          <b>{{ current.sermonTitle || 'Bez tytułu' }}</b>
+          <span>{{ [current.passage, current.speaker].filter(Boolean).join(' — ') }}</span>
+          <ul v-if="thoughtList(current).length" class="kh-th-list"><li v-for="(t, i) in thoughtList(current)" :key="i">{{ t }}</li></ul>
+        </div>
+        <div v-if="current.band" class="dv-card">
+          <small class="dv-card-h">Zespół</small>
+          <ul v-if="(current.bandList || []).length" class="dv-people"><li v-for="b in current.bandList" :key="b.key"><span class="dv-av">{{ initials({ name: b.name, email: b.name }) }}</span><span><b>{{ b.name }}</b><small v-if="b.instrument">{{ b.instrument }}</small></span></li></ul>
+          <div v-else class="ann-view-text">{{ current.band }}</div>
+        </div>
+        <div v-if="current.notes" class="dv-card"><small class="dv-card-h">Informacje</small><div class="ann-view-text">{{ current.notes }}</div></div>
+        <button v-if="canEdit" class="ann-edit-btn" :class="{ primary: missing(current).length }" @click="svcEditing = true"><svg class="i"><use href="#pencil"/></svg>{{ missing(current).length ? 'Uzupełnij nabożeństwo' : 'Edytuj nabożeństwo' }}</button>
+      </aside>
+      </div>
       <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
-      <button v-if="canEdit" class="ann-edit-btn" @click="svcEditing = true"><svg class="i"><use href="#pencil"/></svg>{{ missing(current).length ? 'Uzupełnij nabożeństwo' : 'Edytuj nabożeństwo' }}</button>
     </article>
     <template v-else>
     <fieldset class="plain" :disabled="!canEdit">
@@ -2655,7 +2747,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.83 · 18.10.2026'
+const VERSION = '2.84 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3037,10 +3129,69 @@ createApp({
     // Pasek konta → strona startowa: zamyka otwarte edytory i listy (z pytaniem o niezapisane zmiany).
     function closeAll() {
       if ((current.value && dirty.value) || (currentEvent.value && eventDirty.value) || (currentAnn.value && annDirty.value)) {
-        if (!confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
+        if (!confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return false
       }
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null
       tplType.value = null; tplView.value = false; protoView.value = false; annView.value = false
+      return true
+    }
+    // Boczny pasek (szeroki ekran): części aplikacji w grupach; aktywna — podświetlona.
+    const mapLink = place => (/^(online|zoom|teams|meet)\b/i.test(String(place).trim()) ? null : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place))
+    const sideNav = computed(() => {
+      const tech = canCamera.value
+      return [
+        { title: '', items: [
+          { id: 'home', icon: 'church', name: 'Start' },
+          { id: 'cal', icon: 'calendar', name: 'Kalendarz' },
+          ...(canEdit.value ? [{ id: 'svc', icon: 'book', name: 'Nabożeństwa', badge: nextService.value && missing(nextService.value).length ? '!' : '' }] : []),
+          { id: 'anns', icon: 'megaphone', name: 'Ogłoszenia', badge: activeAnns.value.filter(annIsNew).length || '' },
+        ] },
+        ...(api.enabled ? [{ title: 'Wspólnota', items: [
+          { id: 'serve', icon: 'serve', name: 'Zaangażuj się' },
+          { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '' },
+          { id: 'listen', icon: 'music', name: 'Posłuchaj' },
+          { id: 'asb', icon: 'users', name: 'ASB' },
+        ] }] : []),
+        { title: 'Narzędzia', items: [
+          ...(inApp && tech ? [{ id: 'display', icon: 'monitor', name: 'Rzutnik' }, { id: 'stream', icon: 'camera', name: 'Stream' }] : []),
+          { id: 'songs', icon: 'music', name: 'Pieśni' },
+          { id: 'mats', icon: 'list', name: 'Materiały' },
+          ...(canEdit.value ? [{ id: 'tpl', icon: 'file', name: 'Szablony' }] : []),
+          ...(canManage.value ? [{ id: 'people', icon: 'user', name: 'Osoby', badge: pendingCount.value || '' }] : []),
+          ...(canMsg.value ? [{ id: 'msg', icon: 'mail', name: 'Wyślij wiadomość' }] : []),
+          ...(cueTopic && tech && !inApp ? [{ id: 'camera', icon: 'camera', name: 'Kamera (sygnały)' }] : []),
+        ] },
+      ]
+    })
+    function navOn(id) {
+      const editor = current.value || currentEvent.value || currentAnn.value || currentProto.value || song.value || tplType.value
+      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || moreView.value
+      return {
+        home: !editor && !other, cal: !!currentEvent.value || calView.value || gcalView.value, svc: !!current.value, anns: annView.value || !!currentAnn.value,
+        serve: serveView.value, goals: goalsView.value, listen: listenView.value, asb: asbView.value,
+        songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
+      }[id] || false
+    }
+    function navTo(id) {
+      if (id === 'display' || id === 'stream') { window.knsDesktop?.open(id); return }
+      if (id === 'msg') { openMsg(); return }
+      if (id === 'camera') { openCamera(); return }
+      if (!closeAll()) return
+      resetViews()
+      if (id === 'cal') openCalendar()
+      else if (id === 'svc') nextService.value ? open(nextService.value) : create(planSunday.value)
+      else if (id === 'anns') openAnns()
+      else if (id === 'serve') openServe()
+      else if (id === 'goals') openGoals()
+      else if (id === 'listen') openListen()
+      else if (id === 'asb') openAsb()
+      else if (id === 'songs') openSongs()
+      else if (id === 'mats') openProtocols()
+      else if (id === 'tpl') openTemplates()
+      else if (id === 'people') openPeople()
+      else if (id === 'profile') openProfile()
+      else showServices()
+      scrollTo(0, 0)
     }
     function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
@@ -4288,6 +4439,7 @@ createApp({
     // dla służby technicznej kafelek pobiera instalator.
     // W aplikacji na komputer (strona wbudowana) Rzutnik i Stream otwierają się od razu.
     const inApp = !!window.knsDesktop
+    watch(ready, ok => { if (ok && api.enabled && innerWidth >= 1024) { loadGoals(); loadServe() } }, { immediate: true })
     const webTiles = computed(() => {
       const tech = canCamera.value
       const app = !tech ? 'Tylko dla służby technicznej' : inApp ? 'Otwórz w aplikacji' : desktopApp.url ? 'Pobierz na komputer' + (desktopApp.size ? ' · ' + desktopApp.size : '') : 'W aplikacji na komputer'
@@ -4623,9 +4775,11 @@ createApp({
       const el = document.getElementById('app')
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
+      el.classList.toggle('has-side', ready.value)
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return {
+      sideNav, navOn, navTo, inApp, mapLink, asDate, boardAll,
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
