@@ -207,7 +207,25 @@ onBeforeUnmount(() => {
 
     <main class="stream" :class="{ wide: !showInfo || overlay }">
       <section>
-        <StreamDesk v-if="!overlay" :service="service" />
+        <StreamDesk v-if="!overlay" :service="service">
+          <template #tools>
+            <div class="seg" role="group" aria-label="Układ kamer">
+              <button v-for="[id, icon, name] in LAYOUTS" :key="id" :class="{ on: settings.camLayout === id }" :title="name" :aria-label="name" :aria-pressed="settings.camLayout === id" @click="setLayout(id)"><Icon :name="icon" /></button>
+            </div>
+            <label class="check"><input v-model="settings.camLabels" type="checkbox"> Podpisy</label>
+          </template>
+          <template #preview>
+            <div v-if="status" class="empty desk-empty">{{ status }}</div>
+            <div v-else class="cams" :class="'l-' + settings.camLayout" :style="{ '--cols': cols, '--n': Math.max(shown.length - 1, 1) }">
+              <button v-for="cam in shown" :key="cam.id" class="cam" :class="{ main: cam.id === mainId }"
+                      :title="settings.camLayout === 'big' || settings.camLayout === 'one' ? (cam.id === mainId ? 'Kliknij, aby wrócić do poprzedniego układu' : 'Kliknij, aby ta kamera była duża') : 'Kliknij, aby powiększyć'" @click="clickCam(cam)">
+                <video v-if="cam.stream" :ref="el => attach(el, cam)" autoplay muted playsinline></video>
+                <span v-else class="placeholder">{{ cam.error }}</span>
+                <span v-if="settings.camLabels" class="cam-label">{{ cam.label }}</span>
+              </button>
+            </div>
+          </template>
+        </StreamDesk>
         <div v-if="!overlay" class="cue">
           <div class="cue-head">
             <h2>Sygnały dla kamerzysty</h2>
@@ -241,18 +259,9 @@ onBeforeUnmount(() => {
           <p v-else class="note">Kamerzysta zakłada słuchawkę podłączoną do telefonu. Gdy zmienisz tu stan, usłyszy sygnał: dwa krótkie wysokie — na wizji, jeden średni — przygotuj się, jeden długi niski — poza wizją.</p>
         </div>
 
-        <div v-if="!overlay" class="cams-head">
-          <h2>Kamery <span v-if="cams.length" class="pill">{{ cams.length }}</span></h2>
-          <span class="spacer"></span>
-          <div class="seg" role="group" aria-label="Układ kamer">
-            <button v-for="[id, icon, name] in LAYOUTS" :key="id" :class="{ on: settings.camLayout === id }" :title="name" :aria-pressed="settings.camLayout === id" @click="setLayout(id)"><Icon :name="icon" /><span>{{ name }}</span></button>
-          </div>
-          <label class="check"><input v-model="settings.camLabels" type="checkbox"> Podpisy</label>
-        </div>
-        <div v-if="status" class="empty">{{ status }}</div>
-        <div class="cams" :class="'l-' + settings.camLayout" :style="{ '--cols': cols, '--n': Math.max(shown.length - 1, 1) }">
-          <button v-for="cam in shown" :key="cam.id" class="cam" :class="{ main: cam.id === mainId }"
-                  :title="settings.camLayout === 'big' || settings.camLayout === 'one' ? (cam.id === mainId ? 'Kliknij, aby wrócić do poprzedniego układu' : 'Kliknij, aby ta kamera była duża') : 'Kliknij, aby powiększyć'" @click="clickCam(cam)">
+        <!-- Tryb nakładki: same kamery na całe okno -->
+        <div v-if="overlay" class="cams" :class="'l-' + settings.camLayout" :style="{ '--cols': cols, '--n': Math.max(shown.length - 1, 1) }">
+          <button v-for="cam in shown" :key="cam.id" class="cam" :class="{ main: cam.id === mainId }" @click="clickCam(cam)">
             <video v-if="cam.stream" :ref="el => attach(el, cam)" autoplay muted playsinline></video>
             <span v-else class="placeholder">{{ cam.error }}</span>
             <span v-if="settings.camLabels" class="cam-label">{{ cam.label }}</span>

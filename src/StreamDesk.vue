@@ -115,14 +115,24 @@ async function loadDevices() {
   if (settings.streamAudio && !devices.value.audio.includes(settings.streamAudio)) settings.streamAudio = ''
   if (!settings.streamAudio) settings.streamAudio = bm(devices.value.audio)
 }
-// Transmisja na YouTube, która wystartuje (czekająca na stałym kluczu) — albo nowa z nabożeństwa.
-const waiting = computed(() => (yt.value.broadcasts || []).find(b => ['created', 'ready', 'testStarting', 'testing', 'liveStarting', 'live'].includes(b.status)) || null)
-const nextTitle = computed(() => waiting.value?.title || (props.service ? ytTitle(props.service) : 'Transmisja na żywo — Kościół Na Skale ' + new Date().toLocaleDateString('pl')))
+// Którą transmisję wystartować: zaplanowaną (też z YouTube Studio) albo nową z wybranego nabożeństwa.
+const upcoming = computed(() => (yt.value.broadcasts || []).filter(b => ['created', 'ready', 'testStarting', 'testing', 'liveStarting', 'live'].includes(b.status)))
+const chosenId = ref('')
+watch(upcoming, list => {
+  if (chosenId.value === 'new' ? false : list.some(b => b.id === chosenId.value)) return
+  chosenId.value = (forService.value || list[0])?.id || 'new'
+}, { immediate: true })
+const chosen = computed(() => upcoming.value.find(b => b.id === chosenId.value) || null)
+const newTitle = computed(() => (props.service ? ytTitle(props.service) : 'Transmisja na żywo — Kościół Na Skale ' + new Date().toLocaleDateString('pl')))
+const nextTitle = computed(() => chosen.value?.title || newTitle.value)
+const when = b => (b.start ? new Date(b.start).toLocaleString('pl', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')
+const liveBroadcast = ref(null) // transmisja, którą nadajemy (do ręcznego „na żywo” i tytułu w trakcie)
+const videoLabel = computed(() => devices.value.screens.find(x => x.value === settings.streamVideo)?.label || settings.streamVideo || 'brak obrazu')
 async function goLive() {
   liveError.value = ''
   if (!yt.value.stream) await loadYt()
   if (!yt.value.stream) { liveError.value = 'Nie mam klucza transmisji z YouTube — kliknij odśwież albo połącz kanał ponownie.'; return }
-  let b = waiting.value
+  let b = chosen.value
   if (b && b.streamId !== yt.value.stream.id) {
     // transmisja z YouTube Studio pod innym kluczem — przepinamy ją na stały klucz aplikacji
     const res = await ytDo(() => api.ytBind(b.id))
@@ -130,9 +140,12 @@ async function goLive() {
   }
   if (!b) {
     const svc = props.service
-    const res = await ytDo(() => api.ytCreate({ title: nextTitle.value, description: svc ? ytDescription(svc) : '', start: new Date(Date.now() + 60000).toISOString(), privacy: privacy.value }))
+    const res = await ytDo(() => api.ytCreate({ title: newTitle.value, description: svc ? ytDescription(svc) : '', start: new Date(Date.now() + 60000).toISOString(), privacy: privacy.value }))
     if (!res || res.error) return
+    b = res
+    chosenId.value = res.id
   }
+  liveBroadcast.value = b
   cameraLock.value = true // podgląd kamer w Stream oddaje obraz z ATEM
   await new Promise(r => setTimeout(r, 800))
   const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality })
@@ -148,7 +161,7 @@ function watchGoLive() {
   goLiveTimer = setInterval(async () => {
     if (!liveOn.value || ++tries > 40) { clearInterval(goLiveTimer); return }
     await loadYt()
-    const b = waiting.value
+    const b = upcoming.value.find(x => x.id === liveBroadcast.value?.id)
     if (!b || b.status === 'live') { if (b?.status === 'live') clearInterval(goLiveTimer); return }
     if (yt.value.stream?.status === 'active' && !b.autoStart && ['ready', 'created', 'testing'].includes(b.status)) {
       const res = await api.ytGoLive(b.id)
@@ -197,36 +210,56 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
 
 <template>
   <div class="desk">
-    <!-- ATEM -->
-    <div class="desk-box">
-      <div class="desk-head">
-        <h2>ATEM</h2>
-        <span class="desk-dot" :class="atem.connected ? 'ok' : connecting ? 'wait' : 'off'"></span>
-        <small class="muted">{{ atem.connected ? (atem.model || 'połączono') + ' · ' + atem.address : connecting ? 'łączę z ' + atem.address + '…' : 'niepołączony' }}</small>
-        <span class="spacer"></span>
-        <template v-if="atem.connected || connecting">
-          <label class="check" title="Kliknięcie kamery od razu wysyła ją na wizję (bez podglądu)"><input v-model="settings.atemDirect" type="checkbox"> Od razu na wizję</label>
-          <button class="small" @click="disconnect">Rozłącz</button>
-        </template>
-        <template v-else>
-          <input v-model="address" class="desk-ip" placeholder="np. 192.168.10.240" aria-label="Adres IP miksera ATEM" inputmode="decimal" @keydown.enter="connect">
-          <button class="small primary" @click="connect">Połącz</button>
-        </template>
-      </div>
-      <p v-if="atemError" class="note bad">{{ atemError }}</p>
-      <details v-if="!atem.connected" class="desk-help">
-        <summary>Opcjonalnie: przełączanie kamer z aplikacji — jak podłączyć</summary>
-        <p>Do samego streamu przez OBS to niepotrzebne. Kabel sieciowy daje tylko klikanie kamer tutaj i podgląd, która jest na wizji (USB-C dalej wysyła obraz). Wystarczy krótki kabel sieciowy prosto między mikserem a laptopem; ustawia się to raz:</p>
-        <ol>
-          <li>Kabel sieciowy: gniazdo <b>ETHERNET</b> w ATEM ↔ gniazdo sieciowe laptopa (albo przejściówka USB → Ethernet).</li>
-          <li><b>ATEM Setup</b> (mikser podłączony po USB): Configure → Network → adres stały <b>192.168.10.240</b>, maska 255.255.255.0 → Save.</li>
-          <li>Windows: Ustawienia → Sieć i internet → Ethernet → Przypisanie IP → Edytuj → Ręcznie → IPv4: adres <b>192.168.10.10</b>, maska 255.255.255.0 (bramy nie wpisuj — internet dalej przez Wi-Fi).</li>
-          <li>Tutaj wpisz <b>192.168.10.240</b> → Połącz.</li>
-        </ol>
-      </details>
-      <p v-if="connecting" class="note">Nie widzę miksera — sprawdź kabel sieciowy i adresy IP (mikser i laptop w tej samej podsieci, np. 192.168.10.x). Łączę się ponownie co kilka sekund.</p>
-      <template v-if="atem.connected">
-        <div class="desk-cams" role="group" aria-label="Kamery w mikserze">
+    <div class="desk-main">
+      <div class="desk-left">
+      <!-- Podgląd: przed startem obraz z kamer (ATEM po USB), w trakcie — dokładnie to, co widzą widzowie -->
+      <section class="desk-stage">
+        <div class="desk-stage-head">
+          <h2>{{ liveOn ? 'To widzą widzowie' : 'Podgląd' }}</h2>
+          <b v-if="liveOn" class="desk-onair" :class="live.running ? 'live' : 'wait'">{{ live.running ? '● NA ŻYWO' : 'Łączę z YouTube…' }}</b>
+          <template v-if="liveOn">
+            <span v-if="live.time" class="muted">{{ live.time }}</span>
+            <span v-if="live.fps" class="muted">{{ live.fps }} kl./s</span>
+            <span v-if="live.bitrate" class="muted">{{ live.bitrate.replace('kbits/s', ' kb/s') }}</span>
+            <span v-if="live.drop" class="bad">zgubione klatki: {{ live.drop }}</span>
+          </template>
+          <span class="spacer"></span>
+          <slot v-if="!liveOn" name="tools" />
+          <small v-else class="muted">{{ live.encoder }}</small>
+        </div>
+        <div class="desk-screen">
+          <img v-if="liveOn && live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
+          <slot v-else name="preview" />
+        </div>
+      </section>
+
+      <!-- ATEM: przełączanie kamer z aplikacji (opcjonalnie, kabel sieciowy) -->
+      <section class="desk-atem">
+        <div class="desk-head">
+          <h2>ATEM</h2>
+          <span class="desk-dot" :class="atem.connected ? 'ok' : connecting ? 'wait' : 'off'"></span>
+          <small class="muted">{{ atem.connected ? (atem.model || 'połączono') + ' · ' + atem.address : connecting ? 'łączę z ' + atem.address + '… (sprawdź kabel sieciowy i adres)' : 'przełączanie kamer z aplikacji — niepołączony' }}</small>
+          <span class="spacer"></span>
+          <template v-if="atem.connected || connecting">
+            <label class="check" title="Kliknięcie kamery od razu wysyła ją na wizję (bez podglądu)"><input v-model="settings.atemDirect" type="checkbox"> Od razu na wizję</label>
+            <button class="small" @click="disconnect">Rozłącz</button>
+          </template>
+          <template v-else>
+            <input v-model="address" class="desk-ip" placeholder="np. 192.168.10.240" aria-label="Adres IP miksera ATEM" inputmode="decimal" @keydown.enter="connect">
+            <button class="small primary" @click="connect">Połącz</button>
+          </template>
+        </div>
+        <p v-if="atemError" class="note bad">{{ atemError }}</p>
+        <details v-if="!atem.connected && !connecting" class="desk-help">
+          <summary>Jak podłączyć (opcjonalnie — przyciski na mikserze działają bez tego)</summary>
+          <ol>
+            <li>Kabel sieciowy: gniazdo <b>ETHERNET</b> w ATEM ↔ gniazdo sieciowe laptopa (albo przejściówka USB → Ethernet). USB-C zostaje na obraz.</li>
+            <li><b>ATEM Setup</b> (mikser po USB): Configure → Network → adres stały <b>192.168.10.240</b>, maska 255.255.255.0 → Save.</li>
+            <li>Windows: Ustawienia → Sieć i internet → Ethernet → Przypisanie IP → Ręcznie → IPv4: <b>192.168.10.10</b>, maska 255.255.255.0 (bez bramy — internet dalej przez Wi-Fi).</li>
+            <li>Tutaj wpisz <b>192.168.10.240</b> → Połącz.</li>
+          </ol>
+        </details>
+        <div v-if="atem.connected" class="desk-cams" role="group" aria-label="Kamery w mikserze">
           <button v-for="i in cameras" :key="i.id" class="desk-cam" :class="{ pgm: atem.program === i.id, pvw: atem.preview === i.id }"
                   :aria-pressed="atem.program === i.id" :title="(atem.program === i.id ? 'Na wizji' : atem.preview === i.id ? 'W podglądzie' : settings.atemDirect ? 'Kliknij — na wizję' : 'Kliknij — do podglądu') + ' · ' + i.name" @click="pick(i)">
             <b>{{ i.short || i.id }}</b><span>{{ i.name }}</span>
@@ -238,98 +271,97 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             <button class="desk-auto" title="Płynne przejście podglądu na wizję" @click="run('auto')">AUTO</button>
           </div>
         </div>
-        <p class="note desk-status">
-          Transmisja w ATEM: <b :class="{ live: atem.streaming === 'streaming' }">{{ STREAM_LABEL[atem.streaming] || '—' }}</b>
-          <template v-if="atem.recording"> · nagrywanie: <b :class="{ live: atem.recording === 'recording' }">{{ atem.recording === 'recording' ? 'NAGRYWA' : atem.recording === 'stopping' ? 'kończy…' : 'nie' }}</b></template>
-        </p>
-      </template>
-    </div>
-
-    <!-- YouTube -->
-    <div class="desk-box">
-      <div class="desk-head">
-        <h2>YouTube</h2>
-        <small v-if="yt.loggedIn" class="muted">{{ yt.channel }}</small>
-        <span v-if="yt.loggedIn && signal.text" class="desk-badge" :class="signal.cls">{{ signal.text }}</span>
-        <span class="spacer"></span>
-        <button v-if="yt.loggedIn" class="small" :disabled="ytBusy" title="Odśwież" @click="loadYt"><Icon name="refresh" /></button>
-        <button v-if="yt.loggedIn" class="small" :disabled="ytBusy" title="Odłącz od kanału YouTube" aria-label="Odłącz od kanału YouTube" @click="ytLogout"><Icon name="logout" /></button>
+      </section>
       </div>
-      <p v-if="ytError" class="note bad">{{ ytError }}</p>
-      <template v-if="!yt.loggedIn">
-        <p class="note">Połącz aplikację z kanałem kościoła — w przeglądarce wybierz konto (albo konto marki) kanału. Potem transmisję na niedzielę tworzy się jednym przyciskiem, z tytułem i opisem z nabożeństwa.</p>
-        <button class="primary desk-yt-login" :disabled="ytBusy" @click="ytLogin"><Icon name="play" />{{ ytBusy ? 'Czekam na logowanie w przeglądarce…' : 'Połącz z YouTube' }}</button>
-      </template>
-      <template v-else>
-        <!-- Nadawanie z aplikacji: bez OBS -->
-        <div class="desk-live" :class="{ on: liveOn }">
+
+      <!-- Transmisja na YouTube -->
+      <section class="desk-ctrl">
+        <div class="desk-head">
+          <h2>YouTube</h2>
+          <small v-if="yt.loggedIn" class="muted">{{ yt.channel }}</small>
+          <span v-if="yt.loggedIn && signal.text" class="desk-badge" :class="signal.cls">{{ signal.text }}</span>
+          <span class="spacer"></span>
+          <button v-if="yt.loggedIn" class="small" :disabled="ytBusy" title="Odśwież" aria-label="Odśwież" @click="loadYt"><Icon name="refresh" /></button>
+          <button v-if="yt.loggedIn && !liveOn" class="small" :disabled="ytBusy" title="Odłącz od kanału YouTube" aria-label="Odłącz od kanału YouTube" @click="ytLogout"><Icon name="logout" /></button>
+        </div>
+        <p v-if="ytError" class="note bad">{{ ytError }}</p>
+        <template v-if="!yt.loggedIn">
+          <p class="note">Połącz aplikację z kanałem kościoła — w przeglądarce wybierz konto (albo konto marki) kanału.</p>
+          <button class="primary desk-yt-login" :disabled="ytBusy" @click="ytLogin"><Icon name="play" />{{ ytBusy ? 'Czekam na logowanie w przeglądarce…' : 'Połącz z YouTube' }}</button>
+        </template>
+        <template v-else>
           <template v-if="!liveOn">
-            <div class="desk-grid">
+            <label class="desk-field">Transmisja
+              <select v-model="chosenId">
+                <option v-for="b in upcoming" :key="b.id" :value="b.id">{{ b.title }}{{ when(b) ? ' — ' + when(b) : '' }} · {{ PRIVACY[b.privacy] || b.privacy }}</option>
+                <option value="new">Nowa: „{{ newTitle }}”</option>
+              </select>
+            </label>
+            <label v-if="chosenId === 'new'" class="desk-field">Widoczność
+              <select v-model="privacy"><option value="public">Publiczna</option><option value="unlisted">Niepubliczna</option><option value="private">Prywatna</option></select>
+            </label>
+            <button class="desk-golive" :disabled="ytBusy || !settings.streamVideo" @click="goLive"><i></i>Rozpocznij transmisję</button>
+            <small class="muted desk-sub">Obraz: {{ videoLabel }} · napisy: {{ lyricsInfo }}</small>
+            <p v-if="liveError" class="note bad">{{ liveError }}</p>
+          </template>
+          <template v-else>
+            <p class="desk-title">„{{ liveBroadcast?.title || nextTitle }}”</p>
+            <p v-if="live.error" class="note bad">{{ live.error }}</p>
+            <small class="muted desk-sub">Napisy: {{ lyricsInfo }}</small>
+            <button class="desk-stop" @click="stopLive">■ Zakończ transmisję</button>
+          </template>
+
+          <details class="desk-set" :open="!settings.streamVideo">
+            <summary>Ustawienia nadawania</summary>
+            <fieldset class="desk-grid" :disabled="liveOn">
               <label>Obraz<select v-model="settings.streamVideo"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
               <label>Dźwięk<select v-model="settings.streamAudio"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
               <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · 6,8 Mb/s</option><option value="720">720p · 3,5 Mb/s (słabszy internet)</option></select></label>
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
-            </div>
+            </fieldset>
             <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
             <p v-if="!devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>
-            <div class="desk-go">
-              <button class="desk-golive" :disabled="ytBusy || !settings.streamVideo" @click="goLive"><i></i>Rozpocznij transmisję</button>
-              <select v-if="!waiting" v-model="privacy" aria-label="Widoczność transmisji"><option value="public">Publiczna</option><option value="unlisted">Niepubliczna</option><option value="private">Prywatna</option></select>
-              <small class="muted">{{ waiting ? 'Wystartuje: „' + nextTitle + '”' : 'Utworzy transmisję „' + nextTitle + '”' }} · napisy: {{ lyricsInfo }}</small>
-            </div>
-            <p v-if="liveError" class="note bad">{{ liveError }}</p>
-          </template>
-          <template v-else>
-            <img v-if="live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
-            <div class="desk-stats">
-              <b :class="live.running ? 'live' : 'wait'">{{ live.running ? '● NA ŻYWO' : 'Łączę z YouTube…' }}</b>
-              <span v-if="live.time">{{ live.time }}</span>
-              <span v-if="live.fps">{{ live.fps }} kl./s</span>
-              <span v-if="live.bitrate">{{ live.bitrate.replace('kbits/s', ' kb/s') }}</span>
-              <span v-if="live.drop" class="bad">zgubione klatki: {{ live.drop }}</span>
-              <span class="muted">{{ live.encoder }}</span>
-            </div>
-            <p v-if="live.error" class="note bad">{{ live.error }}</p>
-            <p class="note">Napisy: {{ lyricsInfo }}</p>
-            <button class="danger desk-stop" @click="stopLive">■ Zakończ transmisję</button>
-          </template>
-        </div>
+          </details>
 
-        <details class="desk-adv">
-          <summary>Zaawansowane: klucz transmisji (OBS albo nadawanie z ATEM)</summary>
-        <div v-if="yt.stream" class="desk-key">
-          <span><small class="muted">Serwer</small><code>{{ yt.stream.url }}</code></span>
-          <button class="small" @click="copy('url', yt.stream.url)"><Icon :name="copied === 'url' ? 'check' : 'copy'" /></button>
-          <span><small class="muted">Stały klucz (ten sam co tydzień)</small><code>{{ showKey ? yt.stream.key : '••••-••••-••••-••••' }}</code></span>
-          <button class="small" :title="showKey ? 'Ukryj klucz' : 'Pokaż klucz'" @click="showKey = !showKey"><Icon :name="showKey ? 'eyeoff' : 'search'" /></button>
-          <button class="small" @click="copy('key', yt.stream.key)"><Icon :name="copied === 'key' ? 'check' : 'copy'" />{{ copied === 'key' ? 'Skopiowano' : 'Kopiuj klucz' }}</button>
-        </div>
-        <div v-if="yt.stream && atem.connected" class="btnrow">
-          <button class="small" title="Ustawia w ATEM serwer i klucz YouTube (transmisja prosto z miksera, bez OBS)" @click="sendKeyToAtem">Wyślij klucz do ATEM</button>
-          <button v-if="atem.streaming !== 'streaming'" class="small" @click="run('streaming', true)">Start transmisji z ATEM</button>
-          <button v-else class="small danger" @click="stopAtemStream">Stop transmisji z ATEM</button>
-        </div>
-        <p class="note">Tylko jeśli nadajecie innym programem: klucz wklej raz w OBS albo wyślij do ATEM (mikser z internetem po kablu sieciowym). Transmisja sama startuje, gdy przyjdzie obraz.</p>
-        </details>
+          <details class="desk-set">
+            <summary>Zaplanowane transmisje ({{ upcoming.length }})</summary>
+            <div class="desk-list">
+              <div v-for="b in upcoming" :key="b.id" class="desk-bc" :class="{ live: b.status === 'live' }">
+                <span class="desk-bc-text">
+                  <b>{{ b.title }}</b>
+                  <small>{{ [when(b), PRIVACY[b.privacy] || b.privacy].filter(Boolean).join(' · ') }} · <em>{{ B_STATUS[b.status] || b.status }}</em></small>
+                </span>
+                <button class="small" title="Kopiuj link do transmisji" @click="copy(b.id, b.url)"><Icon :name="copied === b.id ? 'check' : 'link'" /></button>
+                <button v-if="service && b === forService && b.status !== 'live'" class="small" :disabled="ytBusy" title="Ustaw tytuł i opis z wybranego nabożeństwa" @click="refreshFromService(b)">Z nabożeństwa</button>
+                <button v-if="['live', 'testing', 'liveStarting'].includes(b.status)" class="small danger" :disabled="ytBusy" @click="endBroadcast(b)">Zakończ</button>
+              </div>
+              <p v-if="!upcoming.length" class="note">Nie ma zaplanowanych transmisji.</p>
+            </div>
+            <div v-if="service && !forService" class="desk-new">
+              <span><b>{{ ytTitle(service) }}</b><small class="muted">{{ prettyDate(service.date) }}, {{ serviceTime(service) }}</small></span>
+              <button class="small" :disabled="ytBusy" title="Zaplanuj z wyprzedzeniem (widzowie zobaczą zapowiedź na kanale)" @click="createForService"><Icon name="plus" />Zaplanuj</button>
+            </div>
+          </details>
 
-        <div class="desk-list">
-          <div v-for="b in yt.broadcasts" :key="b.id" class="desk-bc" :class="{ live: b.status === 'live' }">
-            <span class="desk-bc-text">
-              <b>{{ b.title }}</b>
-              <small>{{ [b.start && new Date(b.start).toLocaleString('pl', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }), PRIVACY[b.privacy] || b.privacy].filter(Boolean).join(' · ') }} · <em>{{ B_STATUS[b.status] || b.status }}</em></small>
-            </span>
-            <button class="small" title="Kopiuj link do transmisji" @click="copy(b.id, b.url)"><Icon :name="copied === b.id ? 'check' : 'link'" /></button>
-            <button v-if="service && b === forService && b.status !== 'live'" class="small" :disabled="ytBusy" title="Ustaw tytuł i opis z wybranego nabożeństwa" @click="refreshFromService(b)">Z nabożeństwa</button>
-            <button v-if="['live', 'testing', 'liveStarting'].includes(b.status)" class="small danger" :disabled="ytBusy" @click="endBroadcast(b)">Zakończ</button>
-          </div>
-          <p v-if="!(yt.broadcasts || []).length" class="note">Nie ma zaplanowanych transmisji.</p>
-        </div>
-        <div v-if="service && !forService" class="desk-new">
-          <span><b>{{ ytTitle(service) }}</b><small class="muted">{{ prettyDate(service.date) }}, {{ serviceTime(service) }}</small></span>
-          <select v-model="privacy" aria-label="Widoczność transmisji"><option value="public">Publiczna</option><option value="unlisted">Niepubliczna</option><option value="private">Prywatna</option></select>
-          <button class="small" :disabled="ytBusy" title="Zaplanuj z wyprzedzeniem (widzowie zobaczą zapowiedź na kanale)" @click="createForService"><Icon name="plus" />Zaplanuj</button>
-        </div>
-      </template>
+          <details class="desk-set">
+            <summary>Zaawansowane: klucz transmisji (OBS albo nadawanie z ATEM)</summary>
+            <div v-if="yt.stream" class="desk-key">
+              <span><small class="muted">Serwer</small><code>{{ yt.stream.url }}</code></span>
+              <button class="small" @click="copy('url', yt.stream.url)"><Icon :name="copied === 'url' ? 'check' : 'copy'" /></button>
+              <span><small class="muted">Stały klucz (ten sam co tydzień)</small><code>{{ showKey ? yt.stream.key : '••••-••••-••••-••••' }}</code></span>
+              <button class="small" :title="showKey ? 'Ukryj klucz' : 'Pokaż klucz'" @click="showKey = !showKey"><Icon :name="showKey ? 'eyeoff' : 'search'" /></button>
+              <button class="small" @click="copy('key', yt.stream.key)"><Icon :name="copied === 'key' ? 'check' : 'copy'" />{{ copied === 'key' ? 'Skopiowano' : 'Kopiuj klucz' }}</button>
+            </div>
+            <div v-if="yt.stream && atem.connected" class="btnrow">
+              <button class="small" title="Ustawia w ATEM serwer i klucz YouTube (transmisja prosto z miksera)" @click="sendKeyToAtem">Wyślij klucz do ATEM</button>
+              <button v-if="atem.streaming !== 'streaming'" class="small" @click="run('streaming', true)">Start transmisji z ATEM</button>
+              <button v-else class="small danger" @click="stopAtemStream">Stop transmisji z ATEM</button>
+            </div>
+            <p class="note">Tylko jeśli nadajecie innym programem: klucz wklej raz w OBS albo wyślij do ATEM (mikser z internetem po kablu sieciowym).</p>
+          </details>
+        </template>
+      </section>
     </div>
+
   </div>
 </template>
