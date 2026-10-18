@@ -941,7 +941,13 @@ main.stream > section:first-child { overflow-y: auto; }
 /* Studio: podgląd = płótno transmisji, przyciski scen */
 .studio-host { position: absolute; inset: 0; }
 .studio-host canvas { display: block; width: 100%; height: 100%; }
-.desk-scenes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.desk-scenes button { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
-.desk-scenes button.on { background: var(--accent-soft, rgba(232,163,61,.18)); border-color: var(--accent); color: var(--accent); font-weight: 700; }
-.desk-scenes .spacer { flex: 1; }
+/* sceny: równa siatka (6 w rzędzie, na wąskim 3) — bez „sierot” w nowej linii */
+.desk-scenes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+@media (max-width: 1500px) { .desk-scenes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.desk-scenes button, .desk-opts button { padding: 7px 10px; font-size: 13px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-scenes button.on, .desk-opts button.on { background: var(--accent-soft, rgba(232,163,61,.18)); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.desk-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 8px; }
+.desk-opt-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.desk-opt-group > small.muted { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; }
+.desk-opts .desk-corner { width: 34px; padding: 6px 0; font-size: 15px; }
+.desk-left-time { font-variant-numeric: tabular-nums; color: var(--text); }

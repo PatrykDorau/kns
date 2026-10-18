@@ -5,7 +5,8 @@
 // + dźwięk filmów ze scen, zmiksowany tutaj (PCM 48 kHz) → FFmpeg koduje AAC. Podgląd = to samo płótno.
 // Działa niezależnie od otwartego widoku (moduł), żeby wyjście z ekranu Stream nie przerwało transmisji.
 import { reactive } from 'vue'
-import { api, nearestService, projectorGraphics, serviceTime, servicePlace } from './store.js'
+import qrcode from 'qrcode-generator'
+import { api, currentAnnouncements, nearestService, projectorGraphics, serviceTime, servicePlace } from './store.js'
 
 export const SCENES = [
   ['camera', 'Kamera'],
@@ -20,6 +21,11 @@ export const studio = reactive({
   camera: '', audio: '', fps: 30, bitrate: 6800000, live: false, error: '', encoder: '',
   hardware: null, // null — nie sprawdzono; true/false — czy karta koduje H.264
   projector: { kind: 'none' }, // to, co pokazuje rzutnik (etap 2): { kind: 'image'|'video'|'text'|'none', url, text, style, playing, time, at }
+  countdownTo: 0, // odliczanie do tej chwili (ms); 0 — do godziny najbliższego nabożeństwa
+  left: 0, // ile sekund zostało (do pulpitu)
+  autoCamera: false, // po zerze (i 3 s „Zaczynamy”) samo przełącza na Kamerę
+  pip: { corner: 'br', size: 'small' }, // okienko z kamerą na scenie „Rzutnik + kamera”
+  end: { account: '', phone: '', name: 'Kościół Na Skale', title: 'Darowizna', youtube: '', spotify: '' }, // plansza końcowa
 })
 const W = 1920, H = 1080
 let canvas = null, g = null, timer = 0, frameNo = 0, needKey = true
@@ -71,12 +77,82 @@ function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'lef
 }
 function logo(x, y, h) { const im = img('./znak.png'); if (im) g.drawImage(im, x, y, h * im.naturalWidth / im.naturalHeight, h) }
 const svcWhen = svc => (svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + serviceTime(svc) : '')
-// Grafiki ogłoszeń (zaznaczone „Pokaż na nabożeństwie”) — kolejno co 8 s, z przenikaniem.
+// Slajdy ogłoszeń (zaznaczone „Pokaż na nabożeństwie”, tylko „dla wszystkich” — transmisja jest publiczna):
+// najpierw grafiki, potem ogłoszenia bez grafiki jako karty z tekstem. Kolejno co 8 s, z przenikaniem.
+function slides() {
+  const pub = currentAnnouncements.value.filter(a => a.projector && (a.audience || 'public') === 'public')
+  const list = [
+    ...pub.filter(a => a.image).map(a => img(a.image)).filter(Boolean).map(im => ({ im })),
+    ...projectorGraphics.value.filter(x => x.key.startsWith('e')).map(x => img(x.image)).filter(Boolean).map(im => ({ im })),
+    ...pub.filter(a => !a.image).map(a => ({ title: a.title, text: a.text || '' })),
+  ]
+  return list
+}
 function carousel(t, every = 8000) {
-  const list = projectorGraphics.value.map(x => img(x.image)).filter(Boolean)
+  const list = slides()
   if (!list.length) return null
   const i = Math.floor(t / every) % list.length, k = (t % every) / 600
-  return { cur: list[i], prev: list[(i - 1 + list.length) % list.length], mix: Math.min(1, k) }
+  return { cur: list[i], prev: list[(i - 1 + list.length) % list.length], mix: list.length > 1 ? Math.min(1, k) : 1 }
+}
+// Tekst w kilku liniach (zawijanie po słowach), najwyżej max linii.
+function wrap(str, width, size, weight, max) {
+  g.save(); g.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`
+  const out = []
+  for (const para of String(str).split('\n')) {
+    let line = ''
+    for (const w of para.split(/\s+/).filter(Boolean)) {
+      const tryLine = line ? line + ' ' + w : w
+      if (g.measureText(tryLine).width > width && line) { out.push(line); line = w } else line = tryLine
+    }
+    if (line) out.push(line)
+  }
+  g.restore()
+  if (out.length > max) { out.length = max; out[max - 1] = out[max - 1].replace(/\s*\S*$/, '') + '…' }
+  return out
+}
+// Ogłoszenie bez grafiki: pomarańczowa karta jak grafiki ogłoszeń — tytuł i treść.
+function textSlide(sl, x, y, w, h) {
+  const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#dc7a3c')
+  g.fillStyle = gr; g.fillRect(x, y, w, h)
+  const k = w / 1240, pad = 90 * k
+  const tl = wrap(sl.title, w - pad * 2, Math.round(84 * k), 800, 2)
+  const bl = wrap(sl.text, w - pad * 2, Math.round(42 * k), 500, 5)
+  const th = tl.length * 96 * k, bh = bl.length * 56 * k, gap = bl.length ? 40 * k : 0
+  let cy = y + (h - th - gap - bh) / 2 + 76 * k
+  tl.forEach(l => { text(l, x + w / 2, cy, { size: Math.round(84 * k), weight: 800, color: '#2a1a10', align: 'center' }); cy += 96 * k })
+  cy += gap - 20 * k
+  bl.forEach(l => { text(l, x + w / 2, cy + 20 * k, { size: Math.round(42 * k), weight: 500, color: '#2a1a10', align: 'center' }); cy += 56 * k })
+}
+function drawSlide(sl, x, y, w, h) {
+  if (sl.im) fit(sl.im, sl.im.naturalWidth, sl.im.naturalHeight, x, y, w, h, 'cover')
+  else textSlide(sl, x, y, w, h)
+}
+function drawCarousel(c, x, y, w, h) {
+  drawSlide(c.prev, x, y, w, h)
+  if (c.mix < 1) { g.save(); g.globalAlpha = c.mix; drawSlide(c.cur, x, y, w, h); g.restore() } else drawSlide(c.cur, x, y, w, h)
+}
+// Kod QR rysowany na płótnie (macierz liczona raz dla danego tekstu).
+const qrCache = new Map()
+function qr(str, x, y, size) {
+  let m = qrCache.get(str)
+  if (!m) {
+    qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']
+    const c = qrcode(0, 'M'); c.addData(str); c.make()
+    const n = c.getModuleCount()
+    m = { n, dark: Array.from({ length: n * n }, (_, i) => c.isDark(Math.floor(i / n), i % n)) }
+    qrCache.set(str, m)
+  }
+  const cell = Math.floor(size / (m.n + 2)), off = (size - cell * m.n) / 2
+  g.fillStyle = '#fff'; g.fillRect(x, y, size, size)
+  g.fillStyle = '#2b2b2b'
+  for (let i = 0; i < m.dark.length; i++) if (m.dark[i]) g.fillRect(x + off + (i % m.n) * cell, y + off + Math.floor(i / m.n) * cell, cell, cell)
+}
+// Kod QR przelewu (standard banków w Polsce: aplikacja banku po zeskanowaniu wypełnia przelew).
+function bankQr(e) {
+  const acct = String(e.account || '').replace(/\D/g, '')
+  if (acct.length !== 26) return ''
+  const clean = v => String(v || '').replace(/\|/g, ' ').trim()
+  return `|PL|${acct}|000000|${clean(e.name).slice(0, 20)}|${clean(e.title).slice(0, 32)}|||`
 }
 function camera(x = 0, y = 0, w = W, h = H) {
   if (camVideo && camVideo.readyState >= 2) fit(camVideo, camVideo.videoWidth, camVideo.videoHeight, x, y, w, h, 'cover')
@@ -115,26 +191,6 @@ function cardLogo() {
   const h = 190, w = h * im.naturalWidth / im.naturalHeight
   g.drawImage(im, W / 2 - w / 2, CARD.y + CARD.h - h / 2, w, h)
 }
-// Timer u góry: pomarańczowy z ciemną obwódką (jak logo), na krawędzi karty.
-function timerBadge() {
-  const svc = nearestService.value
-  const start = svc ? new Date(`${svc.date}T${serviceTime(svc)}`).getTime() : 0
-  const left = Math.max(0, Math.ceil((start - Date.now()) / 1000))
-  const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), sec = left % 60
-  const clock = left ? (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec).padStart(2, '0') : ''
-  const w = left ? (h ? 760 : 660) : 520, bh = 130, x = W / 2 - w / 2, y = 14
-  g.save()
-  g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowBlur = 24; g.shadowOffsetY = 6
-  rounded(x, y, w, bh, bh / 2); g.fillStyle = '#f6a836'; g.fill()
-  g.shadowColor = 'transparent'
-  g.lineWidth = 8; g.strokeStyle = '#2b2b2b'; g.stroke()
-  g.restore()
-  if (left) {
-    text('ZACZYNAMY ZA', x + 52, y + 80, { size: 30, weight: 800, color: '#2b2b2b' })
-    text(clock, x + w - 48, y + 98, { size: 84, weight: 800, color: '#2b2b2b', align: 'right' })
-  } else text('ZACZYNAMY!', W / 2, y + 90, { size: 64, weight: 800, color: '#2b2b2b', align: 'center' })
-}
-
 // Fala u góry: dwie warstwy (ciemniejsza pod spodem) z falującą dolną krawędzią.
 function topWave() {
   const wave = (base, amp, len, phase, color) => {
@@ -146,10 +202,17 @@ function topWave() {
   wave(222, 22, 640, 0, '#f6a836')
 }
 // Timer: ciemna plakietka z falowanym brzegiem (kolor obwódki logo), cyfry w kolorze fali.
-function timerBlob() {
+export function countdownLeft() {
   const svc = nearestService.value
-  const start = svc ? new Date(`${svc.date}T${serviceTime(svc)}`).getTime() : 0
-  const left = Math.max(0, Math.ceil((start - Date.now()) / 1000))
+  const start = studio.countdownTo || (svc ? new Date(`${svc.date}T${serviceTime(svc)}`).getTime() : 0)
+  return Math.max(0, Math.ceil((start - Date.now()) / 1000))
+}
+// Odliczanie: minuty od teraz (np. 10) albo 0 — do godziny nabożeństwa.
+export function setCountdown(minutes) { studio.countdownTo = minutes ? Date.now() + minutes * 60000 : 0; armed = false }
+export function addCountdown(minutes) { studio.countdownTo = Math.max(Date.now(), studio.countdownTo || Date.now()) + minutes * 60000 }
+let armed = false, zeroAt = 0
+function timerBlob() {
+  const left = countdownLeft()
   const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), sec = left % 60
   const clock = (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec).padStart(2, '0')
   const cx = W / 2, cy = 165, rx = h ? 310 : 265, ry = 130
@@ -164,8 +227,9 @@ function timerBlob() {
   g.shadowColor = 'rgba(0,0,0,0.3)'; g.shadowBlur = 30; g.shadowOffsetY = 8
   g.fillStyle = '#2b2b2b'; g.fill()
   g.restore()
-  text(left ? 'ZACZYNAMY ZA' : 'ZACZYNAMY', cx, cy - 46, { size: 30, weight: 800, color: '#f3e3c8', align: 'center' })
-  text(left ? clock : 'TERAZ', cx, cy + 64, { size: 112, weight: 800, color: '#f6a836', align: 'center' })
+  text(left ? 'ZACZYNAMY ZA' : 'ZARAZ', cx, cy - 46, { size: 30, weight: 800, color: '#f3e3c8', align: 'center' })
+  text(left ? clock : 'ZACZYNAMY', cx, cy + (left ? 64 : 52), { size: left ? 112 : 84, weight: 800, color: '#f6a836', align: 'center' })
+  return left
 }
 // Proste grafiki po bokach: lewy — okrąg z kropkami, prawy — szczyty jak w logo.
 function sideArt() {
@@ -195,11 +259,9 @@ const SCENE_DRAW = {
     g.save(); g.shadowColor = 'rgba(40,30,20,0.35)'; g.shadowBlur = 50; g.shadowOffsetY = 18
     rounded(px, py, pw, ph, 18); g.fillStyle = '#fff'; g.fill(); g.restore()
     g.save(); rounded(px, py, pw, ph, 18); g.clip()
-    if (c) {
-      fit(c.prev, c.prev.naturalWidth, c.prev.naturalHeight, px, py, pw, ph, 'cover')
-      if (c.mix < 1) { g.globalAlpha = c.mix; fit(c.cur, c.cur.naturalWidth, c.cur.naturalHeight, px, py, pw, ph, 'cover') }
-    } else {
-      // bez grafik: karta z najbliższym nabożeństwem
+    if (c) drawCarousel(c, px, py, pw, ph)
+    else {
+      // bez ogłoszeń: karta z najbliższym nabożeństwem
       const svc = nearestService.value
       const gr = g.createLinearGradient(px, py, px + pw, py + ph); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#dc7a3c')
       g.fillStyle = gr; g.fillRect(px, py, pw, ph)
@@ -212,28 +274,50 @@ const SCENE_DRAW = {
     }
     g.restore()
     topWave()
-    timerBlob()
+    const left = timerBlob()
+    // po zerze: 3 s „Zaraz zaczynamy”, potem sama Kamera (gdy zaznaczone)
+    if (left > 0) { armed = true; zeroAt = 0 } else if (armed && studio.autoCamera && studio.scene === 'countdown') {
+      zeroAt = zeroAt || t
+      if (t - zeroAt > 3000) { armed = false; setScene('camera') }
+    }
   },
   announcements(t) {
     const c = carousel(t, 10000)
-    if (!c) { paper(); text('Brak grafik ogłoszeń — zaznacz „Pokaż na nabożeństwie” w ogłoszeniu', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }); return }
-    fit(c.prev, c.prev.naturalWidth, c.prev.naturalHeight, 0, 0, W, H, 'cover')
-    if (c.mix < 1) { g.save(); g.globalAlpha = c.mix; fit(c.cur, c.cur.naturalWidth, c.cur.naturalHeight, 0, 0, W, H, 'cover'); g.restore() } else fit(c.cur, c.cur.naturalWidth, c.cur.naturalHeight, 0, 0, W, H, 'cover')
+    if (!c) { paper(); text('Brak ogłoszeń dla wszystkich z „Pokaż na nabożeństwie”', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }); return }
+    drawCarousel(c, 0, 0, W, H)
   },
+  // Koniec: logo, podziękowanie, najbliższe nabożeństwo i kafelki z kodami QR (wsparcie, YouTube, Spotify).
   end() {
     paper()
     g.fillStyle = '#fbf8f3'; g.fillRect(CARD.x, CARD.y, CARD.w, CARD.h)
-    text('Dziękujemy, że byliście z nami!', W / 2, 470, { size: 96, weight: 800, color: '#e8952f', align: 'center' })
+    const lg = img('./znak-obrys.png')
+    if (lg) g.drawImage(lg, W / 2 - 85, 110, 170, 170)
+    text('Dziękujemy, że byliście z nami!', W / 2, 375, { size: 80, weight: 800, color: '#e8952f', align: 'center' })
     const svc = nearestService.value
-    if (svc && svc.date > new Date().toISOString().slice(0, 10)) text('Do zobaczenia: ' + svcWhen(svc) + ' · ' + servicePlace(svc), W / 2, 590, { size: 46, weight: 600, color: '#2b2b2b', align: 'center' })
-    text('Kościół Na Skale · kns-nabo.netlify.app', W / 2, 690, { size: 38, weight: 500, color: '#6b6258', align: 'center' })
-    cardLogo()
+    if (svc && svc.date > new Date().toISOString().slice(0, 10)) text('Do zobaczenia: ' + svcWhen(svc) + ' · ' + servicePlace(svc), W / 2, 445, { size: 38, weight: 600, color: '#2b2b2b', align: 'center' })
+    const e = studio.end, bank = bankQr(e), phone = String(e.phone || '').replace(/[^\d+]/g, '').replace(/^(\+?48)?(\d{3})(\d{3})(\d{3})$/, '$2 $3 $4')
+    const tiles = []
+    if (bank || phone) tiles.push({ head: 'Wesprzyj kościół', qr: bank, lines: [bank && 'Zeskanuj w aplikacji banku', phone && 'BLIK na telefon: ' + phone].filter(Boolean) })
+    if (e.youtube) tiles.push({ head: 'YouTube', qr: e.youtube, lines: ['Kazania i transmisje'] })
+    if (e.spotify) tiles.push({ head: 'Spotify', qr: e.spotify, lines: ['Kazania jako podcast'] })
+    if (!tiles.length) { text('Kościół Na Skale · kns-nabo.netlify.app', W / 2, 640, { size: 38, weight: 500, color: '#6b6258', align: 'center' }); return }
+    const tw = 470, th = 440, gap = 60, x0 = (W - tiles.length * tw - (tiles.length - 1) * gap) / 2, y = 500
+    tiles.forEach((tl, i) => {
+      const x = x0 + i * (tw + gap)
+      g.save(); g.shadowColor = 'rgba(40,30,20,0.18)'; g.shadowBlur = 30; g.shadowOffsetY = 8; rounded(x, y, tw, th, 22); g.fillStyle = '#fff'; g.fill(); g.restore()
+      g.fillStyle = '#f6a836'; rounded(x, y, tw, 8, 4); g.fill()
+      text(tl.head, x + tw / 2, y + 66, { size: 40, weight: 800, color: '#2b2b2b', align: 'center' })
+      if (tl.qr) qr(tl.qr, x + (tw - 250) / 2, y + 92, 250)
+      else { tl.lines = []; text('BLIK na telefon', x + tw / 2, y + 190, { size: 34, weight: 600, color: '#6b6258', align: 'center' }); text(phone, x + tw / 2, y + 270, { size: 60, weight: 800, color: '#e8952f', align: 'center' }) }
+      tl.lines.forEach((l, k) => text(l, x + tw / 2, y + (tl.qr ? 385 : 300) + k * 38, { size: k ? 30 : 27, weight: k ? 800 : 500, color: k ? '#2b2b2b' : '#6b6258', align: 'center' }))
+    })
   },
   projector(t) { projectorFrame(t); lyrics(t) },
   projectorPip(t) {
     projectorFrame(t)
-    // okienko z kamerą (z ATEM — to, co jest na wizji), prawy dolny róg
-    const w = 560, h = 315, x = W - w - 48, y = H - h - 48
+    // okienko z kamerą (z ATEM — to, co jest na wizji): wybrany róg, małe albo duże
+    const w = studio.pip.size === 'large' ? 800 : 512, h = w * 9 / 16, m = 48
+    const x = studio.pip.corner.includes('l') ? m : W - w - m, y = studio.pip.corner.includes('t') ? m : H - h - m
     g.save(); g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 40; rounded(x, y, w, h, 22); g.fillStyle = '#000'; g.fill(); g.restore()
     g.save(); rounded(x, y, w, h, 22); g.clip(); camera(x, y, w, h); g.restore()
     g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
@@ -252,19 +336,29 @@ function lyrics(t) {
   }
   draw(lyricPrev, 1 - k); draw(lyricShown, k)
 }
-// Pasek z mówcą i tytułem kazania (wjeżdża z lewej).
+// Pasek z mówcą i tytułem kazania (wjeżdża z lewej), z logo kościoła w białym kółku.
 function lowerThird(t) {
   const svc = nearestService.value
   if (!studio.lowerThird || !svc || !(svc.speaker || svc.sermonTitle)) return
   const k = Math.min(1, (t - lowerAt) / 500), e = 1 - Math.pow(1 - k, 3)
-  const x = -700 + 760 * e, y = H - 250, w = 900
+  const sub = [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ')
+  g.save(); g.font = '800 46px "Segoe UI", system-ui, sans-serif'; const w1 = g.measureText(svc.speaker || 'Kazanie').width
+  g.font = '500 32px "Segoe UI", system-ui, sans-serif'; const w2 = g.measureText(sub).width; g.restore()
+  const w = Math.min(1500, Math.max(620, 230 + Math.max(w1, w2) + 60)), bh = 150
+  const x = -w + (w + 60) * e, y = H - 250
   g.save(); g.globalAlpha = e
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30
-  rounded(x, y, w, 150, 18); g.fillStyle = 'rgba(15,16,19,0.88)'; g.fill(); g.shadowBlur = 0
-  g.fillStyle = '#e8a33d'; g.fillRect(x, y, 10, 150)
+  rounded(x, y, w, bh, 18); g.fillStyle = 'rgba(15,16,19,0.88)'; g.fill(); g.shadowBlur = 0
+  g.fillStyle = '#f6a836'; g.fillRect(x + 18, y + bh - 6, w - 36, 6)
+  // logo: białe kółko wystające nad pasek
+  const cx = x + 100, cy = y + bh / 2, r = 92
+  g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 24
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0
+  const lg = img('./znak-obrys.png')
+  if (lg) g.drawImage(lg, cx - 72, cy - 72, 144, 144)
   g.restore()
-  text(svc.speaker || 'Kazanie', x + 44, y + 64, { size: 46, weight: 800, alpha: e })
-  text([svc.sermonTitle, svc.passage].filter(Boolean).join(' · '), x + 44, y + 116, { size: 32, weight: 500, color: '#d6d8e0', alpha: e })
+  text(svc.speaker || 'Kazanie', x + 222, y + 66, { size: 46, weight: 800, alpha: e })
+  text(sub, x + 222, y + 116, { size: 32, weight: 500, color: '#d6d8e0', alpha: e })
 }
 // To, co pokazuje rzutnik (etap 2): grafika, film, tekst/slajd.
 let projVideo = null
@@ -301,6 +395,7 @@ function projectorFrame(t) {
 /* ---------- pętla rysowania i kodowanie ---------- */
 function frame() {
   const t = performance.now()
+  if (studio.scene === 'countdown') { const l = countdownLeft(); if (l !== studio.left) studio.left = l }
   const draw = SCENE_DRAW[studio.scene] || SCENE_DRAW.camera
   draw(t)
   if (sceneFrom && t - sceneAt < 500) {

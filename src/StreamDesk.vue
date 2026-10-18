@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
-import { api, cameraLock, listenLyrics, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
-import { SCENES, checkHardware, listCameras, pauseIdle, requestKeyFrame, setAudio, setCamera, setFps, setScene, startEncoding, stopEncoding, studio, studioCanvas, toggleLowerThird } from './studio.js'
+import { api, cameraLock, listenLyrics, loadListen, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
+import { SCENES, addCountdown, checkHardware, setCountdown, listCameras, pauseIdle, requestKeyFrame, setAudio, setCamera, setFps, setScene, startEncoding, stopEncoding, studio, studioCanvas, toggleLowerThird } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -49,6 +49,20 @@ async function loadStudioDevices() {
 function chooseCamera(label) { settings.studioCamera = label; const d = studioDevices.value.video.find(x => x.label === label); setCamera(d?.deviceId || '') }
 function chooseAudio(label) { settings.studioAudio = label; const d = studioDevices.value.audio.find(x => x.label === label); setAudio(d?.deviceId || '') }
 watch(() => settings.streamFps, f => setFps(f))
+// ustawienia scen zapamiętane między uruchomieniami
+watch(() => [settings.pipCorner, settings.pipSize, settings.studioAutoCamera, settings.donateAccount, settings.donatePhone, settings.donateName, settings.donateTitle], () => {
+  studio.pip = { corner: settings.pipCorner || 'br', size: settings.pipSize || 'small' }
+  studio.autoCamera = !!settings.studioAutoCamera
+  Object.assign(studio.end, { account: settings.donateAccount, phone: settings.donatePhone, name: settings.donateName || 'Kościół Na Skale', title: settings.donateTitle || 'Darowizna' })
+}, { immediate: true })
+// YouTube i Spotify na planszę końcową — te same linki co „Posłuchaj” na stronie
+loadListen().then(v => { if (v && !v.error) Object.assign(studio.end, { youtube: v.youtube || v.youtubeMore || '', spotify: v.spotify || '' }) })
+const clock = sec => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
+const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.left) : 'na planszy: „Zaraz zaczynamy”') + (studio.countdownTo ? '' : ' · do nabożeństwa'))
+const CORNERS = [['tl', '↖', 'Lewy górny róg'], ['tr', '↗', 'Prawy górny róg'], ['bl', '↙', 'Lewy dolny róg'], ['br', '↘', 'Prawy dolny róg']]
+const autoKbps = computed(() => (settings.streamQuality === '720' ? (hiFps.value ? 5000 : 3500) : (hiFps.value ? 9000 : 6800)))
+const kbps = computed(() => +settings.streamKbps || autoKbps.value)
+const bankOk = computed(() => !settings.donateAccount || String(settings.donateAccount).replace(/\D/g, '').length === 26)
 async function connect() {
   atemError.value = ''
   const ip = address.value.trim()
@@ -90,8 +104,8 @@ async function ytDo(job) {
   ytBusy.value = true; ytError.value = ''
   try {
     const res = await job()
-    if (res?.error) ytError.value = res.error
     await loadYt()
+    if (res?.error) ytError.value = res.error // po odświeżeniu, żeby komunikat nie zniknął
     return res
   } finally { ytBusy.value = false }
 }
@@ -110,6 +124,8 @@ function ytDescription(svc) {
 }
 const ytStart = svc => new Date(`${svc.date}T${serviceTime(svc)}`).toISOString()
 // Transmisja na wybrane nabożeństwo: ta, która startuje tego dnia.
+// YouTube planuje tylko przyszłe transmisje
+const serviceStarted = computed(() => !!props.service && new Date(`${props.service.date}T${serviceTime(props.service)}`).getTime() < Date.now() + 60000)
 const forService = computed(() => (props.service && yt.value.broadcasts || []).find(b => b.start?.slice(0, 10) === props.service.date) || null)
 const privacy = ref(settings.ytPrivacy || 'public')
 watch(privacy, v => { settings.ytPrivacy = v })
@@ -172,7 +188,7 @@ async function goLive() {
   if (engine.value === 'studio') {
     // studio: obraz składa i koduje aplikacja (karta graficzna), FFmpeg tylko wysyła
     setFps(settings.streamFps)
-    studio.bitrate = settings.streamQuality === '720' ? (hiFps.value ? 5000000 : 3500000) : (hiFps.value ? 9000000 : 6800000)
+    studio.bitrate = kbps.value * 1000
     const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps })
     if (res?.error) { liveError.value = res.error; return }
     await startEncoding()
@@ -181,7 +197,7 @@ async function goLive() {
   }
   cameraLock.value = true // podgląd kamer w Stream oddaje obraz z ATEM
   await new Promise(r => setTimeout(r, 800))
-  const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality, fps: settings.streamFps })
+  const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality, fps: settings.streamFps, kbps: +settings.streamKbps || 0 })
   if (res?.error) { liveError.value = res.error; cameraLock.value = false; return }
   feed(lyricsLast.value.text) // napisy od pierwszej klatki
   watchGoLive()
@@ -266,12 +282,31 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <img v-else-if="liveOn && live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
           <slot v-else name="preview" />
         </div>
-        <div v-if="engine === 'studio'" class="desk-scenes" role="group" aria-label="Sceny transmisji">
-          <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.scene === id }" :aria-pressed="studio.scene === id" @click="setScene(id)">{{ name }}</button>
-          <span class="spacer"></span>
-          <button :class="{ on: studio.lyricsOn }" :aria-pressed="studio.lyricsOn" title="Napisy pieśni na obrazie" @click="studio.lyricsOn = !studio.lyricsOn">Napisy</button>
-          <button :class="{ on: studio.lowerThird }" :aria-pressed="studio.lowerThird" title="Pasek z mówcą i tytułem kazania (na scenie Kamera)" @click="toggleLowerThird">Pasek mówcy</button>
-        </div>
+        <template v-if="engine === 'studio'">
+          <div class="desk-scenes" role="group" aria-label="Sceny transmisji">
+            <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.scene === id }" :aria-pressed="studio.scene === id" @click="setScene(id)">{{ name }}</button>
+          </div>
+          <div class="desk-opts">
+            <span class="desk-opt-group">
+              <button :class="{ on: studio.lyricsOn }" :aria-pressed="studio.lyricsOn" title="Napisy pieśni na obrazie" @click="studio.lyricsOn = !studio.lyricsOn">Napisy</button>
+              <button :class="{ on: studio.lowerThird }" :aria-pressed="studio.lowerThird" title="Pasek z mówcą i tytułem kazania (na scenie Kamera)" @click="toggleLowerThird">Pasek mówcy</button>
+            </span>
+            <span v-if="studio.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
+              <small class="muted">Timer</small>
+              <button :class="{ on: !studio.countdownTo }" title="Odliczanie do godziny nabożeństwa" @click="setCountdown(0)">do nabożeństwa</button>
+              <button v-for="m in [5, 10, 15]" :key="m" @click="setCountdown(m)">{{ m }} min</button>
+              <button title="Dodaj minutę" @click="addCountdown(1)">+1</button>
+              <small class="desk-left-time">{{ countdownInfo }}</small>
+              <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
+            </span>
+            <span v-if="studio.scene === 'projectorPip'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
+              <small class="muted">Okienko</small>
+              <button v-for="[id, arrow, label] in CORNERS" :key="id" class="desk-corner" :class="{ on: settings.pipCorner === id }" :title="label" :aria-label="label" @click="settings.pipCorner = id">{{ arrow }}</button>
+              <button :class="{ on: settings.pipSize !== 'large' }" @click="settings.pipSize = 'small'">Małe</button>
+              <button :class="{ on: settings.pipSize === 'large' }" @click="settings.pipSize = 'large'">Duże</button>
+            </span>
+          </div>
+        </template>
         <p v-if="engine === 'studio' && studio.error" class="note bad">{{ studio.error }}</p>
       </section>
 
@@ -363,13 +398,27 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               </template>
               <label v-if="engine !== 'studio'">Obraz<select v-model="settings.streamVideo"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
               <label v-if="engine !== 'studio'">Dźwięk<select v-model="settings.streamAudio"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
+              <label title="Przepływność (bitrate) — ile danych na sekundę idzie do YouTube. Więcej = ostrzejszy obraz przy ruchu, ale potrzeba szybszego internetu (wysyłanie co najmniej 1,5× tyle).">Przepływność<select v-model.number="settings.streamKbps"><option :value="0">automatycznie ({{ (autoKbps / 1000).toLocaleString('pl') }} Mb/s)</option><option v-for="v in [3000, 4500, 6000, 8000, 10000, 12000]" :key="v" :value="v">{{ (v / 1000).toLocaleString('pl') }} Mb/s</option></select></label>
               <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · {{ hiFps ? '9' : '6,8' }} Mb/s</option><option value="720">720p · {{ hiFps ? '5' : '3,5' }} Mb/s (słabszy internet)</option></select></label>
               <label title="Tyle, ile wysyła ATEM: ATEM Software Control → Ustawienia → Standard wideo (np. 1080p50)">Klatki na sekundę<select v-model.number="settings.streamFps"><option :value="25">25</option><option :value="30">30</option><option :value="50">50</option><option :value="60">60</option></select></label>
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </fieldset>
             <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
+            <p class="note">Przepływność: YouTube zaleca dla 1080p 4,5–9 Mb/s (przy 50/60 kl./s górna część). Internet w kościele musi wysyłać ok. 1,5× tyle — sprawdź na speedtest.net („Upload”). Gdy YouTube pokazuje „słaby sygnał”, zmniejsz.</p>
             <p class="note">Klatki na sekundę ustaw tak jak w ATEM (ATEM Software Control → Ustawienia → Standard wideo, np. 1080p50 → 50).</p>
             <p v-if="engine === 'simple' && !devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>
+          </details>
+
+          <details v-if="engine === 'studio'" class="desk-set">
+            <summary>Plansza końcowa: wsparcie, YouTube, Spotify</summary>
+            <div class="desk-grid">
+              <label>Numer konta (26 cyfr)<input v-model="settings.donateAccount" inputmode="numeric" placeholder="np. 12 3456 7890 …" autocomplete="off"></label>
+              <label>Telefon do BLIK<input v-model="settings.donatePhone" inputmode="tel" placeholder="np. 600 100 200" autocomplete="off"></label>
+              <label>Odbiorca przelewu<input v-model="settings.donateName" autocomplete="off"></label>
+              <label>Tytuł przelewu<input v-model="settings.donateTitle" autocomplete="off"></label>
+            </div>
+            <p v-if="!bankOk" class="note bad">Numer konta powinien mieć 26 cyfr (bez „PL”).</p>
+            <p class="note">Z numerem konta na planszy jest kod QR przelewu — aplikacja banku po zeskanowaniu sama wypełnia odbiorcę, konto i tytuł (kwotę wpisuje osoba). BLIK na telefon nie ma kodu QR — numer telefonu jest pokazany dużym napisem. YouTube i Spotify: kody QR z linków „Posłuchaj” ze strony{{ studio.end.youtube || studio.end.spotify ? '' : ' (na stronie nie ma jeszcze linków)' }}.</p>
           </details>
 
           <details class="desk-set">
@@ -388,8 +437,9 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             </div>
             <div v-if="service && !forService" class="desk-new">
               <span><b>{{ ytTitle(service) }}</b><small class="muted">{{ prettyDate(service.date) }}, {{ serviceTime(service) }}</small></span>
-              <button class="small" :disabled="ytBusy" title="Zaplanuj z wyprzedzeniem (widzowie zobaczą zapowiedź na kanale)" @click="createForService"><Icon name="plus" />Zaplanuj</button>
+              <button class="small" :disabled="ytBusy || serviceStarted" :title="serviceStarted ? 'Godzina nabożeństwa już minęła — YouTube planuje tylko przyszłe transmisje' : 'Tworzy na kanale zapowiedź transmisji (YouTube Studio → Transmisje na żywo → Zaplanowane)'" @click="createForService"><Icon name="plus" />Zaplanuj</button>
             </div>
+            <p class="note">„Zaplanuj” tworzy na kanale zapowiedź transmisji z tytułem i opisem z nabożeństwa — widzowie widzą ją wcześniej i mogą ustawić przypomnienie. W dniu nabożeństwa wybierasz ją w polu „Transmisja” i klikasz „Rozpocznij”.<template v-if="service && serviceStarted"> Godzina wybranego nabożeństwa już minęła, więc nie da się go zaplanować.</template></p>
           </details>
 
           <details class="desk-set">

@@ -26,6 +26,7 @@ function explain(status, data) {
   if (/liveStreamingNotEnabled/i.test(reason)) return 'Na tym kanale nie są włączone transmisje na żywo — YouTube Studio → Transmisja na żywo (pierwsze włączenie trwa do 24 godzin).'
   if (/youtubeSignupRequired|noChannel/i.test(reason)) return 'To konto Google nie ma kanału YouTube — zaloguj się kontem (albo kontem marki) kanału kościoła.'
   if (/insufficientPermissions|forbidden/i.test(reason) || status === 403) return 'Brak uprawnień do tego kanału — zaloguj się kontem właściciela albo menedżera kanału.'
+  if (/invalidScheduledStartTime/i.test(reason)) return 'YouTube planuje transmisje tylko na przyszłość — godzina tego nabożeństwa już minęła (albo jest za daleko). Do nadawania teraz użyj „Rozpocznij transmisję”.'
   if (/quotaExceeded|rateLimitExceeded/i.test(reason)) return 'Dzienny limit zapytań do YouTube się wyczerpał — spróbuj jutro.'
   if (status >= 500) return 'YouTube zgłosił błąd po swojej stronie („' + (msg || 'Internal error') + '”). Spróbuj ponownie za chwilę.'
   return msg || `YouTube odpowiedział błędem ${status}.`

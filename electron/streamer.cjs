@@ -86,7 +86,9 @@ class Streamer extends EventEmitter {
     const q0 = QUALITY[o.quality] || QUALITY['1080']
     // klatki na sekundę — tyle, ile wysyła ATEM (Standard wideo w mikserze); 25, 30, 50 albo 60
     const fps = [25, 30, 50, 60].includes(+o.fps) ? +o.fps : 30
-    const q = fps > 30 ? { ...q0, nvenc: q0.nvenc60, x264: q0.x264_60 } : q0
+    let q = fps > 30 ? { ...q0, nvenc: q0.nvenc60, x264: q0.x264_60 } : q0
+    // przepływność ustawiona ręcznie (kb/s) zamiast automatycznej
+    if (+o.kbps >= 1000 && +o.kbps <= 20000) q = { ...q, nvenc: Math.round(+o.kbps) + 'k', x264: Math.round(+o.kbps) + 'k' }
     // Ekran (próba bez ATEM): „screen:x,y,w,h” w pikselach fizycznych pulpitu.
     const scr = String(o.video || '').match(/^screen:(-?\d+),(-?\d+),(\d+),(\d+)$/)
     const audioIn = o.audio ? ['-f', 'dshow', '-thread_queue_size', '1024', '-i', `audio=${o.audio}`] : ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']
