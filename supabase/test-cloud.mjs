@@ -8,7 +8,7 @@ import { createCloud } from '../src/cloud.js'
 import { createSupa } from '../mobile/supa.js'
 
 const db = new PGlite()
-await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
+await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql', 'rzutniki.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
 const admin = await addUser(db, 'admin@kns.pl')
 const tech = await addUser(db, 'tech@kns.pl')
 const member = await addUser(db, 'czlonek@kns.pl')
@@ -112,4 +112,12 @@ r = await noDrive.sharedWrite('baza', { service: { id: 'k2', date: inDays(9), fi
   { key: 'b', name: 'nowy.pptx', path: String.raw`C:\Users\x\Desktop\nowy.pptx` }], songs: [], updated: 5 }, songs: [] })
 assert.match(r.warning, /\(1\) zostały tylko na tym komputerze/)
 assert.deepEqual((await phone.load()).services.find(s => s.id === 'k2').files.map(f => f.path), ['pliki/stary.pdf'])
+// rzutniki dla Streamu: komputer z rzutnikiem ogłasza klucz, Stream (inny komputer) widzi go na liście
+assert.deepEqual(await A.publishProjector({ id: 'pc-rzutnik', name: 'Laptop rzutnik', key: 'kluczrzutnika1', screen: true }), { ok: true })
+let pr = await T.projectors()
+assert.equal(pr.length, 1); assert.equal(pr[0].key, 'kluczrzutnika1'); assert.equal(pr[0].screen, true)
+await A.publishProjector({ id: 'pc-rzutnik', name: 'Laptop rzutnik', key: 'nowyklucz12345', screen: false })
+assert.equal((await T.projectors())[0].key, 'nowyklucz12345')
+await A.unpublishProjector('pc-rzutnik')
+assert.equal((await T.projectors()).length, 0)
 console.log('cloud.js: wszystkie testy OK')

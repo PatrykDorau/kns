@@ -960,6 +960,7 @@ app.whenReady().then(() => {
   ipcMain.handle('output:open', (e, displayId) => openOutput(displayId))
   // Obraz rzutnika przez sieć: getDisplayMedia w oknie aplikacji dostaje ekran z rzutnikiem (bez dźwięku — idzie przez konsolę).
   let captureDisplay = null
+  ipcMain.handle('app:hostname', () => os.hostname())
   ipcMain.handle('capture:target', (e, id) => { captureDisplay = id == null ? null : String(id); return true })
   session.defaultSession.setDisplayMediaRequestHandler(async (req, done) => {
     try {

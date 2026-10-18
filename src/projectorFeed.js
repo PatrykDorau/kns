@@ -1,7 +1,7 @@
 // Scena „Rzutnik” w studiu: to, co pokazuje Rzutnik na TYM komputerze (zdjęcie, film, tekst, slajd prezentacji).
 // Rzutnik na innym komputerze — przechwytywanie ekranu przez sieć (osobno).
 import { watch } from 'vue'
-import { displayId, hidden, liveSlide, settings, video } from './store.js'
+import { api, displayId, hidden, liveSlide, publishProjector, settings, unpublishProjector, video } from './store.js'
 import { setRemoteScreen, studio } from './studio.js'
 import { lyricsKey } from './lyricsFeed.js'
 import { startReceive, startShare, stopReceive, stopShare } from './screenShare.js'
@@ -19,6 +19,16 @@ export function startProjectorFeed() {
     else if (v.type === 'text') studio.projector = { kind: 'text', text: v.text, style: v }
     else studio.projector = { kind: 'none' }
   }, { immediate: true })
+  // Stream na innym komputerze znajdzie ten rzutnik sam (lista w Ustawieniach nadawania) — odświeżane co 10 min
+  let host = '', timer = 0
+  const announce = async () => {
+    if (!settings.deviceId || !settings.lyricsKey) return
+    if (!(settings.lyricsOnline || settings.screenShare)) { clearInterval(timer); timer = 0; unpublishProjector(settings.deviceId); return }
+    host = host || (await api.hostname?.().catch(() => '')) || 'Komputer z rzutnikiem'
+    publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare })
+    if (!timer) timer = setInterval(() => { if (settings.lyricsOnline || settings.screenShare) publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare }) }, 600000)
+  }
+  watch([() => settings.lyricsOnline, () => settings.screenShare, () => settings.lyricsKey], announce, { immediate: true })
   // laptop przy rzutniku: udostępnia ekran rzutnika (klucz — ten sam co napisy przez internet)
   watch([() => settings.screenShare, () => settings.lyricsKey, displayId], ([on, key, disp]) => { if (on && key) startShare(key, disp); else stopShare() }, { immediate: true })
   // laptop ze streamem: odbiera, gdy napisy idą z innego komputera (wklejony adres z kluczem)

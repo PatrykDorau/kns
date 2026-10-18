@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
-import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from './store.js'
+import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, loadProjectors, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from './store.js'
 import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from './lyricsFeed.js'
 import { remote as remoteScreen } from './screenShare.js'
 import { OVERLAYS, SCENES, airMedia, mediaCtl, mediaSlide, setMediaPos, setOverlayMode, showMediaFull, showMediaOverlay, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
@@ -131,6 +131,28 @@ function addMediaText() {
   showMediaOverlay(it.id)
 }
 const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0')
+
+/* ---------- rzutnik na innym komputerze: wybór z listy zamiast wklejania adresu ---------- */
+const projectors = ref([]), manualKey = ref(false)
+const otherProjectors = computed(() => projectors.value.filter(p => p.id !== settings.deviceId))
+const ago = t => { const m = Math.round((Date.now() - new Date(t).getTime()) / 60000); return m < 2 ? 'teraz' : m < 60 ? m + ' min temu' : m < 1440 ? Math.round(m / 60) + ' godz. temu' : Math.round(m / 1440) + ' dni temu' }
+async function refreshProjectors() {
+  const res = await loadProjectors()
+  if (!Array.isArray(res)) return
+  projectors.value = res
+  const list = otherProjectors.value
+  const chosen = list.find(p => p.id === settings.streamProjector)
+  if (chosen) { if (lyricsKey.value !== chosen.key) settings.streamLyricsKey = chosen.key } // klucz zmieniony na rzutniku („Nowy klucz”)
+  else if (list.length && !list.some(p => p.key === lyricsKey.value)) pickProjector(list[0].id) // najświeższy
+}
+function pickProjector(id) {
+  const p = otherProjectors.value.find(x => x.id === id)
+  settings.streamProjector = id
+  if (p) { settings.streamLyricsKey = p.key; manualKey.value = false }
+}
+let projTimer = 0
+watch(() => settings.streamLyrics, mode => { clearInterval(projTimer); if (mode === 'remote') { refreshProjectors(); projTimer = setInterval(refreshProjectors, 60000) } }, { immediate: true })
+onBeforeUnmount(() => clearInterval(projTimer))
 
 /* ---------- YouTube ---------- */
 const yt = ref({ loggedIn: false })
@@ -487,7 +509,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
                 <button :class="{ on: studio.preview.pip.size !== 'large' }" @click="pip({ size: 'small' })">Małe</button>
                 <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
               </div>
-              <p v-if="['projector', 'projectorPip'].includes(studio.preview.scene)" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć' : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze' : remoteScreen.state === 'connecting' ? 'Obraz z rzutnika przez sieć: ' + (remoteScreen.error || remoteScreen.step) : settings.streamLyrics === 'remote' && lyricsKey === settings.lyricsKey ? 'Rzutnik na tym komputerze nic teraz nie pokazuje.' : 'Rzutnik nic nie pokazuje — na laptopie przy rzutniku włącz „Udostępniaj obraz rzutnika” (Ustawienia aplikacji), a tu w Ustawieniach nadawania: napisy „z rzutnika na innym komputerze” z jego adresem.' }}</p>
+              <p v-if="['projector', 'projectorPip'].includes(studio.preview.scene)" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć' : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze' : remoteScreen.state === 'connecting' ? 'Obraz z rzutnika przez sieć: ' + (remoteScreen.error || remoteScreen.step) : settings.streamLyrics === 'remote' && lyricsKey === settings.lyricsKey ? 'Rzutnik na tym komputerze nic teraz nie pokazuje.' : (settings.streamLyrics === 'remote' ? 'Rzutnik na innym komputerze nic nie wysyła — tam w Ustawieniach aplikacji włącz „Udostępniaj obraz rzutnika”.' : 'Rzutnik na tym komputerze nic teraz nie pokazuje. Rzutnik na innym laptopie: Ustawienia nadawania → Napisy pieśni → „Rzutnik na innym komputerze”.') }}</p>
               <div v-if="studio.preview.scene === 'media'" class="desk-opt-group">
                 <template v-if="pvFull"><Thumb :item="pvFull" /><b>{{ label(pvFull) }}</b><button @click="deskTab = 'media'">Zmień</button></template>
                 <button v-else class="primary" @click="deskTab = 'media'">Wybierz materiał</button>
@@ -669,10 +691,21 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <label title="Przepływność (bitrate) — ile danych na sekundę idzie do YouTube. Więcej = ostrzejszy obraz przy ruchu, ale potrzeba szybszego internetu (wysyłanie co najmniej 1,5× tyle).">Przepływność<select v-model.number="settings.streamKbps"><option :value="0">automatycznie ({{ (autoKbps / 1000).toLocaleString('pl') }} Mb/s)</option><option v-for="v in [3000, 4500, 6000, 8000, 10000, 12000]" :key="v" :value="v">{{ (v / 1000).toLocaleString('pl') }} Mb/s</option></select></label>
               <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · {{ hiFps ? '9' : '6,8' }} Mb/s</option><option value="720">720p · {{ hiFps ? '5' : '3,5' }} Mb/s (słabszy internet)</option></select></label>
               <label title="Tyle, ile wysyła ATEM: ATEM Software Control → Ustawienia → Standard wideo (np. 1080p50)">Klatki na sekundę<select v-model.number="settings.streamFps"><option :value="25">25</option><option :value="30">30</option><option :value="50">50</option><option :value="60">60</option></select></label>
-              <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
+              <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">Rzutnik na tym komputerze</option><option value="remote">Rzutnik na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </fieldset>
             <label v-if="settings.streamLyrics === 'remote'" class="check" title="Cały ekran rzutnika z drugiego laptopa (sam obraz) — scena „Rzutnik” i „Rzutnik + kamera”. Na laptopie przy rzutniku: Ustawienia aplikacji → „Udostępniaj obraz rzutnika”."><input v-model="settings.screenRemote" type="checkbox"> Obraz rzutnika z tego komputera (przez sieć)</label>
-            <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
+            <div v-if="settings.streamLyrics === 'remote'" class="desk-proj">
+              <label>Rzutnik
+                <select :value="otherProjectors.some(p => p.id === settings.streamProjector) ? settings.streamProjector : ''" @change="$event.target.value ? pickProjector($event.target.value) : (manualKey = true)">
+                  <option v-if="!otherProjectors.length" value="">— nie widzę rzutnika —</option>
+                  <option v-for="p in otherProjectors" :key="p.id" :value="p.id">{{ p.name }} · {{ p.screen ? 'obraz i napisy' : 'napisy' }} · {{ ago(p.updated) }}</option>
+                  <option value="">Wklej adres ręcznie…</option>
+                </select>
+              </label>
+              <button class="small" title="Odśwież listę" aria-label="Odśwież listę rzutników" @click="refreshProjectors"><Icon name="refresh" /></button>
+              <small class="muted">{{ otherProjectors.length ? 'Rzutniki z włączonymi napisami lub obrazem przez internet — wybierają się same.' : 'Na laptopie przy rzutniku: Ustawienia aplikacji → „Przez internet” albo „Udostępniaj obraz rzutnika”.' }}</small>
+            </div>
+            <input v-if="settings.streamLyrics === 'remote' && (manualKey || !otherProjectors.length)" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
             <p v-if="liveOn" class="note">W trakcie transmisji ustawienia są zablokowane — źródło dźwięku zmienisz na pasku stanu nad podglądem.</p>
             <p class="note">Przepływność: YouTube zaleca dla 1080p 4,5–9 Mb/s (przy 50/60 kl./s górna część). Internet w kościele musi wysyłać ok. 1,5× tyle — sprawdź na speedtest.net („Upload”). Gdy YouTube pokazuje „słaby sygnał”, zmniejsz.</p>
             <p class="note">Klatki na sekundę ustaw tak jak w ATEM (ATEM Software Control → Ustawienia → Standard wideo, np. 1080p50 → 50).</p>

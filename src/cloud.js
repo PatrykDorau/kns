@@ -172,6 +172,10 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     // Podgląd dla gości (bez logowania): to, co baza pokazuje publicznie.
     publicPreview: () => safe(async () => check(await sb.rpc('public_preview'))),
     // „Posłuchaj”: linki YouTube i Spotify (czyta też gość).
+    // Rzutniki dla Streamu: ten komputer ogłasza swój klucz; Stream wybiera z listy (tylko zatwierdzeni członkowie).
+    publishProjector: row => safe(async () => { await active(); check(await sb.from('projector_links').upsert({ ...row, updated: new Date().toISOString() })); return { ok: true } }),
+    unpublishProjector: id => safe(async () => { await active(); check(await sb.from('projector_links').delete().eq('id', id)); return { ok: true } }),
+    projectors: () => safe(async () => { await active(); return check(await sb.from('projector_links').select('id,name,key,screen,updated').order('updated', { ascending: false })) || [] }),
     listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
     lyrics, listenLyrics, lyricsLink, signal,
     // Skład zespołu: osoby ze służby muzycznej (dla osób z prawem edycji).
