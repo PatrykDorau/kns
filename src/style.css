@@ -872,3 +872,27 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
 .desk-new select { width: auto; padding: 4px 8px; font-size: 13px; }
 .desk-now { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .desk-head .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+
+/* Nadawanie z aplikacji (bez OBS) */
+.desk-live { margin-bottom: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.desk-live.on { border-color: #e5484d; }
+.desk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.desk-grid label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; margin: 0; }
+.desk-grid select { width: 100%; padding: 5px 8px; font-size: 13px; }
+.desk-lyr { width: 100%; margin-top: 8px; padding: 6px 10px; font-size: 13px; }
+.desk-go { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.desk-go select { width: auto; padding: 6px 8px; font-size: 13px; }
+.desk-go small { flex-basis: 100%; }
+.desk-golive { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; border: 0; background: #e5484d; color: #fff; font-weight: 800; letter-spacing: .02em; }
+.desk-golive i { width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+.desk-golive:disabled { opacity: .5; }
+.desk-preview { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 8px; background: #000; }
+.desk-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-top: 8px; font-size: 13px; }
+.desk-stats b.live { color: #ff6b70; }
+.desk-stats b.wait { color: #e8a33d; }
+.desk-stats .bad { color: #ff6b70; }
+.desk-stop { margin-top: 6px; }
+.desk-adv { margin: 8px 0; font-size: 13px; color: var(--muted); }
+.desk-adv summary { cursor: pointer; color: var(--text); }
+.desk-adv .desk-key { margin-top: 8px; }
+.linkbtn { padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; font: inherit; cursor: pointer; }

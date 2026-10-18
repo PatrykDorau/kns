@@ -27,6 +27,7 @@ export const settings = reactive({
   cue: false, // sygnały dla kamerzysty (stream)
   cueToken: '',
   atemAddress: '', atemDirect: false, ytPrivacy: 'public', // pulpit streamu: ATEM przez sieć i YouTube
+  streamVideo: '', streamAudio: '', streamQuality: '1080', streamLyrics: 'local', streamLyricsKey: '', // nadawanie bez OBS
   camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu
@@ -108,7 +109,11 @@ export const volume = ref(0.25)
 export const notice = ref('')
 export const busy = ref('')
 export const remoteUrl = ref('')
-export const overlayUrl = ref('') // napisy pieśni na przezroczystym tle (źródło „Przeglądarka” w OBS)
+export const overlayUrl = ref('')
+// Nadawanie z aplikacji trzyma obraz z ATEM — podgląd kamer w Stream go wtedy oddaje.
+export const cameraLock = ref(false)
+// Napisy z innego komputera (rzutnik gdzie indziej): kanał na żywo z kluczem z adresu …/napisy?k=…
+export function listenLyrics(key, onText) { return cloud ? cloud.listenLyrics(key, onText) : () => {} } // napisy pieśni na przezroczystym tle (źródło „Przeglądarka” w OBS)
 export const renamingId = ref(null)
 export const renameValue = ref('')
 export const confirmId = ref(null)
@@ -185,6 +190,8 @@ export function view(it, index = 0) {
 
 export const selectedIndex = computed(() => (selected.value?.id === liveId.value ? songIndex.value : previewIndex.value))
 export const selectedView = computed(() => view(selected.value, selectedIndex.value))
+// Bieżąca zwrotka pieśni na rzutniku (pusto przy „Ukryj” i gdy nie ma pieśni) — napisy dla OBS i nadawania.
+export const lyricsNow = computed(() => { const v = liveView.value; return !hidden.value && v?.type === 'text' && v.song ? v.text : '' })
 export const liveView = computed(() => {
   const it = liveItem.value
   if (it?.type === 'text' && liveFrozen.value) return JSON.parse(liveFrozen.value)
@@ -1299,7 +1306,7 @@ export async function init() {
   }, { immediate: true })
   // Napisy przez internet: bieżąca zwrotka pieśni (puste przy „Ukryj” i gdy nie ma pieśni); co 15 s powtórka,
   // żeby strona w OBS nadrobiła zgubioną wiadomość.
-  const lyricsText = computed(() => { const v = liveView.value; return !hidden.value && v?.type === 'text' && v.song ? v.text : '' })
+  const lyricsText = lyricsNow
   const lyricsOut = () => { if (!frozen.value) cloud?.lyrics(settings.lyricsOnline ? settings.lyricsKey : '', lyricsText.value) }
   watch([lyricsText, frozen, () => settings.lyricsOnline, () => settings.lyricsKey], lyricsOut, { immediate: true })
   setInterval(() => { if (settings.lyricsOnline) lyricsOut() }, 15000)

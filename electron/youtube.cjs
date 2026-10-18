@@ -162,7 +162,8 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
   }
 
   const mapBroadcast = b => ({ id: b.id, title: b.snippet?.title || '', description: b.snippet?.description || '', start: b.snippet?.scheduledStartTime || '',
-    status: b.status?.lifeCycleStatus || '', privacy: b.status?.privacyStatus || '', streamId: b.contentDetails?.boundStreamId || '', url: 'https://youtu.be/' + b.id })
+    status: b.status?.lifeCycleStatus || '', privacy: b.status?.privacyStatus || '', streamId: b.contentDetails?.boundStreamId || '', url: 'https://youtu.be/' + b.id,
+    autoStart: !!b.contentDetails?.enableAutoStart, monitor: !!b.contentDetails?.monitorStream?.enableMonitorStream })
   // Zaplanowane i trwające transmisje kanału (najbliższe na górze).
   async function broadcasts() {
     const items = (await call('GET', '/liveBroadcasts?part=id,snippet,status,contentDetails&mine=true&maxResults=25')).items || []
@@ -187,6 +188,22 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
     })
     return mapBroadcast(b)
   }
+  // Transmisja z YouTube Studio bywa podpięta pod inny klucz — przed nadawaniem przepinamy ją na stały klucz aplikacji.
+  async function bindToKey(id) {
+    const s = await streamKey()
+    return mapBroadcast(await call('POST', `/liveBroadcasts/bind?part=id,snippet,status,contentDetails&id=${id}&streamId=${s.id}`))
+  }
+  // Ręczne „na żywo” (transmisje bez automatycznego startu): gdy YouTube widzi obraz — przez „test”, jeśli ma podgląd.
+  async function goLive(id) {
+    const get = async () => mapBroadcast((await call('GET', '/liveBroadcasts?part=id,snippet,status,contentDetails&id=' + id)).items?.[0] || {})
+    let b = await get()
+    if (b.status === 'live' || b.status === 'liveStarting') return b
+    if (b.monitor && !['testing', 'testStarting'].includes(b.status)) {
+      await call('POST', `/liveBroadcasts/transition?part=status&broadcastStatus=testing&id=${id}`)
+      for (let i = 0; i < 20 && (b = await get()).status !== 'testing'; i++) await new Promise(r => setTimeout(r, TEST_BASE ? 10 : 2000))
+    }
+    return mapBroadcast(await call('POST', `/liveBroadcasts/transition?part=id,snippet,status,contentDetails&broadcastStatus=live&id=${id}`))
+  }
   async function endBroadcast(id) { return mapBroadcast(await call('POST', `/liveBroadcasts/transition?part=id,snippet,status,contentDetails&broadcastStatus=complete&id=${id}`)) }
   async function deleteBroadcast(id) { await call('DELETE', '/liveBroadcasts?id=' + id); return { ok: true } }
 
@@ -198,5 +215,5 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
     return { ...status(), stream, broadcasts: list }
   }
 
-  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview }
+  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview, bindToKey, goLive }
 }

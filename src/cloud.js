@@ -54,6 +54,14 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     if (key) lyricsSend()
   }
 
+  // Odbiór napisów z rzutnika na innym komputerze (ten sam kanał co strona /napisy).
+  function listenLyrics(key, onText) {
+    const ch = sb.channel('napisy-' + key, { config: { broadcast: { self: false } } })
+    ch.on('broadcast', { event: 'napisy' }, ({ payload }) => onText(String(payload?.text || '')))
+    ch.subscribe(status => { if (status === 'SUBSCRIBED') ch.send({ type: 'broadcast', event: 'hello', payload: {} }).catch(() => {}) })
+    return () => sb.removeChannel(ch)
+  }
+
   // Wynik w kształcie odpowiedzi folderu wspólnego: błąd zamiast wyjątku.
   const safe = job => job().catch(e => ({ error: e.message, needLogin: !!e.needLogin }))
 
@@ -106,7 +114,7 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     publicPreview: () => safe(async () => check(await sb.rpc('public_preview'))),
     // „Posłuchaj”: linki YouTube i Spotify (czyta też gość).
     listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
-    lyrics,
+    lyrics, listenLyrics,
     // Skład zespołu: osoby ze służby muzycznej (dla osób z prawem edycji).
     bandPeople: () => safe(async () => { await active(); return { people: check(await sb.rpc('band_people')) || [] } }),
     // Osoby (administrator): lista, zatwierdzanie, rangi.

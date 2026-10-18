@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
-import { api, prettyDate, serviceTime, servicePlace, settings } from './store.js'
+import { api, cameraLock, listenLyrics, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -21,8 +21,12 @@ onMounted(async () => {
   if (st) atem.value = st
   if (settings.atemAddress && !st?.address) connect()
   loadYt()
+  offLive = api.onStreamState?.(x => { live.value = x })
+  const ls = await api.streamState?.()
+  if (ls) { live.value = ls; if (ls.running || ls.starting) cameraLock.value = true }
+  loadDevices()
 })
-onBeforeUnmount(() => { off?.(); clearInterval(ytTimer) })
+onBeforeUnmount(() => { off?.(); offLive?.(); unlisten?.(); clearInterval(ytTimer) })
 async function connect() {
   atemError.value = ''
   const ip = address.value.trim()
@@ -96,17 +100,87 @@ async function refreshFromService(b) {
   const svc = props.service
   if (svc) await ytDo(() => api.ytUpdate({ id: b.id, title: ytTitle(svc), description: ytDescription(svc), start: ytStart(svc), privacy: b.privacy }))
 }
-// „Transmisja teraz”: jak przycisk w OBS — transmisja od tej chwili (tytuł z wybranego nabożeństwa, jeśli jest).
-const nowInfo = ref('')
-async function streamNow() {
-  // na stały klucz czeka już transmisja — druga by się z nią gryzła; ta wystartuje sama, gdy OBS zacznie nadawać
-  const waiting = (yt.value.broadcasts || []).find(b => ['created', 'ready', 'testing', 'live'].includes(b.status))
-  if (waiting) { nowInfo.value = (waiting.status === 'live' ? 'Już nadajemy: „' : 'Czeka już transmisja „') + waiting.title + '” — w OBS kliknij „Rozpocznij transmisję”, a ona wystartuje.'; return }
-  const svc = props.service
-  const title = svc ? ytTitle(svc) : 'Transmisja na żywo — Kościół Na Skale ' + new Date().toLocaleDateString('pl')
-  const res = await ytDo(() => api.ytCreate({ title, description: svc ? ytDescription(svc) : '', start: new Date(Date.now() + 60000).toISOString(), privacy: privacy.value }))
-  if (res && !res.error) nowInfo.value = 'Gotowe — w OBS kliknij „Rozpocznij transmisję”; na YouTube od razu będzie na żywo.'
+/* ---------- nadawanie z aplikacji (bez OBS): obraz i dźwięk z ATEM po USB → napisy → YouTube ---------- */
+const live = ref({ running: false, starting: false })
+const liveOn = computed(() => live.value.running || live.value.starting)
+const devices = ref({ video: [], audio: [], screens: [] })
+const liveError = ref('')
+let offLive = null
+async function loadDevices() {
+  devices.value = { screens: [], ...((await api.streamDevices?.()) || { video: [], audio: [] }) }
+  // ATEM po USB to „Blackmagic Design” — wybierany sam
+  const bm = list => list.find(n => /blackmagic|atem/i.test(n)) || ''
+  const all = [...devices.value.video, ...devices.value.screens.map(s => s.value)]
+  if (!all.includes(settings.streamVideo)) settings.streamVideo = bm(devices.value.video) || devices.value.video[0] || ''
+  if (settings.streamAudio && !devices.value.audio.includes(settings.streamAudio)) settings.streamAudio = ''
+  if (!settings.streamAudio) settings.streamAudio = bm(devices.value.audio)
 }
+// Transmisja na YouTube, która wystartuje (czekająca na stałym kluczu) — albo nowa z nabożeństwa.
+const waiting = computed(() => (yt.value.broadcasts || []).find(b => ['created', 'ready', 'testStarting', 'testing', 'liveStarting', 'live'].includes(b.status)) || null)
+const nextTitle = computed(() => waiting.value?.title || (props.service ? ytTitle(props.service) : 'Transmisja na żywo — Kościół Na Skale ' + new Date().toLocaleDateString('pl')))
+async function goLive() {
+  liveError.value = ''
+  if (!yt.value.stream) await loadYt()
+  if (!yt.value.stream) { liveError.value = 'Nie mam klucza transmisji z YouTube — kliknij odśwież albo połącz kanał ponownie.'; return }
+  let b = waiting.value
+  if (b && b.streamId !== yt.value.stream.id) {
+    // transmisja z YouTube Studio pod innym kluczem — przepinamy ją na stały klucz aplikacji
+    const res = await ytDo(() => api.ytBind(b.id))
+    if (!res || res.error) return
+  }
+  if (!b) {
+    const svc = props.service
+    const res = await ytDo(() => api.ytCreate({ title: nextTitle.value, description: svc ? ytDescription(svc) : '', start: new Date(Date.now() + 60000).toISOString(), privacy: privacy.value }))
+    if (!res || res.error) return
+  }
+  cameraLock.value = true // podgląd kamer w Stream oddaje obraz z ATEM
+  await new Promise(r => setTimeout(r, 800))
+  const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality })
+  if (res?.error) { liveError.value = res.error; cameraLock.value = false; return }
+  feed(lyricsLast.value.text) // napisy od pierwszej klatki
+  watchGoLive()
+}
+// Transmisja bez automatycznego startu (np. zaplanowana w YouTube Studio): gdy YouTube zobaczy obraz — „na żywo”.
+let goLiveTimer = 0
+function watchGoLive() {
+  clearInterval(goLiveTimer)
+  let tries = 0
+  goLiveTimer = setInterval(async () => {
+    if (!liveOn.value || ++tries > 40) { clearInterval(goLiveTimer); return }
+    await loadYt()
+    const b = waiting.value
+    if (!b || b.status === 'live') { if (b?.status === 'live') clearInterval(goLiveTimer); return }
+    if (yt.value.stream?.status === 'active' && !b.autoStart && ['ready', 'created', 'testing'].includes(b.status)) {
+      const res = await api.ytGoLive(b.id)
+      if (res?.error) liveError.value = 'YouTube: ' + res.error
+      else clearInterval(goLiveTimer)
+    }
+  }, 6000)
+}
+async function stopLive() {
+  if (!confirm('Zakończyć transmisję? Na YouTube zakończy się sama po chwili od zatrzymania obrazu.')) return
+  live.value = await api.streamStop()
+  cameraLock.value = false
+  setTimeout(loadYt, 4000)
+}
+// Napisy: z rzutnika na tym komputerze, z innego komputera (kanał na żywo z adresu …/napisy?k=…) albo bez.
+const lyricsKey = computed(() => { const raw = String(settings.streamLyricsKey || ''); const m = raw.match(/[?&]k=([\w-]+)/); return m ? m[1] : raw.trim().replace(/[^\w-]/g, '') })
+const lyricsLast = ref({ text: '', at: 0 })
+let unlisten = null
+const feed = text => { lyricsLast.value = { text, at: Date.now() }; api.streamLyrics?.(text) }
+watch([() => settings.streamLyrics, lyricsKey], () => {
+  unlisten?.(); unlisten = null
+  feed(settings.streamLyrics === 'local' ? lyricsNow.value : '')
+  if (settings.streamLyrics === 'remote' && lyricsKey.value) unlisten = listenLyrics(lyricsKey.value, feed)
+}, { immediate: true })
+watch(lyricsNow, t => { if (settings.streamLyrics === 'local') feed(t) })
+const lyricsInfo = computed(() => {
+  if (settings.streamLyrics === 'off') return 'wyłączone'
+  if (settings.streamLyrics === 'remote' && !lyricsKey.value) return 'wklej adres napisów z komputera z rzutnikiem'
+  const t = lyricsLast.value.text.split('\n')[0]
+  if (settings.streamLyrics === 'remote' && !lyricsLast.value.at) return 'czekam na rzutnik…'
+  return t ? 'teraz: „' + t + (lyricsLast.value.text.includes('\n') ? '…' : '') + '”' : 'teraz bez tekstu (brak pieśni albo „Ukryj”)'
+})
 async function endBroadcast(b) { if (confirm('Zakończyć transmisję „' + b.title + '”? Widzowie zobaczą jej koniec.')) await ytDo(() => api.ytEnd(b.id)) }
 const B_STATUS = { created: 'Zaplanowana', ready: 'Gotowa — czeka na obraz', testStarting: 'Test…', testing: 'Test', liveStarting: 'Startuje…', live: 'NA ŻYWO' }
 const PRIVACY = { public: 'publiczna', unlisted: 'niepubliczna', private: 'prywatna' }
@@ -187,6 +261,42 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
         <button class="primary desk-yt-login" :disabled="ytBusy" @click="ytLogin"><Icon name="play" />{{ ytBusy ? 'Czekam na logowanie w przeglądarce…' : 'Połącz z YouTube' }}</button>
       </template>
       <template v-else>
+        <!-- Nadawanie z aplikacji: bez OBS -->
+        <div class="desk-live" :class="{ on: liveOn }">
+          <template v-if="!liveOn">
+            <div class="desk-grid">
+              <label>Obraz<select v-model="settings.streamVideo"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
+              <label>Dźwięk<select v-model="settings.streamAudio"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
+              <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · 6 Mb/s</option><option value="720">720p · 3,5 Mb/s (słabszy internet)</option></select></label>
+              <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
+            </div>
+            <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
+            <p v-if="!devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>
+            <div class="desk-go">
+              <button class="desk-golive" :disabled="ytBusy || !settings.streamVideo" @click="goLive"><i></i>Rozpocznij transmisję</button>
+              <select v-if="!waiting" v-model="privacy" aria-label="Widoczność transmisji"><option value="public">Publiczna</option><option value="unlisted">Niepubliczna</option><option value="private">Prywatna</option></select>
+              <small class="muted">{{ waiting ? 'Wystartuje: „' + nextTitle + '”' : 'Utworzy transmisję „' + nextTitle + '”' }} · napisy: {{ lyricsInfo }}</small>
+            </div>
+            <p v-if="liveError" class="note bad">{{ liveError }}</p>
+          </template>
+          <template v-else>
+            <img v-if="live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
+            <div class="desk-stats">
+              <b :class="live.running ? 'live' : 'wait'">{{ live.running ? '● NA ŻYWO' : 'Łączę z YouTube…' }}</b>
+              <span v-if="live.time">{{ live.time }}</span>
+              <span v-if="live.fps">{{ live.fps }} kl./s</span>
+              <span v-if="live.bitrate">{{ live.bitrate.replace('kbits/s', ' kb/s') }}</span>
+              <span v-if="live.drop" class="bad">zgubione klatki: {{ live.drop }}</span>
+              <span class="muted">{{ live.encoder }}</span>
+            </div>
+            <p v-if="live.error" class="note bad">{{ live.error }}</p>
+            <p class="note">Napisy: {{ lyricsInfo }}</p>
+            <button class="danger desk-stop" @click="stopLive">■ Zakończ transmisję</button>
+          </template>
+        </div>
+
+        <details class="desk-adv">
+          <summary>Zaawansowane: klucz transmisji (OBS albo nadawanie z ATEM)</summary>
         <div v-if="yt.stream" class="desk-key">
           <span><small class="muted">Serwer</small><code>{{ yt.stream.url }}</code></span>
           <button class="small" @click="copy('url', yt.stream.url)"><Icon :name="copied === 'url' ? 'check' : 'copy'" /></button>
@@ -199,7 +309,8 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <button v-if="atem.streaming !== 'streaming'" class="small" @click="run('streaming', true)">Start transmisji z ATEM</button>
           <button v-else class="small danger" @click="stopAtemStream">Stop transmisji z ATEM</button>
         </div>
-        <p class="note">Klucz wklej raz w OBS (Ustawienia → Transmisja → YouTube → klucz) albo wyślij do ATEM. Transmisja sama startuje, gdy przyjdzie obraz, i sama się kończy po zatrzymaniu.</p>
+        <p class="note">Tylko jeśli nadajecie innym programem: klucz wklej raz w OBS albo wyślij do ATEM (mikser z internetem po kablu sieciowym). Transmisja sama startuje, gdy przyjdzie obraz.</p>
+        </details>
 
         <div class="desk-list">
           <div v-for="b in yt.broadcasts" :key="b.id" class="desk-bc" :class="{ live: b.status === 'live' }">
@@ -213,14 +324,10 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           </div>
           <p v-if="!(yt.broadcasts || []).length" class="note">Nie ma zaplanowanych transmisji.</p>
         </div>
-        <div class="desk-now">
-          <button class="small" :disabled="ytBusy" title="Nowa transmisja od teraz — po kliknięciu „Rozpocznij transmisję” w OBS od razu jest na żywo" @click="streamNow"><Icon name="play" />Transmisja teraz</button>
-          <small v-if="nowInfo" class="muted">{{ nowInfo }}</small>
-        </div>
         <div v-if="service && !forService" class="desk-new">
           <span><b>{{ ytTitle(service) }}</b><small class="muted">{{ prettyDate(service.date) }}, {{ serviceTime(service) }}</small></span>
           <select v-model="privacy" aria-label="Widoczność transmisji"><option value="public">Publiczna</option><option value="unlisted">Niepubliczna</option><option value="private">Prywatna</option></select>
-          <button class="primary small" :disabled="ytBusy" @click="createForService"><Icon name="plus" />Utwórz transmisję</button>
+          <button class="small" :disabled="ytBusy" title="Zaplanuj z wyprzedzeniem (widzowie zobaczą zapowiedź na kanale)" @click="createForService"><Icon name="plus" />Zaplanuj</button>
         </div>
       </template>
     </div>

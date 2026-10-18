@@ -8,6 +8,7 @@ const { execFile } = require('node:child_process')
 const createGoogleDrive = require('./gdrive.cjs')
 const { Atem } = require('./atem.cjs')
 const createYouTube = require('./youtube.cjs')
+const { Streamer, listDevices } = require('./streamer.cjs')
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL
 // Dane zostają w dotychczasowym folderze niezależnie od nazwy programu — zmiana nazwy
@@ -1030,6 +1031,25 @@ app.whenReady().then(() => {
   ipcMain.handle('yt:create', yt(b => youtube.createBroadcast(b)))
   ipcMain.handle('yt:update', yt(b => youtube.updateBroadcast(b)))
   ipcMain.handle('yt:end', yt(id => youtube.endBroadcast(id)))
+  ipcMain.handle('yt:bind', yt(id => youtube.bindToKey(id)))
+  ipcMain.handle('yt:golive', yt(id => youtube.goLive(id)))
+  // nadawanie bez OBS: obraz i dźwięk z ATEM po USB → napisy → YouTube
+  const streamer = new Streamer({ dir: () => app.getPath('userData') })
+  streamer.on('state', st => toControl('stream:state', st))
+  // Urządzenia: ATEM i inne kamery (DirectShow) + ekrany (próba bez ATEM) w pikselach fizycznych.
+  ipcMain.handle('stream:devices', async () => {
+    const d = await listDevices()
+    d.screens = screen.getAllDisplays().map((s, i) => {
+      const r = screen.dipToScreenRect(null, s.bounds)
+      return { value: `screen:${r.x},${r.y},${r.width},${r.height}`, label: `Ekran ${i + 1}${s.id === screen.getPrimaryDisplay().id ? ' (główny)' : ''} — ${r.width}×${r.height}` }
+    })
+    return d
+  })
+  ipcMain.handle('stream:state', () => streamer.state)
+  ipcMain.handle('stream:start', yt(o => streamer.start({ ...o, ...(process.env.KNS_STREAM_TEST ? { testInput: true, encoder: 'x264' } : {}) })))
+  ipcMain.handle('stream:stop', () => streamer.stop())
+  ipcMain.on('stream:lyrics', (e, text) => streamer.setLyrics(text))
+  app.on('before-quit', () => streamer.stop())
   ipcMain.handle('lyrics:set', (e, on) => setLyrics(!!on))
   // Podpis autora zmian w nabożeństwie, gdy komputer nie jest zalogowany do Google.
   // Stream jako nakładka w OBS: małe okno (bez minimalnego rozmiaru panelu) i opcjonalnie zawsze na wierzchu.

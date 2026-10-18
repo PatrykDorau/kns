@@ -1,11 +1,11 @@
 <script setup>
-import { computed, markRaw, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import SyncButton from './SyncButton.vue'
 import Brand from './Brand.vue'
 import Countdown from './Countdown.vue'
 import StreamDesk from './StreamDesk.vue'
-import { api, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from './store.js'
+import { api, cameraLock, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from './store.js'
 import { addMinutes, categoryName } from '../mobile/church.js'
 
 // Stream: podgląd wszystkich kamer podłączonych do komputera i dane nabożeństwa pod ręką.
@@ -85,9 +85,11 @@ function onCueKey(e) {
 
 const stop = cam => cam.stream?.getTracks().forEach(t => t.stop())
 let retryTimer = 0
+watch(cameraLock, () => refresh())
 const anyBusy = computed(() => cams.value.some(c => c.busy))
 
 async function refresh() {
+  if (cameraLock.value) { for (const c of cams.value) stop(c); cams.value = []; status.value = 'Obraz z ATEM idzie teraz w transmisji — podgląd tego, co widzą widzowie, jest w pulpicie u góry.'; return }
   try {
     // Bez jednorazowej zgody na kamerę system nie podaje nazw urządzeń.
     if (!cams.value.some(c => c.stream)) (await navigator.mediaDevices.getUserMedia({ video: true })).getTracks().forEach(t => t.stop())
