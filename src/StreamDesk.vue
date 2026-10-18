@@ -133,7 +133,8 @@ const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).pa
 
 /* ---------- rzutnik na innym komputerze: wybór z listy zamiast wklejania adresu ---------- */
 const projectors = ref([]), manualKey = ref(false)
-const otherProjectors = computed(() => projectors.value.filter(p => p.id !== settings.deviceId))
+// inne komputery najpierw; ten komputer na końcu (test „zdalnego” przesyłania na jednym komputerze)
+const otherProjectors = computed(() => [...projectors.value.filter(p => p.id !== settings.deviceId), ...projectors.value.filter(p => p.id === settings.deviceId)])
 const ago = t => { const m = Math.round((Date.now() - new Date(t).getTime()) / 60000); return m < 2 ? 'teraz' : m < 60 ? m + ' min temu' : m < 1440 ? Math.round(m / 60) + ' godz. temu' : Math.round(m / 1440) + ' dni temu' }
 async function refreshProjectors() {
   const res = await loadProjectors()
@@ -142,7 +143,7 @@ async function refreshProjectors() {
   const list = otherProjectors.value
   const chosen = list.find(p => p.id === settings.streamProjector)
   if (chosen) { if (lyricsKey.value !== chosen.key) settings.streamLyricsKey = chosen.key } // klucz zmieniony na rzutniku („Nowy klucz”)
-  else if (list.length && !list.some(p => p.key === lyricsKey.value)) pickProjector(list[0].id) // najświeższy
+  else if (list.length && !list.some(p => p.key === lyricsKey.value) && list[0].id !== settings.deviceId) pickProjector(list[0].id) // najświeższy (inny komputer)
 }
 function pickProjector(id) {
   const p = otherProjectors.value.find(x => x.id === id)
@@ -709,12 +710,12 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">Rzutnik na tym komputerze</option><option value="remote">Rzutnik na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </fieldset>
             <label class="check" title="Do testów albo gdy rzutnik i stream są na jednym komputerze: scena „Rzutnik” pokazuje to, co Rzutnik w tej aplikacji (bez sieci)"><input v-model="settings.studioLocalProjector" type="checkbox"> Rzutnik z tej aplikacji (ten sam komputer)</label>
-            <label v-if="settings.streamLyrics === 'remote'" class="check" title="Cały ekran rzutnika z drugiego laptopa (sam obraz) — scena „Rzutnik” i „Rzutnik + kamera”. Na laptopie przy rzutniku: Ustawienia aplikacji → „Udostępniaj obraz rzutnika”."><input v-model="settings.screenRemote" type="checkbox"> Obraz rzutnika z tego komputera (przez sieć)</label>
+            <label v-if="settings.streamLyrics === 'remote'" class="check" title="Cały ekran rzutnika z drugiego laptopa (sam obraz) — scena „Rzutnik” i „Rzutnik + kamera”. Na laptopie przy rzutniku: Ustawienia aplikacji → „Udostępniaj obraz rzutnika”."><input v-model="settings.screenRemote" type="checkbox"> Obraz rzutnika przez sieć</label>
             <div v-if="settings.streamLyrics === 'remote'" class="desk-proj">
               <label>Rzutnik
                 <select :value="otherProjectors.some(p => p.id === settings.streamProjector) ? settings.streamProjector : ''" @change="$event.target.value ? pickProjector($event.target.value) : (manualKey = true)">
                   <option v-if="!otherProjectors.length" value="">— nie widzę rzutnika —</option>
-                  <option v-for="p in otherProjectors" :key="p.id" :value="p.id">{{ p.name }} · {{ p.screen ? 'obraz i napisy' : 'napisy' }} · {{ ago(p.updated) }}</option>
+                  <option v-for="p in otherProjectors" :key="p.id" :value="p.id">{{ p.name }}{{ p.id === settings.deviceId ? ' (ten komputer)' : '' }} · {{ p.screen ? 'obraz i napisy' : 'napisy' }} · {{ ago(p.updated) }}</option>
                   <option value="">Wklej adres ręcznie…</option>
                 </select>
               </label>

@@ -33,6 +33,6 @@ export function startProjectorFeed() {
   // laptop przy rzutniku: udostępnia ekran rzutnika (klucz — ten sam co napisy przez internet)
   watch([() => settings.screenShare, () => settings.lyricsKey, displayId], ([on, key, disp]) => { if (on && key) startShare(key, disp); else stopShare() }, { immediate: true })
   // laptop ze streamem: odbiera, gdy napisy idą z innego komputera (wklejony adres z kluczem)
-  // (ten sam klucz co własny — Rzutnik jest na tym komputerze: obraz idzie wprost, bez sieci)
-  watch([() => settings.screenRemote, () => settings.streamLyrics, lyricsKey, () => settings.lyricsKey], ([on, mode, key, own]) => { if (on && mode === 'remote' && key && key !== own) startReceive(key, setRemoteScreen); else stopReceive() }, { immediate: true })
+  // (także z własnym kluczem — test „zdalnego” przesyłania na jednym komputerze)
+  watch([() => settings.screenRemote, () => settings.streamLyrics, lyricsKey, () => settings.lyricsKey], ([on, mode, key, own]) => { if (on && mode === 'remote' && key) startReceive(key, setRemoteScreen); else stopReceive() }, { immediate: true })
 }

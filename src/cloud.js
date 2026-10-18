@@ -98,11 +98,14 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
 
   // Obraz rzutnika przez sieć: kanał do zestawienia połączenia (oferta, odpowiedź, adresy) — sam obraz idzie
   // bezpośrednio między komputerami. Zerwany kanał otwiera się sam.
+  // Każdy kanał ma własne połączenie z serwerem — nadawanie i odbiór w jednej aplikacji (test na jednym komputerze)
+  // nie gryzą się (ten sam kanał na jednym połączeniu serwer zamyka, a własnych wiadomości nie odsyła).
   function signal(key, onMsg) {
+    const rt = typeof window === 'undefined' ? sb : createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
     let ch = null, ok = false, closed = false, retry = 0, timer = 0
     const queue = []
     const open = () => {
-      const c = sb.channel('ekran-' + key, { config: { broadcast: { self: false } } })
+      const c = rt.channel('ekran-' + key, { config: { broadcast: { self: false } } })
       ch = c; ok = false
       c.on('broadcast', { event: 'm' }, ({ payload }) => { if (!closed && payload) onMsg(payload) })
       c.subscribe(status => {
@@ -110,14 +113,14 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
         if (status === 'SUBSCRIBED') { ok = true; retry = 0; while (queue.length) c.send({ type: 'broadcast', event: 'm', payload: queue.shift() }).catch(() => {}) }
         else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
           ok = false; clearTimeout(timer)
-          timer = setTimeout(() => { if (closed) return; const old = ch; open(); sb.removeChannel(old).catch(() => {}) }, Math.min(30000, 1000 * 2 ** retry++))
+          timer = setTimeout(() => { if (closed) return; const old = ch; open(); rt.removeChannel(old).catch(() => {}) }, Math.min(30000, 1000 * 2 ** retry++))
         }
       })
     }
     open()
     return {
       send: m => { if (ok) ch.send({ type: 'broadcast', event: 'm', payload: m }).catch(() => {}); else if (queue.length < 50) queue.push(m) },
-      close: () => { closed = true; clearTimeout(timer); sb.removeChannel(ch).catch(() => {}) },
+      close: () => { closed = true; clearTimeout(timer); rt.removeChannel(ch).catch(() => {}); if (rt !== sb) rt.realtime.disconnect() },
     }
   }
 
