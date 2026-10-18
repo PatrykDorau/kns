@@ -440,6 +440,8 @@
   .band-pick .np-list button { justify-content: flex-start; width: 100%; margin-bottom: 6px; }
   .mat-tag.t-protokol { --c: var(--violet); } .mat-tag.t-instrukcja { --c: var(--teal); } .mat-tag.t-plik { --c: var(--blue); }
   .mat-tag { background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); }
+  .ann-new-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .ann-new-row .primary { flex: 1; }
   .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); z-index: 80; transform: translateX(-50%); padding: 10px 16px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); font-size: 14px; white-space: nowrap; }
   .signup-set { margin: 6px 0 4px; padding: 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); }
   .signup-set label:first-child { margin-top: 0; }
@@ -1070,7 +1072,11 @@
 
   <!-- wszystkie ogłoszenia -->
   <template v-else-if="annView">
-    <button v-if="canAnnounce" class="primary" style="width:100%;margin-bottom:12px" @click="newAnn"><svg class="i"><use href="#plus"/></svg>Nowe ogłoszenie</button>
+    <div v-if="canAnnounce" class="ann-new-row">
+      <button class="primary" @click="newAnn"><svg class="i"><use href="#plus"/></svg>Nowe ogłoszenie</button>
+      <button v-if="canEdit && drive.uploadImage" :disabled="bulk.busy" title="Zaznacz kilka grafik naraz — z każdej powstanie ogłoszenie pokazywane na nabożeństwie" @click="$refs.annBulk.click()"><svg class="i"><use href="#plus"/></svg>{{ bulk.busy ? 'Wgrywam ' + bulk.done + ' z ' + bulk.total + '…' : 'Dodaj z grafik' }}</button>
+      <input ref="annBulk" type="file" accept="image/*" multiple hidden @change="annFromImages">
+    </div>
     <p v-if="!activeAnns.length" class="note">Nie ma aktualnych ogłoszeń.</p>
     <button v-for="a in activeAnns" :key="a.id" class="ann" :class="{ important: a.important }" @click="openAnn(a)">
       <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
@@ -2426,7 +2432,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.71 · 18.10.2026'
+const VERSION = '2.72 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3375,6 +3381,27 @@ createApp({
       guard(async () => { currentAnn.value.image = await drive.uploadImage(await shrinkImage(file, 1920)) }).finally(() => { imgBusy.value = false })
     }
 
+    // Kilka grafik naraz → ogłoszenia (tytuł z nazwy pliku, „Pokaż na nabożeństwie” zaznaczone, dla wszystkich).
+    const bulk = Vue.reactive({ busy: false, done: 0, total: 0 })
+    async function annFromImages(e) {
+      const files = [...(e.target.files || [])]
+      e.target.value = ''
+      if (!files.length) return
+      Object.assign(bulk, { busy: true, done: 0, total: files.length })
+      await guard(async () => {
+        for (const f of files) {
+          const image = await drive.uploadImage(await shrinkImage(f, 1920))
+          const title = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
+          const data = { id: uid(), title, text: '', audience: 'public', important: false, until: '', image, projector: true, author: me.value?.name || drive.account() || 'telefon', date: Date.now(), updated: Date.now(), updatedBy: drive.account() || 'telefon' }
+          await drive.saveAnnouncement(data, 0, false)
+          place(announcements, pendingAnns, data)
+          bulk.done++
+        }
+      })
+      bulk.busy = false
+      if (bulk.done) showToast('Dodano ogłoszenia z grafik: ' + bulk.done + ' — uzupełnij tytuły i opisy.')
+    }
+
     // Film: wgrany plik do 50 MB (limit bazy) — dłuższe lepiej wrzucić na YouTube i wkleić link.
     const vidBusy = ref(false)
     function pickAnnVideo(e) {
@@ -4246,6 +4273,7 @@ createApp({
       booting, annIsNew, newAnnCount,
       ASB_KINDS, asbWhen, asbKindName, asbMissing, asbMissingCount, asbLeaderHints, asbPubUpcoming, asbPubShown, asbPubGroups,
       msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
+      bulk, annFromImages,
       MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
