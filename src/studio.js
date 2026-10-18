@@ -13,7 +13,6 @@ import { api, currentAnnouncements, itemById, nearestService, projectorGraphics,
 export const SCENES = [
   ['camera', 'Kamera'],
   ['projector', 'Rzutnik'],
-  ['projectorPip', 'Rzutnik + kamera'],
   ['countdown', 'Odliczanie'],
   ['announcements', 'Ogłoszenia'],
   ['media', 'Media'],
@@ -21,7 +20,7 @@ export const SCENES = [
 ]
 // media — materiał na cały ekran (scena „Media”); omedia — materiał jako nakładka na kamerze/rzutniku,
 // ovl: 'off', 'full' (cały kadr — PNG z przezroczystym tłem, napis bez tła), 'corner' (okienko w rogu, mpos)
-const look = () => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small' }, lowerAt: 0, lowerOff: 0, media: '', omedia: '', ovl: 'off', mpos: { corner: 'tr', size: 'small' } })
+const look = () => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small', on: false }, lowerAt: 0, lowerOff: 0, media: '', omedia: '', ovl: 'off', mpos: { corner: 'tr', size: 'small' } })
 export const studio = reactive({
   program: look(), // to, co idzie na YouTube
   preview: look(), // to, co przygotowujemy
@@ -385,22 +384,22 @@ const SCENE_DRAW = {
       tl.lines.forEach((l, k) => text(l, x + tw / 2, y + (tl.qr ? 385 : 300) + k * 38, { size: k ? 30 : 27, weight: k ? 800 : 500, color: k ? '#2b2b2b' : '#6b6258', align: 'center' }))
     })
   },
-  projector(t) { projectorFrame(t); mediaOverlay(); lyrics(t) },
+  // Rzutnik — z kamerą w okienku, gdy włączona (wybrany róg, małe albo duże)
+  projector(t) {
+    projectorFrame(t)
+    if (S.pip.on) {
+      const w = S.pip.size === 'large' ? 800 : 512, h = w * 9 / 16, m = 48
+      const x = S.pip.corner.includes('l') ? m : W - w - m, y = S.pip.corner.includes('t') ? m : H - h - m
+      g.save(); g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 40; rounded(x, y, w, h, 22); g.fillStyle = '#000'; g.fill(); g.restore()
+      g.save(); rounded(x, y, w, h, 22); g.clip(); camera(x, y, w, h); g.restore()
+      g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
+    }
+    mediaOverlay(); lowerThird(t); lyrics(t)
+  },
   media(t) {
     const it = mediaSlide(S.media)
     if (!it) { background(t); text('Wybierz materiał w panelu „Media”', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
     drawMedia(it, true); lowerThird(t); lyrics(t)
-  },
-  // (projectorPip — niżej: okienko z kamerą, pasek mówcy i napisy)
-  projectorPip(t) {
-    projectorFrame(t)
-    // okienko z kamerą (z ATEM — to, co jest na wizji): wybrany róg, małe albo duże
-    const w = S.pip.size === 'large' ? 800 : 512, h = w * 9 / 16, m = 48
-    const x = S.pip.corner.includes('l') ? m : W - w - m, y = S.pip.corner.includes('t') ? m : H - h - m
-    g.save(); g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 40; rounded(x, y, w, h, 22); g.fillStyle = '#000'; g.fill(); g.restore()
-    g.save(); rounded(x, y, w, h, 22); g.clip(); camera(x, y, w, h); g.restore()
-    g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
-    mediaOverlay(); lowerThird(t); lyrics(t)
   },
 }
 // Napisy pieśni: biały tekst, miękki cień, przenikanie przy zmianie zwrotki.
@@ -626,7 +625,7 @@ function getScratch() { if (!scratch) { scratch = document.createElement('canvas
 
 /* ---------- podgląd → wizja ---------- */
 const snap = l => ({ ...l, pip: { ...l.pip }, mpos: { ...l.mpos } })
-const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size
+const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size && !!a.pip.on === !!b.pip.on
   && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
 export const differs = () => !same(studio.preview, studio.program)
 function toProgram(fn) {
@@ -647,7 +646,7 @@ export function setScene(id) { change(l => { l.scene = id }) }
 export function toggleLowerThird() { change(l => { l.lowerThird = !l.lowerThird; l[l.lowerThird ? 'lowerAt' : 'lowerOff'] = performance.now() }) }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
 // Na których scenach są nakładki (na planszach — odliczanie, ogłoszenia, koniec — nie ma ich celowo).
-export const OVERLAYS = { lyrics: ['camera', 'projector', 'projectorPip', 'media'], lowerThird: ['camera', 'projectorPip', 'media'], media: ['camera', 'projector', 'projectorPip'] }
+export const OVERLAYS = { lyrics: ['camera', 'projector', 'media'], lowerThird: ['camera', 'projector', 'media'], media: ['camera', 'projector'] }
 export function setPip(p) { change(l => { l.pip = { ...l.pip, ...p } }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)

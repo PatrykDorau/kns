@@ -113,9 +113,8 @@ const pickMedia = it => (it.type === 'text' ? showMediaOverlay(it.id) : showMedi
 const deskTab = ref(studio.preview.scene === 'media' ? 'media' : studio.preview.scene === 'announcements' ? 'slides' : 'scene')
 watch(() => studio.preview.scene, sc => { deskTab.value = sc === 'media' ? 'media' : sc === 'announcements' ? 'slides' : 'scene' })
 const SCENE_HELP = {
-  camera: 'Obraz z kamery (ATEM po USB). Napisy, pasek mówcy i grafikę włączasz wyżej, w „Nakładkach”.',
-  projector: 'Obraz z rzutnika — z tego komputera albo przez sieć z laptopa przy rzutniku.',
-  projectorPip: 'Rzutnik na całym ekranie, kamera w okienku.',
+  camera: 'Obraz z kamery (ATEM po USB) — z okienkiem, do którego wrzucisz materiał z Mediów. Napisy i pasek mówcy — wyżej, w „Nakładkach”.',
+  projector: 'Obraz z rzutnika (przez sieć z laptopa przy rzutniku) — z kamerą w okienku, gdy włączysz.',
   countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku, na końcu „Zaraz zaczynamy”.',
   announcements: 'Ogłoszenia w pętli — które i jak często: zakładka „Ogłoszenia”.',
   media: 'Materiał z biblioteki na cały ekran — wybierz go w zakładce „Media”.',
@@ -503,13 +502,29 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
                 <small class="desk-left-time">{{ countdownInfo }}</small>
                 <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
               </div>
-              <div v-if="studio.preview.scene === 'projectorPip'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
-                <small class="muted">Okienko z kamerą</small>
-                <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="lbl" :aria-label="lbl" @click="pip({ corner: id })">{{ arrow }}</button>
-                <button :class="{ on: studio.preview.pip.size !== 'large' }" @click="pip({ size: 'small' })">Małe</button>
-                <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
+              <div v-if="studio.preview.scene === 'projector'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
+                <button :class="{ on: studio.preview.pip.on, live: studio.program.scene === 'projector' && studio.program.pip.on }" :aria-pressed="!!studio.preview.pip.on" @click="pip({ on: !studio.preview.pip.on })"><Icon name="camera" />Kamera w okienku {{ studio.preview.pip.on ? 'wł.' : 'wył.' }}</button>
+                <template v-if="studio.preview.pip.on">
+                  <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="lbl" :aria-label="lbl" @click="pip({ corner: id })">{{ arrow }}</button>
+                  <button :class="{ on: studio.preview.pip.size !== 'large' }" @click="pip({ size: 'small' })">Małe</button>
+                  <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
+                </template>
               </div>
-              <p v-if="['projector', 'projectorPip'].includes(studio.preview.scene)" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć' : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze' : remoteScreen.state === 'connecting' ? 'Obraz z rzutnika przez sieć: ' + (remoteScreen.error || remoteScreen.step) : settings.streamLyrics === 'remote' && lyricsKey === settings.lyricsKey ? 'Rzutnik na tym komputerze nic teraz nie pokazuje.' : (settings.streamLyrics === 'remote' ? 'Rzutnik na innym komputerze nic nie wysyła — tam w Ustawieniach aplikacji włącz „Udostępniaj obraz rzutnika”.' : 'Rzutnik na tym komputerze nic teraz nie pokazuje. Rzutnik na innym laptopie: Ustawienia nadawania → Napisy pieśni → „Rzutnik na innym komputerze”.') }}</p>
+              <!-- Kamera: okienko z materiałem z Mediów (zdjęcie, film, prezentacja, napis) -->
+              <div v-if="studio.preview.scene === 'camera'" class="desk-opt-group" role="group" aria-label="Okienko z materiałem">
+                <small class="muted">Okienko</small>
+                <select :value="studio.preview.ovl === 'corner' ? studio.preview.omedia : ''" aria-label="Materiał w okienku" @change="$event.target.value ? (showMediaOverlay($event.target.value), setOverlayMode('corner')) : setOverlayMode('off')">
+                  <option value="">— bez okienka —</option>
+                  <option v-for="it in mediaList" :key="it.id" :value="it.id">{{ label(it) }} ({{ mediaKind(it).toLowerCase() }})</option>
+                </select>
+                <template v-if="studio.preview.ovl === 'corner'">
+                  <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.mpos.corner === id }" :title="lbl" :aria-label="lbl" @click="setMediaPos({ corner: id })">{{ arrow }}</button>
+                  <button :class="{ on: studio.preview.mpos.size !== 'large' }" @click="setMediaPos({ size: 'small' })">Małe</button>
+                  <button :class="{ on: studio.preview.mpos.size === 'large' }" @click="setMediaPos({ size: 'large' })">Duże</button>
+                </template>
+                <button class="small" title="Dodaj pliki albo napis" @click="deskTab = 'media'">Media…</button>
+              </div>
+              <p v-if="studio.preview.scene === 'projector'" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć' : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze' : remoteScreen.state === 'connecting' ? 'Obraz z rzutnika przez sieć: ' + (remoteScreen.error || remoteScreen.step) : settings.studioLocalProjector ? 'Rzutnik w tej aplikacji nic teraz nie pokazuje.' : (settings.streamLyrics === 'remote' ? 'Rzutnik na innym komputerze nic nie wysyła — tam w Ustawieniach aplikacji włącz „Udostępniaj obraz rzutnika”.' : 'Rzutnik na tym komputerze nic teraz nie pokazuje. Rzutnik na innym laptopie: Ustawienia nadawania → Napisy pieśni → „Rzutnik na innym komputerze”.') }}</p>
               <div v-if="studio.preview.scene === 'media'" class="desk-opt-group">
                 <template v-if="pvFull"><Thumb :item="pvFull" /><b>{{ label(pvFull) }}</b><button @click="deskTab = 'media'">Zmień</button></template>
                 <button v-else class="primary" @click="deskTab = 'media'">Wybierz materiał</button>
@@ -693,6 +708,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <label title="Tyle, ile wysyła ATEM: ATEM Software Control → Ustawienia → Standard wideo (np. 1080p50)">Klatki na sekundę<select v-model.number="settings.streamFps"><option :value="25">25</option><option :value="30">30</option><option :value="50">50</option><option :value="60">60</option></select></label>
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">Rzutnik na tym komputerze</option><option value="remote">Rzutnik na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </fieldset>
+            <label class="check" title="Do testów albo gdy rzutnik i stream są na jednym komputerze: scena „Rzutnik” pokazuje to, co Rzutnik w tej aplikacji (bez sieci)"><input v-model="settings.studioLocalProjector" type="checkbox"> Rzutnik z tej aplikacji (ten sam komputer)</label>
             <label v-if="settings.streamLyrics === 'remote'" class="check" title="Cały ekran rzutnika z drugiego laptopa (sam obraz) — scena „Rzutnik” i „Rzutnik + kamera”. Na laptopie przy rzutniku: Ustawienia aplikacji → „Udostępniaj obraz rzutnika”."><input v-model="settings.screenRemote" type="checkbox"> Obraz rzutnika z tego komputera (przez sieć)</label>
             <div v-if="settings.streamLyrics === 'remote'" class="desk-proj">
               <label>Rzutnik

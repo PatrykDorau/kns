@@ -11,9 +11,10 @@ let started = false
 export function startProjectorFeed() {
   if (started) return
   started = true
-  watch([liveSlide, hidden, () => video.value.paused, () => Math.round(video.value.time || 0)], () => {
+  // tylko po zaznaczeniu „Rzutnik z tej aplikacji” (domyślnie wyłączone — rzutnik jest na drugim laptopie)
+  watch([liveSlide, hidden, () => video.value.paused, () => Math.round(video.value.time || 0), () => settings.studioLocalProjector], () => {
     const v = liveSlide.value
-    if (!v || hidden.value) { studio.projector = { kind: 'none' }; return }
+    if (!settings.studioLocalProjector || !v || hidden.value) { studio.projector = { kind: 'none' }; return }
     if (v.type === 'image') studio.projector = { kind: 'image', url: url(v.path) }
     else if (v.type === 'video') studio.projector = { kind: 'video', url: url(v.path), playing: !video.value.paused, time: video.value.time || 0, at: Date.now() }
     else if (v.type === 'text') studio.projector = { kind: 'text', text: v.text, style: v }
