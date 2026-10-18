@@ -26,7 +26,7 @@ function listDevices() {
 }
 
 const QUALITY = {
-  '1080': { w: 1920, h: 1080, nvenc: '6000k', x264: '4500k' },
+  '1080': { w: 1920, h: 1080, nvenc: '6800k', x264: '4500k' }, // YouTube zaleca dla 1080p ok. 6800 kb/s
   '720': { w: 1280, h: 720, nvenc: '3500k', x264: '3000k' },
 }
 // Napisy: trzy warstwy tego samego tekstu — dwie przezroczyste obwódki (miękki cień) i biały tekst z obrysem.
@@ -99,7 +99,7 @@ class Streamer extends EventEmitter {
     const video = encoder === 'nvenc'
       ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'cbr', ...rate, '-bf', '2', '-profile:v', 'high']
       : encoder === 'amf'
-      ? ['-c:v', 'h264_amf', '-usage', 'transcoding', '-quality', 'balanced', '-rc', 'cbr', ...rate, '-profile:v', 'high']
+      ? ['-c:v', 'h264_amf', '-usage', 'transcoding', '-quality', 'balanced', '-rc', 'cbr', '-filler_data', '1', '-enforce_hrd', '1', ...rate, '-profile:v', 'high'] // dopełnianie: stała przepływność także przy nieruchomym obrazie
       : ['-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-b:v', q.x264, '-maxrate', q.x264, '-bufsize', String(parseInt(q.x264) * 2) + 'k', '-g', '60', '-profile:v', 'main']
     return ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1', ...input,
       '-filter_complex', graph,

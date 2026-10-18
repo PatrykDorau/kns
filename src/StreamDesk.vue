@@ -267,7 +267,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             <div class="desk-grid">
               <label>Obraz<select v-model="settings.streamVideo"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
               <label>Dźwięk<select v-model="settings.streamAudio"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
-              <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · 6 Mb/s</option><option value="720">720p · 3,5 Mb/s (słabszy internet)</option></select></label>
+              <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · 6,8 Mb/s</option><option value="720">720p · 3,5 Mb/s (słabszy internet)</option></select></label>
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </div>
             <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
