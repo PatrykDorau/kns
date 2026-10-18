@@ -327,10 +327,12 @@ const SCENE_DRAW = {
   // Koniec: logo, podziękowanie, najbliższe nabożeństwo i kafelki z kodami QR (wsparcie, YouTube, Spotify).
   end() {
     paper()
-    g.fillStyle = '#fbf8f3'; g.fillRect(CARD.x, CARD.y, CARD.w, CARD.h)
+    g.fillStyle = 'rgba(38, 30, 22, 0.55)'; g.fillRect(0, 0, W, H) // przyciemnione tło
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 40; g.shadowOffsetY = 12
+    rounded(CARD.x, CARD.y, CARD.w, CARD.h, 22); g.fillStyle = '#e6ddcf'; g.fill(); g.restore()
     const lg = img('./znak-obrys.png')
     if (lg) g.drawImage(lg, W / 2 - 85, 110, 170, 170)
-    text('Dziękujemy, że byliście z nami!', W / 2, 375, { size: 80, weight: 800, color: '#e8952f', align: 'center' })
+    text('Dziękujemy, że byliście z nami!', W / 2, 375, { size: 80, weight: 800, color: '#d9862a', align: 'center' })
     const svc = nearestService.value
     if (svc && svc.date > new Date().toISOString().slice(0, 10)) text('Do zobaczenia: ' + svcWhen(svc) + ' · ' + servicePlace(svc), W / 2, 445, { size: 38, weight: 600, color: '#2b2b2b', align: 'center' })
     const e = studio.end, bank = bankQr(e), phone = String(e.phone || '').replace(/[^\d+]/g, '').replace(/^(\+?48)?(\d{3})(\d{3})(\d{3})$/, '$2 $3 $4')
@@ -342,7 +344,7 @@ const SCENE_DRAW = {
     const tw = 470, th = 440, gap = 60, x0 = (W - tiles.length * tw - (tiles.length - 1) * gap) / 2, y = 500
     tiles.forEach((tl, i) => {
       const x = x0 + i * (tw + gap)
-      g.save(); g.shadowColor = 'rgba(40,30,20,0.18)'; g.shadowBlur = 30; g.shadowOffsetY = 8; rounded(x, y, tw, th, 22); g.fillStyle = '#fff'; g.fill(); g.restore()
+      g.save(); g.shadowColor = 'rgba(40,30,20,0.18)'; g.shadowBlur = 30; g.shadowOffsetY = 8; rounded(x, y, tw, th, 22); g.fillStyle = '#f3eee6'; g.fill(); g.restore()
       g.fillStyle = '#f6a836'; rounded(x, y, tw, 8, 4); g.fill()
       text(tl.head, x + tw / 2, y + 66, { size: 40, weight: 800, color: '#2b2b2b', align: 'center' })
       if (tl.qr) qr(tl.qr, x + (tw - 250) / 2, y + 92, 250)

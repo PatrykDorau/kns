@@ -15,7 +15,8 @@ const focusId = ref(null)
 const serviceId = ref(nearestService.value?.id ?? null)
 const service = computed(() => services.value.find(s => s.id === serviceId.value) || null)
 const copied = ref('')
-const showInfo = ref(true) // boczny panel z danymi nabożeństwa można schować, żeby kamery miały całe okno
+// dane nabożeństwa w prawej kolumnie pulpitu — zwijane (zapamiętane)
+const showInfo = computed({ get: () => !settings.svcFolded, set: v => { settings.svcFolded = !v } })
 
 // Układy kamer. Główna kamera (do układów „duża + małe” i „jedna”) to kliknięta albo pierwsza.
 const LAYOUTS = [['grid', 'grid', 'Siatka'], ['big', 'layoutBig', 'Duża + małe'], ['row', 'layoutRow', 'Obok siebie'], ['column', 'layoutColumn', 'Jedna pod drugą'], ['one', 'layoutOne', 'Tylko jedna']]
@@ -205,7 +206,7 @@ onBeforeUnmount(() => {
       </button>
     </header>
 
-    <main class="stream" :class="{ wide: !showInfo || overlay }">
+    <main class="stream wide">
       <section>
         <StreamDesk v-if="!overlay" :service="service">
           <template #tools>
@@ -261,6 +262,40 @@ onBeforeUnmount(() => {
             <p v-else class="note">Kamerzysta zakłada słuchawkę podłączoną do telefonu. Gdy zmienisz tu stan, usłyszy sygnał: dwa krótkie wysokie — na wizji, jeden średni — przygotuj się, jeden długi niski — poza wizją.</p>
             </template>
           </div>
+          <section class="props desk-svc" :class="{ folded: !showInfo }">
+            <div class="desk-head">
+              <button class="desk-fold" :aria-expanded="showInfo" :title="showInfo ? 'Zwiń' : 'Rozwiń'" @click="showInfo = !showInfo"><Icon :name="showInfo ? 'down' : 'right'" /></button>
+              <h2 class="desk-fold-title" @click="showInfo = !showInfo">Nabożeństwo</h2>
+              <span class="spacer"></span>
+              <SyncButton status />
+            </div>
+            <template v-if="showInfo">
+            <Countdown compact />
+            <div v-if="!services.length" class="empty">Nie ma zaplanowanego nabożeństwa. Tworzy je służba „Organizacja nabożeństw”.</div>
+            <template v-else>
+              <select v-model="serviceId" aria-label="Nabożeństwo">
+                <option v-for="s in sortedServices" :key="s.id" :value="s.id">{{ prettyDate(s.date) }}{{ s.sermonTitle ? ' · ' + s.sermonTitle : '' }}</option>
+              </select>
+              <div v-if="!fields.length && !program.length" class="empty">To nabożeństwo nie ma jeszcze wpisanych informacji.</div>
+              <div v-if="program.length" class="info">
+                <div class="labelrow">
+                  <label>Program</label>
+                  <button class="small" @click="copy('Program', programText)"><Icon :name="copied === 'Program' ? 'check' : 'copy'" />{{ copied === 'Program' ? 'Skopiowano' : 'Kopiuj' }}</button>
+                </div>
+                <ol class="prog">
+                  <li v-for="p in program" :key="p.key" :class="{ now: p.now, done: p.done }"><b>{{ p.time }}</b><span>{{ p.name }}<small v-if="p.detail">{{ p.detail }}</small></span><em v-if="p.now">TERAZ</em></li>
+                </ol>
+              </div>
+              <div v-for="[name, value] in fields" :key="name" class="info">
+                <div class="labelrow">
+                  <label>{{ name }}</label>
+                  <button class="small" @click="copy(name, value)"><Icon :name="copied === name ? 'check' : 'copy'" />{{ copied === name ? 'Skopiowano' : 'Kopiuj' }}</button>
+                </div>
+                <p>{{ value }}</p>
+              </div>
+            </template>
+            </template>
+          </section>
           </template>
         </StreamDesk>
         <!-- Tryb nakładki: same kamery na całe okno -->
@@ -288,33 +323,6 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <section v-if="showInfo && !overlay" class="props">
-        <div class="panel-head"><h2>Nabożeństwo</h2><SyncButton status /></div>
-        <Countdown compact />
-        <div v-if="!services.length" class="empty">Nie ma zaplanowanego nabożeństwa. Tworzy je służba „Organizacja nabożeństw”.</div>
-        <template v-else>
-          <select v-model="serviceId" aria-label="Nabożeństwo">
-            <option v-for="s in sortedServices" :key="s.id" :value="s.id">{{ prettyDate(s.date) }}{{ s.sermonTitle ? ' · ' + s.sermonTitle : '' }}</option>
-          </select>
-          <div v-if="!fields.length && !program.length" class="empty">To nabożeństwo nie ma jeszcze wpisanych informacji.</div>
-          <div v-if="program.length" class="info">
-            <div class="labelrow">
-              <label>Program</label>
-              <button class="small" @click="copy('Program', programText)"><Icon :name="copied === 'Program' ? 'check' : 'copy'" />{{ copied === 'Program' ? 'Skopiowano' : 'Kopiuj' }}</button>
-            </div>
-            <ol class="prog">
-              <li v-for="p in program" :key="p.key" :class="{ now: p.now, done: p.done }"><b>{{ p.time }}</b><span>{{ p.name }}<small v-if="p.detail">{{ p.detail }}</small></span><em v-if="p.now">TERAZ</em></li>
-            </ol>
-          </div>
-          <div v-for="[name, value] in fields" :key="name" class="info">
-            <div class="labelrow">
-              <label>{{ name }}</label>
-              <button class="small" @click="copy(name, value)"><Icon :name="copied === name ? 'check' : 'copy'" />{{ copied === name ? 'Skopiowano' : 'Kopiuj' }}</button>
-            </div>
-            <p>{{ value }}</p>
-          </div>
-        </template>
-      </section>
     </main>
   </div>
 </template>

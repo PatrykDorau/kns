@@ -53,6 +53,7 @@ function chooseAudio(label) { settings.studioAudio = label; const d = studioDevi
 watch(() => settings.streamFps, f => setFps(f))
 // ustawienia scen zapamiętane między uruchomieniami
 if (!studio.live) { initLook({ corner: settings.pipCorner || 'br', size: settings.pipSize || 'small' }); studio.direct = !!settings.studioDirect }
+if (!settings.donateInit) { if (!settings.donatePhone) settings.donatePhone = '789 571 542'; settings.donateInit = true }
 function pip(p) { setPip(p); if (p.corner) settings.pipCorner = p.corner; if (p.size) settings.pipSize = p.size }
 function direct(v) { settings.studioDirect = v; setDirect(v) }
 // ogłoszenia na transmisji: które są w pętli i co ile sekund
