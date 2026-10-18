@@ -878,6 +878,10 @@
   <symbol id="alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/></symbol>
   <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><path d="M15 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM3 20a8.5 8.5 0 0 1 17 0M17 4.5a3.5 3.5 0 0 1 0 7M21 20a7 7 0 0 0-3-5.7"/></symbol>
+  <!-- banknot ze skrzydłami (cele wsparcia) -->
+  <symbol id="money" viewBox="0 0 24 24"><path d="M7.5 8.5h9a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z M13.6 12.5a1.6 1.6 0 1 1-3.2 0 1.6 1.6 0 0 1 3.2 0Z M6.5 10C4.6 9.7 2.8 8.5 1.6 6.6c.3 2.6 1.7 4.4 4.9 5.2 M6.5 13.2c-1.6.1-3-.4-4.1-1.6.6 2 2 3 4.1 3.2 M17.5 10c1.9-.3 3.7-1.5 4.9-3.4-.3 2.6-1.7 4.4-4.9 5.2 M17.5 13.2c1.6.1 3-.4 4.1-1.6-.6 2-2 3-4.1 3.2"/></symbol>
+  <!-- dłoń z sercem (służba) -->
+  <symbol id="serve" viewBox="0 0 24 24"><path d="M12 11.2s-3.6-2.1-3.6-4.5a2 2 0 0 1 3.6-1.2 2 2 0 0 1 3.6 1.2c0 2.4-3.6 4.5-3.6 4.5Z M2.5 13.5H6l2.8 1.8h3.7a1.6 1.6 0 0 1 0 3.2H9.2 M12.5 18.5h4.3l4-3.4a1.5 1.5 0 0 0-2-2.2l-3.3 2.4 M2.5 12.5v8"/></symbol>
   <symbol id="heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9.2-8.8C1.3 8 3.2 4.5 6.6 4.5c2 0 3.4 1.1 4.4 2.6l1 1.4 1-1.4c1-1.5 2.4-2.6 4.4-2.6 3.4 0 5.3 3.5 3.8 6.7C19 15.6 12 20 12 20Z"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
@@ -1828,7 +1832,7 @@
       <div v-for="m in serve.list.filter(m => m.mine || m.leader)" :key="m.id" class="mn-mine"><b>{{ m.name }}</b><span :class="{ ok: m.leader || m.mine === 'active' }">{{ m.leader ? 'jesteś liderem' : m.mine === 'active' ? 'służysz' : 'czeka na akceptację lidera' }}</span></div>
       <p v-if="!serve.busy && !serve.list.some(m => m.mine || m.leader)" class="note">Nie należysz jeszcze do żadnej służby.</p>
     </div>
-    <button class="songsbtn" @click="openServe"><svg class="i"><use href="#users"/></svg>Zgłoś się do służby<svg class="i chev"><use href="#chev"/></svg></button>
+    <button class="songsbtn" @click="openServe"><svg class="i"><use href="#serve"/></svg>Zgłoś się do służby<svg class="i chev"><use href="#chev"/></svg></button>
     <label>Powiadomienia i newsletter</label>
     <div v-if="push.supported" class="push-card" :class="{ on: push.on }">
       <div class="pc-head">
@@ -1885,7 +1889,7 @@
       <button v-if="canMsg" @click="openMsg()"><svg class="i"><use href="#megaphone"/></svg><span>Wyślij wiadomość</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openAsb"><svg class="i"><use href="#users"/></svg><span>{{ canAsb ? 'ASB — grafik spotkań' : 'ASB — terminarz spotkań' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openListen"><svg class="i"><use href="#music"/></svg><span>Posłuchaj</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-      <button v-if="api.enabled" @click="openGoals()"><svg class="i"><use href="#heart"/></svg><span>Cele wsparcia</span><small v-if="goalDue" class="count-pill">!</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="api.enabled" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span>Cele wsparcia</span><small v-if="goalDue" class="count-pill">!</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Materiały</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
@@ -1945,7 +1949,7 @@
         <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
         <p>Oto co dzieje się w kościele.</p>
       </div>
-      <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#heart"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
       <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts">
         <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
         <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
@@ -2041,7 +2045,7 @@
       <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
       <p>Oto co dzieje się w kościele.</p>
     </div>
-    <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#heart"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
+    <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
     <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts phone-thoughts">
       <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
       <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
@@ -2545,7 +2549,7 @@
   <nav v-if="showTabs" class="tabbar" aria-label="Części aplikacji">
     <button :class="{ on: !calView && !moreView && !songView && !peopleView && !serveView && !profileView }" :aria-current="!calView && !moreView && !songView && !peopleView && !serveView ? 'page' : null" @click="showServices"><svg class="i"><use href="#church"/></svg>Start</button>
     <button :class="{ on: calView }" :aria-current="calView ? 'page' : null" @click="openCalendar"><svg class="i"><use href="#calendar"/></svg>Kalendarz</button>
-    <button :class="{ on: serveView }" :aria-current="serveView ? 'page' : null" @click="openServe"><svg class="i"><use href="#users"/></svg>Zaangażuj się</button>
+    <button :class="{ on: serveView }" :aria-current="serveView ? 'page' : null" @click="openServe"><svg class="i"><use href="#serve"/></svg>Zaangażuj się</button>
     <button :class="{ on: moreView || songView || peopleView }" :aria-current="moreView || songView || peopleView ? 'page' : null" @click="openMore"><svg class="i"><use href="#menu"/></svg>Więcej<span v-if="canManage && pendingCount" class="count">{{ pendingCount }}</span></button>
   </nav>
 </div>
@@ -2638,7 +2642,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.81 · 18.10.2026'
+const VERSION = '2.82 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -4275,12 +4279,12 @@ createApp({
       return [
         { id: 'display', icon: 'monitor', name: 'Rzutnik', desc: inApp ? 'Pieśni, zdjęcia, filmy i teksty' : app, locked: !tech, go: tech ? (inApp ? 'chev' : 'download') : 'warn' },
         { id: 'stream', icon: 'camera', name: 'Stream', desc: inApp ? 'Transmisja, kamery, sygnały' : app, locked: !tech, go: tech ? (inApp ? 'chev' : 'download') : 'warn' },
-        { id: 'planner', icon: 'pencil', name: 'Nabożeństwa', desc: canEdit.value ? 'Kazanie, pieśni, program' : 'Dla osób z prawem edycji', locked: !canEdit.value, go: canEdit.value ? 'chev' : 'warn',
+        { id: 'planner', icon: 'church', name: 'Nabożeństwa', desc: canEdit.value ? 'Kazanie, pieśni, program' : 'Dla osób z prawem edycji', locked: !canEdit.value, go: canEdit.value ? 'chev' : 'warn',
           pill: canEdit.value && svc ? (missing(svc).length ? 'Braki' : 'Komplet') : '' },
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
-        ...(api.enabled ? [{ id: 'serve', icon: 'users', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
+        ...(api.enabled ? [{ id: 'serve', icon: 'serve', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
         ...(api.enabled ? [{ id: 'listen', icon: 'music', name: 'Posłuchaj', desc: 'Kazania na YouTube i Spotify', locked: false, go: 'chev' }] : []),
-        ...(api.enabled ? [{ id: 'goals', icon: 'heart', name: 'Cele wsparcia', desc: 'Część dziesięciny na wybrany cel', locked: false, go: 'chev', pill: goalDue.value ? 'Potwierdź' : '' }] : []),
+        ...(api.enabled ? [{ id: 'goals', icon: 'money', name: 'Cele wsparcia', desc: 'Część dziesięciny na wybrany cel', locked: false, go: 'chev', pill: goalDue.value ? 'Potwierdź' : '' }] : []),
         ...(api.enabled ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: canAsb.value ? 'Grafik spotkań, przypomnienia i pomysły' : 'Terminarz spotkań studenckich', locked: false, go: 'chev' }] : []),
       ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
     })
