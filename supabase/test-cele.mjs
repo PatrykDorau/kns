@@ -59,6 +59,11 @@ err(await K.rpc('confirm_month', { m: month(-3), amounts: {} }), /bieżący albo
 ov = ok(await K.rpc('goals_overview'))
 assert.equal(ov[0].confirmed, 260); assert.equal(ov[0].monthly, 260); assert.equal(ov[0].confirmed_now, 260)
 
+st = ok(await K.rpc('my_pledge_status'))
+assert.equal(st.locked, true); assert.equal(st.prevDue, false)
+// to samo — bez błędu (nic się nie zmienia)
+ok(await K.rpc('pledge_set', { g: 'dach', amt: 60 }))
+
 // przypomnienia: deklaracja z poprzedniego miesiąca bez potwierdzenia → raz w miesiącu
 await db.query(`update pledges set since = $1`, [month(-1)])
 const day3 = month().slice(0, 8) + '03', day12 = month().slice(0, 8) + '12'
@@ -69,12 +74,26 @@ assert.equal(await remind(day3), 2)
 assert.equal(await remind(day3), 0) // raz w miesiącu
 assert.match((await db.query(`select title from inbox order by id desc limit 1`)).rows[0].title, /Potwierdź cele wsparcia/)
 await db.query(`select pledge_reminders()`) // wersja dla zaplanowanej funkcji działa
-// poprzedni miesiąc da się potwierdzić
+// poprzedni miesiąc czeka: najpierw potwierdzenie, potem zmiana deklaracji
+await db.query(`delete from pledge_months where month = $1`, [month()]) // (jak gdyby ten miesiąc jeszcze nie był potwierdzony)
+await db.query(`delete from pledge_months where month = $1 and confirmed is not null`, [month(-1)])
+st = ok(await M.rpc('my_pledge_status'))
+assert.equal(st.prevDue, true); assert.equal(st.locked, false)
+err(await M.rpc('pledge_set', { g: 'dach', amt: 500 }), /Najpierw potwierdź/)
+err(await M.rpc('pledge_set', { g: 'dach', amt: 0 }), /Najpierw potwierdź/)
 assert.equal(ok(await M.rpc('confirm_month', { m: month(-1), amounts: {} })), 200)
+// potwierdzenie POPRZEDNIEGO miesiąca też zamyka deklaracje do 1. dnia następnego (tak mówi ostrzeżenie)
+st = ok(await M.rpc('my_pledge_status'))
+assert.equal(st.prevDue, false); assert.equal(st.locked, true)
+err(await M.rpc('pledge_set', { g: 'dach', amt: 500 }), /zmienisz od/)
+err(await M.rpc('pledge_set', { g: 'dach', amt: 0 }), /zmienisz od/)
+// a bieżący miesiąc da się potwierdzić później (albo z mniejszą kwotą)
+assert.equal(ok(await M.rpc('confirm_month', { m: month(), amounts: { dach: 150 } })), 150)
 
 // nowa deklaracja na inny cel po potwierdzeniu miesiąca — liczy się od następnego miesiąca
 ok(await R.from('goals').upsert({ id: 'mlodziez', title: 'Wyjazd młodzieży', target: 3000, ends }))
 ok(await M.rpc('pledge_set', { g: 'mlodziez', amt: 50 }))
+err(await M.rpc('pledge_set', { g: 'mlodziez', amt: 70 }), /zmienisz od/) // już złożona — do nowego miesiąca bez zmian
 assert.equal(String((await db.query(`select since from pledges where goal_id = 'mlodziez'`)).rows[0].since.toISOString?.() ?? (await db.query(`select since::text as s from pledges where goal_id = 'mlodziez'`)).rows[0].s).slice(0, 7), month(1).slice(0, 7))
 // zamknięty cel: zwiększyć nie można
 ok(await R.from('goals').update({ closed: true }).eq('id', 'dach'))

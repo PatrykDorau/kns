@@ -85,25 +85,45 @@ drop policy if exists pledge_months_read on public.pledge_months;
 create policy pledge_months_read on public.pledge_months for select to authenticated using (person = auth.uid() or can_manage_goals());
 
 -- Deklaracja (nowa, zmiana, 0 = wycofanie). Zwiększyć można tylko przed terminem celu.
--- Po potwierdzeniu bieżącego miesiąca deklaracje są zamknięte do 1. dnia następnego; nowa deklaracja na inny cel
--- liczy się wtedy od następnego miesiąca.
+-- Zasady (żeby potwierdzone kwoty zgadzały się z deklaracjami):
+--  • potwierdzenie (za ten albo poprzedni miesiąc) zamyka deklaracje do 1. dnia następnego miesiąca; nowa deklaracja
+--    na inny cel liczy się wtedy od następnego miesiąca;
+--  • dopóki poprzedni miesiąc czeka na potwierdzenie, istniejących deklaracji nie zmienisz — najpierw potwierdzenie
+--    (inaczej potwierdzałbyś za wrzesień kwoty zmienione w październiku).
+create or replace function public.pledge_locked() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from pledge_months where person = auth.uid() and confirmed >= date_trunc('month', current_date))
+$$;
+revoke all on function public.pledge_locked() from public, anon;
+grant execute on function public.pledge_locked() to authenticated;
+create or replace function public.pledge_prev_due() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from pledges where person = auth.uid() and amount > 0 and since <= (date_trunc('month', current_date) - interval '1 month')::date)
+    and not exists (select 1 from pledge_months where person = auth.uid() and month = (date_trunc('month', current_date) - interval '1 month')::date and confirmed is not null)
+$$;
+revoke all on function public.pledge_prev_due() from public, anon;
+grant execute on function public.pledge_prev_due() to authenticated;
+
 create or replace function public.pledge_set(g text, amt int) returns void
 language plpgsql security definer set search_path = public as $$
 declare goal goals; cur date := date_trunc('month', current_date)::date; nxt date := (date_trunc('month', current_date) + interval '1 month')::date;
-  locked boolean; old int;
+  prev date := (date_trunc('month', current_date) - interval '1 month')::date; locked boolean; old int;
 begin
   if not is_active() then raise exception 'Deklaracje składają członkowie z kontem.'; end if;
   select * into goal from goals where id = g;
   if goal.id is null then raise exception 'Nie ma takiego celu.'; end if;
   if amt is null or amt < 0 or amt > 100000 then raise exception 'Kwota od 0 do 100 000 zł miesięcznie.'; end if;
-  if (goal.closed or goal.ends < current_date)
-     and amt > coalesce((select amount from pledges where goal_id = g and person = auth.uid()), 0) then
+  old := coalesce((select amount from pledges where goal_id = g and person = auth.uid()), 0);
+  if amt = old then return; end if;
+  if (goal.closed or goal.ends < current_date) and amt > old then
     raise exception 'Ten cel jest już zamknięty — można tylko zmniejszyć deklarację.';
   end if;
-  locked := exists (select 1 from pledge_months where person = auth.uid() and month = cur and confirmed is not null);
-  old := coalesce((select amount from pledges where goal_id = g and person = auth.uid()), 0);
-  if locked and old > 0 and amt <> old then
-    raise exception 'Ten miesiąc jest już potwierdzony — deklarację zmienisz od %.', to_char(nxt, 'DD.MM.YYYY');
+  locked := pledge_locked();
+  if locked and old > 0 then
+    raise exception 'W tym miesiącu dziesięcina jest już potwierdzona — deklarację zmienisz od %.', to_char(nxt, 'DD.MM.YYYY');
+  end if;
+  if old > 0 and pledge_prev_due() then
+    raise exception 'Najpierw potwierdź miesiąc %, potem zmienisz deklarację.', to_char(prev, 'MM.YYYY');
   end if;
   insert into pledges (goal_id, person, amount, since) values (g, auth.uid(), amt, case when locked then nxt else cur end)
   on conflict (goal_id, person) do update set amount = excluded.amount, updated = now(),
@@ -177,7 +197,9 @@ begin
       left join pledge_months pm on pm.person = auth.uid() and pm.month = m.mon
       where exists (select 1 from pledges p where p.person = auth.uid() and p.since <= m.mon and p.amount > 0)
          or pm.confirmed is not null), '[]'::jsonb),
-    'monthly', coalesce((select sum(amount) from pledges where person = auth.uid()), 0));
+    'monthly', coalesce((select sum(amount) from pledges where person = auth.uid()), 0),
+    'locked', pledge_locked(), 'prevDue', pledge_prev_due(),
+    'next', (date_trunc('month', current_date) + interval '1 month')::date);
 end $$;
 revoke all on function public.my_pledge_status() from public, anon;
 grant execute on function public.my_pledge_status() to authenticated;
