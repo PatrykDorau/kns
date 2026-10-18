@@ -969,6 +969,25 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-take-btn.ready { background: #e5484d; border-color: #e5484d; color: #fff; }
 .desk-scenes button.live, .desk-opts button.live { box-shadow: inset 0 -3px 0 #e5484d; }
 .desk-slides { margin-top: 10px; }
+/* Media na transmisji */
+.desk-media-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.desk-media-txt { flex: 1; min-width: 200px; padding: 6px 10px; font-size: 13px; }
+.desk-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 2px; }
+.desk-media-it { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-height: 0; padding: 6px; border-radius: 12px; text-align: left; }
+.desk-media-it .thumb { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 8px; }
+.desk-media-it > span { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.desk-media-it b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-media-it small { color: var(--muted); font-size: 11px; }
+.desk-media-it.on { border-color: #3ccf73; box-shadow: 0 0 0 1px #3ccf73; }
+.desk-media-it.live { border-color: #e5484d; box-shadow: 0 0 0 1px #e5484d; }
+.desk-media-it em { position: absolute; top: 10px; left: 10px; padding: 1px 6px; border-radius: 6px; background: #e5484d; color: #fff; font: 700 10px/1.5 system-ui, sans-serif; font-style: normal; }
+.desk-media-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+.desk-media-edit { flex-basis: 100%; min-height: 0; font-size: 13px; }
+.desk-media-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(229, 72, 77, .45); background: rgba(229, 72, 77, .07); font-size: 13px; }
+.desk-media-ctl .live-dot { color: #ff6b70; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.desk-media-seek { flex: 1; min-width: 120px; }
+.desk-media-vol { display: inline-flex; align-items: center; gap: 4px; }
+.desk-media-vol input { width: 90px; }
 .desk-slides > summary { cursor: pointer; font-weight: 700; font-size: 13px; }
 .desk-slides > summary small { font-weight: 500; margin-left: 6px; }
 .desk-slide-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 8px 0; font-size: 13px; }

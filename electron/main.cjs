@@ -31,7 +31,7 @@ let waiting = false // rzutnik został odłączony — czekamy, aż wróci
 let sleepBlock = null
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
+  { scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } },
 ])
 // Film na rzutniku ma ruszyć z dźwiękiem bez klikania w tamto okno.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
@@ -48,7 +48,7 @@ async function serveMedia(request) {
   if (!type) return new Response(null, { status: 403 })
   let size
   try { size = (await fs.promises.stat(file)).size } catch { return new Response(null, { status: 404 }) }
-  if (!size) return new Response(null, { status: 200, headers: { 'Content-Type': type } })
+  if (!size) return new Response(null, { status: 200, headers: { 'Content-Type': type, 'Access-Control-Allow-Origin': '*' } })
 
   let start = 0, end = size - 1, status = 200
   const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') || '')
@@ -62,7 +62,9 @@ async function serveMedia(request) {
     if (start > end) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } })
     status = 206
   }
-  const headers = { 'Content-Type': type, 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes' }
+  // CORS: obraz i film z dysku trafiają na płótno studia (transmisja) — bez tego płótno jest „brudne” i nie da się go zakodować.
+  // (media:// działa tylko w oknach aplikacji — strona kościoła w środku ma osobną sesję bez tego protokołu)
+  const headers = { 'Content-Type': type, 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes', 'Access-Control-Allow-Origin': '*' }
   if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${size}`
   return new Response(Readable.toWeb(fs.createReadStream(file, { start, end })), { status, headers })
 }

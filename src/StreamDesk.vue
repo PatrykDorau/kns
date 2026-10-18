@@ -1,9 +1,10 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
-import { api, cameraLock, loadListen, prettyDate, serviceTime, servicePlace, settings } from './store.js'
+import Thumb from './Thumb.vue'
+import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from './store.js'
 import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from './lyricsFeed.js'
-import { OVERLAYS, SCENES, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
+import { OVERLAYS, SCENES, mediaCtl, mediaSlide, setMedia, setMediaMode, setMediaPos, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -93,6 +94,26 @@ async function run(name, arg) {
 // Kliknięcie kamery: od razu na wizję (Cut) albo do podglądu (zielony), potem CUT/AUTO.
 function pick(input) { run(settings.atemDirect ? 'program' : 'preview', input.id) }
 const STREAM_LABEL = { idle: 'gotowy', connecting: 'łączy się…', streaming: 'NADAJE', stopping: 'kończy…' }
+
+/* ---------- Media: materiały z biblioteki (te same co w Rzutniku) na transmisji ---------- */
+// Zdjęcie, film, napis albo prezentacja — na cały ekran (scena „Media”) albo jako nakładka na kamerze/rzutniku.
+const mediaList = computed(() => items.value.filter(it => !it.hidden && !it.missing && ['image', 'video', 'text', 'scene'].includes(it.type)))
+const mediaKind = it => ({ image: 'Zdjęcie', video: 'Film', text: 'Napis', scene: 'Prezentacja' })[it.type] || ''
+const mediaPicked = computed(() => items.value.find(x => x.id === studio.preview.media) || null)
+const mediaAir = computed(() => (studio.program.scene === 'media' || studio.program.ovl !== 'off') ? items.value.find(x => x.id === studio.program.media) || null : null)
+const airSlide = computed(() => (mediaAir.value ? mediaSlide(mediaAir.value.id) : null))
+const mediaMode = computed(() => (studio.preview.scene === 'media' ? 'scene' : studio.preview.ovl))
+function pickMedia(it) { setMedia(it.id); if (studio.preview.scene !== 'media' && studio.preview.ovl === 'off') setMediaMode(it.type === 'text' ? 'full' : 'scene') }
+async function addMediaFiles() { const before = new Set(items.value.map(x => x.id)); await pickFiles(null); const added = items.value.filter(x => !before.has(x.id) && !x.hidden).at(-1); if (added) pickMedia(added) }
+const newText = ref('')
+function addMediaText() {
+  const text = newText.value.trim()
+  if (!text) return
+  const it = { ...TEXT_STYLE, id: uid(), type: 'text', name: text.split('\n')[0].slice(0, 40), text, fs: 9, valign: 'bottom', shadow: true }
+  items.value.push(it); newText.value = ''
+  pickMedia(it)
+}
+const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0')
 
 /* ---------- YouTube ---------- */
 const yt = ref({ loggedIn: false })
@@ -424,6 +445,55 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
             </span>
           </div>
+          <!-- Media: zdjęcia, filmy, napisy, prezentacje na transmisji (bez ATEM i drugiego laptopa) -->
+          <details class="desk-slides desk-media" :open="settings.mediaOpen !== false" @toggle="settings.mediaOpen = $event.target.open">
+            <summary>Media <small class="muted">zdjęcia, filmy, napisy, prezentacje — na cały ekran albo jako nakładka{{ mediaAir ? ' · na wizji: ' + label(mediaAir) : '' }}</small></summary>
+            <div class="desk-media-bar">
+              <button class="small" :disabled="!!busy" title="Zdjęcie, film, PDF albo PowerPoint (prezentacja — jako slajdy)" @click="addMediaFiles"><Icon name="plus" />{{ busy || 'Dodaj pliki' }}</button>
+              <input v-model="newText" class="desk-media-txt" placeholder="Napis na transmisję, np. „Zbiórka na remont — BLIK 789 571 542”" aria-label="Nowy napis" @keydown.enter="addMediaText">
+              <button class="small" :disabled="!newText.trim()" @click="addMediaText"><Icon name="text" />Dodaj napis</button>
+            </div>
+            <div v-if="mediaList.length" class="desk-media-grid">
+              <button v-for="it in mediaList" :key="it.id" class="desk-media-it" :class="{ on: studio.preview.media === it.id, live: mediaAir?.id === it.id }" :title="label(it)" @click="pickMedia(it)">
+                <Thumb :item="it" />
+                <span><b>{{ label(it) }}</b><small>{{ mediaKind(it) }}</small></span>
+                <em v-if="mediaAir?.id === it.id">NA WIZJI</em>
+              </button>
+            </div>
+            <p v-else class="note">Biblioteka jest pusta — dodaj pliki albo napis. To te same materiały, co w Rzutniku.</p>
+            <div v-if="mediaPicked" class="desk-media-mode">
+              <small class="muted">Pokaż „{{ label(mediaPicked) }}”:</small>
+              <span class="desk-opt-group" role="group" aria-label="Jak pokazać">
+                <button :class="{ on: mediaMode === 'scene' }" title="Na cały ekran (scena Media) — z paskiem mówcy i napisami pieśni" @click="setMediaMode('scene')">Cały ekran</button>
+                <button :class="{ on: mediaMode === 'full' }" title="Na kamerze/rzutniku, cały kadr: grafika PNG z przezroczystym tłem albo napis bez tła" @click="setMediaMode('full')">Nakładka</button>
+                <button :class="{ on: mediaMode === 'corner' }" title="Okienko w rogu na kamerze/rzutniku" @click="setMediaMode('corner')">W rogu</button>
+                <button :class="{ on: mediaMode === 'off' && studio.preview.scene !== 'media' }" @click="setMediaMode('off')">Ukryj</button>
+              </span>
+              <span v-if="mediaMode === 'corner'" class="desk-opt-group" role="group" aria-label="Róg">
+                <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.mpos.corner === id }" :title="lbl" :aria-label="lbl" @click="setMediaPos({ corner: id })">{{ arrow }}</button>
+                <button :class="{ on: studio.preview.mpos.size !== 'large' }" @click="setMediaPos({ size: 'small' })">Małe</button>
+                <button :class="{ on: studio.preview.mpos.size === 'large' }" @click="setMediaPos({ size: 'large' })">Duże</button>
+              </span>
+              <textarea v-if="mediaPicked.type === 'text'" v-model="mediaPicked.text" class="desk-media-edit" rows="2" aria-label="Treść napisu" title="Zmiany widać od razu (także na wizji)"></textarea>
+            </div>
+            <!-- sterowanie tym, co jest na wizji: film i slajdy działają od razu -->
+            <div v-if="airSlide && (airSlide.type === 'video' || airSlide.deckOf)" class="desk-media-ctl">
+              <b class="live-dot">Na wizji</b>
+              <template v-if="airSlide.deckOf">
+                <button class="small" title="Poprzedni slajd" @click="mediaCtl('slide', { id: airSlide.deckOf, d: -1 })">◀</button>
+                <span>slajd {{ airSlide.slideNo }} z {{ airSlide.slideCount }}</span>
+                <button class="small" title="Następny slajd" @click="mediaCtl('slide', { id: airSlide.deckOf, d: 1 })">▶</button>
+              </template>
+              <template v-if="airSlide.type === 'video'">
+                <button class="small" @click="mediaCtl('play')"><Icon :name="studio.mplay.playing ? 'pause' : 'play'" />{{ studio.mplay.playing ? 'Pauza' : 'Graj' }}</button>
+                <button class="small" title="Od początku" @click="mediaCtl('restart')"><Icon name="undo" /></button>
+                <input class="desk-media-seek" type="range" min="0" :max="studio.mplay.duration || 1" step="0.5" :value="studio.mplay.time" aria-label="Pozycja filmu" @change="mediaCtl('seek', +$event.target.value)">
+                <small class="muted">{{ mmss(studio.mplay.time) }} / {{ mmss(studio.mplay.duration) }}</small>
+                <label class="check"><input type="checkbox" :checked="studio.mplay.loop" @change="mediaCtl('loop')"> pętla</label>
+                <label class="desk-media-vol" title="Głośność filmu w transmisji"><Icon name="volume" /><input type="range" min="0" max="1" step="0.05" :value="studio.mplay.volume" @input="mediaCtl('volume', $event.target.value)"></label>
+              </template>
+            </div>
+          </details>
           <details class="desk-slides" :open="['countdown', 'announcements'].includes(studio.preview.scene) || ['countdown', 'announcements'].includes(studio.program.scene)">
             <summary>Ogłoszenia na transmisji <small class="muted">{{ shownSlides }} z {{ slideList.length }} · tylko „dla wszystkich” z „Pokaż na nabożeństwie”</small></summary>
             <div class="desk-slide-bar">

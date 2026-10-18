@@ -10,6 +10,7 @@ import PeopleView from './PeopleView.vue'
 import HomeBoard from './HomeBoard.vue'
 import WebShell from './WebShell.vue'
 import { lyricsFeed, startLyricsFeed } from './lyricsFeed.js'
+import { startProjectorFeed } from './projectorFeed.js'
 import { audioInfo, startEncoding, stopEncoding, studio } from './studio.js'
 import SermonThoughts from './SermonThoughts.vue'
 import GuestBoard from './GuestBoard.vue'
@@ -26,6 +27,7 @@ onMounted(async () => {
   window.rzutnikStream = { studio, lyricsFeed, startEncoding, stopEncoding, audioInfo }
   await init()
   startLyricsFeed() // napisy na stream niezależnie od otwartego ekranu
+  startProjectorFeed() // scena „Rzutnik”: to, co pokazuje rzutnik na tym komputerze
   ready.value = true
 })
 
