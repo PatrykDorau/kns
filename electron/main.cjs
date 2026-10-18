@@ -811,7 +811,23 @@ function load(win, hash) {
 
 // backgroundThrottling: false — okno zasłonięte lub zminimalizowane ma pracować normalnie
 // (pętla na rzutniku nie może zwalniać, a import prezentacji trwać minutami).
-const webPreferences = { preload: path.join(__dirname, 'preload.cjs'), backgroundThrottling: false }
+const webPreferences = { preload: path.join(__dirname, 'preload.cjs'), backgroundThrottling: false, webviewTag: true }
+// Strona kns-nabo wbudowana jako ekran startowy (to samo co w przeglądarce). W testach bez okna — tylko gdy podano adres.
+const WEB_URL = (process.env.KNS_WEB_URL || (process.env.RZUTNIK_HIDDEN ? '' : 'https://kns-nabo.netlify.app')).replace(/\/+$/, '')
+const WEB_ORIGIN = WEB_URL ? new URL(WEB_URL).origin : ''
+const isWeb = url => { try { return !!WEB_ORIGIN && new URL(url).origin === WEB_ORIGIN } catch { return false } }
+// Wbudowana strona: tylko adres kns-nabo, bez dostępu do Node, z małym preloadem (logowanie, Rzutnik/Stream);
+// linki na zewnątrz otwierają się w przeglądarce.
+app.on('web-contents-created', (_e, contents) => {
+  contents.on('will-attach-webview', (e, prefs, params) => {
+    delete prefs.preloadURL
+    Object.assign(prefs, { preload: path.join(__dirname, 'web-preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true })
+    if (!isWeb(params.src)) e.preventDefault()
+  })
+  if (contents.getType() !== 'webview') return
+  contents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' } })
+  contents.on('will-navigate', (e, url) => { if (!isWeb(url)) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url) } })
+})
 const iconFile = path.join(__dirname, '..', 'build', 'icon.png')
 const icon = fs.existsSync(iconFile) ? { icon: iconFile } : {}
 const toControl = (channel, data) => { if (control && !control.isDestroyed()) control.webContents.send(channel, data) }
@@ -992,6 +1008,13 @@ app.whenReady().then(() => {
   ipcMain.handle('google:status', () => gdrive.status())
   // Baza danych (Supabase): logowanie tym samym kontem Google i załączniki na Dysku.
   ipcMain.handle('cloud:idToken', () => viaGoogle(() => gdrive.idToken()))
+  // wbudowana strona: adres i token Google tylko dla ramki z adresu kns-nabo
+  ipcMain.handle('web:url', () => WEB_URL)
+  ipcMain.handle('web:idToken', async e => {
+    if (!isWeb(e.senderFrame?.url || '')) return null
+    const r = await viaGoogle(() => gdrive.idToken())
+    return r?.idToken || null
+  })
   ipcMain.handle('cloud:mapFiles', (e, list) => viaGoogle(() => gdrive.mapFiles(list)))
   ipcMain.handle('cloud:storeFiles', (e, svc) => viaGoogle(() => gdrive.storeFiles(svc)))
   ipcMain.handle('shared:ensure', (e, paths) => viaGoogle(() => gdrive.ensureFiles(paths)))

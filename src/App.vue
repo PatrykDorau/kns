@@ -8,6 +8,7 @@ import StreamPanel from './StreamPanel.vue'
 import CalendarView from './CalendarView.vue'
 import PeopleView from './PeopleView.vue'
 import HomeBoard from './HomeBoard.vue'
+import WebShell from './WebShell.vue'
 import SermonThoughts from './SermonThoughts.vue'
 import GuestBoard from './GuestBoard.vue'
 import InboxBell from './InboxBell.vue'
@@ -37,6 +38,11 @@ const firstName = computed(() => (access.name || access.email.split('@')[0] || '
 const initials = computed(() => (access.name || access.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''))
 // Kafelki tylko z tym, do czego jest dostęp (bez uprawnień — w ogóle się nie pokazują).
 const visibleTiles = computed(() => TILES.filter(([id]) => ready.value && canUse(id)))
+// Ekran startowy = strona kns-nabo; z jej kafelków — Rzutnik i Stream (ekrany aplikacji).
+const shell = ref(null)
+function openNative(next) { if (['display', 'stream'].includes(next)) choose(next) }
+async function webLogin() { await loginGoogle(); shell.value?.reload() }
+async function webLogout() { await logoutGoogle(); shell.value?.reload() }
 const TILES = [
   ['display', 'monitor', 'Rzutnik', 'Pieśni, zdjęcia, filmy i teksty'],
   ['stream', 'camera', 'Stream', 'Kamery i sygnały dla kamerzysty'],
@@ -46,7 +52,9 @@ const TILES = [
 </script>
 
 <template>
-  <div v-if="!role" class="home">
+  <WebShell v-show="!role" ref="shell" class="app-web" @open="openNative" @login="webLogin" @logout="webLogout">
+  <template #fallback>
+  <div class="home">
     <div class="kh">
       <div class="kh-top">
         <Brand :title="appUpdate.current ? 'Kościół Na Skale — wersja ' + appUpdate.current : ''" />
@@ -104,11 +112,13 @@ const TILES = [
       <HomeBoard v-if="ready && access.status === 'active'" />
     </div>
   </div>
-  <Control v-else-if="role === 'display'" />
+  </template>
+  </WebShell>
+  <Control v-if="role === 'display'" />
   <StreamPanel v-else-if="role === 'stream'" />
   <CalendarView v-else-if="role === 'calendar'" />
   <PeopleView v-else-if="role === 'people'" />
-  <PlannerPanel v-else />
+  <PlannerPanel v-else-if="role" />
 
   <!-- Nowa wersja aplikacji: pobrana w tle (instalator) albo do pobrania (wersja przenośna). -->
   <div v-if="appUpdate.version" class="update-bar" role="status">
@@ -122,6 +132,7 @@ const TILES = [
 </template>
 
 <style scoped>
+.app-web { height: 100%; }
 .home { height: 100%; overflow-y: auto; display: flex; flex-direction: column; padding: 16px 28px 14px;
   background: var(--kh-scene) center bottom / max(100%, 1200px) auto no-repeat fixed; }
 .home > .kh { flex: 1 0 auto; }

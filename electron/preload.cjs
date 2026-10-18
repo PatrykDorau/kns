@@ -8,6 +8,8 @@ const on = channel => handler => {
 const invoke = channel => (...args) => ipcRenderer.invoke(channel, ...args)
 
 contextBridge.exposeInMainWorld('api', {
+  // adres strony wbudowanej jako ekran startowy ('' — bez, np. w testach)
+  webUrl: invoke('web:url'),
   // rzutnik
   getDisplays: invoke('displays:get'),
   onDisplays: on('displays:changed'),

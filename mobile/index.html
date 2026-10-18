@@ -2634,7 +2634,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.78 · 18.10.2026'
+const VERSION = '2.79 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -4255,13 +4255,15 @@ createApp({
     }))
     // Szeroki ekran: kafelki jak w aplikacji na komputer. Rzutnik i Stream działają tylko w aplikacji —
     // dla służby technicznej kafelek pobiera instalator.
+    // W aplikacji na komputer (strona wbudowana) Rzutnik i Stream otwierają się od razu.
+    const inApp = !!window.knsDesktop
     const webTiles = computed(() => {
       const tech = canCamera.value
-      const app = !tech ? 'Tylko dla służby technicznej' : desktopApp.url ? 'Pobierz na komputer' + (desktopApp.size ? ' · ' + desktopApp.size : '') : 'W aplikacji na komputer'
+      const app = !tech ? 'Tylko dla służby technicznej' : inApp ? 'Otwórz w aplikacji' : desktopApp.url ? 'Pobierz na komputer' + (desktopApp.size ? ' · ' + desktopApp.size : '') : 'W aplikacji na komputer'
       const svc = nextService.value
       return [
-        { id: 'display', icon: 'monitor', name: 'Rzutnik', desc: app, locked: !tech, go: tech ? 'download' : 'warn' },
-        { id: 'stream', icon: 'camera', name: 'Stream', desc: app, locked: !tech, go: tech ? 'download' : 'warn' },
+        { id: 'display', icon: 'monitor', name: 'Rzutnik', desc: inApp ? 'Pieśni, zdjęcia, filmy i teksty' : app, locked: !tech, go: tech ? (inApp ? 'chev' : 'download') : 'warn' },
+        { id: 'stream', icon: 'camera', name: 'Stream', desc: inApp ? 'Transmisja, kamery, sygnały' : app, locked: !tech, go: tech ? (inApp ? 'chev' : 'download') : 'warn' },
         { id: 'planner', icon: 'pencil', name: 'Nabożeństwa', desc: canEdit.value ? 'Kazanie, pieśni, program' : 'Dla osób z prawem edycji', locked: !canEdit.value, go: canEdit.value ? 'chev' : 'warn',
           pill: canEdit.value && svc ? (missing(svc).length ? 'Braki' : 'Komplet') : '' },
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
@@ -4279,6 +4281,7 @@ createApp({
       else if (t.id === 'asb') openAsb()
       else if (t.id === 'goals') openGoals()
       else if (t.id === 'planner') nextService.value ? open(nextService.value) : create(nextSundayDate)
+      else if (inApp && (t.id === 'display' || t.id === 'stream')) window.knsDesktop.open(t.id)
       else if (desktopApp.url) location.href = desktopApp.url
     }
     // Start: 6 najnowszych ogłoszeń, reszta w „Wszystkie” (z liczbą i ile z nich nowych).
@@ -4302,7 +4305,7 @@ createApp({
     // Instalacja: Android/Chrome podaje gotowe okno instalacji, iPhone wymaga dodania ręcznie z Safari.
     const installed = ref(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)
     // Komputer (Windows): zamiast instalacji strony — instalator aplikacji na komputer z najnowszego wydania na GitHubie.
-    const desktop = !/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) && /windows/i.test(navigator.userAgent) && !installed.value
+    const desktop = !window.knsDesktop && !/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) && /windows/i.test(navigator.userAgent) && !installed.value
     const desktopApp = Vue.reactive({ url: '', version: '', size: '', installed: '', error: '' })
     let desktopHidden = false
     try { desktopHidden = localStorage.getItem('kns-desktop-hidden') === '1' } catch { /* tryb prywatny */ }

@@ -14,7 +14,16 @@ export function createSupa(config, client = window.supabase.createClient(config.
 })) {
   const sb = client
   let session = null
-  const ready = sb.auth.getSession().then(({ data }) => { session = data?.session || null }).catch(() => {})
+  // Aplikacja na komputer (strona wbudowana): logowanie tym samym kontem Google co aplikacja — bez drugiego logowania.
+  const desk = typeof window !== 'undefined' ? window.knsDesktop : null
+  const ready = sb.auth.getSession().then(async ({ data }) => {
+    session = data?.session || null
+    if (session || !desk) return
+    const token = await desk.idToken().catch(() => null)
+    if (!token) return
+    const res = await sb.auth.signInWithIdToken({ provider: 'google', token })
+    session = res.data?.session || null
+  }).catch(() => {})
   sb.auth.onAuthStateChange((_event, s) => { session = s })
   // Świeże powiadomienia w aplikacji, które ta osoba właśnie wywołała — serwer rozsyła je też na telefony.
   const pushInbox = async () => {
@@ -198,6 +207,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
     hasDrive: () => true, // dane są w bazie — Dysk tylko do załączników
     // Logowanie Google przez Supabase: strona przechodzi do Google i wraca już zalogowana.
     async signIn(choose = false) {
+      if (desk) { desk.login(); await new Promise(() => {}) } // logowanie robi aplikacja, potem strona się przeładuje
       const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: {
         redirectTo: location.origin + '/',
         queryParams: choose || !who() ? { prompt: 'select_account' } : { login_hint: who() },
@@ -206,7 +216,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
       await new Promise(() => {}) // czekamy na przejście do Google
     },
     forget() { session = null; sb.auth.signOut({ scope: 'local' }).catch(() => {}) },
-    signOut() { session = null; sb.auth.signOut({ scope: 'local' }).catch(() => {}); files?.signOut() },
+    signOut() { session = null; sb.auth.signOut({ scope: 'local' }).catch(() => {}); files?.signOut(); desk?.logout() },
 
     async load() {
       const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
