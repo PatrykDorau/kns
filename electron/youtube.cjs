@@ -142,7 +142,9 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
 
   // Stały klucz: strumień wielokrotnego użytku — ten sam w każdą niedzielę.
   const mapStream = s => ({ id: s.id, url: s.cdn?.ingestionInfo?.ingestionAddress || '', key: s.cdn?.ingestionInfo?.streamName || '',
-    backupUrl: s.cdn?.ingestionInfo?.backupIngestionAddress || '', status: s.status?.streamStatus || '', health: s.status?.healthStatus?.status || '' })
+    backupUrl: s.cdn?.ingestionInfo?.backupIngestionAddress || '', status: s.status?.streamStatus || '', health: s.status?.healthStatus?.status || '',
+    // uwagi YouTube do odbieranego obrazu (np. za niska przepływność, brak klatek kluczowych)
+    issues: (s.status?.healthStatus?.configurationIssues || []).map(i => ({ severity: i.severity || '', reason: i.reason || i.type || '', text: i.description || '' })) })
   async function streamKey() {
     if (auth?.streamId) {
       const s = (await call('GET', '/liveStreams?part=id,snippet,cdn,status&id=' + auth.streamId)).items?.[0]
@@ -213,6 +215,14 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
     if (!auth?.refresh) return { ...status() }
     if (!auth.channelId) await loadChannel()
     const [stream, list] = await Promise.all([streamKey(), broadcasts()])
+    // widzowie teraz (tylko trwające transmisje)
+    const live = list.filter(b => b.status === 'live').map(b => b.id)
+    if (live.length) {
+      try {
+        const v = (await call('GET', '/videos?part=liveStreamingDetails&id=' + live.join(','))).items || []
+        for (const it of v) { const b = list.find(x => x.id === it.id); if (b) b.viewers = +(it.liveStreamingDetails?.concurrentViewers || 0) }
+      } catch { /* bez liczby widzów */ }
+    }
     return { ...status(), stream, broadcasts: list }
   }
 

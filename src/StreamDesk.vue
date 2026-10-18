@@ -181,6 +181,54 @@ const nextTitle = computed(() => chosen.value?.title || newTitle.value)
 const when = b => (b.start ? new Date(b.start).toLocaleString('pl', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')
 const liveBroadcast = ref(null) // transmisja, którą nadajemy (do ręcznego „na żywo” i tytułu w trakcie)
 const hiFps = computed(() => +settings.streamFps > 30)
+/* ---------- stan transmisji ---------- */
+const online = ref(navigator.onLine)
+const onNet = () => { online.value = navigator.onLine }
+window.addEventListener('online', onNet); window.addEventListener('offline', onNet)
+onBeforeUnmount(() => { window.removeEventListener('online', onNet); window.removeEventListener('offline', onNet) })
+const kbpsNow = computed(() => parseFloat(String(live.value.bitrate || '').replace(',', '.')) || 0)
+// przepływność z ostatnich 60 s (wykres)
+const rateHistory = ref([])
+watch(() => live.value.time, () => { if (!liveOn.value) { rateHistory.value = []; return } rateHistory.value = [...rateHistory.value, kbpsNow.value].slice(-60) })
+const sparkPoints = computed(() => {
+  const h = rateHistory.value, max = Math.max(kbps.value * 1.3, ...h, 1)
+  return h.map((v, i) => (i / Math.max(1, h.length - 1)) * 60 + ',' + (16 - (v / max) * 15).toFixed(1)).join(' ')
+})
+const liveBc = computed(() => (yt.value.broadcasts || []).find(b => b.id === liveBroadcast.value?.id) || (yt.value.broadcasts || []).find(b => b.status === 'live') || null)
+const health = computed(() => {
+  const L = live.value, chips = [], target = kbps.value
+  const rateRatio = target ? kbpsNow.value / target : 1
+  const slow = engine.value === 'studio' ? (L.backlog || 0) > 2 : (parseFloat(L.speed) || 1) < 0.95
+  // wysyłanie
+  chips.push({ id: 'rate', label: 'Wysyłanie', value: kbpsNow.value ? (kbpsNow.value / 1000).toLocaleString('pl', { maximumFractionDigits: 1 }) + ' Mb/s' : '—',
+    cls: !kbpsNow.value ? '' : rateRatio < 0.6 ? 'bad' : rateRatio < 0.85 ? 'warn' : 'ok', tip: 'Ile danych idzie teraz do YouTube (cel: ' + (target / 1000).toLocaleString('pl') + ' Mb/s). Przy obrazie bez ruchu bywa mniej — to normalne.' })
+  // zaległość (studio) albo tempo (tryb prosty)
+  if (engine.value === 'studio') chips.push({ id: 'lag', label: 'Opóźnienie wysyłania', value: (L.backlog || 0).toLocaleString('pl') + ' s', cls: (L.backlog || 0) > 5 ? 'bad' : (L.backlog || 0) > 2 ? 'warn' : 'ok', tip: 'Ile obrazu czeka na wysłanie. Rośnie, gdy internet nie nadąża.' })
+  else chips.push({ id: 'lag', label: 'Tempo', value: L.speed || '—', cls: slow ? 'warn' : 'ok', tip: 'Poniżej 1x — komputer albo internet nie nadąża.' })
+  // klatki
+  const lost = (L.drop || 0) + (L.skipped || 0) + (engine.value === 'studio' ? studio.skipped : 0)
+  chips.push({ id: 'fps', label: 'Klatki', value: (L.fps || 0) + '/s' + (lost > 10 ? ' · zgubione ' + lost : ''), cls: lost > 50 ? 'warn' : 'ok', tip: 'Klatki na sekundę; zgubione: pominięte przez kartę graficzną albo przy zatkanym internecie.' })
+  // internet
+  chips.push({ id: 'net', label: 'Internet', value: !online.value ? 'brak' : L.stalled ? 'stoi' : slow ? 'wolny' : 'OK', cls: !online.value || L.stalled ? 'bad' : slow ? 'warn' : 'ok' })
+  // YouTube
+  const st = yt.value.stream
+  if (st) chips.push({ id: 'yt', label: 'YouTube odbiera', value: st.status !== 'active' ? 'brak obrazu' : (HEALTH[st.health] || st.health || '—'), cls: st.status !== 'active' ? 'bad' : st.health === 'bad' ? 'bad' : st.health === 'ok' ? 'warn' : 'ok', tip: (st.issues || []).map(i => i.text || i.reason).join(' · ') || 'Ocena YouTube (odświeżana co 15 s).' })
+  if (liveBc.value?.viewers != null) chips.push({ id: 'view', label: 'Widzowie', value: String(liveBc.value.viewers), cls: '' })
+  // dźwięk (studio)
+  if (engine.value === 'studio') chips.push({ id: 'audio', label: 'Dźwięk', value: !settings.studioAudio ? 'bez dźwięku' : studio.silentFor > 10 ? 'cisza' : studio.audioDb > -1 ? 'przester' : 'jest', cls: !settings.studioAudio || studio.silentFor > 10 ? 'warn' : studio.audioDb > -1 ? 'warn' : 'ok', tip: 'Poziom dźwięku z miksera (ATEM po USB).' })
+  if (L.restarts) chips.push({ id: 'rs', label: 'Wznowienia', value: String(L.restarts), cls: 'warn', tip: 'Ile razy połączenie z YouTube zerwało się i wróciło samo.' })
+  // podpowiedź — najważniejszy problem
+  let alert = null
+  if (!online.value) alert = { cls: 'bad', text: 'Brak internetu w komputerze. Transmisja wznowi się sama, gdy wróci połączenie (obraz z tego czasu przepadnie).' }
+  else if (L.error) alert = { cls: 'bad', text: L.error }
+  else if (L.stalled) alert = { cls: 'bad', text: 'Od kilku sekund nic nie wychodzi do YouTube — sprawdź internet. Aplikacja próbuje dalej.' }
+  else if ((L.backlog || 0) > 5) alert = { cls: 'bad', text: 'Internet nie nadąża (opóźnienie ' + L.backlog.toLocaleString('pl') + ' s). Zmniejsz przepływność albo jakość w „Ustawieniach nadawania” przy następnym starcie; przy dużym zatkaniu aplikacja pomija klatki, żeby wrócić na bieżąco.' }
+  else if (slow) alert = { cls: 'warn', text: 'Wysyłanie zwalnia — internet albo komputer na granicy możliwości.' }
+  else if (st && st.status === 'active' && st.health === 'bad') alert = { cls: 'warn', text: 'YouTube ocenia sygnał jako słaby' + ((st.issues || []).length ? ': ' + st.issues.map(i => i.text || i.reason).join(' · ') : '.') }
+  else if (engine.value === 'studio' && settings.studioAudio && studio.silentFor > 10) alert = { cls: 'warn', text: 'Od ' + studio.silentFor + ' s nie ma dźwięku — sprawdź mikser (ATEM) i kabel USB.' }
+  else if (engine.value === 'studio' && studio.skipped > 50 && live.value.running) alert = { cls: 'warn', text: 'Karta graficzna nie nadąża z kodowaniem — spróbuj 30 kl./s albo 720p.' }
+  return { chips, alert }
+})
 const videoLabel = computed(() => (engine.value === 'studio' ? settings.studioCamera || 'brak kamery' : devices.value.screens.find(x => x.value === settings.streamVideo)?.label || settings.streamVideo || 'brak obrazu'))
 async function goLive() {
   liveError.value = ''
@@ -204,7 +252,7 @@ async function goLive() {
     // studio: obraz składa i koduje aplikacja (karta graficzna), FFmpeg tylko wysyła
     setFps(settings.streamFps)
     studio.bitrate = kbps.value * 1000
-    const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps })
+    const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps, kbps: kbps.value })
     if (res?.error) { liveError.value = res.error; return }
     await startEncoding()
     watchGoLive()
@@ -275,16 +323,20 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
         <div class="desk-stage-head">
           <h2>{{ liveOn ? 'To widzą widzowie' : 'Podgląd' }}</h2>
           <b v-if="liveOn" class="desk-onair" :class="live.running ? 'live' : 'wait'">{{ live.running ? '● NA ŻYWO' : 'Łączę z YouTube…' }}</b>
-          <template v-if="liveOn">
-            <span v-if="live.time" class="muted">{{ live.time }}</span>
-            <span v-if="live.fps" class="muted">{{ live.fps }} kl./s</span>
-            <span v-if="live.bitrate" class="muted">{{ live.bitrate.replace('kbits/s', ' kb/s') }}</span>
-            <span v-if="live.drop" class="bad">zgubione klatki: {{ live.drop }}</span>
-          </template>
+          <span v-if="liveOn && live.time" class="desk-clock">{{ live.time }}</span>
           <span class="spacer"></span>
           <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
           <small v-else class="muted">{{ live.encoder }}</small>
         </div>
+        <!-- stan transmisji: wysyłanie, internet, YouTube, widzowie, dźwięk; poniżej podpowiedź, gdy coś nie gra -->
+        <div v-if="liveOn" class="desk-health">
+          <span v-for="c in health.chips" :key="c.id" class="dh-chip" :class="c.cls" :title="c.tip">
+            <small>{{ c.label }}</small><b>{{ c.value }}</b>
+            <svg v-if="c.id === 'rate' && rateHistory.length > 1" class="dh-spark" viewBox="0 0 60 16" preserveAspectRatio="none" aria-hidden="true"><polyline :points="sparkPoints" /></svg>
+            <i v-if="c.id === 'audio'" class="dh-meter"><i :style="{ width: Math.max(0, Math.min(100, (studio.audioDb + 60) / 60 * 100)) + '%' }"></i></i>
+          </span>
+        </div>
+        <p v-if="liveOn && health.alert" class="desk-alert" :class="health.alert.cls" role="status"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{{ health.alert.text }}</p>
         <div v-if="engine === 'studio'" class="studio-mons" :class="{ single: studio.direct }">
           <figure v-if="!studio.direct" class="mon pvw">
             <figcaption>Podgląd <small>{{ SCENE_NAME[studio.preview.scene] }}</small></figcaption>

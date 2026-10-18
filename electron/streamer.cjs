@@ -44,13 +44,23 @@ function lyricsFilter(file, h) {
   ].join(',')
 }
 
+// Klatka kluczowa H.264 (Annex B): NAL typu 5 (IDR) albo 7 (SPS, idzie przed IDR).
+function isKeyFrame(b) {
+  for (let i = 0; i + 3 < b.length && i < 4096; i++) {
+    if (b[i] === 0 && b[i + 1] === 0 && (b[i + 2] === 1 || (b[i + 2] === 0 && b[i + 3] === 1))) {
+      const t = b[i + (b[i + 2] === 1 ? 3 : 4)] & 0x1f
+      if (t === 5 || t === 7) return true
+    }
+  }
+  return false
+}
 class Streamer extends EventEmitter {
   constructor({ dir }) {
     super()
     this.dir = dir
     this.proc = null
     this.want = null // ustawienia bieżącej transmisji (null = nie nadajemy)
-    this.state = { running: false, starting: false, encoder: '', fps: 0, bitrate: '', time: '', drop: 0, speed: '', error: '', restarts: 0, previewUrl: '' }
+    this.state = { running: false, starting: false, encoder: '', fps: 0, bitrate: '', time: '', drop: 0, speed: '', error: '', restarts: 0, previewUrl: '', backlog: 0, stalled: false, skipped: 0, target: 0 }
     this.lastText = null
     this.preview = { clients: new Set(), server: null, port: 0 }
   }
@@ -176,7 +186,8 @@ class Streamer extends EventEmitter {
     if (this.want) return this.state
     if (!o?.url || !o?.key) throw new Error('Brak adresu albo klucza transmisji YouTube.')
     this.want = { ...o, studio: true }
-    this.emitState({ starting: true, running: false, error: '', restarts: 0, drop: 0, previewUrl: '', encoder: 'karta graficzna (studio)' })
+    this.skipped = 0; this.choked = false
+    this.emitState({ starting: true, running: false, error: '', restarts: 0, drop: 0, previewUrl: '', encoder: 'karta graficzna (studio)', backlog: 0, stalled: false, skipped: 0, target: +o.kbps || 0 })
     await this.launchStudio()
     return this.state
   }
@@ -203,6 +214,14 @@ class Streamer extends EventEmitter {
     }
     connect()
     this.emit('needKey')
+    // co sekundę: ile obrazu czeka na wysłanie (internet nie nadąża → rośnie) i czy FFmpeg w ogóle coś wysyła
+    this.lastStats = Date.now()
+    clearInterval(this.statsTimer)
+    this.statsTimer = setInterval(() => {
+      if (this.proc !== proc) { clearInterval(this.statsTimer); return }
+      const bytes = proc.stdin.writableLength || 0, kbps = +o.kbps || 6800
+      this.emitState({ backlog: Math.round((bytes * 8) / (kbps * 1000) * 10) / 10, stalled: this.state.running && Date.now() - this.lastStats > 5000, skipped: this.skipped })
+    }, 1000)
     proc.stderr.on('data', chunk => {
       const text = chunk.toString()
       log = (log + text).slice(-4000)
@@ -211,6 +230,7 @@ class Streamer extends EventEmitter {
       if (process.env.KNS_STREAM_DEBUG) process.stderr.write(text)
       // obraz bez przerabiania — FFmpeg nie podaje klatek, tylko czas i przepływność
       const tm = (text.match(/time=(\S+)/g) || []).pop()?.slice(5), br = (text.match(/bitrate=\s*(\S+)/g) || []).pop()?.replace(/bitrate=\s*/, '')
+      if ((m && ok(m[3])) || ok(tm)) this.lastStats = Date.now()
       if (m && ok(m[3])) this.emitState({ running: true, starting: false, error: '', fps: Math.round(+m[2]), time: m[3].replace(/\.\d+$/, ''), bitrate: ok(m[4]), speed: ok(m[5]) })
       else if (ok(tm)) this.emitState({ running: true, starting: false, error: '', fps, time: tm.replace(/\.\d+$/, ''), bitrate: ok(br) })
     })
@@ -224,7 +244,19 @@ class Streamer extends EventEmitter {
       setTimeout(() => { if (this.want && !this.proc) this.launchStudio() }, 3000)
     })
   }
-  writeVideo(buf) { if (this.want?.studio && this.proc?.stdin.writable) this.proc.stdin.write(Buffer.from(buf)) }
+  // Obraz z karty graficznej → FFmpeg. Gdy internet długo nie nadąża (zaległość > ~48 MB), zamiast zapychać pamięć
+  // pomijamy klatki do następnej kluczowej (krótkie „zacięcie” u widzów, ale transmisja wraca na bieżąco).
+  writeVideo(buf) {
+    const stdin = this.proc?.stdin
+    if (!this.want?.studio || !stdin?.writable) return
+    const b = Buffer.from(buf)
+    if (stdin.writableLength > 48e6) { if (!this.choked) { this.choked = true; this.emit('needKey') } }
+    if (this.choked) {
+      if (stdin.writableLength > 4e6 || !isKeyFrame(b)) { this.skipped = (this.skipped || 0) + 1; if (this.skipped % 30 === 1) this.emit('needKey'); return }
+      this.choked = false
+    }
+    stdin.write(b)
+  }
   writeAudio(buf) {
     if (!this.want?.studio || !this.audio) return
     const b = Buffer.from(buf)
@@ -234,6 +266,7 @@ class Streamer extends EventEmitter {
 
   stop() {
     this.want = null
+    clearInterval(this.statsTimer)
     const proc = this.proc
     if (proc) {
       try { proc.stdin.write('q') } catch { /* już zamknięty */ }
@@ -241,9 +274,9 @@ class Streamer extends EventEmitter {
     }
     for (const c of this.preview.clients) c.end()
     this.preview.clients.clear()
-    this.emitState({ running: false, starting: false, fps: 0, bitrate: '', speed: '', error: '' })
+    this.emitState({ running: false, starting: false, fps: 0, bitrate: '', speed: '', error: '', backlog: 0, stalled: false })
     return this.state
   }
 }
 
-module.exports = { Streamer, listDevices, ffmpegPath, lyricsFilter }
+module.exports = { Streamer, listDevices, ffmpegPath, lyricsFilter, isKeyFrame }

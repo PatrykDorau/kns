@@ -35,3 +35,24 @@ const wait = ms => new Promise(r => setTimeout(r, ms))
   assert.match(info, /Video: h264/); assert.match(info, /Audio: aac/); assert.match(info, /1920x1080/)
   console.log('studio: wszystkie testy OK')
 })().catch(e => { console.error(e); process.exit(1) })
+
+// Zatkany internet: zaległość > 48 MB → pomijanie klatek do najbliższej kluczowej, potem znów normalnie.
+;(() => {
+  const { isKeyFrame } = require('./streamer.cjs')
+  const key = Buffer.from([0, 0, 0, 1, 0x67, 1, 2, 0, 0, 0, 1, 0x65, 9])
+  const delta = Buffer.from([0, 0, 0, 1, 0x41, 1, 2, 3])
+  assert.equal(isKeyFrame(key), true); assert.equal(isKeyFrame(delta), false)
+  const s = new Streamer({ dir: () => os.tmpdir() })
+  let writes = 0, keys = 0
+  s.on('needKey', () => keys++)
+  s.want = { studio: true }
+  s.proc = { stdin: { writable: true, writableLength: 50e6, write() { writes++ } } }
+  s.writeVideo(delta); assert.equal(writes, 0) // zatkane — pominięta
+  s.proc.stdin.writableLength = 1e6
+  s.writeVideo(delta); assert.equal(writes, 0) // czekamy na kluczową
+  s.writeVideo(key); assert.equal(writes, 1) // wraca
+  s.writeVideo(delta); assert.equal(writes, 2)
+  assert.ok(keys >= 1, 'prośba o klatkę kluczową')
+  assert.equal(s.skipped, 2)
+  console.log('studio (zatkany internet): OK')
+})()

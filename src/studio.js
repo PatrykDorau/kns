@@ -27,6 +27,9 @@ export const studio = reactive({
   slideEvery: 8, // co ile sekund następne ogłoszenie
   hidden: ['svc'], // wyłączone slajdy (id); „svc” — karta najbliższego nabożeństwa
   slideId: '', // slajd na wizji teraz
+  skipped: 0, // klatki pominięte, bo karta graficzna nie nadążała
+  audioDb: -100, // szczyt dźwięku w ostatniej chwili (dBFS)
+  silentFor: 0, // ile sekund cisza (np. odpięty kabel z miksera)
   camera: '', audio: '', fps: 30, bitrate: 6800000, live: false, error: '', encoder: '',
   hardware: null, // null — nie sprawdzono; true/false — czy karta koduje H.264
   projector: { kind: 'none' }, // to, co pokazuje rzutnik (etap 2): { kind: 'image'|'video'|'text'|'none', url, text, style, playing, time, at }
@@ -482,7 +485,7 @@ function frame() {
     try { (SCENE_DRAW[S.scene] || SCENE_DRAW.camera)(t) } finally { g.setTransform(1, 0, 0, 1, 0, 0); g = keep; S = studio.program }
   }
   if (encoder && encoder.state === 'configured') {
-    if (encoder.encodeQueueSize > 4) return // karta nie nadąża — klatka pominięta zamiast opóźnienia
+    if (encoder.encodeQueueSize > 4) { studio.skipped++; return } // karta nie nadąża — klatka pominięta zamiast opóźnienia
     const vf = new VideoFrame(canvas, { timestamp: Math.round(t * 1000) })
     const key = needKey || frameNo % (studio.fps * 2) === 0
     needKey = false
@@ -576,6 +579,7 @@ export async function setCamera(deviceId) {
 }
 
 /* ---------- dźwięk: ATEM + filmy ze scen → PCM 48 kHz do FFmpeg ---------- */
+let meter = null
 let ac = null, mix = null, worklet = null, micSource = null, micStream = null, mediaSources = new WeakSet()
 const WORKLET = `class Pcm extends AudioWorkletProcessor {
   constructor() { super(); this.buf = new Int16Array(2048 * 2); this.n = 0 }
@@ -601,6 +605,19 @@ async function audioGraph() {
   worklet = new AudioWorkletNode(ac, 'pcm', { numberOfInputs: 1, numberOfOutputs: 0, channelCount: 2, channelCountMode: 'explicit' })
   worklet.port.onmessage = e => { if (studio.live) api.studioAudio(new Uint8Array(e.data)) }
   mix.connect(worklet)
+  // poziom dźwięku (miernik na pulpicie i ostrzeżenie o ciszy)
+  meter = ac.createAnalyser(); meter.fftSize = 1024; mix.connect(meter)
+  const buf = new Float32Array(meter.fftSize)
+  let quietSince = performance.now()
+  setInterval(() => {
+    meter.getFloatTimeDomainData(buf)
+    let peak = 0
+    for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i]))
+    const db = peak > 0 ? Math.max(-100, Math.round(20 * Math.log10(peak))) : -100
+    studio.audioDb = db
+    if (db > -55) quietSince = performance.now()
+    studio.silentFor = Math.floor((performance.now() - quietSince) / 1000)
+  }, 250)
 }
 function connectMedia(el) {
   audioGraph().then(() => { if (mediaSources.has(el)) return; mediaSources.add(el); ac.createMediaElementSource(el).connect(mix) })
@@ -637,7 +654,7 @@ export async function startEncoding() {
   })
   encoder.configure(config('prefer-hardware'))
   studio.encoder = 'karta graficzna (WebCodecs)'
-  frameNo = 0; needKey = true
+  frameNo = 0; needKey = true; studio.skipped = 0
   studio.live = true
 }
 export function stopEncoding() {
