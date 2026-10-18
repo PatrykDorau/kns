@@ -537,6 +537,7 @@
   .goal-people th { color: var(--muted); font-weight: 600; }
   .goal-people td.miss { color: #ff8a65; }
   .goal-form { margin-bottom: 14px; }
+  .ann.fresh { border-color: rgba(232, 163, 61, .45); }
   .ev-community { display: flex; align-items: center; gap: 6px; margin: 2px 0 6px; color: #f07fb4; font-size: 13.5px; font-weight: 600; }
   .ev-community .i { width: 15px; height: 15px; }
   .ev-people { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
@@ -1151,9 +1152,9 @@
       <input ref="annBulk" type="file" accept="image/*" multiple hidden @change="annFromImages">
     </div>
     <p v-if="!activeAnns.length" class="note">Nie ma aktualnych ogłoszeń.</p>
-    <button v-for="a in activeAnns" :key="a.id" class="ann" :class="{ important: a.important }" @click="openAnn(a)">
+    <button v-for="a in activeAnns" :key="a.id" class="ann" :class="{ important: a.important, fresh: annIsNew(a) }" @click="openAnn(a)">
       <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
-      <span class="ann-tags"><span v-if="a.pinned" class="ann-tag pin"><svg class="i"><use href="#pin"/></svg>Przypięte</span><span v-if="a.video" class="ann-tag vid">▶ Film</span><span v-if="a.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
+      <span class="ann-tags"><span v-if="annIsNew(a)" class="ann-tag kh-new">Nowe</span><span v-if="a.pinned" class="ann-tag pin"><svg class="i"><use href="#pin"/></svg>Przypięte</span><span v-if="a.video" class="ann-tag vid">▶ Film</span><span v-if="a.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
       <b>{{ a.title }}</b>
       <span class="ann-body">{{ a.text }}</span>
     </button>
@@ -1973,7 +1974,7 @@
           <span class="kh-tag"><svg class="i"><use href="#calendar"/></svg>Najbliższe nabożeństwo</span>
           <b>Jeszcze nie zaplanowane</b>
           <span class="kh-body">Następne nabożeństwo czeka na wypełnienie{{ canEdit ? ' — dodaj datę, kazanie i pieśni.' : '.' }}</span>
-          <span class="kh-foot"><button v-if="canEdit" class="kh-link" @click="create(nextSundayDate)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(nextSundayDate) }}</button></span>
+          <span class="kh-foot"><button v-if="canEdit" class="kh-link" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(planSunday) }}</button></span>
         </article>
         <section v-if="importantAnns.length" class="kh-panel">
           <div class="kh-panel-h"><h2>Komunikaty rady zboru</h2><span v-if="importantAnns.length" class="kh-count">{{ importantAnns.length }}</span><span v-if="newAnnCount" class="kh-muted">{{ newAnnCount }} {{ newAnnCount === 1 ? 'nowy' : 'nowe' }}</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie ogłoszenia</button></div>
@@ -2073,8 +2074,8 @@
       </button>
       <div v-else-if="canEdit" class="hero empty-hero">
         <b>Nie ma zaplanowanego nabożeństwa</b>
-        <span class="hero-place">Na niedzielę {{ pretty(nextSundayDate).replace(/^niedziela, /, '') }} nic jeszcze nie ma.</span>
-        <button class="primary" @click="create(nextSundayDate)"><svg class="i"><use href="#plus"/></svg>Utwórz nabożeństwo</button>
+        <span class="hero-place">Na niedzielę {{ pretty(planSunday).replace(/^niedziela, /, '') }} nic jeszcze nie ma.</span>
+        <button class="primary" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Utwórz nabożeństwo</button>
       </div>
 
       <div v-if="importantAnns.length" class="notices" :class="{ single: importantAnns.length === 1 }" aria-label="Komunikaty rady zboru">
@@ -2637,7 +2638,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.80 · 18.10.2026'
+const VERSION = '2.81 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -4241,6 +4242,13 @@ createApp({
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
+    const planSunday = computed(() => {
+      let d = new Date(nextSundayDate + 'T12:00')
+      const taken = date => services.value.some(s => s.date === date)
+      const started = date => date === todayStr.value && new Date(`${date}T${DEFAULT_TIME}`).getTime() <= Date.now()
+      for (let i = 0; i < 60 && (taken(localDate(d)) || started(localDate(d))); i++) d.setDate(d.getDate() + 7)
+      return localDate(d)
+    })
     const untilText = computed(() => {
       const c = countdown.value
       if (!c) return ''
@@ -4283,7 +4291,7 @@ createApp({
       else if (t.id === 'listen') openListen()
       else if (t.id === 'asb') openAsb()
       else if (t.id === 'goals') openGoals()
-      else if (t.id === 'planner') nextService.value ? open(nextService.value) : create(nextSundayDate)
+      else if (t.id === 'planner') nextService.value ? open(nextService.value) : create(planSunday.value)
       else if (inApp && (t.id === 'display' || t.id === 'stream')) window.knsDesktop.open(t.id)
       else if (desktopApp.url) location.href = desktopApp.url
     }
@@ -4621,7 +4629,7 @@ createApp({
       migrating, migrated, migrate,
       gcalView, gcal, openGcal, renewGcal, copyGcal,
       weekDays, greeting, firstName, webTiles, chooseTile, boardNews, boardMore, weekRange,
-      inviteEvent, moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
+      inviteEvent, moreView, openMore, nextService, nextSundayDate, planSunday, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,

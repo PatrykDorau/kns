@@ -145,7 +145,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
         <article v-for="a in allAnns" :key="a.id" class="kh-ann kh-clickable" :class="{ fresh: isNew(a) }" @click="openNotice(a)">
           <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
           <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
-          <span class="kh-ann-text"><b><Icon v-if="a.pinned" name="pin" class="kh-pin" />{{ a.title }}<em v-if="a.important" class="kh-film">Rada zboru</em><em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
+          <span class="kh-ann-text"><b><Icon v-if="a.pinned" name="pin" class="kh-pin" />{{ a.title }}<em v-if="isNew(a)" class="kh-new">Nowe</em><em v-if="a.important" class="kh-film">Rada zboru</em><em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
           <small>{{ shortDate(a.date) }}</small>
         </article>
       </div>
