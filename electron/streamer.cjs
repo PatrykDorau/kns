@@ -5,6 +5,7 @@
 const { spawn, execFile } = require('node:child_process')
 const { EventEmitter } = require('node:events')
 const http = require('node:http')
+const net = require('node:net')
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -164,6 +165,69 @@ class Streamer extends EventEmitter {
       // zerwane łącze, chwilowy błąd — wznowienie, dopóki transmisja ma trwać
       setTimeout(() => { if (this.want && !this.proc) this.launch(encoder) }, 3000)
     })
+  }
+
+  /* ---------- tryb studia: obraz składa i koduje aplikacja (karta graficzna), dźwięk miksuje aplikacja ---------- */
+  // Wejścia FFmpeg: H.264 (gotowe klatki) przez stdin i PCM 48 kHz przez lokalne gniazdo TCP; obraz bez przerabiania,
+  // dźwięk → AAC; oba ze znacznikami czasu „zegara ściennego”, więc zostają zgrane.
+  async startStudio(o) {
+    if (this.want) return this.state
+    if (!o?.url || !o?.key) throw new Error('Brak adresu albo klucza transmisji YouTube.')
+    this.want = { ...o, studio: true }
+    this.emitState({ starting: true, running: false, error: '', restarts: 0, drop: 0, previewUrl: '', encoder: 'karta graficzna (studio)' })
+    await this.launchStudio()
+    return this.state
+  }
+  async launchStudio() {
+    const o = this.want
+    if (!o) return
+    const port = await new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)) }) })
+    let log = ''
+    const fps = [25, 30, 50, 60].includes(+o.fps) ? +o.fps : 30
+    const proc = spawn(ffmpegPath(), ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1',
+      '-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-probesize', '500000', '-analyzeduration', '0', '-framerate', String(fps), '-f', 'h264', '-i', 'pipe:0',
+      '-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', `tcp://127.0.0.1:${port}?listen=1`,
+      '-map', '0:v', '-c:v', 'copy', '-map', '1:a', '-af', 'aresample=async=1000', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2',
+      '-f', 'flv', o.url.replace(/\/$/, '') + '/' + o.key], { windowsHide: true })
+    this.proc = proc
+    this.audio = { socket: null, queue: [] }
+    proc.stdin.on('error', () => {})
+    // dźwięk: łączymy się z FFmpeg, gdy otworzy gniazdo (po wczytaniu początku obrazu)
+    const connect = (tries = 0) => {
+      if (this.proc !== proc) return
+      const sock = net.connect(port, '127.0.0.1')
+      sock.on('connect', () => { this.audio.socket = sock; for (const b of this.audio.queue) sock.write(b); this.audio.queue = [] })
+      sock.on('error', () => { if (!this.audio.socket && tries < 100) setTimeout(() => connect(tries + 1), 200) })
+    }
+    connect()
+    this.emit('needKey')
+    proc.stderr.on('data', chunk => {
+      const text = chunk.toString()
+      log = (log + text).slice(-4000)
+      const m = text.match(/frame=\s*(\d+)\s+fps=\s*([\d.]+).*?time=(\S+)\s+bitrate=\s*(\S+).*?speed=\s*(\S+)/)
+      const ok = v => (v && v !== 'N/A' ? v : '')
+      if (process.env.KNS_STREAM_DEBUG) process.stderr.write(text)
+      // obraz bez przerabiania — FFmpeg nie podaje klatek, tylko czas i przepływność
+      const tm = (text.match(/time=(\S+)/g) || []).pop()?.slice(5), br = (text.match(/bitrate=\s*(\S+)/g) || []).pop()?.replace(/bitrate=\s*/, '')
+      if (m && ok(m[3])) this.emitState({ running: true, starting: false, error: '', fps: Math.round(+m[2]), time: m[3].replace(/\.\d+$/, ''), bitrate: ok(m[4]), speed: ok(m[5]) })
+      else if (ok(tm)) this.emitState({ running: true, starting: false, error: '', fps, time: tm.replace(/\.\d+$/, ''), bitrate: ok(br) })
+    })
+    proc.on('exit', code => {
+      if (this.proc === proc) this.proc = null
+      try { this.audio?.socket?.destroy() } catch { /* zamknięte */ }
+      this.audio = null
+      if (!this.want) { this.emitState({ running: false, starting: false }); return }
+      const reason = (log.match(/(I\/O error|Connection|Error opening|Invalid data|Broken pipe)[^\n]*/i) || [])[0] || 'FFmpeg zakończył pracę (kod ' + code + ').'
+      this.emitState({ running: false, starting: true, restarts: this.state.restarts + 1, error: 'Przerwa w nadawaniu: ' + reason.trim() + ' — wznawiam za 3 s.' })
+      setTimeout(() => { if (this.want && !this.proc) this.launchStudio() }, 3000)
+    })
+  }
+  writeVideo(buf) { if (this.want?.studio && this.proc?.stdin.writable) this.proc.stdin.write(Buffer.from(buf)) }
+  writeAudio(buf) {
+    if (!this.want?.studio || !this.audio) return
+    const b = Buffer.from(buf)
+    if (this.audio.socket) this.audio.socket.write(b)
+    else if (this.audio.queue.length < 400) this.audio.queue.push(b) // do ~2 s czekania na połączenie
   }
 
   stop() {

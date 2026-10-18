@@ -27,7 +27,7 @@ export const settings = reactive({
   cue: false, // sygnały dla kamerzysty (stream)
   cueToken: '',
   atemAddress: '', atemDirect: false, ytPrivacy: 'public', // pulpit streamu: ATEM przez sieć i YouTube
-  streamVideo: '', streamAudio: '', streamQuality: '1080', streamFps: 30, streamLyrics: 'local', streamLyricsKey: '', // nadawanie bez OBS
+  streamVideo: '', streamAudio: '', streamQuality: '1080', streamFps: 30, streamEngine: 'studio', studioCamera: '', studioAudio: '', streamLyrics: 'local', streamLyricsKey: '', // nadawanie bez OBS
   camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu

@@ -933,3 +933,11 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-ctrl .desk-head .muted { flex: 1; min-width: 0; max-width: none; }
 .desk-ctrl .desk-head .spacer { display: none; }
 .desk-ctrl .desk-head .desk-badge { flex: none; white-space: nowrap; }
+
+/* Studio: podgląd = płótno transmisji, przyciski scen */
+.studio-host { position: absolute; inset: 0; }
+.studio-host canvas { display: block; width: 100%; height: 100%; }
+.desk-scenes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.desk-scenes button { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+.desk-scenes button.on { background: var(--accent-soft, rgba(232,163,61,.18)); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.desk-scenes .spacer { flex: 1; }

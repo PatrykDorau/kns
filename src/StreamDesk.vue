@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import { api, cameraLock, listenLyrics, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
+import { SCENES, checkHardware, listCameras, pauseIdle, requestKeyFrame, setAudio, setCamera, setFps, setScene, startEncoding, stopEncoding, studio, studioCanvas, toggleLowerThird } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -25,8 +26,29 @@ onMounted(async () => {
   const ls = await api.streamState?.()
   if (ls) { live.value = ls; if (ls.running || ls.starting) cameraLock.value = true }
   loadDevices()
+  offKey = api.onStudioNeedKey?.(() => requestKeyFrame())
+  await checkHardware()
+  loadStudioDevices()
 })
-onBeforeUnmount(() => { off?.(); offLive?.(); unlisten?.(); clearInterval(ytTimer) })
+onBeforeUnmount(() => { off?.(); offLive?.(); offKey?.(); unlisten?.(); clearInterval(ytTimer); pauseIdle() })
+
+/* ---------- studio (obraz składany w aplikacji) ---------- */
+let offKey = null
+const engine = computed(() => (settings.streamEngine === 'simple' || studio.hardware === false ? 'simple' : 'studio'))
+const studioDevices = ref({ video: [], audio: [] })
+const stageEl = ref(null)
+watch([stageEl, engine], ([el, eng]) => { if (el && eng === 'studio') { setFps(settings.streamFps); el.appendChild(studioCanvas()) } }, { flush: 'post' })
+async function loadStudioDevices() {
+  studioDevices.value = await listCameras()
+  const pick = (list, saved) => list.find(d => d.label === saved) || list.find(d => /blackmagic|atem/i.test(d.label)) || (saved === '' ? null : null)
+  const cam = pick(studioDevices.value.video, settings.studioCamera) || studioDevices.value.video[0]
+  if (cam) { settings.studioCamera = cam.label; setCamera(cam.deviceId) }
+  const mic = pick(studioDevices.value.audio, settings.studioAudio)
+  if (mic) { settings.studioAudio = mic.label; setAudio(mic.deviceId) }
+}
+function chooseCamera(label) { settings.studioCamera = label; const d = studioDevices.value.video.find(x => x.label === label); setCamera(d?.deviceId || '') }
+function chooseAudio(label) { settings.studioAudio = label; const d = studioDevices.value.audio.find(x => x.label === label); setAudio(d?.deviceId || '') }
+watch(() => settings.streamFps, f => setFps(f))
 async function connect() {
   atemError.value = ''
   const ip = address.value.trim()
@@ -128,7 +150,7 @@ const nextTitle = computed(() => chosen.value?.title || newTitle.value)
 const when = b => (b.start ? new Date(b.start).toLocaleString('pl', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')
 const liveBroadcast = ref(null) // transmisja, którą nadajemy (do ręcznego „na żywo” i tytułu w trakcie)
 const hiFps = computed(() => +settings.streamFps > 30)
-const videoLabel = computed(() => devices.value.screens.find(x => x.value === settings.streamVideo)?.label || settings.streamVideo || 'brak obrazu')
+const videoLabel = computed(() => (engine.value === 'studio' ? settings.studioCamera || 'brak kamery' : devices.value.screens.find(x => x.value === settings.streamVideo)?.label || settings.streamVideo || 'brak obrazu'))
 async function goLive() {
   liveError.value = ''
   if (!yt.value.stream) await loadYt()
@@ -147,6 +169,16 @@ async function goLive() {
     chosenId.value = res.id
   }
   liveBroadcast.value = b
+  if (engine.value === 'studio') {
+    // studio: obraz składa i koduje aplikacja (karta graficzna), FFmpeg tylko wysyła
+    setFps(settings.streamFps)
+    studio.bitrate = settings.streamQuality === '720' ? (hiFps.value ? 5000000 : 3500000) : (hiFps.value ? 9000000 : 6800000)
+    const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps })
+    if (res?.error) { liveError.value = res.error; return }
+    await startEncoding()
+    watchGoLive()
+    return
+  }
   cameraLock.value = true // podgląd kamer w Stream oddaje obraz z ATEM
   await new Promise(r => setTimeout(r, 800))
   const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality, fps: settings.streamFps })
@@ -173,6 +205,7 @@ function watchGoLive() {
 }
 async function stopLive() {
   if (!confirm('Zakończyć transmisję? Na YouTube zakończy się sama po chwili od zatrzymania obrazu.')) return
+  stopEncoding()
   live.value = await api.streamStop()
   cameraLock.value = false
   setTimeout(loadYt, 4000)
@@ -181,7 +214,7 @@ async function stopLive() {
 const lyricsKey = computed(() => { const raw = String(settings.streamLyricsKey || ''); const m = raw.match(/[?&]k=([\w-]+)/); return m ? m[1] : raw.trim().replace(/[^\w-]/g, '') })
 const lyricsLast = ref({ text: '', at: 0 })
 let unlisten = null
-const feed = text => { lyricsLast.value = { text, at: Date.now() }; api.streamLyrics?.(text) }
+const feed = text => { lyricsLast.value = { text, at: Date.now() }; studio.lyrics = text; api.streamLyrics?.(text) }
 watch([() => settings.streamLyrics, lyricsKey], () => {
   unlisten?.(); unlisten = null
   feed(settings.streamLyrics === 'local' ? lyricsNow.value : '')
@@ -225,13 +258,21 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             <span v-if="live.drop" class="bad">zgubione klatki: {{ live.drop }}</span>
           </template>
           <span class="spacer"></span>
-          <slot v-if="!liveOn" name="tools" />
+          <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
           <small v-else class="muted">{{ live.encoder }}</small>
         </div>
         <div class="desk-screen">
-          <img v-if="liveOn && live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
+          <div v-if="engine === 'studio'" ref="stageEl" class="studio-host"></div>
+          <img v-else-if="liveOn && live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">
           <slot v-else name="preview" />
         </div>
+        <div v-if="engine === 'studio'" class="desk-scenes" role="group" aria-label="Sceny transmisji">
+          <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.scene === id }" :aria-pressed="studio.scene === id" @click="setScene(id)">{{ name }}</button>
+          <span class="spacer"></span>
+          <button :class="{ on: studio.lyricsOn }" :aria-pressed="studio.lyricsOn" title="Napisy pieśni na obrazie" @click="studio.lyricsOn = !studio.lyricsOn">Napisy</button>
+          <button :class="{ on: studio.lowerThird }" :aria-pressed="studio.lowerThird" title="Pasek z mówcą i tytułem kazania (na scenie Kamera)" @click="toggleLowerThird">Pasek mówcy</button>
+        </div>
+        <p v-if="engine === 'studio' && studio.error" class="note bad">{{ studio.error }}</p>
       </section>
 
       <!-- ATEM: przełączanie kamer z aplikacji (opcjonalnie, kabel sieciowy) -->
@@ -301,7 +342,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             <label v-if="chosenId === 'new'" class="desk-field">Widoczność
               <select v-model="privacy"><option value="public">Publiczna</option><option value="unlisted">Niepubliczna</option><option value="private">Prywatna</option></select>
             </label>
-            <button class="desk-golive" :disabled="ytBusy || !settings.streamVideo" @click="goLive"><i></i>Rozpocznij transmisję</button>
+            <button class="desk-golive" :disabled="ytBusy || (engine === 'simple' && !settings.streamVideo)" @click="goLive"><i></i>Rozpocznij transmisję</button>
             <small class="muted desk-sub">Obraz: {{ videoLabel }} · napisy: {{ lyricsInfo }}</small>
             <p v-if="liveError" class="note bad">{{ liveError }}</p>
           </template>
@@ -315,15 +356,20 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <details class="desk-set" :open="!settings.streamVideo">
             <summary>Ustawienia nadawania</summary>
             <fieldset class="desk-grid" :disabled="liveOn">
-              <label>Obraz<select v-model="settings.streamVideo"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
-              <label>Dźwięk<select v-model="settings.streamAudio"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
+              <label title="Studio: sceny, nakładki, okienko z kamerą — obraz koduje karta graficzna. Prosty: sam obraz z ATEM z napisami.">Tryb<select v-model="settings.streamEngine"><option value="studio" :disabled="studio.hardware === false">Studio (sceny i nakładki)</option><option value="simple">Prosty</option></select></label>
+              <template v-if="engine === 'studio'">
+                <label>Kamera<select :value="settings.studioCamera" @change="chooseCamera($event.target.value)"><option v-if="!studioDevices.video.length" value="">— brak —</option><option v-for="d in studioDevices.video" :key="d.deviceId" :value="d.label">{{ d.label || 'Kamera' }}</option></select></label>
+                <label>Dźwięk<select :value="settings.studioAudio" @change="chooseAudio($event.target.value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select></label>
+              </template>
+              <label v-if="engine !== 'studio'">Obraz<select v-model="settings.streamVideo"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
+              <label v-if="engine !== 'studio'">Dźwięk<select v-model="settings.streamAudio"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
               <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · {{ hiFps ? '9' : '6,8' }} Mb/s</option><option value="720">720p · {{ hiFps ? '5' : '3,5' }} Mb/s (słabszy internet)</option></select></label>
               <label title="Tyle, ile wysyła ATEM: ATEM Software Control → Ustawienia → Standard wideo (np. 1080p50)">Klatki na sekundę<select v-model.number="settings.streamFps"><option :value="25">25</option><option :value="30">30</option><option :value="50">50</option><option :value="60">60</option></select></label>
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </fieldset>
             <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
             <p class="note">Klatki na sekundę ustaw tak jak w ATEM (ATEM Software Control → Ustawienia → Standard wideo, np. 1080p50 → 50).</p>
-            <p v-if="!devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>
+            <p v-if="engine === 'simple' && !devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>
           </details>
 
           <details class="desk-set">

@@ -1049,6 +1049,11 @@ app.whenReady().then(() => {
   ipcMain.handle('stream:start', yt(o => streamer.start({ ...o, ...(process.env.KNS_STREAM_TEST ? { testInput: true, encoder: 'x264' } : {}) })))
   ipcMain.handle('stream:stop', () => streamer.stop())
   ipcMain.on('stream:lyrics', (e, text) => streamer.setLyrics(text))
+  // studio: obraz i dźwięk składa aplikacja (okno), tutaj tylko wysyłka
+  ipcMain.handle('stream:startStudio', yt(o => streamer.startStudio(o)))
+  ipcMain.on('studio:video', (e, buf) => streamer.writeVideo(buf))
+  ipcMain.on('studio:audio', (e, buf) => streamer.writeAudio(buf))
+  streamer.on('needKey', () => toControl('studio:needKey'))
   app.on('before-quit', () => streamer.stop())
   ipcMain.handle('lyrics:set', (e, on) => setLyrics(!!on))
   // Podpis autora zmian w nabożeństwie, gdy komputer nie jest zalogowany do Google.

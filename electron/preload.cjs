@@ -96,6 +96,10 @@ contextBridge.exposeInMainWorld('api', {
   streamStop: invoke('stream:stop'),
   streamLyrics: text => ipcRenderer.send('stream:lyrics', text),
   onStreamState: on('stream:state'),
+  streamStartStudio: invoke('stream:startStudio'),
+  studioVideo: buf => ipcRenderer.send('studio:video', buf),
+  studioAudio: buf => ipcRenderer.send('studio:audio', buf),
+  onStudioNeedKey: on('studio:needKey'),
   remoteState: state => ipcRenderer.send('remote:state', state),
   onRemoteCmd: on('remote:cmd'),
 
