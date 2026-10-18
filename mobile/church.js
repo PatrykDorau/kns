@@ -43,8 +43,16 @@ export const DEFAULT_TYPES = [
     program: [item(0, 'modlitwa', 'Modlitwa na rozpoczęcie'), item(10, 'porzadek', 'Sprawy bieżące'), item(80, 'modlitwa', 'Modlitwa na zakończenie')],
   },
   { id: 'rada', name: 'Spotkanie rady zboru', color: '#e5484d', time: '19:00', place: '', protocol: true, program: [item(0, 'modlitwa'), item(10, 'porzadek', 'Sprawy bieżące')] },
+  // Inicjatywy członków — ludzie sami coś organizują i zapraszają innych z kościoła (community: w wydarzeniu widać organizatora).
+  { id: 'inicjatywa', name: 'Inicjatywa członków', color: '#f07fb4', time: '18:00', place: '', community: true, program: [] },
+  { id: 'domowe', name: 'Grupa domowa', color: '#6fd39a', time: '19:00', place: '', community: true, program: [] },
+  { id: 'towarzyskie', name: 'Spotkanie towarzyskie', color: '#d9a066', time: '18:00', place: '', community: true, program: [] },
+  { id: 'wyjazd', name: 'Wyjazd / wycieczka', color: '#5bc0eb', time: '09:00', place: '', community: true, program: [] },
+  { id: 'pomoc', name: 'Pomoc / wolontariat', color: '#b3d36f', time: '10:00', place: '', community: true, program: [] },
   { id: 'inne', name: 'Inne', color: '#6ea8ff', time: '18:00', place: '', program: [] },
 ]
+// Rodzaj „inicjatywa członków” (także rodzaje dodane z community: true w szablonach).
+export const isCommunity = (types, id) => !!(types || DEFAULT_TYPES).find(t => t.id === id)?.community || DEFAULT_TYPES.some(t => t.id === id && t.community)
 export const COLORS = ['#f2a53c', '#3ec7b0', '#a98bff', '#e5484d', '#6ea8ff', '#f07fb4', '#6fd39a', '#8f98a8']
 
 // Film w ogłoszeniu: link do YouTube/Vimeo (odtwarzacz w ramce) albo plik wgrany do bazy (zwykły odtwarzacz wideo).

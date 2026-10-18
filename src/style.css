@@ -1033,3 +1033,6 @@ main.stream > section:first-child { overflow-y: auto; }
 .rail-cue.live.current { background: var(--live, #e5484d); border-color: var(--live, #e5484d); color: #fff; }
 .rail-cue.ready.current { background: #c98a00; border-color: #c98a00; color: #fff; }
 .rail-cue.off.current { border-color: var(--text); color: var(--text); }
+
+.desk-opts button.idle { opacity: .55; }
+.desk-ov-note { font-size: 12px; }

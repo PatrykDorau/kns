@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import { api, cameraLock, listenLyrics, loadListen, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
-import { SCENES, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
+import { OVERLAYS, SCENES, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.
@@ -317,8 +317,12 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           </div>
           <div class="desk-opts">
             <span class="desk-opt-group">
-              <button :class="{ on: studio.preview.lyricsOn, live: studio.program.lyricsOn }" :aria-pressed="studio.preview.lyricsOn" title="Napisy pieśni na obrazie" @click="toggleLyrics">Napisy</button>
-              <button :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird }" :aria-pressed="studio.preview.lowerThird" title="Pasek z mówcą i tytułem kazania (na scenie Kamera)" @click="toggleLowerThird">Pasek mówcy</button>
+              <button :class="{ on: studio.program.lyricsOn, live: studio.program.lyricsOn, idle: !OVERLAYS.lyrics.includes(studio.program.scene) }" :aria-pressed="studio.program.lyricsOn"
+                      :title="'Napisy pieśni — włączają się i wyłączają od razu na wizji. Widać je na scenach: Kamera, Rzutnik, Rzutnik + kamera' + (OVERLAYS.lyrics.includes(studio.program.scene) ? '' : ' (na tej scenie wizji ich nie ma)')" @click="toggleLyrics">Napisy {{ studio.program.lyricsOn ? 'wł.' : 'wył.' }}</button>
+              <button :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird, idle: !OVERLAYS.lowerThird.includes(studio.preview.scene) }" :aria-pressed="studio.preview.lowerThird"
+                      :title="'Pasek z mówcą — najpierw na podglądzie, na wizję po „Na wizję”. Widać go na scenach: Kamera, Rzutnik + kamera' + (OVERLAYS.lowerThird.includes(studio.preview.scene) ? '' : ' (na tej scenie go nie ma)')" @click="toggleLowerThird">Pasek mówcy</button>
+              <small v-if="!OVERLAYS.lyrics.includes(studio.preview.scene)" class="muted desk-ov-note">Na tej scenie bez napisów i paska mówcy</small>
+              <small v-else-if="!OVERLAYS.lowerThird.includes(studio.preview.scene)" class="muted desk-ov-note">Na tej scenie bez paska mówcy</small>
             </span>
             <span v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
               <small class="muted">Timer</small>

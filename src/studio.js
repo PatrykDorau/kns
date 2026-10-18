@@ -376,6 +376,7 @@ const SCENE_DRAW = {
     })
   },
   projector(t) { projectorFrame(t); lyrics(t) },
+  // (projectorPip — niżej: okienko z kamerą, pasek mówcy i napisy)
   projectorPip(t) {
     projectorFrame(t)
     // okienko z kamerą (z ATEM — to, co jest na wizji): wybrany róg, małe albo duże
@@ -384,6 +385,7 @@ const SCENE_DRAW = {
     g.save(); g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 40; rounded(x, y, w, h, 22); g.fillStyle = '#000'; g.fill(); g.restore()
     g.save(); rounded(x, y, w, h, 22); g.clip(); camera(x, y, w, h); g.restore()
     g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
+    lowerThird(t); lyrics(t)
   },
 }
 // Napisy pieśni: biały tekst, miękki cień, przenikanie przy zmianie zwrotki.
@@ -494,7 +496,7 @@ function getScratch() { if (!scratch) { scratch = document.createElement('canvas
 
 /* ---------- podgląd → wizja ---------- */
 const snap = l => ({ ...l, pip: { ...l.pip } })
-const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.lyricsOn === b.lyricsOn && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size
+const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size
 export const differs = () => !same(studio.preview, studio.program)
 function toProgram(fn) {
   const before = snap(studio.program)
@@ -512,7 +514,9 @@ function change(fn) {
 }
 export function setScene(id) { change(l => { l.scene = id }) }
 export function toggleLowerThird() { change(l => { l.lowerThird = !l.lowerThird; l[l.lowerThird ? 'lowerAt' : 'lowerOff'] = performance.now() }) }
-export function toggleLyrics() { change(l => { l.lyricsOn = !l.lyricsOn }) }
+export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
+// Na których scenach są nakładki (na planszach — odliczanie, ogłoszenia, koniec — nie ma ich celowo).
+export const OVERLAYS = { lyrics: ['camera', 'projector', 'projectorPip'], lowerThird: ['camera', 'projectorPip'] }
 export function setPip(p) { change(l => { l.pip = { ...l.pip, ...p } }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, lyricsOn: p.lyricsOn, pip: p.pip }) }) }

@@ -537,6 +537,8 @@
   .goal-people th { color: var(--muted); font-weight: 600; }
   .goal-people td.miss { color: #ff8a65; }
   .goal-form { margin-bottom: 14px; }
+  .ev-community { display: flex; align-items: center; gap: 6px; margin: 2px 0 6px; color: #f07fb4; font-size: 13.5px; font-weight: 600; }
+  .ev-community .i { width: 15px; height: 15px; }
   .ev-people { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
   .ev-person { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); font-size: 13.5px; }
   .ev-person .i { width: 14px; height: 14px; color: var(--muted); }
@@ -1249,6 +1251,7 @@
       <img v-if="currentEvent.image" class="ann-hero" :src="currentEvent.image" alt="">
       <div class="ann-tags"><span class="ann-tag" :style="{ background: 'color-mix(in srgb, ' + typeOf(currentEvent.type).color + ' 22%, transparent)', color: typeOf(currentEvent.type).color }">{{ typeOf(currentEvent.type).name }}</span></div>
       <h2 class="ann-view-title">{{ currentEvent.title || typeOf(currentEvent.type).name }}</h2>
+      <p v-if="typeOf(currentEvent.type).community" class="ev-community"><svg class="i"><use href="#users"/></svg>Inicjatywa członków kościoła{{ currentEvent.createdBy ? ' — organizuje: ' + currentEvent.createdBy : '' }}</p>
       <p class="ann-view-meta">{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time"> · {{ currentEvent.time }}</template><template v-if="currentEvent.place"> · {{ currentEvent.place }}</template></p>
       <div v-if="currentEvent.description" class="ann-view-text">{{ currentEvent.description }}</div>
       <template v-if="(currentEvent.people || []).length">
@@ -2634,7 +2637,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.79 · 18.10.2026'
+const VERSION = '2.80 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
