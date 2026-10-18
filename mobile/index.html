@@ -11,6 +11,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="maskable-192.png">
 <link rel="manifest" href="manifest.webmanifest">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('kns-theme') || 'dark' } catch (e) { document.documentElement.dataset.theme = 'dark' }</script>
 <link rel="stylesheet" href="home.css">
 <style>
   :root {
@@ -892,6 +893,8 @@
   <symbol id="serve" viewBox="0 0 24 24"><path d="M12 11.2s-3.6-2.1-3.6-4.5a2 2 0 0 1 3.6-1.2 2 2 0 0 1 3.6 1.2c0 2.4-3.6 4.5-3.6 4.5Z M2.5 13.5H6l2.8 1.8h3.7a1.6 1.6 0 0 1 0 3.2H9.2 M12.5 18.5h4.3l4-3.4a1.5 1.5 0 0 0-2-2.2l-3.3 2.4 M2.5 12.5v8"/></symbol>
   <symbol id="heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9.2-8.8C1.3 8 3.2 4.5 6.6 4.5c2 0 3.4 1.1 4.4 2.6l1 1.4 1-1.4c1-1.5 2.4-2.6 4.4-2.6 3.4 0 5.3 3.5 3.8 6.7C19 15.6 12 20 12 20Z"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
 </svg>
 
@@ -921,6 +924,7 @@
         <span class="side-me-text"><b>{{ me.name || me.email }}</b><small>{{ myRanks || 'Członek' }}</small></span>
         <svg v-if="needsName" class="i kh-warn" aria-label="Uzupełnij imię i nazwisko"><use href="#warn"/></svg>
       </button>
+      <button class="side-ib theme-btn" :title="theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'" :aria-label="theme === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'" @click="toggleTheme"><svg class="i"><use :href="theme === 'dark' ? '#sun' : '#moon'"/></svg></button>
       <button class="side-ib" title="Wyloguj" aria-label="Wyloguj" @click="logout"><svg class="i"><use href="#logout"/></svg></button>
     </div>
   </aside>
@@ -1941,6 +1945,7 @@
       <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button class="theme-btn" @click="toggleTheme"><svg class="i"><use :href="theme === 'dark' ? '#sun' : '#moon'"/></svg><span>{{ theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     </nav>
     <div v-if="desktop" class="getapp more-getapp">
       <img src="icon-192.png" alt="">
@@ -2016,7 +2021,7 @@
             <div class="hw-date"><b>{{ asDate(nextService.date).getDate() }}</b><span>{{ asDate(nextService.date).toLocaleDateString('pl', { month: 'long' }) }}<small>{{ asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) }}</small></span></div>
             <span class="hw-until" :class="{ live: countdown?.live }"><i></i>{{ countdown?.live ? 'Trwa teraz' : untilText }}</span>
           </template>
-          <div v-else class="hw-date"><b>—</b><span>wkrótce<small>termin do uzupełnienia</small></span></div>
+          <div v-else class="hw-date hw-date-empty"><span>Termin wkrótce<small>{{ canEdit ? 'zaplanuj nabożeństwo obok' : 'pojawi się tutaj, gdy zostanie zaplanowane' }}</small></span></div>
         </div>
         <div class="hw-info">
           <template v-if="nextService">
@@ -2747,7 +2752,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.84 · 18.10.2026'
+const VERSION = '2.85 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -3136,6 +3141,15 @@ createApp({
       return true
     }
     // Boczny pasek (szeroki ekran): części aplikacji w grupach; aktywna — podświetlona.
+    // Tryb jasny/ciemny (domyślnie ciemny) — zapamiętany na tym urządzeniu.
+    const theme = ref(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
+    function toggleTheme() {
+      theme.value = theme.value === 'dark' ? 'light' : 'dark'
+      document.documentElement.dataset.theme = theme.value
+      try { localStorage.setItem('kns-theme', theme.value) } catch { /* tryb prywatny */ }
+      document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#f5efe6' : '#0f1013')
+    }
+    if (theme.value === 'light') document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#f5efe6')
     const mapLink = place => (/^(online|zoom|teams|meet)\b/i.test(String(place).trim()) ? null : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place))
     const sideNav = computed(() => {
       const tech = canCamera.value
@@ -4779,7 +4793,7 @@ createApp({
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return {
-      sideNav, navOn, navTo, inApp, mapLink, asDate, boardAll,
+      sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, asDate, boardAll,
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,

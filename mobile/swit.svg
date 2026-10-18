@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <!-- Świt nad wzgórzami: ciepłe niebo, słońce z promieniami, warstwy wzgórz w kolorach kawy, kościółek z krzyżem, ziarno. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1d17"/>
+      <stop offset=".38" stop-color="#6b3f24"/>
+      <stop offset=".62" stop-color="#d0843b"/>
+      <stop offset=".78" stop-color="#f3c27c"/>
+      <stop offset="1" stop-color="#f8dfb4"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="600" cy="520" r="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff6df"/>
+      <stop offset=".12" stop-color="#ffe2a8" stop-opacity=".95"/>
+      <stop offset=".35" stop-color="#f6b45a" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#f6b45a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="h1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b0683a"/><stop offset="1" stop-color="#8a4e2c"/></linearGradient>
+    <linearGradient id="h2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4429"/><stop offset="1" stop-color="#5b3220"/></linearGradient>
+    <linearGradient id="h3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2a1c"/><stop offset="1" stop-color="#2e1b13"/></linearGradient>
+    <linearGradient id="h4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26170f"/><stop offset="1" stop-color="#140c08"/></linearGradient>
+    <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9c4" stop-opacity="0"/><stop offset="1" stop-color="#ffe9c4" stop-opacity=".35"/></linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <!-- promienie -->
+  <g opacity=".22" fill="#ffe7b8">
+    <path d="M600 520 L250 0 H330 Z"/><path d="M600 520 L430 0 H490 Z"/><path d="M600 520 L570 0 H630 Z"/>
+    <path d="M600 520 L710 0 H770 Z"/><path d="M600 520 L870 0 H950 Z"/><path d="M600 520 L1080 40 L1140 110 Z"/><path d="M600 520 L60 60 L120 0 Z"/>
+  </g>
+  <rect width="1200" height="800" fill="url(#sun)"/>
+  <circle cx="600" cy="520" r="74" fill="#fff4dc"/>
+  <!-- chmurki -->
+  <g fill="#ffd9a0" opacity=".35" filter="url(#soft)">
+    <ellipse cx="300" cy="300" rx="170" ry="16"/><ellipse cx="880" cy="250" rx="210" ry="18"/><ellipse cx="760" cy="360" rx="120" ry="10"/>
+  </g>
+  <!-- ptaki -->
+  <g fill="none" stroke="#3a2418" stroke-width="3" stroke-linecap="round" opacity=".7">
+    <path d="M420 250 q12 -10 24 0 q12 -10 24 0"/><path d="M470 220 q9 -8 18 0 q9 -8 18 0"/><path d="M820 300 q10 -9 20 0 q10 -9 20 0"/>
+  </g>
+  <!-- wzgórza -->
+  <path d="M0 560 C150 500 300 520 420 548 C560 580 700 520 860 530 C1000 540 1100 500 1200 512 V800 H0 Z" fill="url(#h1)"/>
+  <rect y="480" width="1200" height="140" fill="url(#mist)"/>
+  <path d="M0 620 C180 570 330 600 480 612 C640 626 760 576 930 586 C1060 594 1140 570 1200 576 V800 H0 Z" fill="url(#h2)"/>
+  <path d="M0 682 C200 640 380 668 560 664 C720 660 860 628 1010 640 C1100 648 1160 636 1200 640 V800 H0 Z" fill="url(#h3)"/>
+  <!-- kościółek z krzyżem na wzgórzu -->
+  <g fill="#1d120c">
+    <path d="M930 600 h70 v-44 l-35 -30 l-35 30 Z"/>
+    <path d="M948 556 h14 v-58 l-7 -10 l-7 10 Z"/>
+    <rect x="953" y="456" width="4" height="26"/><rect x="946" y="463" width="18" height="4"/>
+  </g>
+  <rect x="960" y="574" width="10" height="16" rx="5" fill="#f6b45a" opacity=".9"/>
+  <path d="M0 740 C220 708 420 730 620 724 C820 718 1000 696 1200 706 V800 H0 Z" fill="url(#h4)"/>
+  <rect width="1200" height="800" filter="url(#grain)"/>
+</svg>
