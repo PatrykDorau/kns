@@ -985,3 +985,24 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-slide-name { display: block; margin-top: 3px; padding-right: 30px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .desk-slide-eye { position: absolute; right: 0; bottom: -3px; padding: 3px 6px; }
 .desk-slide-eye svg { width: 14px; height: 14px; }
+
+/* Stream: prawa kolumna (YouTube + sygnały), sekcje zwijane — podgląd zajmuje resztę */
+.desk-right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.desk-right .cue { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--panel2); }
+.desk-right .cue-head { gap: 8px 12px; }
+.desk-right .cue-head h2 { font-size: 15px; }
+.desk-right .cue-clients { margin-left: 0; flex-basis: 100%; }
+.desk-right .cue-buttons { gap: 8px; }
+.desk-right .cue-buttons button { padding: 14px 6px; font-size: 14px; }
+.desk-right .cue-tip { left: auto; right: -10px; }
+.desk-fold { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; background: transparent; color: var(--muted); }
+.desk-fold:hover { color: var(--text); }
+.desk-fold svg { width: 16px; height: 16px; }
+.desk-fold-title { cursor: pointer; user-select: none; }
+.desk-ctrl.folded .desk-head, .cue.folded .cue-head { margin-bottom: 0; }
+.desk-ctrl.folded .desk-golive, .desk-ctrl.folded .desk-stop { margin-top: 10px; }
+.desk-right .cue-buttons button { position: relative; min-width: 0; padding: 14px 4px; font-size: 12.5px; letter-spacing: 0; line-height: 1.2; }
+.desk-right .cue-buttons kbd { position: absolute; top: 4px; right: 5px; margin: 0; }
+.cue.folded .cue-quota { display: none; }
+.desk-right .cue-buttons kbd { top: 3px; right: 4px; font-size: 9.5px; padding: 0 4px; opacity: .7; }
+.desk-right .cue-buttons button { padding-top: 18px; }

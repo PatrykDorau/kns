@@ -225,40 +225,44 @@ onBeforeUnmount(() => {
               </button>
             </div>
           </template>
-        </StreamDesk>
-        <div v-if="!overlay" class="cue">
-          <div class="cue-head">
-            <h2>Sygnały dla kamerzysty</h2>
-            <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue"> Włączone</label>
-            <!-- Instrukcja dla kamerzysty — tylko po najechaniu (albo kliknięciu) na ikonkę. -->
-            <span class="cue-info" tabindex="0" aria-label="Jak połączyć telefon kamerzysty">
-              <Icon name="info" />
-              <span class="cue-tip" role="tooltip">
-                Na telefonie kamerzysty: aplikacja <b>KNS Nabo</b> → <b>Kamera</b> (działa w każdej sieci, przez internet).
-                <template v-if="cueUrl"><br>Albo w tej samej sieci Wi-Fi: <b>{{ cueUrl }}</b></template>
-                <br>Sygnały: na wizji — dwa krótkie wysokie, przygotuj się — jeden średni, poza wizją — jeden długi niski.
+          <template #side>
+          <div class="cue" :class="{ folded: settings.cueFolded }">
+            <div class="cue-head">
+              <button class="desk-fold" :aria-expanded="!settings.cueFolded" :title="settings.cueFolded ? 'Rozwiń' : 'Zwiń'" @click="settings.cueFolded = !settings.cueFolded"><Icon :name="settings.cueFolded ? 'right' : 'down'" /></button>
+              <h2 class="desk-fold-title" @click="settings.cueFolded = !settings.cueFolded">Sygnały dla kamerzysty</h2>
+              <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue"> Włączone</label>
+              <!-- Instrukcja dla kamerzysty — tylko po najechaniu (albo kliknięciu) na ikonkę. -->
+              <span class="cue-info" tabindex="0" aria-label="Jak połączyć telefon kamerzysty">
+                <Icon name="info" />
+                <span class="cue-tip" role="tooltip">
+                  Na telefonie kamerzysty: aplikacja <b>KNS Nabo</b> → <b>Kamera</b> (działa w każdej sieci, przez internet).
+                  <template v-if="cueUrl"><br>Albo w tej samej sieci Wi-Fi: <b>{{ cueUrl }}</b></template>
+                  <br>Sygnały: na wizji — dwa krótkie wysokie, przygotuj się — jeden średni, poza wizją — jeden długi niski.
+                </span>
               </span>
-            </span>
-            <span v-if="settings.cue && quota?.limit" class="cue-quota" :class="{ low: quota.left < 30 }"
-                  title="Darmowa usługa przesyłania sygnałów (ntfy) ma dzienny limit wiadomości na jedno łącze internetowe. Liczą się sygnały i potwierdzenia z telefonów w tej samej sieci.">
-              Wysłane dziś: {{ quota.used }} / {{ quota.limit }} · zostało {{ quota.left }}
-            </span>
-            <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones || got < phones }">
-              <template v-if="!phones">Żaden telefon nie jest połączony</template>
-              <template v-else>Telefony: {{ phones }} · {{ got === phones ? 'sygnał odebrany ✓' : 'odebrało ' + got + ' z ' + phones + '…' }}</template>
-            </span>
-          </div>
-          <p v-if="cueRemote.error" class="note bad">{{ cueRemote.error }}</p>
-          <template v-if="settings.cue">
-            <div class="cue-buttons">
-              <button v-for="[state, text, key] in CUES" :key="state" :class="[state, { current: cueState === state }]" :aria-pressed="cueState === state" @click="sendCue(state)">
-                {{ text }}<kbd>{{ key }}</kbd>
-              </button>
+              <span v-if="settings.cue && quota?.limit && !settings.cueFolded" class="cue-quota" :class="{ low: quota.left < 30 }"
+                    title="Darmowa usługa przesyłania sygnałów (ntfy) ma dzienny limit wiadomości na jedno łącze internetowe. Liczą się sygnały i potwierdzenia z telefonów w tej samej sieci.">
+                Wysłane dziś: {{ quota.used }} / {{ quota.limit }} · zostało {{ quota.left }}
+              </span>
+              <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones || got < phones }">
+                <template v-if="!phones">Żaden telefon nie jest połączony</template>
+                <template v-else>Telefony: {{ phones }} · {{ got === phones ? 'sygnał odebrany ✓' : 'odebrało ' + got + ' z ' + phones + '…' }}</template>
+              </span>
             </div>
+            <template v-if="!settings.cueFolded">
+            <p v-if="cueRemote.error" class="note bad">{{ cueRemote.error }}</p>
+            <template v-if="settings.cue">
+              <div class="cue-buttons">
+                <button v-for="[state, text, key] in CUES" :key="state" :class="[state, { current: cueState === state }]" :aria-pressed="cueState === state" @click="sendCue(state)">
+                  {{ text }}<kbd>{{ key }}</kbd>
+                </button>
+              </div>
+            </template>
+            <p v-else class="note">Kamerzysta zakłada słuchawkę podłączoną do telefonu. Gdy zmienisz tu stan, usłyszy sygnał: dwa krótkie wysokie — na wizji, jeden średni — przygotuj się, jeden długi niski — poza wizją.</p>
+            </template>
+          </div>
           </template>
-          <p v-else class="note">Kamerzysta zakłada słuchawkę podłączoną do telefonu. Gdy zmienisz tu stan, usłyszy sygnał: dwa krótkie wysokie — na wizji, jeden średni — przygotuj się, jeden długi niski — poza wizją.</p>
-        </div>
-
+        </StreamDesk>
         <!-- Tryb nakładki: same kamery na całe okno -->
         <div v-if="overlay" class="cams" :class="'l-' + settings.camLayout" :style="{ '--cols': cols, '--n': Math.max(shown.length - 1, 1) }">
           <button v-for="cam in shown" :key="cam.id" class="cam" :class="{ main: cam.id === mainId }" @click="clickCam(cam)">
