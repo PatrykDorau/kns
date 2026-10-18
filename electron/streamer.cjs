@@ -95,8 +95,11 @@ class Streamer extends EventEmitter {
     const audioMap = o.testInput || !o.audio || scr ? '1:a' : '0:a'
     const scale = `scale=${q.w}:${q.h}:force_original_aspect_ratio=decrease,pad=${q.w}:${q.h}:(ow-iw)/2:(oh-ih)/2,fps=30,${lyricsFilter(this.textFile(), q.h)},format=yuv420p`
     const graph = `[0:v]${scale},split=2[out][pv];[pv]scale=640:-2,fps=10[pvo]`
+    const rate = ['-b:v', q.nvenc, '-maxrate', q.nvenc, '-bufsize', String(parseInt(q.nvenc) * 2) + 'k', '-g', '60']
     const video = encoder === 'nvenc'
-      ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'cbr', '-b:v', q.nvenc, '-maxrate', q.nvenc, '-bufsize', String(parseInt(q.nvenc) * 2) + 'k', '-g', '60', '-bf', '2', '-profile:v', 'high']
+      ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'cbr', ...rate, '-bf', '2', '-profile:v', 'high']
+      : encoder === 'amf'
+      ? ['-c:v', 'h264_amf', '-usage', 'transcoding', '-quality', 'balanced', '-rc', 'cbr', ...rate, '-profile:v', 'high']
       : ['-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-b:v', q.x264, '-maxrate', q.x264, '-bufsize', String(parseInt(q.x264) * 2) + 'k', '-g', '60', '-profile:v', 'main']
     return ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1', ...input,
       '-filter_complex', graph,
@@ -126,7 +129,7 @@ class Streamer extends EventEmitter {
     let log = ''
     const proc = spawn(ffmpegPath(), this.args({ ...o, quality }, encoder), { windowsHide: true })
     this.proc = proc
-    this.emitState({ encoder: encoder === 'nvenc' ? 'karta graficzna (NVENC)' : 'procesor (720p)' })
+    this.emitState({ encoder: { nvenc: 'karta graficzna NVIDIA', amf: 'karta graficzna AMD' }[encoder] || 'procesor (720p)' })
     // podgląd: strumień MJPEG prosto do okna aplikacji
     proc.stdout.on('data', chunk => { for (const c of this.preview.clients) c.write(chunk) })
     proc.stderr.on('data', chunk => {
@@ -143,9 +146,10 @@ class Streamer extends EventEmitter {
     proc.on('exit', code => {
       if (this.proc === proc) this.proc = null
       if (!this.want) { this.emitState({ running: false, starting: false }); return }
-      // Karta bez NVENC albo za stary sterownik → procesor (720p).
-      if (encoder === 'nvenc' && /nvenc|nvcuda|CUDA|No capable devices|Driver does not support/i.test(log)) {
-        this.emitState({ error: 'Karta graficzna nie przyjęła kodowania (NVENC) — nadaję procesorem w 720p. Pomoże aktualizacja sterownika NVIDIA.' })
+      // Koder karty niedostępny (inna karta, stary sterownik) → następny: NVIDIA → AMD → procesor (720p).
+      if (encoder === 'nvenc' && /nvenc|nvcuda|CUDA|No capable devices|Driver does not support/i.test(log)) { this.launch('amf'); return }
+      if (encoder === 'amf' && /amf|AMF|amfrt/i.test(log)) {
+        this.emitState({ error: 'Karta graficzna nie przyjęła kodowania — nadaję procesorem w 720p. Pomoże aktualizacja sterownika karty.' })
         this.launch('x264')
         return
       }
