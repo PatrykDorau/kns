@@ -44,6 +44,16 @@ const until = computed(() => {
 })
 // Ogłoszenie w okienku: grafika, treść i film (wgrany gra od razu; YouTube/Vimeo — w przeglądarce).
 const shown = ref(null)
+// „Nowe”: komunikat z ostatnich 14 dni, którego jeszcze nie otwierano na tym komputerze.
+const seen = ref((() => { try { return JSON.parse(localStorage.getItem('kns-seen-anns') || '[]') } catch { return [] } })())
+const isNew = a => !seen.value.includes(a.id) && Date.now() - (+a.date || 0) < 14 * 864e5
+const newCount = computed(() => notices.value.filter(isNew).length)
+function openNotice(a) {
+  shown.value = a
+  if (seen.value.includes(a.id)) return
+  seen.value = [...seen.value, a.id].slice(-200)
+  try { localStorage.setItem('kns-seen-anns', JSON.stringify(seen.value)) } catch { /* bez zapisu */ }
+}
 const vid = computed(() => videoInfo(shown.value?.video))
 const copied = ref(false)
 async function share(id) { if (await copyLink('ogloszenie', id)) { copied.value = true; setTimeout(() => { copied.value = false }, 2500) } }
@@ -53,22 +63,30 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
 </script>
 
 <template>
-  <!-- Pas kart: najbliższe nabożeństwo, potem komunikaty rady zboru (przewijane w bok). Style: mobile/home.css. -->
-  <div class="kh-strip">
+  <!-- Góra: najbliższe nabożeństwo i panel komunikatów rady zboru (lista, „Nowe”). Style: mobile/home.css. -->
+  <div class="kh-top2">
     <button v-if="svc" class="kh-svc" @click="openService(svc.id)">
       <span class="kh-tag"><Icon name="calendar" />Najbliższe nabożeństwo</span>
       <b>{{ svcWhen }}</b>
       <span class="kh-body">{{ [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ') || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> — {{ svc.speaker }}</template></span>
       <span class="kh-foot"><span class="kh-until" :class="{ live: countdown?.live }">{{ until }}</span>{{ svc.place || DEFAULT_PLACE }}<em v-if="planAlert && canUse('planner')" class="kh-pill bad">Braki</em></span>
     </button>
-    <article v-for="a in notices" :key="a.id" class="kh-notice kh-clickable" @click="shown = a">
-      <img v-if="a.image" class="kh-card-img" :src="a.image" alt="" loading="lazy">
-      <span class="kh-tag"><Icon name="info" />Komunikat rady zboru<em v-if="a.video" class="kh-film">▶ Film</em></span>
-      <b>{{ a.title }}</b>
-      <span class="kh-body">{{ a.text }}</span>
-      <span class="kh-foot">{{ shortDate(a.date) }}<template v-if="a.until"> · ważne do {{ asDate(a.until).toLocaleDateString('pl', { day: 'numeric', month: 'short' }) }}</template></span>
-    </article>
-    <article v-if="!notices.length" class="kh-empty"><span class="kh-tag"><Icon name="info" />Komunikaty rady zboru</span><span class="kh-body">Brak aktualnych komunikatów.</span></article>
+    <section class="kh-panel">
+      <div class="kh-panel-h"><h2>Komunikaty rady zboru</h2><span v-if="notices.length" class="kh-count">{{ notices.length }}</span><span v-if="newCount" class="kh-muted">{{ newCount }} {{ newCount === 1 ? 'nowy' : 'nowe' }}</span></div>
+      <div v-if="notices.length" class="kh-notes">
+        <button v-for="a in notices" :key="a.id" class="kh-note" :class="{ fresh: isNew(a) }" @click="openNotice(a)">
+          <img v-if="a.image" class="kh-note-ic" :src="a.image" alt="" loading="lazy">
+          <span v-else class="kh-note-ic"><Icon name="info" /></span>
+          <span class="kh-note-text">
+            <b><span style="overflow:hidden;text-overflow:ellipsis">{{ a.title }}</span><em v-if="isNew(a)" class="kh-new">Nowe</em><em v-if="a.video" class="kh-film">▶ Film</em></b>
+            <span class="kh-note-body">{{ a.text }}</span>
+            <small>{{ shortDate(a.date) }}<template v-if="a.until"> · ważne do {{ asDate(a.until).toLocaleDateString('pl', { day: 'numeric', month: 'short' }) }}</template></small>
+          </span>
+          <Icon name="right" />
+        </button>
+      </div>
+      <p v-else class="kh-none">Brak aktualnych komunikatów.</p>
+    </section>
   </div>
 
   <div class="kh-panels">

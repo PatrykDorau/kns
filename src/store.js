@@ -17,7 +17,8 @@ export const settings = reactive({
   fadeMs: 350, // 0 = bez przejścia
   copyFiles: true,
   remote: false,
-  lyrics: false, lyricsPos: 'dol', lyricsSize: 6, lyricsBar: false, // napisy pieśni dla OBS
+  lyrics: false, lyricsPos: 'dol', lyricsSize: 6, lyricsBar: false, // napisy pieśni dla OBS (na tym komputerze)
+  lyricsOnline: false, lyricsKey: '', // napisy przez internet (kns-nabo.netlify.app/napisy?k=…)
   remoteToken: '',
   songSort: 'number', // 'number' | 'title'
   service: [], // pieśni na najbliższe nabożeństwo: [{ key, songId }]
@@ -1263,6 +1264,7 @@ export async function init() {
   const saved = await api.loadStore('settings')
   if (saved) Object.assign(settings, saved, { songStyle: { ...settings.songStyle, ...saved.songStyle } })
   if (!settings.remoteToken) settings.remoteToken = uid()
+  if (!settings.lyricsKey) settings.lyricsKey = uid() + uid() + uid()
   items.value = ((await api.loadStore('library')) || []).map(migrate)
   songs.value = (await api.loadStore('songs')) || []
   services.value = (await api.loadStore('services')) || []
@@ -1300,6 +1302,12 @@ export async function init() {
     overlayUrl.value = res?.url || ''
     if (res?.error) { notice.value = 'Napisy dla OBS: ' + res.error; settings.lyrics = false }
   }, { immediate: true })
+  // Napisy przez internet: bieżąca zwrotka pieśni (puste przy „Ukryj” i gdy nie ma pieśni); co 15 s powtórka,
+  // żeby strona w OBS nadrobiła zgubioną wiadomość.
+  const lyricsText = computed(() => { const v = liveView.value; return !hidden.value && v?.type === 'text' && v.song ? v.text : '' })
+  const lyricsOut = () => { if (!frozen.value) cloud?.lyrics(settings.lyricsOnline ? settings.lyricsKey : '', lyricsText.value) }
+  watch([lyricsText, frozen, () => settings.lyricsOnline, () => settings.lyricsKey], lyricsOut, { immediate: true })
+  setInterval(() => { if (settings.lyricsOnline) lyricsOut() }, 15000)
   watch(() => settings.remote, async on => {
     const res = await api.setRemote(on, settings.remoteToken)
     remoteUrl.value = res.url || ''

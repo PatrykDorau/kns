@@ -749,8 +749,8 @@ const LYRICS_PAGE = `<!doctype html><html lang="pl"><head><meta charset="utf-8">
 html,body{margin:0;height:100%;background:transparent;overflow:hidden}
 body{display:flex;flex-direction:column;align-items:center;justify-content:var(--v,flex-end);padding:4vh 5vw 7vh;box-sizing:border-box}
 #t{max-width:90vw;color:#fff;font:700 var(--s,6vh)/1.25 "Segoe UI",system-ui,sans-serif;text-align:center;white-space:pre-line;
-  -webkit-text-stroke:.07em rgba(0,0,0,.85);paint-order:stroke fill;text-shadow:0 .05em .25em rgba(0,0,0,.8);transition:opacity .35s;opacity:0}
-#t.bar{background:rgba(0,0,0,.55);padding:.25em .6em;border-radius:.25em;-webkit-text-stroke:0}
+  text-shadow:0 0 .12em rgba(0,0,0,.9),0 .05em .3em rgba(0,0,0,.85),0 .1em .6em rgba(0,0,0,.6);transition:opacity .35s;opacity:0}
+#t.bar{background:rgba(0,0,0,.55);padding:.25em .6em;border-radius:.25em}
 #t.on{opacity:1}
 </style></head><body><div id="t"></div><script>
 const q = new URLSearchParams(location.search), t = document.getElementById('t')

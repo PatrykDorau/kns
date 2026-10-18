@@ -35,6 +35,25 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       if (rows.length < 1000) return out
     }
   }
+  // Napisy pieśni przez internet: kanał na żywo „napisy-<klucz>” (bez zapisu w bazie, bez logowania). Strona
+  // kns-nabo.netlify.app/napisy?k=<klucz> (OBS na komputerze od streamu, w dowolnej sieci) pokazuje to, co tu nadajemy,
+  // a po połączeniu prosi („hello”) o bieżącą zwrotkę.
+  let lyricsCh = null, lyricsKey = '', lyricsNow = { text: '' }
+  const lyricsSend = () => lyricsCh?.send({ type: 'broadcast', event: 'napisy', payload: lyricsNow }).catch(() => {})
+  function lyrics(key, text) {
+    if (key !== lyricsKey) {
+      if (lyricsCh) sb.removeChannel(lyricsCh)
+      lyricsCh = null; lyricsKey = key
+      if (key) {
+        lyricsCh = sb.channel('napisy-' + key, { config: { broadcast: { self: false } } })
+        lyricsCh.on('broadcast', { event: 'hello' }, lyricsSend)
+        lyricsCh.subscribe(status => { if (status === 'SUBSCRIBED') lyricsSend() })
+      }
+    }
+    lyricsNow = { text: String(text || '') }
+    if (key) lyricsSend()
+  }
+
   // Wynik w kształcie odpowiedzi folderu wspólnego: błąd zamiast wyjątku.
   const safe = job => job().catch(e => ({ error: e.message, needLogin: !!e.needLogin }))
 
@@ -87,6 +106,7 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     publicPreview: () => safe(async () => check(await sb.rpc('public_preview'))),
     // „Posłuchaj”: linki YouTube i Spotify (czyta też gość).
     listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
+    lyrics,
     // Skład zespołu: osoby ze służby muzycznej (dla osób z prawem edycji).
     bandPeople: () => safe(async () => { await active(); return { people: check(await sb.rpc('band_people')) || [] } }),
     // Osoby (administrator): lista, zatwierdzanie, rangi.

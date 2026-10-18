@@ -87,6 +87,11 @@
   status = 200
 
 [[redirects]]
+  from = "/napisy"
+  to = "/napisy.html"
+  status = 200
+
+[[redirects]]
   from = "/materialy"
   to = "/index.html"
   status = 200
