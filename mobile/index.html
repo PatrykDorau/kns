@@ -466,9 +466,29 @@
   .asb-stats span { flex: 1 1 120px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
   .asb-stats b { display: block; color: var(--text); font-size: 18px; }
   .asb-concept { margin: 10px 0 6px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--panel); border-radius: 0 10px 10px 0; color: var(--muted); font-size: 13px; }
+  .k-cykliczne { --k: #3ec7b0; } .k-wewnetrzne { --k: #a98bff; } .k-ewangelizacyjne { --k: #ff8a5c; }
+  .asb-tabs { margin-bottom: 10px; }
+  .asb-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .asb-kinds .chipbtn { display: inline-flex; align-items: center; gap: 6px; }
+  .asb-kinds .chipbtn i { width: 9px; height: 9px; border-radius: 50%; background: var(--k); }
+  .asb-add { display: flex; justify-content: center; width: 100%; margin-top: 10px; margin-bottom: 4px; }
   .asb-row { display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 6px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); text-align: left; color: inherit; font: inherit; cursor: pointer; }
+  .asb-row { border-left: 4px solid var(--k, var(--line)); border-radius: 0 12px 12px 0; }
   .asb-row.past { opacity: .6; }
-  .asb-row.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .asb-row.next { border-color: var(--accent); border-left-color: var(--k); box-shadow: 0 0 0 1px var(--accent); }
+  .asb-row:not(.k-cykliczne) { background: color-mix(in srgb, var(--k) 7%, var(--panel)); }
+  .asb-badge { align-self: flex-start; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--k); background: color-mix(in srgb, var(--k) 16%, transparent); }
+  .asb-body .asb-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .asb-body .asb-meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .asb-body .asb-meta svg.i { width: 14px; height: 14px; }
+  .asb-kind-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .asb-kind-pick button { min-height: 40px; padding: 6px 8px; font-size: 14px; border-left: 4px solid var(--k); }
+  .asb-kind-pick button.on { background: color-mix(in srgb, var(--k) 18%, var(--panel2)); border-color: var(--k); color: var(--text); font-weight: 600; }
+  .asb-files { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .asb-files .mn-person b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asb-cal { display: flex; gap: 8px; align-items: flex-start; }
+  .asb-cal svg.i { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+  @media (max-width: 420px) { .asb-kind-pick button { font-size: 13px; padding: 6px 4px; } }
   .asb-row.pause .asb-body b { color: var(--muted); font-weight: 500; }
   .asb-date { flex: none; width: 46px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
   .asb-date small { color: var(--muted); font-size: 11px; text-transform: uppercase; }
@@ -479,7 +499,10 @@
   .asb-att { flex: none; min-width: 34px; padding: 4px 8px; border-radius: 999px; background: var(--panel2); text-align: center; font-weight: 700; font-size: 13px; }
   .asb-idea-add { display: grid; grid-template-columns: 1fr 140px auto; gap: 6px; margin-top: 8px; }
   .asb-idea-add input { margin: 0; min-width: 0; }
-  @media (max-width: 600px) { .asb-idea-add { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { .asb-idea-add { grid-template-columns: 1fr; } .asb-idea button span { display: none; } }
+  .asb-idea { gap: 8px; margin-bottom: 6px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+  .asb-idea > span { flex: 1; min-width: 0; }
+  .asb-idea-add { margin-bottom: 12px; }
   .mn-sec { margin: 18px 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .mn-team { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .mn-team > small { display: block; margin-bottom: 6px; color: var(--muted); }
@@ -740,6 +763,7 @@
   <symbol id="mail" viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 7l9 6 9-6"/></symbol>
   <symbol id="monitor" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM8 21h8M12 17v4"/></symbol>
   <symbol id="pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7zM14 3v4h4M9 12h6M9 16h6"/></symbol>
   <symbol id="info" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.5h.01"/></symbol>
   <symbol id="qr" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z"/></symbol>
   <symbol id="link" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></symbol>
@@ -1153,6 +1177,10 @@
       </div>
       <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
       <button v-if="eventEditable" class="ann-edit-btn" @click="eventEditing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj wydarzenie</button>
+      <template v-if="currentEvent.asb">
+        <p class="note">Spotkanie z grafiku ASB — zmienia się je w zakładce ASB, kalendarz aktualizuje się sam.</p>
+        <button v-if="canAsb" class="ann-edit-btn" @click="openAsbMeeting(currentEvent.asb)"><svg class="i"><use href="#users"/></svg>Otwórz w ASB</button>
+      </template>
     </article>
     <template v-else>
     <fieldset class="plain" :disabled="!eventEditable">
@@ -1427,46 +1455,63 @@
     </template>
   </template>
 
-  <!-- ASB: grafik spotkań studenckich (dawniej arkusz „ASB | GRAFIK”) i lista pomysłów -->
+  <!-- ASB: grafik spotkań studenckich (dawniej arkusz „ASB | GRAFIK”) i osobno lista pomysłów -->
   <template v-else-if="asbView && !current">
-    <div class="asb-seasons" role="tablist" aria-label="Rok akademicki">
-      <button v-for="se in asbSeasons" :key="se" class="chipbtn" :class="{ on: asb.season === se }" @click="asb.season = se">{{ se }}</button>
+    <div class="seg asb-tabs" role="tablist" aria-label="ASB">
+      <button role="tab" :aria-selected="asb.tab === 'plan'" :class="{ on: asb.tab === 'plan' }" @click="asb.tab = 'plan'">Grafik</button>
+      <button role="tab" :aria-selected="asb.tab === 'ideas'" :class="{ on: asb.tab === 'ideas' }" @click="asb.tab = 'ideas'">Pomysły<template v-if="asb.ideas.length"> ({{ asb.ideas.length }})</template></button>
     </div>
     <p v-if="asb.busy && !asb.meetings.length" class="note">Wczytuję grafik…</p>
     <p v-else-if="asb.error" class="error">{{ asb.error }}</p>
+    <template v-else-if="asb.tab === 'ideas'">
+      <div class="asb-idea-add">
+        <input v-model="asb.ideaTopic" placeholder="Nowy pomysł — temat" aria-label="Temat pomysłu" autocomplete="off" @keydown.enter="asbIdeaAdd">
+        <input v-model="asb.ideaAuthor" placeholder="Pomysłodawca" aria-label="Pomysłodawca" autocomplete="off" @keydown.enter="asbIdeaAdd">
+        <button :disabled="busy || !asb.ideaTopic.trim()" @click="asbIdeaAdd"><svg class="i"><use href="#plus"/></svg>Dodaj</button>
+      </div>
+      <p v-if="!asb.ideas.length" class="note">Na razie nie ma pomysłów — dopisz pierwszy.</p>
+      <div v-for="i in asb.ideas" :key="i.id" class="mn-person asb-idea">
+        <span><b>{{ i.topic }}</b><small v-if="i.author">{{ i.author }}</small></span>
+        <button :disabled="busy" title="Nowe spotkanie z tym tematem" @click="asbEdit(null, i)"><svg class="i"><use href="#calendar"/></svg><span>Zaplanuj</span></button>
+        <button class="icon" :disabled="busy" aria-label="Usuń pomysł" title="Usuń pomysł" @click="asbIdeaDelete(i)"><svg class="i"><use href="#x"/></svg></button>
+      </div>
+    </template>
     <template v-else>
+      <div class="asb-seasons" role="tablist" aria-label="Rok akademicki">
+        <button v-for="se in asbSeasons" :key="se" class="chipbtn" :class="{ on: asb.season === se }" @click="asb.season = se">{{ se }}</button>
+      </div>
       <div class="asb-stats">
         <span><b>{{ asbList.filter(m => m.date && m.topic).length }}</b> spotkań z tematem</span>
         <span v-if="asbAvg"><b>{{ asbAvg }}</b> średnia frekwencja</span>
         <span v-if="asbNext"><b>{{ shortDate(asbNext.date) }}</b> najbliższe</span>
       </div>
-      <button class="primary" style="width:100%;margin:10px 0 4px" @click="asbEdit()"><svg class="i"><use href="#plus"/></svg>Dodaj spotkanie</button>
+      <div class="asb-kinds" role="group" aria-label="Rodzaj spotkań">
+        <button class="chipbtn" :class="{ on: !asb.kind }" @click="asb.kind = ''">Wszystkie</button>
+        <button v-for="k in ASB_KINDS" :key="k.id" class="chipbtn" :class="['k-' + k.id, { on: asb.kind === k.id }]" @click="asb.kind = asb.kind === k.id ? '' : k.id"><i></i>{{ k.plural }} · {{ asbList.filter(m => m.kind === k.id && !asbPause(m)).length }}</button>
+      </div>
+      <button class="primary asb-add" @click="asbEdit()"><svg class="i"><use href="#plus"/></svg>Dodaj spotkanie</button>
+      <p v-if="!asbGroups.length" class="note">W tym roku nie ma jeszcze takich spotkań.</p>
       <template v-for="g in asbGroups" :key="g.month">
         <h2 class="mn-sec">{{ g.month }}</h2>
         <template v-for="m in g.list" :key="m.id">
           <p v-if="m.conceptStart" class="asb-concept">{{ m.concept }}</p>
-          <button class="asb-row" :class="{ past: m.date && m.date < todayStr, next: asbNext && m.id === asbNext.id, pause: /^(przerwa|brak)$/i.test(m.leader) && !m.topic }" @click="asbEdit(m)">
+          <button class="asb-row" :class="['k-' + m.kind, { past: m.date && m.date < todayStr, next: asbNext && m.id === asbNext.id, pause: asbPause(m) }]" @click="asbEdit(m)">
             <span class="asb-date"><small>{{ m.date ? wd(m.date) : '' }}</small><b>{{ m.date ? day(m.date) : '—' }}</b><small>{{ m.date ? month(m.date) : '' }}</small></span>
             <span class="asb-body">
-              <b>{{ m.topic || (/^(przerwa|brak)$/i.test(m.leader) ? 'Przerwa' : 'Temat do ustalenia') }}</b>
-              <small v-if="m.leader && !/^(przerwa|brak)$/i.test(m.leader)">Prowadzi: {{ m.leader }}<template v-if="m.helper && m.helper !== m.leader"> · pomaga: {{ m.helper }}</template></small>
-              <small v-if="m.place">{{ m.place }}</small>
+              <span v-if="m.kind !== 'cykliczne'" class="asb-badge">{{ asbKindName(m.kind) }}</span>
+              <b>{{ asbTitle(m) }}</b>
+              <small v-if="m.leader && !asbPause(m)">Prowadzi: {{ m.leader }}<template v-if="m.helper && m.helper !== m.leader"> · pomaga: {{ m.helper }}</template></small>
+              <small v-if="(m.kind !== 'cykliczne' && m.time) || m.place">{{ [m.kind !== 'cykliczne' ? m.time : '', m.place].filter(Boolean).join(' · ') }}</small>
               <small v-if="m.int_idea || m.int_date || m.int_organizer" class="asb-int">Integracja: {{ [m.int_idea, m.int_date, m.int_organizer].filter(Boolean).join(' · ') }}</small>
+              <small v-if="m.note || m.study || (m.files || []).length" class="asb-meta">
+                <span v-if="m.note"><svg class="i"><use href="#pencil"/></svg>Notatka</span>
+                <span v-if="m.study || (m.files || []).length"><svg class="i"><use href="#file"/></svg>Rozważanie<template v-if="(m.files || []).length"> · {{ m.files.length }} {{ m.files.length === 1 ? 'plik' : m.files.length < 5 ? 'pliki' : 'plików' }}</template></span>
+              </small>
             </span>
             <span v-if="m.attendance != null" class="asb-att" title="Frekwencja">{{ m.attendance }}</span>
           </button>
         </template>
       </template>
-      <h2 class="mn-sec">Lista pomysłów na spotkanie</h2>
-      <div v-for="i in asb.ideas" :key="i.id" class="mn-person asb-idea">
-        <span><b>{{ i.topic }}</b><small v-if="i.author">{{ i.author }}</small></span>
-        <button class="icon" :disabled="busy" aria-label="Usuń pomysł" title="Usuń pomysł" @click="asbIdeaDelete(i)"><svg class="i"><use href="#x"/></svg></button>
-      </div>
-      <div class="asb-idea-add">
-        <input v-model="asb.ideaTopic" placeholder="Nowy pomysł — temat" autocomplete="off" @keydown.enter="asbIdeaAdd">
-        <input v-model="asb.ideaAuthor" placeholder="Pomysłodawca" autocomplete="off" @keydown.enter="asbIdeaAdd">
-        <button :disabled="busy || !asb.ideaTopic.trim()" @click="asbIdeaAdd"><svg class="i"><use href="#plus"/></svg>Dodaj</button>
-      </div>
     </template>
   </template>
 
@@ -2016,13 +2061,17 @@
     <div class="np-panel" role="dialog" aria-label="Spotkanie ASB">
       <div class="np-head"><b>{{ asbForm._new ? 'Nowe spotkanie' : 'Spotkanie ASB' }}</b><button class="icon" aria-label="Zamknij" @click="asbForm = null"><svg class="i"><use href="#x"/></svg></button></div>
       <div class="np-list">
-        <div class="row">
-          <div><label for="asDate" style="margin-top:0">Data</label><input id="asDate" v-model="asbForm.date" type="date" @change="asbAutoMonth"></div>
-          <div><label for="asSeason" style="margin-top:0">Rok akademicki</label><input id="asSeason" v-model="asbForm.season" list="asb-seasons" placeholder="2026/2027" autocomplete="off"></div>
+        <label style="margin-top:0">Rodzaj</label>
+        <div class="asb-kind-pick" role="radiogroup" aria-label="Rodzaj spotkania">
+          <button v-for="k in ASB_KINDS" :key="k.id" type="button" role="radio" :aria-checked="asbForm.kind === k.id" :class="['k-' + k.id, { on: asbForm.kind === k.id }]" @click="asbForm.kind = k.id">{{ k.name }}</button>
         </div>
-        <datalist id="asb-seasons"><option v-for="se in asbSeasons" :key="se" :value="se"></option></datalist>
+        <div class="row">
+          <div><label for="asDate">Data</label><input id="asDate" v-model="asbForm.date" type="date" @change="asbAutoMonth"></div>
+          <div><label for="asTime">Godzina</label><input id="asTime" v-model="asbForm.time" type="time"></div>
+        </div>
         <label for="asTopic">Temat</label>
-        <input id="asTopic" v-model="asbForm.topic" placeholder="np. Czy chrześcijaństwo ma sens? Dzieje 17:16-34" autocomplete="off">
+        <input id="asTopic" v-model="asbForm.topic" list="asb-ideas" :placeholder="asbForm.kind === 'wewnetrzne' ? 'np. Spotkanie organizacyjne — plan semestru' : asbForm.kind === 'ewangelizacyjne' ? 'np. Pytania o wiarę na kampusie' : 'np. Czy chrześcijaństwo ma sens? Dzieje 17:16-34'" autocomplete="off">
+        <datalist id="asb-ideas"><option v-for="i in asb.ideas" :key="i.id" :value="i.topic"></option></datalist>
         <div class="row">
           <div><label for="asLeader">Prowadzący</label><input id="asLeader" v-model="asbForm.leader" autocomplete="off"></div>
           <div><label for="asHelper">Prowadzący pomocniczy</label><input id="asHelper" v-model="asbForm.helper" autocomplete="off"></div>
@@ -2032,17 +2081,39 @@
           <div><label for="asAtt">Frekwencja</label><input id="asAtt" v-model.number="asbForm.attendance" type="number" min="0" inputmode="numeric" placeholder="—"></div>
         </div>
         <datalist id="asb-places"><option v-for="p in asbPlaces" :key="p" :value="p"></option></datalist>
-        <label for="asConcept">Koncepcja okresu — co i po co robimy</label>
-        <textarea id="asConcept" v-model="asbForm.concept" class="short"></textarea>
-        <label>Integracja (opcjonalnie)</label>
-        <div class="row">
-          <div><input v-model="asbForm.int_idea" placeholder="Pomysł, np. Planszówki" aria-label="Pomysł na integrację" autocomplete="off"></div>
-          <div><input v-model="asbForm.int_date" placeholder="Kiedy, np. 28.02" aria-label="Data integracji" autocomplete="off"></div>
+        <label for="asNote">Notatka</label>
+        <textarea id="asNote" v-model="asbForm.note" class="short" placeholder="Ustalenia, co przygotować, kto przynosi…"></textarea>
+        <label for="asStudy">Rozważanie dla prowadzącego</label>
+        <textarea id="asStudy" v-model="asbForm.study" placeholder="Fragment Biblii, myśli, pytania do dyskusji…"></textarea>
+        <div class="asb-files">
+          <div v-for="f in asbForm.files" :key="f.path" class="mn-person">
+            <span><b>{{ f.name }}</b></span>
+            <button :disabled="busy" @click="asbOpenFile(f)">Otwórz</button>
+            <button class="icon" :disabled="busy" :aria-label="'Usuń załącznik ' + f.name" title="Usuń załącznik" @click="asbRemoveFile(f)"><svg class="i"><use href="#x"/></svg></button>
+          </div>
+          <input ref="asbFileInput" type="file" hidden @change="asbAddFile">
+          <button type="button" :disabled="busy" @click="$refs.asbFileInput.click()"><svg class="i"><use href="#plus"/></svg>Załącz plik z rozważaniem</button>
         </div>
-        <input v-model="asbForm.int_organizer" placeholder="Organizator" aria-label="Organizator integracji" autocomplete="off">
+        <template v-if="asbForm.kind === 'cykliczne'">
+          <label for="asConcept">Koncepcja okresu — co i po co robimy</label>
+          <textarea id="asConcept" v-model="asbForm.concept" class="short"></textarea>
+          <label>Integracja (opcjonalnie)</label>
+          <div class="row">
+            <div><input v-model="asbForm.int_idea" placeholder="Pomysł, np. Planszówki" aria-label="Pomysł na integrację" autocomplete="off"></div>
+            <div><input v-model="asbForm.int_date" placeholder="Kiedy, np. 28.02" aria-label="Data integracji" autocomplete="off"></div>
+          </div>
+          <input v-model="asbForm.int_organizer" placeholder="Organizator" aria-label="Organizator integracji" autocomplete="off">
+        </template>
+        <label for="asSeason">Rok akademicki</label>
+        <input id="asSeason" v-model="asbForm.season" list="asb-seasons" placeholder="2026/2027" autocomplete="off">
+        <datalist id="asb-seasons"><option v-for="se in asbSeasons" :key="se" :value="se"></option></datalist>
+        <p class="note asb-cal"><svg class="i"><use href="#calendar"/></svg><span>{{ asbCalNote }}</span></p>
+        <p v-if="asbForm.reminded" class="note asb-cal"><svg class="i"><use href="#bell"/></svg><span>Przypomnienie wysłano {{ asbWhen(asbForm.reminded) }}.</span></p>
+        <p v-if="error" class="error">{{ error }}</p>
       </div>
       <div class="np-foot mn-foot">
         <button v-if="!asbForm._new" class="danger" :disabled="busy" @click="asbDelete">Usuń</button>
+        <button :disabled="busy || !asbForm.season.trim() || !asbForm.date" title="Powiadomienie w aplikacji dla wszystkich z rangą ASB" @click="asbRemind"><svg class="i"><use href="#bell"/></svg>Przypomnij</button>
         <button class="primary" :disabled="busy || !asbForm.season.trim()" @click="asbSave">Zapisz</button>
       </div>
     </div>
@@ -2211,7 +2282,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.66 · 17.10.2026'
+const VERSION = '2.67 · 17.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2794,7 +2865,7 @@ createApp({
 
     const currentEvent = ref(null)
     let eventSaved = '', eventBase = 0, eventType = ''
-    const eventEditable = computed(() => !!currentEvent.value && mayChange(currentEvent.value, eventSavedOnce.value))
+    const eventEditable = computed(() => !!currentEvent.value && !currentEvent.value.asb && mayChange(currentEvent.value, eventSavedOnce.value))
     const eventDirty = computed(() => !!currentEvent.value && JSON.stringify(currentEvent.value) !== eventSaved)
     const eventEditing = ref(false) // podgląd albo edycja otwartego wydarzenia
     /* ---------- zapisy na wydarzenia ---------- */
@@ -3186,7 +3257,8 @@ createApp({
       else if (mId || q.get('sluzby')) {
         openServe(); linkedMinistry.value = mId || ''
         if (mId) { const stop = watch(() => serve.list, () => { const el = document.getElementById('sluzba-' + mId); if (el) { stop(); nextTick(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' })) } }) }
-      } else if (annId || evId || svcId) error.value = 'Nie znaleziono tej rzeczy — mogła zostać usunięta albo nie masz do niej dostępu.'
+      } else if (q.get('asb')) openAsbMeeting(q.get('asb'))
+      else if (annId || evId || svcId) error.value = 'Nie znaleziono tej rzeczy — mogła zostać usunięta albo nie masz do niej dostępu.'
     }
     const toast = ref('')
     let toastTimer
@@ -3373,56 +3445,125 @@ createApp({
     }))
     /* ---------- ASB: grafik spotkań i pomysły ---------- */
     const asbView = ref(false), asbForm = ref(null)
-    const asb = Vue.reactive({ meetings: [], ideas: [], season: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
+    const asb = Vue.reactive({ meetings: [], ideas: [], season: '', tab: 'plan', kind: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
     const canAsb = computed(() => api.enabled && (canManage.value || (me.value?.roles || []).includes('asb')))
+    // Rodzaje spotkań (kolory w CSS: .k-cykliczne, .k-wewnetrzne, .k-ewangelizacyjne).
+    const ASB_KINDS = [{ id: 'cykliczne', name: 'Cykliczne', plural: 'Cykliczne' }, { id: 'wewnetrzne', name: 'Wewnętrzne', plural: 'Wewnętrzne' }, { id: 'ewangelizacyjne', name: 'Ewangelizacyjne', plural: 'Ewangelizacyjne' }]
+    const asbKindName = k => ASB_KINDS.find(x => x.id === k)?.name || 'Cykliczne'
+    const asbPause = m => /^(przerwa|brak)$/i.test(m.leader) && !m.topic
+    const asbTitle = m => m.topic || (asbPause(m) ? 'Przerwa' : m.kind === 'wewnetrzne' ? 'Spotkanie wewnętrzne' : m.kind === 'ewangelizacyjne' ? 'Spotkanie ewangelizacyjne' : 'Temat do ustalenia')
     // Rok akademicki dla dzisiejszej daty: od września do sierpnia.
     const seasonOf = d => { const [y, m] = d.split('-').map(Number); return m >= 9 ? y + '/' + (y + 1) : (y - 1) + '/' + y }
     const asbSeasons = computed(() => [...new Set(asb.meetings.map(m => m.season))].sort().reverse())
-    const asbList = computed(() => asb.meetings.filter(m => m.season === asb.season).sort((a, b) => a.sort - b.sort))
+    // Kolejność: według daty; wiersze bez daty (np. wakacyjne przerwy) zostają za poprzednim w grafiku.
+    const asbList = computed(() => {
+      let key = ''
+      return asb.meetings.filter(m => m.season === asb.season).sort((a, b) => a.sort - b.sort)
+        .map(m => ({ m, key: (key = m.date || key) })).sort((a, b) => a.key.localeCompare(b.key) || a.m.sort - b.m.sort).map(x => x.m)
+    })
     const asbGroups = computed(() => {
       const out = []
       let prevConcept = null
       for (const m of asbList.value) {
+        if (asb.kind && m.kind !== asb.kind) continue
         const key = m.month || 'Bez miesiąca'
         let g = out[out.length - 1]
         if (!g || g.month !== key) out.push(g = { month: key, list: [] })
-        g.list.push({ ...m, conceptStart: !!m.concept && m.concept !== prevConcept })
-        prevConcept = m.concept
+        const cyc = m.kind === 'cykliczne'
+        g.list.push({ ...m, conceptStart: cyc && !!m.concept && m.concept !== prevConcept })
+        if (cyc) prevConcept = m.concept
       }
       return out
     })
-    const asbNext = computed(() => asbList.value.find(m => m.date && m.date >= todayStr.value && !/^(przerwa|brak)$/i.test(m.leader)) || null)
+    const asbNext = computed(() => asbList.value.find(m => m.date && m.date >= todayStr.value && !asbPause(m)) || null)
     const asbAvg = computed(() => { const a = asbList.value.filter(m => m.attendance != null); return a.length ? Math.round(a.reduce((n, m) => n + m.attendance, 0) / a.length) : 0 })
     const asbPlaces = computed(() => [...new Set(asb.meetings.map(m => m.place).filter(Boolean))])
+    const asbCalNote = computed(() => {
+      const m = asbForm.value
+      if (!m) return ''
+      if (!m.date) return 'Bez daty — nie trafi do kalendarza kościelnego.'
+      if (asbPause(m)) return 'Przerwa — nie trafia do kalendarza kościelnego.'
+      return m.kind === 'wewnetrzne' ? 'Po zapisaniu pojawi się w kalendarzu kościelnym — tylko dla członków (goście go nie widzą). Notatka i rozważanie zostają w ASB.'
+        : 'Po zapisaniu pojawi się w kalendarzu kościelnym (widzą je też goście). Notatka i rozważanie zostają w ASB.'
+    })
     const MONTHS_UP = ['STYCZEŃ', 'LUTY', 'MARZEC', 'KWIECIEŃ', 'MAJ', 'CZERWIEC', 'LIPIEC', 'SIERPIEŃ', 'WRZESIEŃ', 'PAŹDZIERNIK', 'LISTOPAD', 'GRUDZIEŃ']
     async function loadAsb() {
       asb.busy = true; asb.error = ''
       try {
         const r = await api.call('asbLoad')
-        asb.meetings = r.meetings; asb.ideas = r.ideas
+        asb.meetings = r.meetings.map(m => ({ ...m, kind: m.kind || 'cykliczne', time: m.time ?? '', files: Array.isArray(m.files) ? m.files : [] })); asb.ideas = r.ideas
         if (!asb.season || !asbSeasons.value.includes(asb.season)) asb.season = asbSeasons.value.includes(seasonOf(todayStr.value)) ? seasonOf(todayStr.value) : asbSeasons.value[0] || seasonOf(todayStr.value)
       } catch (e) { asb.error = e.message } finally { asb.busy = false }
     }
     function openAsb() {
-      if (!canAsb.value) return
+      if (!canAsb.value) return Promise.resolve()
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false
-      asbView.value = true; scrollTo(0, 0); loadAsb()
+      asbView.value = true; scrollTo(0, 0); return loadAsb()
     }
-    function asbEdit(m = null) {
-      if (m) { const { conceptStart, ...row } = m; asbForm.value = { ...row, attendance: row.attendance ?? '' }; return }
-      const last = asbList.value.filter(x => x.date).at(-1)
-      const next = last ? localDate(new Date(asDate(last.date).getTime() + 7 * 86400000)) : todayStr.value
-      asbForm.value = { _new: true, id: uid(), season: asb.season || seasonOf(next), sort: Math.max(0, ...asbList.value.map(x => x.sort)) + 1, date: next, month: MONTHS_UP[+next.slice(5, 7) - 1],
-        concept: last?.concept || '', leader: '', helper: '', topic: '', place: last?.place || '', attendance: '', int_date: '', int_organizer: '', int_idea: '' }
+    // Konkretne spotkanie (link z przypomnienia ?asb=id albo „Otwórz w ASB” w kalendarzu).
+    function asbOpenId(id) {
+      const m = asb.meetings.find(x => x.id === id)
+      if (!m) { if (canAsb.value) error.value = 'Nie znaleziono tego spotkania ASB — mogło zostać usunięte.'; return }
+      asb.tab = 'plan'; asb.season = m.season; asbEdit(m)
     }
+    function openAsbMeeting(id) { resetViews(); openAsb().then(() => asbOpenId(id)) }
+    function asbEdit(m = null, idea = null) {
+      error.value = ''
+      if (m) { const { conceptStart, ...row } = m; asbForm.value = { ...row, files: [...(row.files || [])], _removed: [], attendance: row.attendance ?? '' }; return }
+      const cyc = asbList.value.filter(x => x.date && x.kind === 'cykliczne')
+      const last = cyc.at(-1)
+      const kind = asb.kind || 'cykliczne'
+      const next = last && kind === 'cykliczne' ? localDate(new Date(asDate(last.date).getTime() + 7 * 86400000)) : todayStr.value
+      asbForm.value = { _new: true, _removed: [], id: uid(), kind, season: asb.season || seasonOf(next), sort: Math.max(0, ...asb.meetings.filter(x => x.season === asb.season).map(x => x.sort)) + 1, date: next, time: last?.time || '19:00', month: MONTHS_UP[+next.slice(5, 7) - 1],
+        concept: kind === 'cykliczne' ? last?.concept || '' : '', leader: '', helper: '', topic: idea?.topic || '', place: last?.place || '', attendance: '', note: '', study: '', files: [], int_date: '', int_organizer: '', int_idea: '' }
+    }
+    const asbWhen = t => { const d = new Date(t); return pretty(localDate(d)) + ', ' + d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) }
     function asbAutoMonth() { if (asbForm.value.date) asbForm.value.month = MONTHS_UP[+asbForm.value.date.slice(5, 7) - 1] }
-    const asbSave = () => guard(async () => {
+    async function asbPersist() {
       const m = asbForm.value
-      await api.call('asbSave', { ...m, season: m.season.trim(), date: m.date || null, attendance: m.attendance === '' || m.attendance == null ? null : +m.attendance })
-      asbForm.value = null; await loadAsb(); asb.season = m.season.trim()
+      if (m.date) m.month = MONTHS_UP[+m.date.slice(5, 7) - 1]
+      await api.call('asbSave', { ...m, season: m.season.trim(), date: m.date || null, concept: m.kind === 'cykliczne' ? m.concept : '', attendance: m.attendance === '' || m.attendance == null ? null : +m.attendance })
+      for (const p of m._removed) drive.removeAsbFile?.(p)
+      m._removed = []; m._new = false
+    }
+    const asbSave = () => guard(async () => {
+      const season = asbForm.value.season.trim()
+      await asbPersist(); asbForm.value = null; await loadAsb(); asb.season = season
     })
-    function asbDelete() { if (confirm('Usunąć to spotkanie z grafiku?')) guard(async () => { await api.call('asbDelete', { id: asbForm.value.id }); asbForm.value = null; await loadAsb() }) }
+    const asbRemind = () => {
+      if (!confirm('Wysłać przypomnienie o tym spotkaniu wszystkim z rangą ASB? (Najpierw zapiszę zmiany.)')) return
+      guard(async () => {
+        await asbPersist()
+        const n = await api.call('asbRemind', { id: asbForm.value.id })
+        asbForm.value.reminded = new Date().toISOString()
+        showToast(n ? 'Wysłano przypomnienie do ' + n + (n === 1 ? ' osoby' : ' osób') : 'Nikt poza Tobą nie ma rangi ASB — nie było do kogo wysłać.')
+        loadAsb()
+      })
+    }
+    const asbAddFile = e => {
+      const f = e.target.files?.[0]; e.target.value = ''
+      if (!f) return
+      if (f.size > 25 * 1024 * 1024) { error.value = 'Plik jest za duży (najwyżej 25 MB).'; return }
+      guard(async () => { const path = await drive.uploadAsbFile(f); asbForm.value?.files.push({ name: f.name, path }) })
+    }
+    function asbRemoveFile(f) {
+      if (!confirm('Usunąć załącznik „' + f.name + '”? (Zniknie po zapisaniu spotkania.)')) return
+      asbForm.value.files = asbForm.value.files.filter(x => x.path !== f.path); asbForm.value._removed.push(f.path)
+    }
+    function asbOpenFile(f) {
+      const w = window.open('', '_blank')
+      guard(async () => { const u = await drive.asbFileUrl(f.path); if (w) w.location.href = u; else location.href = u })
+    }
+    function asbDelete() {
+      if (!confirm('Usunąć to spotkanie z grafiku? Zniknie też z kalendarza kościelnego.')) return
+      guard(async () => {
+        const m = asbForm.value
+        await api.call('asbDelete', { id: m.id })
+        for (const p of [...m.files.map(f => f.path), ...m._removed]) drive.removeAsbFile?.(p)
+        asbForm.value = null; await loadAsb()
+      })
+    }
     const asbIdeaAdd = () => { if (asb.ideaTopic.trim()) guard(async () => { await api.call('asbIdea', { id: uid(), topic: asb.ideaTopic.trim(), author: asb.ideaAuthor.trim() || me.value?.name?.split(' ')[0] || '' }); asb.ideaTopic = ''; asb.ideaAuthor = ''; await loadAsb() }) }
     function asbIdeaDelete(i) { if (confirm('Usunąć pomysł „' + i.topic + '”?')) guard(async () => { await api.call('asbIdeaDelete', { id: i.id }); await loadAsb() }) }
 
@@ -3512,7 +3653,7 @@ createApp({
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
         ...(api.enabled ? [{ id: 'serve', icon: 'users', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
         ...(api.enabled ? [{ id: 'listen', icon: 'music', name: 'Posłuchaj', desc: 'Kazania na YouTube i Spotify', locked: false, go: 'chev' }] : []),
-        ...(canAsb.value ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: 'Grafik spotkań i pomysły', locked: false, go: 'chev' }] : []),
+        ...(canAsb.value ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: 'Grafik spotkań, przypomnienia i pomysły', locked: false, go: 'chev' }] : []),
       ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
     })
     function chooseTile(t) {
@@ -3726,7 +3867,7 @@ createApp({
       if (profileView.value) return '/profil'
       if (serveView.value) return '/zaangazuj-sie'
       if (listenView.value) return '/posluchaj'
-      if (asbView.value) return '/asb'
+      if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
       if (calView.value) return '/kalendarz'
       if (moreView.value) return '/wiecej'
       return '/'
@@ -3737,12 +3878,13 @@ createApp({
       for (const k of Object.keys(ROUTE_ITEM)) if (q.get(k)) return '/' + k + '/' + encodeURIComponent(q.get(k))
       if (q.get('sluzba')) return '/zaangazuj-sie?sluzba=' + encodeURIComponent(q.get('sluzba'))
       if (q.get('sluzby')) return '/zaangazuj-sie'
+      if (q.get('asb')) return '/asb/' + encodeURIComponent(q.get('asb'))
       return loc.pathname.replace(/\/+$/, '') || '/'
     }
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; fromCal = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; asbForm.value = null; fromCal = false
     }
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
     async function applyRoute(path) {
@@ -3766,7 +3908,7 @@ createApp({
           if (x) { openAnn(x); if (edit && annEditable.value) annEditing.value = true } else if (id !== 'nowe') error.value = 'Nie znaleziono tego ogłoszenia — mogło zostać usunięte albo nie masz do niego dostępu.'
         } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(query.includes('sluzba=') ? query : 'sluzby=1'))
         else if (view === 'posluchaj') openListen()
-        else if (view === 'asb') openAsb()
+        else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : 'plan'; await openAsb(); if (id && id !== 'pomysly') asbOpenId(id) }
         else if (view === 'profil') openProfile()
         else if (view === 'wiecej') openMore()
         else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); const sg = view === 'piesn' && songs.value.find(x => x.id === id); if (sg) openSong(sg) }
@@ -3829,6 +3971,7 @@ createApp({
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
       asb, asbView, asbForm, canAsb, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete,
+      ASB_KINDS, asbWhen, asbKindName, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,

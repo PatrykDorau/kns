@@ -192,7 +192,7 @@ onMounted(() => {
           <button v-if="canUse('planner')" class="primary" @click="openInPlanner"><Icon name="pencil" />Otwórz w Organizacji nabożeństw</button>
         </div>
 
-        <div v-else-if="draft && !(editing && canEdit)" class="cal-detail">
+        <div v-else-if="draft && !(editing && canEdit && !draft.asb)" class="cal-detail">
           <h2 class="with-link"><span>{{ draft.title || typeOf(draft.type).name }}</span><span class="links"><button class="small" title="Pobiera kod QR z linkiem do wydarzenia — np. na grafikę" @click="downloadQr('wydarzenie', draft.id, draft.title)"><Icon name="qr" />Kod QR</button><button class="small" title="Kopiuj link — po zalogowaniu otworzy to wydarzenie" @click="share('wydarzenie', draft.id)"><Icon name="link" />{{ copied === draft.id ? 'Skopiowano' : 'Kopiuj link' }}</button></span></h2>
           <span class="ev-tag" :style="{ '--c': typeOf(draft.type).color }">{{ typeOf(draft.type).name }}</span>
           <p class="big">{{ pretty(draft.date) }}<template v-if="draft.time">, {{ draft.time }}</template><template v-if="draft.place"> · {{ draft.place }}</template></p>
@@ -202,7 +202,8 @@ onMounted(() => {
             <ol class="tl"><li v-for="p in [...draft.program].sort((a, b) => a.offset - b.offset)" :key="p.key">{{ programLine({ time: draft.time || '00:00' }, p) }}<template v-if="p.person"> ({{ p.person }})</template></li></ol>
           </template>
           <p v-if="message" class="url">{{ message }}</p>
-          <button v-if="canEdit" class="primary" @click="editing = true"><Icon name="pencil" />Edytuj wydarzenie</button>
+          <p v-if="draft.asb" class="note">Spotkanie z grafiku ASB — zmienia się je w zakładce ASB (strona i telefon), kalendarz aktualizuje się sam.</p>
+          <button v-else-if="canEdit" class="primary" @click="editing = true"><Icon name="pencil" />Edytuj wydarzenie</button>
         </div>
 
         <template v-else-if="draft">

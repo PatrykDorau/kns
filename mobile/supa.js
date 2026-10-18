@@ -141,9 +141,11 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'asbLoad') {
         const [meetings, ideas] = await Promise.all([sb.from('asb_meetings').select('*').order('sort').then(check), sb.from('asb_ideas').select('*').order('created').then(check)])
         const day = d => (d instanceof Date ? d.toISOString().slice(0, 10) : d || null) // data zawsze jako 'RRRR-MM-DD'
-        return { meetings: (meetings || []).map(m => ({ ...m, date: day(m.date) })), ideas: ideas || [] }
+        return { meetings: (meetings || []).map(m => ({ ...m, date: day(m.date), reminded: m.reminded instanceof Date ? m.reminded.toISOString() : m.reminded })), ideas: ideas || [] }
       }
-      if (action === 'asbSave') { const { _new, ...row } = data; return check(await sb.from('asb_meetings').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
+      if (action === 'asbSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_meetings').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
+      // Przypomnienie: dzwonek dla wszystkich z rangą ASB, a kto włączył — także telefon.
+      if (action === 'asbRemind') { const n = check(await sb.rpc('asb_remind', { meeting: data.id })); await pushInbox(); return n }
       if (action === 'asbDelete') return check(await sb.from('asb_meetings').delete().eq('id', data.id))
       if (action === 'asbIdea') return check(await sb.from('asb_ideas').upsert({ id: data.id, author: data.author || '', topic: data.topic }))
       if (action === 'asbIdeaDelete') return check(await sb.from('asb_ideas').delete().eq('id', data.id))
@@ -246,6 +248,20 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (error) throw new Error('Nie udało się otworzyć pliku protokołu: ' + error.message)
       return data.signedUrl
     },
+    // Załączniki spotkań ASB (rozważanie): prywatny kosz „asb”; link ważny godzinę.
+    async uploadAsbFile(file) {
+      const ext = ((file.name.match(/\.(\w+)$/) || [])[1] || 'bin').toLowerCase()
+      const path = crypto.randomUUID() + '.' + ext
+      const { error } = await sb.storage.from('asb').upload(path, file, { contentType: file.type || 'application/octet-stream' })
+      if (error) throw new Error('Nie udało się wysłać pliku: ' + error.message)
+      return path
+    },
+    async asbFileUrl(path) {
+      const { data, error } = await sb.storage.from('asb').createSignedUrl(path, 3600)
+      if (error) throw new Error('Nie udało się otworzyć pliku: ' + error.message)
+      return data.signedUrl
+    },
+    async removeAsbFile(path) { await sb.storage.from('asb').remove([path]).catch(() => {}) },
     async removeProtocolFile(path) { await sb.storage.from('protokoly').remove([path]).catch(() => {}) },
     async saveProtocol(p, base = 0, force = false) {
       await guardNewer('protocols', p.id, base, force, 'ten protokół')

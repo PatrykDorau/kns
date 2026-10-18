@@ -1,5 +1,5 @@
 -- ASB: grafik spotkań studenckich (dawniej arkusz „ASB | GRAFIK”) i lista pomysłów na spotkania.
--- Widzą i zmieniają osoby z rangą „ASB” oraz administrator. Uruchamiaj po schema.sql.
+-- Widzą i zmieniają osoby z rangą „ASB” oraz administrator. Uruchamiaj po zatwierdzanie.sql i skrzynka.sql (pliki: asb-pliki.sql).
 insert into public.ranks (id, name, can_edit, council, protocols, manage, sort) values ('asb', 'ASB', false, false, false, false, 9)
 on conflict (id) do nothing;
 
@@ -44,3 +44,69 @@ drop policy if exists asb_meetings_all on public.asb_meetings;
 drop policy if exists asb_ideas_all on public.asb_ideas;
 create policy asb_meetings_all on public.asb_meetings for all to authenticated using (is_asb()) with check (is_asb());
 create policy asb_ideas_all on public.asb_ideas for all to authenticated using (is_asb()) with check (is_asb());
+
+/* ---------- rodzaje spotkań, notatki, rozważanie, kalendarz kościelny, przypomnienia ---------- */
+-- Rodzaj: cykliczne (cotygodniowe), wewnętrzne (np. organizacyjne — tylko dla ASB), ewangelizacyjne.
+alter table public.asb_meetings add column if not exists kind text not null default 'cykliczne';
+alter table public.asb_meetings add column if not exists time text not null default '19:00';
+alter table public.asb_meetings add column if not exists note text not null default '';      -- notatka
+alter table public.asb_meetings add column if not exists study text not null default '';     -- rozważanie dla prowadzącego
+alter table public.asb_meetings add column if not exists files jsonb not null default '[]';  -- załączniki [{name, path}] (kosz „asb”, asb-pliki.sql)
+alter table public.asb_meetings add column if not exists reminded timestamptz;               -- ostatnie przypomnienie
+do $$ begin
+  alter table public.asb_meetings add constraint asb_meetings_kind check (kind in ('cykliczne', 'wewnetrzne', 'ewangelizacyjne'));
+exception when duplicate_object then null; end $$;
+
+-- Każde spotkanie z datą (bez przerw) samo trafia do kalendarza kościelnego jako wydarzenie „asb_<id>”
+-- (rodzaj „Spotkanie studenckie”). Wewnętrzne — tylko dla członków, pozostałe także dla gości.
+-- Notatka, rozważanie i załączniki zostają w ASB.
+create or replace function public.asb_calendar() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare m asb_meetings; eid text; label text; title text; ms bigint := (extract(epoch from clock_timestamp()) * 1000)::bigint;
+begin
+  if tg_op = 'DELETE' then m := old; else m := new; end if;
+  eid := 'asb_' || m.id;
+  if tg_op = 'UPDATE' and old.id <> new.id then delete from events where id = 'asb_' || old.id; end if;
+  if tg_op = 'DELETE' or m.date is null or (m.topic = '' and lower(m.leader) in ('przerwa', 'brak')) then
+    delete from events where id = eid;
+    return null;
+  end if;
+  label := case m.kind when 'wewnetrzne' then 'spotkanie wewnętrzne' when 'ewangelizacyjne' then 'spotkanie ewangelizacyjne' else 'spotkanie' end;
+  title := 'ASB: ' || coalesce(nullif(m.topic, ''), label);
+  perform set_config('kns.sync', 'on', true); -- bez zatwierdzania (zatwierdzanie.sql → moderate)
+  insert into events (id, type, date, is_public, status, data, updated, updated_by)
+  values (eid, 'studenckie', m.date, m.kind <> 'wewnetrzne', 'published',
+    jsonb_build_object('id', eid, 'type', 'studenckie', 'date', m.date, 'time', m.time, 'place', m.place, 'title', title,
+      'description', 'ASB — ' || label || case when m.kind = 'cykliczne' then ' (cykliczne)' else '' end || '. Szczegóły w zakładce ASB.',
+      'program', '[]'::jsonb, 'public', m.kind <> 'wewnetrzne', 'asb', m.id, 'updated', ms, 'createdBy', 'ASB', 'updatedBy', m.updated_by),
+    ms, m.updated_by)
+  on conflict (id) do update set type = excluded.type, date = excluded.date, is_public = excluded.is_public, status = 'published',
+    data = excluded.data, updated = excluded.updated, updated_by = excluded.updated_by;
+  perform set_config('kns.sync', '', true);
+  return null;
+end $$;
+revoke all on function public.asb_calendar() from public, anon, authenticated;
+drop trigger if exists asb_meetings_calendar on public.asb_meetings;
+create trigger asb_meetings_calendar after insert or update or delete on public.asb_meetings for each row execute function public.asb_calendar();
+
+-- Przypomnienie o spotkaniu w aplikacji (dzwonek, a kto włączył — także na telefon) dla wszystkich z rangą ASB.
+create or replace function public.asb_remind(meeting text) returns int
+language plpgsql security definer set search_path = public as $$
+declare m asb_meetings; n int;
+begin
+  if not is_asb() then raise exception 'Przypomnienia wysyłają osoby z rangą ASB.'; end if;
+  select * into m from asb_meetings where id = meeting;
+  if m.id is null then raise exception 'Nie ma takiego spotkania.'; end if;
+  n := inbox_add(array(select p.id from people p where p.status = 'active' and 'asb' = any (p.roles)),
+    'ASB: ' || coalesce(nullif(m.topic, ''), case m.kind when 'wewnetrzne' then 'spotkanie wewnętrzne' when 'ewangelizacyjne' then 'spotkanie ewangelizacyjne' else 'spotkanie' end),
+    concat_ws(' · ', case when m.date is not null then to_char(m.date, 'DD.MM') end, nullif(m.time, ''), nullif(m.place, ''),
+      case when m.leader <> '' then 'prowadzi: ' || m.leader end),
+    './?asb=' || m.id);
+  update asb_meetings set reminded = now() where id = meeting;
+  return n;
+end $$;
+revoke all on function public.asb_remind(text) from public, anon;
+grant execute on function public.asb_remind(text) to authenticated;
+
+-- Istniejące spotkania → kalendarz (ponowne uruchomienie tylko odświeża).
+update public.asb_meetings set kind = kind;

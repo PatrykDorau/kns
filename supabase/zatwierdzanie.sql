@@ -36,7 +36,8 @@ exception when duplicate_object then null; end $$;
 create or replace function public.moderate() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if auth.uid() is null then return new; end if;
+  -- bez użytkownika (skrypty Google) albo zapis z wyzwalacza bazy (np. spotkania ASB → kalendarz, asb.sql)
+  if auth.uid() is null or current_setting('kns.sync', true) = 'on' then return new; end if;
   if tg_op = 'INSERT' then new.created_by := auth.uid(); else new.created_by := old.created_by; end if;
   if not (has_flag('edit') or has_flag('approve')) then new.status := 'pending';
   elsif tg_op = 'UPDATE' and old.status = 'pending' and new.status = 'published' and not has_flag('approve') then
