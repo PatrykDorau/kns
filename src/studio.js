@@ -35,6 +35,7 @@ export const studio = reactive({
   silentFor: 0, // ile sekund cisza (np. odpięty kabel z miksera)
   camera: '', audio: '', fps: 30, bitrate: 6800000, live: false, error: '', encoder: '',
   hardware: null, // null — nie sprawdzono; true/false — czy karta koduje H.264
+  remoteScreen: false, // obraz rzutnika przez sieć dociera
   projector: { kind: 'none' }, // to, co pokazuje rzutnik (etap 2): { kind: 'image'|'video'|'text'|'none', url, text, style, playing, time, at }
   countdownTo: 0, // odliczanie do tej chwili (ms); 0 — do godziny najbliższego nabożeństwa
   left: 0, // ile sekund zostało (do pulpitu)
@@ -445,8 +446,15 @@ function lowerThird(t) {
   text(sub.str, x + 222, y + 116, { size: sub.size, weight: 500, color: '#d6d8e0', alpha: e })
 }
 // To, co pokazuje rzutnik (etap 2): grafika, film, tekst/slajd.
-let projVideo = null
+let projVideo = null, remoteVideo = null
+// Obraz rzutnika z innego komputera (WebRTC) — null, gdy połączenie zerwane.
+export function setRemoteScreen(stream) {
+  if (!stream) { if (remoteVideo) remoteVideo.srcObject = null; studio.remoteScreen = false; return }
+  if (!remoteVideo) { remoteVideo = document.createElement('video'); remoteVideo.muted = true; remoteVideo.playsInline = true }
+  remoteVideo.srcObject = stream; remoteVideo.play().catch(() => {}); studio.remoteScreen = true
+}
 function projectorFrame(t) {
+  if (studio.remoteScreen && remoteVideo?.readyState >= 2) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); fit(remoteVideo, remoteVideo.videoWidth, remoteVideo.videoHeight, 0, 0, W, H); return }
   const p = studio.projector
   if (p.kind === 'image' && p.url) { const im = img(p.url); if (im) { fullImage(im); return } }
   if (p.kind === 'video' && p.url) {

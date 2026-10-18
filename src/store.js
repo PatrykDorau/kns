@@ -27,7 +27,7 @@ export const settings = reactive({
   cue: false, // sygnały dla kamerzysty (stream)
   cueToken: '',
   atemAddress: '', atemDirect: false, ytPrivacy: 'public', // pulpit streamu: ATEM przez sieć i YouTube
-  streamVideo: '', streamAudio: '', streamQuality: '1080', streamFps: 30, streamEngine: 'studio', studioCamera: '', studioAudio: '', streamKbps: 0, pipCorner: 'br', pipSize: 'small', studioAutoCamera: false, studioDirect: false, ytFolded: false, mediaOpen: true, cueFolded: false, svcFolded: false, railFolded: false, donateInit: false, studioHidden: ['svc'], studioSlideSec: 8, donateAccount: '', donatePhone: '789 571 542', donateName: 'Kościół Na Skale', donateTitle: 'Darowizna', streamLyrics: 'local', streamLyricsKey: '', // nadawanie bez OBS
+  streamVideo: '', streamAudio: '', streamQuality: '1080', streamFps: 30, streamEngine: 'studio', studioCamera: '', studioAudio: '', streamKbps: 0, pipCorner: 'br', pipSize: 'small', studioAutoCamera: false, studioDirect: false, ytFolded: false, mediaOpen: true, screenShare: false, screenRemote: true, cueFolded: false, svcFolded: false, railFolded: false, donateInit: false, studioHidden: ['svc'], studioSlideSec: 8, donateAccount: '', donatePhone: '789 571 542', donateName: 'Kościół Na Skale', donateTitle: 'Darowizna', streamLyrics: 'local', streamLyricsKey: '', // nadawanie bez OBS
   camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu
@@ -116,6 +116,7 @@ export const overlayUrl = ref('')
 export const cameraLock = ref(false)
 // Napisy z innego komputera (rzutnik gdzie indziej): kanał na żywo z kluczem z adresu …/napisy?k=…
 export function listenLyrics(key, onText) { return cloud ? cloud.listenLyrics(key, onText) : () => {} }
+export const screenSignal = (key, onMsg) => (cloud ? cloud.signal(key, onMsg) : null) // obraz rzutnika przez sieć
 export const lyricsLink = key => (cloud ? cloud.lyricsLink(key) : 'connecting') // napisy pieśni na przezroczystym tle (źródło „Przeglądarka” w OBS)
 export const renamingId = ref(null)
 export const renameValue = ref('')

@@ -96,6 +96,31 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
   // Stan kanału (do pulpitu Stream): 'local' — rzutnik na tym komputerze, 'ok', 'connecting'.
   const lyricsLink = key => (lyricsKey === key ? 'local' : chans.get(key)?.ok ? 'ok' : 'connecting')
 
+  // Obraz rzutnika przez sieć: kanał do zestawienia połączenia (oferta, odpowiedź, adresy) — sam obraz idzie
+  // bezpośrednio między komputerami. Zerwany kanał otwiera się sam.
+  function signal(key, onMsg) {
+    let ch = null, ok = false, closed = false, retry = 0, timer = 0
+    const queue = []
+    const open = () => {
+      const c = sb.channel('ekran-' + key, { config: { broadcast: { self: false } } })
+      ch = c; ok = false
+      c.on('broadcast', { event: 'm' }, ({ payload }) => { if (!closed && payload) onMsg(payload) })
+      c.subscribe(status => {
+        if (ch !== c || closed) return
+        if (status === 'SUBSCRIBED') { ok = true; retry = 0; while (queue.length) c.send({ type: 'broadcast', event: 'm', payload: queue.shift() }).catch(() => {}) }
+        else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+          ok = false; clearTimeout(timer)
+          timer = setTimeout(() => { if (closed) return; const old = ch; open(); sb.removeChannel(old).catch(() => {}) }, Math.min(30000, 1000 * 2 ** retry++))
+        }
+      })
+    }
+    open()
+    return {
+      send: m => { if (ok) ch.send({ type: 'broadcast', event: 'm', payload: m }).catch(() => {}); else if (queue.length < 50) queue.push(m) },
+      close: () => { closed = true; clearTimeout(timer); sb.removeChannel(ch).catch(() => {}) },
+    }
+  }
+
   // Wynik w kształcie odpowiedzi folderu wspólnego: błąd zamiast wyjątku.
   const safe = job => job().catch(e => ({ error: e.message, needLogin: !!e.needLogin }))
 
@@ -148,7 +173,7 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     publicPreview: () => safe(async () => check(await sb.rpc('public_preview'))),
     // „Posłuchaj”: linki YouTube i Spotify (czyta też gość).
     listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
-    lyrics, listenLyrics, lyricsLink,
+    lyrics, listenLyrics, lyricsLink, signal,
     // Skład zespołu: osoby ze służby muzycznej (dla osób z prawem edycji).
     // Przeczytane ogłoszenia (na koncie — te same co na stronie i telefonie).
     seenAnns: () => safe(async () => { await active(); return { ids: (check(await sb.from('seen_announcements').select('ann_id')) || []).map(x => x.ann_id) } }),

@@ -4,6 +4,7 @@ import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
 import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from './store.js'
 import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from './lyricsFeed.js'
+import { remote as remoteScreen } from './screenShare.js'
 import { OVERLAYS, SCENES, mediaCtl, mediaSlide, setMedia, setMediaMode, setMediaPos, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
@@ -427,6 +428,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
                       :title="'Napisy pieśni — włączają się i wyłączają od razu na wizji. Widać je na scenach: Kamera, Rzutnik, Rzutnik + kamera' + (OVERLAYS.lyrics.includes(studio.program.scene) ? '' : ' (na tej scenie wizji ich nie ma)')" @click="toggleLyrics">Napisy {{ studio.program.lyricsOn ? 'wł.' : 'wył.' }}</button>
               <button :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird, idle: !OVERLAYS.lowerThird.includes(studio.preview.scene) }" :aria-pressed="studio.preview.lowerThird"
                       :title="'Pasek z mówcą — najpierw na podglądzie, na wizję po „Na wizję”. Widać go na scenach: Kamera, Rzutnik + kamera' + (OVERLAYS.lowerThird.includes(studio.preview.scene) ? '' : ' (na tej scenie go nie ma)')" @click="toggleLowerThird">Pasek mówcy</button>
+              <small v-if="['projector', 'projectorPip'].includes(studio.preview.scene)" class="desk-ov-note" :class="remoteScreen.state === 'on' ? 'ok' : 'muted'">{{ remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć' : remoteScreen.state === 'connecting' ? 'czekam na obraz z laptopa przy rzutniku…' : studio.projector.kind !== 'none' ? 'Rzutnik na tym komputerze' : 'Rzutnik nic nie pokazuje — włącz udostępnianie obrazu na laptopie przy rzutniku' }}</small>
               <small v-if="!OVERLAYS.lyrics.includes(studio.preview.scene)" class="muted desk-ov-note">Na tej scenie bez napisów i paska mówcy</small>
               <small v-else-if="!OVERLAYS.lowerThird.includes(studio.preview.scene)" class="muted desk-ov-note">Na tej scenie bez paska mówcy</small>
             </span>
@@ -625,6 +627,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <label title="Tyle, ile wysyła ATEM: ATEM Software Control → Ustawienia → Standard wideo (np. 1080p50)">Klatki na sekundę<select v-model.number="settings.streamFps"><option :value="25">25</option><option :value="30">30</option><option :value="50">50</option><option :value="60">60</option></select></label>
               <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">z rzutnika na tym komputerze</option><option value="remote">z rzutnika na innym komputerze</option><option value="off">bez napisów</option></select></label>
             </fieldset>
+            <label v-if="settings.streamLyrics === 'remote'" class="check" title="Cały ekran rzutnika z drugiego laptopa (sam obraz) — scena „Rzutnik” i „Rzutnik + kamera”. Na laptopie przy rzutniku: Ustawienia aplikacji → „Udostępniaj obraz rzutnika”."><input v-model="settings.screenRemote" type="checkbox"> Obraz rzutnika z tego komputera (przez sieć)</label>
             <input v-if="settings.streamLyrics === 'remote'" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
             <p v-if="liveOn" class="note">W trakcie transmisji ustawienia są zablokowane — źródło dźwięku zmienisz na pasku stanu nad podglądem.</p>
             <p class="note">Przepływność: YouTube zaleca dla 1080p 4,5–9 Mb/s (przy 50/60 kl./s górna część). Internet w kościele musi wysyłać ok. 1,5× tyle — sprawdź na speedtest.net („Upload”). Gdy YouTube pokazuje „słaby sygnał”, zmniejsz.</p>

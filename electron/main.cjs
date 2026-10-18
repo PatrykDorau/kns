@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker, shell, safeStorage } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker, shell, safeStorage, session, desktopCapturer } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -958,6 +958,16 @@ app.whenReady().then(() => {
 
   ipcMain.handle('displays:get', () => displays())
   ipcMain.handle('output:open', (e, displayId) => openOutput(displayId))
+  // Obraz rzutnika przez sieć: getDisplayMedia w oknie aplikacji dostaje ekran z rzutnikiem (bez dźwięku — idzie przez konsolę).
+  let captureDisplay = null
+  ipcMain.handle('capture:target', (e, id) => { captureDisplay = id == null ? null : String(id); return true })
+  session.defaultSession.setDisplayMediaRequestHandler(async (req, done) => {
+    try {
+      const list = await desktopCapturer.getSources({ types: ['screen'] })
+      const pick = list.find(s => s.display_id === captureDisplay) || list.find(s => s.display_id === String(screen.getAllDisplays().find(d => d.id !== screen.getPrimaryDisplay().id)?.id)) || list[0]
+      done(pick ? { video: pick } : {})
+    } catch { done({}) }
+  })
   ipcMain.handle('output:close', () => closeOutput())
   ipcMain.handle('files:pick', async (e, kind) => {
     const images = Object.keys(MEDIA).filter(x => MEDIA[x].startsWith('image/')).map(x => x.slice(1))

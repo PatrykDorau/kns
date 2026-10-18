@@ -970,6 +970,7 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-scenes button.live, .desk-opts button.live { box-shadow: inset 0 -3px 0 #e5484d; }
 .desk-slides { margin-top: 10px; }
 /* Media na transmisji */
+.desk-ov-note.ok { color: #3ccf73; }
 .desk-media-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .desk-media-txt { flex: 1; min-width: 200px; padding: 6px 10px; font-size: 13px; }
 .desk-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 2px; }
