@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
-import { copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
+import { access, copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
 import { videoInfo } from '../mobile/church.js'
 
 // Strona startowa (wzór: pulpit z powitaniem, pasem kart i tygodniem): najbliższe nabożeństwo i komunikaty
@@ -64,14 +64,14 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
 
 <template>
   <!-- Góra: najbliższe nabożeństwo i panel komunikatów rady zboru (lista, „Nowe”). Style: mobile/home.css. -->
-  <div class="kh-top2">
+  <div class="kh-top2" :class="{ solo: !notices.length }">
     <button v-if="svc" class="kh-svc" @click="openService(svc.id)">
       <span class="kh-tag"><Icon name="calendar" />Najbliższe nabożeństwo</span>
       <b>{{ svcWhen }}</b>
       <span class="kh-body">{{ [svc.sermonTitle, svc.passage].filter(Boolean).join(' · ') || 'Bez tytułu kazania' }}<template v-if="svc.speaker"> — {{ svc.speaker }}</template></span>
       <span class="kh-foot"><span class="kh-until" :class="{ live: countdown?.live }">{{ until }}</span>{{ svc.place || DEFAULT_PLACE }}<em v-if="planAlert && canUse('planner')" class="kh-pill bad">Braki</em></span>
     </button>
-    <section class="kh-panel">
+    <section v-if="notices.length" class="kh-panel">
       <div class="kh-panel-h"><h2>Komunikaty rady zboru</h2><span v-if="notices.length" class="kh-count">{{ notices.length }}</span><span v-if="newCount" class="kh-muted">{{ newCount }} {{ newCount === 1 ? 'nowy' : 'nowe' }}</span></div>
       <div v-if="notices.length" class="kh-notes">
         <button v-for="a in notices" :key="a.id" class="kh-note" :class="{ fresh: isNew(a) }" @click="openNotice(a)">
@@ -147,6 +147,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
       <span class="kh-share-row">
         <button class="kh-link kh-share" title="Kopiuj link — po zalogowaniu otworzy to ogłoszenie" @click="share(shown.id)"><Icon name="link" />{{ copied ? 'Skopiowano link' : 'Kopiuj link do ogłoszenia' }}</button>
         <button class="kh-link kh-share" title="Pobiera kod QR z linkiem — np. na grafikę" @click="downloadQr('ogloszenie', shown.id, shown.title)"><Icon name="qr" />Kod QR</button>
+        <a v-if="access.edit" class="kh-link kh-share" :href="'https://kns-nabo.netlify.app/ogloszenie/' + encodeURIComponent(shown.id) + '/edycja'" target="_blank" rel="noopener" title="Ogłoszenia edytuje się na stronie kns-nabo (otworzy się w przeglądarce)"><Icon name="pencil" />Edytuj</a>
       </span>
     </div>
   </div>

@@ -870,3 +870,5 @@ section.props.fixed-head > h2 { flex: none; margin: 0; padding: 14px 14px 12px; 
 .desk-new { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; }
 .desk-new > span { flex: 1; min-width: 160px; display: flex; flex-direction: column; }
 .desk-new select { width: auto; padding: 4px 8px; font-size: 13px; }
+.desk-now { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.desk-head .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }

@@ -96,6 +96,17 @@ async function refreshFromService(b) {
   const svc = props.service
   if (svc) await ytDo(() => api.ytUpdate({ id: b.id, title: ytTitle(svc), description: ytDescription(svc), start: ytStart(svc), privacy: b.privacy }))
 }
+// „Transmisja teraz”: jak przycisk w OBS — transmisja od tej chwili (tytuł z wybranego nabożeństwa, jeśli jest).
+const nowInfo = ref('')
+async function streamNow() {
+  // na stały klucz czeka już transmisja — druga by się z nią gryzła; ta wystartuje sama, gdy OBS zacznie nadawać
+  const waiting = (yt.value.broadcasts || []).find(b => ['created', 'ready', 'testing', 'live'].includes(b.status))
+  if (waiting) { nowInfo.value = (waiting.status === 'live' ? 'Już nadajemy: „' : 'Czeka już transmisja „') + waiting.title + '” — w OBS kliknij „Rozpocznij transmisję”, a ona wystartuje.'; return }
+  const svc = props.service
+  const title = svc ? ytTitle(svc) : 'Transmisja na żywo — Kościół Na Skale ' + new Date().toLocaleDateString('pl')
+  const res = await ytDo(() => api.ytCreate({ title, description: svc ? ytDescription(svc) : '', start: new Date(Date.now() + 60000).toISOString(), privacy: privacy.value }))
+  if (res && !res.error) nowInfo.value = 'Gotowe — w OBS kliknij „Rozpocznij transmisję”; na YouTube od razu będzie na żywo.'
+}
 async function endBroadcast(b) { if (confirm('Zakończyć transmisję „' + b.title + '”? Widzowie zobaczą jej koniec.')) await ytDo(() => api.ytEnd(b.id)) }
 const B_STATUS = { created: 'Zaplanowana', ready: 'Gotowa — czeka na obraz', testStarting: 'Test…', testing: 'Test', liveStarting: 'Startuje…', live: 'NA ŻYWO' }
 const PRIVACY = { public: 'publiczna', unlisted: 'niepubliczna', private: 'prywatna' }
@@ -168,7 +179,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
         <span v-if="yt.loggedIn && signal.text" class="desk-badge" :class="signal.cls">{{ signal.text }}</span>
         <span class="spacer"></span>
         <button v-if="yt.loggedIn" class="small" :disabled="ytBusy" title="Odśwież" @click="loadYt"><Icon name="refresh" /></button>
-        <button v-if="yt.loggedIn" class="small" :disabled="ytBusy" @click="ytLogout">Odłącz</button>
+        <button v-if="yt.loggedIn" class="small" :disabled="ytBusy" title="Odłącz od kanału YouTube" aria-label="Odłącz od kanału YouTube" @click="ytLogout"><Icon name="logout" /></button>
       </div>
       <p v-if="ytError" class="note bad">{{ ytError }}</p>
       <template v-if="!yt.loggedIn">
@@ -194,13 +205,17 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
           <div v-for="b in yt.broadcasts" :key="b.id" class="desk-bc" :class="{ live: b.status === 'live' }">
             <span class="desk-bc-text">
               <b>{{ b.title }}</b>
-              <small>{{ b.start ? new Date(b.start).toLocaleString('pl', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '' }} · {{ PRIVACY[b.privacy] || b.privacy }} · <em>{{ B_STATUS[b.status] || b.status }}</em></small>
+              <small>{{ [b.start && new Date(b.start).toLocaleString('pl', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }), PRIVACY[b.privacy] || b.privacy].filter(Boolean).join(' · ') }} · <em>{{ B_STATUS[b.status] || b.status }}</em></small>
             </span>
             <button class="small" title="Kopiuj link do transmisji" @click="copy(b.id, b.url)"><Icon :name="copied === b.id ? 'check' : 'link'" /></button>
             <button v-if="service && b === forService && b.status !== 'live'" class="small" :disabled="ytBusy" title="Ustaw tytuł i opis z wybranego nabożeństwa" @click="refreshFromService(b)">Z nabożeństwa</button>
             <button v-if="['live', 'testing', 'liveStarting'].includes(b.status)" class="small danger" :disabled="ytBusy" @click="endBroadcast(b)">Zakończ</button>
           </div>
           <p v-if="!(yt.broadcasts || []).length" class="note">Nie ma zaplanowanych transmisji.</p>
+        </div>
+        <div class="desk-now">
+          <button class="small" :disabled="ytBusy" title="Nowa transmisja od teraz — po kliknięciu „Rozpocznij transmisję” w OBS od razu jest na żywo" @click="streamNow"><Icon name="play" />Transmisja teraz</button>
+          <small v-if="nowInfo" class="muted">{{ nowInfo }}</small>
         </div>
         <div v-if="service && !forService" class="desk-new">
           <span><b>{{ ytTitle(service) }}</b><small class="muted">{{ prettyDate(service.date) }}, {{ serviceTime(service) }}</small></span>

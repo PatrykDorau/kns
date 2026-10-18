@@ -561,14 +561,8 @@ export function addAnnouncements() {
     selectedId.value = deck.id
     return
   }
-  const list = currentAnnouncements.value
-  if (!list.length) return
-  const slides = list.map(a => ({ ...TEXT_STYLE, id: uid(), type: 'text', name: a.title, text: a.title + (a.text ? '\n\n' + a.text.trim() : ''), fs: a.text && a.text.length > 160 ? 7 : 9, hidden: true }))
-  const deck = { id: uid(), type: 'scene', name: 'Ogłoszenia', seconds: 12, volume: 0.25, transition: 'fade', fadeMs: 500, auto: true,
-    entries: slides.map(it => ({ key: uid(), ref: it.id, seconds: null })) }
-  items.value.push(...slides, deck)
-  tab.value = 'materials'
-  selectedId.value = deck.id
+  // Na rzutniku tylko grafiki (z wszystkimi informacjami na nich) — bez slajdów z samym tekstem.
+  flash('Nie ma grafik do pokazania. W ogłoszeniu albo wydarzeniu dodaj grafikę i zaznacz „Pokaż na nabożeństwie”.')
 }
 
 export function addLoop() {

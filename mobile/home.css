@@ -208,3 +208,11 @@ img.kh-note-ic { object-fit: cover; padding: 0; }
 .boot { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 1080px; margin: 28px auto; padding: 0 16px; box-sizing: border-box; }
 .boot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .kh-top2 > .kh-svc .kh-foot { margin-top: auto; }
+/* Bez komunikatów rady: karta najbliższego nabożeństwa na całą szerokość, niższa. */
+.kh-top2.solo { grid-template-columns: minmax(0, 1fr); }
+.kh-top2.solo > .kh-svc { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tag foot" "when foot" "body foot"; column-gap: 24px; }
+.kh-top2.solo > .kh-svc .kh-tag { grid-area: tag; }
+.kh-top2.solo > .kh-svc b { grid-area: when; }
+.kh-top2.solo > .kh-svc .kh-body { grid-area: body; }
+.kh-top2.solo > .kh-svc .kh-foot { grid-area: foot; margin: 0; align-self: center; flex-direction: column; align-items: flex-end; }
+@media (max-width: 700px) { .kh-top2.solo > .kh-svc { display: flex; } .kh-top2.solo > .kh-svc .kh-foot { align-items: flex-start; flex-direction: row; } }

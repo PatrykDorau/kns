@@ -44,7 +44,7 @@ function drop(it) {
     <button title="Odliczanie do nabożeństwa albo przez podaną liczbę minut" @click="addCountdown"><Icon name="timer" />Odliczanie</button>
     <button title="Fragment Biblii jako slajdy, np. J 3,16–21" @click="bibleOpen = true"><Icon name="book" />Biblia</button>
     <button @click="addLoop"><Icon name="loop" />Pętla</button>
-    <button :disabled="!currentAnnouncements.length && !projectorGraphics.length" :title="projectorGraphics.length ? 'Grafiki ogłoszeń i wydarzeń zaznaczonych „na rzutniku” (' + projectorGraphics.length + ') jako pętla — przed i po nabożeństwie' : currentAnnouncements.length ? 'Aktualne ogłoszenia (' + currentAnnouncements.length + ') jako pętla slajdów z tekstem — grafiki zaznacza się w aplikacji: „Pokaż grafikę na rzutniku”' : 'Brak aktualnych ogłoszeń — dodaje się je w aplikacji na telefon'" @click="addAnnouncements"><Icon name="info" />Ogłoszenia<span v-if="projectorGraphics.length" class="pill">{{ projectorGraphics.length }}</span></button>
+    <button :disabled="!projectorGraphics.length" :title="projectorGraphics.length ? 'Grafiki ogłoszeń i wydarzeń zaznaczonych „Pokaż na nabożeństwie” (' + projectorGraphics.length + ') jako pętla — przed i po nabożeństwie' : 'Brak grafik do pokazania — w ogłoszeniu (telefon albo strona) dodaj grafikę i zaznacz „Pokaż na nabożeństwie”'" @click="addAnnouncements"><Icon name="info" />Ogłoszenia<span v-if="projectorGraphics.length" class="pill">{{ projectorGraphics.length }}</span></button>
   </div>
   <div class="searchrow">
     <label class="searchbox">

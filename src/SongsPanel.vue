@@ -21,9 +21,14 @@ const allPicked = () => serviceList.value.length > 0 && serviceList.value.every(
 function pickAll() { picked.value = allPicked() ? new Set() : new Set(serviceList.value.map(e => e.key)) }
 function stopPicking() { picking.value = false; picked.value = new Set() }
 function removePicked() {
+  const n = serviceList.value.filter(e => picked.value.has(e.key)).length
+  if (!n || !confirm(n === 1 ? 'Zdjąć zaznaczoną pieśń z listy na to nabożeństwo? (Zostaje w bazie pieśni.)' : `Zdjąć zaznaczone pieśni (${n}) z listy na to nabożeństwo? (Zostają w bazie pieśni.)`)) return
   // od końca, żeby numery pozostałych pozycji się nie przesuwały
   for (let i = serviceList.value.length - 1; i >= 0; i--) if (picked.value.has(serviceList.value[i].key)) removeFromService(i)
   stopPicking()
+}
+function removeOne(i, entry) {
+  if (confirm('Zdjąć „' + (entry.song?.title || 'tę pieśń') + '” z listy na to nabożeństwo? (Zostaje w bazie pieśni.)')) removeFromService(i)
 }
 const dragFrom = ref(null)
 const dragTo = ref(null)
@@ -58,12 +63,12 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
     <h2>Na to nabożeństwo</h2>
     <template v-if="serviceList.length">
       <template v-if="confirmClear">
-        <button class="del-yes small" @click="clearService(); confirmClear = false">Wyczyść</button>
+        <button class="del-yes small" title="Usuwa wszystkie pieśni z listy (zostają w bazie)" @click="clearService(); confirmClear = false">Wyczyścić?</button>
         <button class="small" @click="confirmClear = false">Nie</button>
       </template>
       <template v-else>
-        <button class="small" :aria-pressed="picking" title="Zaznaczanie wielu pieśni naraz" @click="picking ? stopPicking() : (picking = true)"><Icon :name="picking ? 'check' : 'select'" />{{ picking ? 'Gotowe' : 'Zaznacz' }}</button>
-        <button class="small" title="Wyczyść listę — usuwa pieśni z listy, nie z bazy" @click="confirmClear = true"><Icon name="trash" />Wyczyść</button>
+        <button class="iconbtn" :class="{ on: picking }" :aria-pressed="picking" :title="picking ? 'Gotowe — koniec zaznaczania' : 'Zaznacz kilka pieśni naraz'" :aria-label="picking ? 'Gotowe' : 'Zaznacz kilka pieśni'" @click="picking ? stopPicking() : (picking = true)"><Icon :name="picking ? 'check' : 'select'" /></button>
+        <button class="iconbtn" title="Wyczyść listę — usuwa pieśni z listy, nie z bazy" aria-label="Wyczyść listę" @click="confirmClear = true"><Icon name="trash" /></button>
       </template>
     </template>
   </div>
@@ -96,7 +101,7 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
         </span>
       </button>
       <span class="actions">
-        <button class="iconbtn" title="Zdejmij z listy (pieśń zostaje w bazie)" :aria-label="'Zdejmij z listy: ' + entry.song.title" @click="removeFromService(i)"><Icon name="x" /></button>
+        <button class="iconbtn" title="Zdejmij z listy (pieśń zostaje w bazie)" :aria-label="'Zdejmij z listy: ' + entry.song.title" @click="removeOne(i, entry)"><Icon name="x" /></button>
       </span>
     </li>
   </ul>

@@ -1017,7 +1017,8 @@
           <button v-if="currentAnn.image" type="button" :disabled="imgBusy" @click="currentAnn.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
         </div>
         <input ref="annImg" type="file" accept="image/*" hidden @change="pickAnnImage">
-        <label v-if="currentAnn.image" class="check"><input v-model="currentAnn.projector" type="checkbox">Pokaż grafikę na rzutniku — w pętli ogłoszeń przed i po nabożeństwie</label>
+        <label v-if="currentAnn.image" class="check"><input v-model="currentAnn.projector" type="checkbox">Pokaż na nabożeństwie — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
+        <p v-if="currentAnn.image" class="note">Na rzutniku pokazują się tylko grafiki — umieść na niej wszystkie ważne informacje (co, kiedy, gdzie).</p>
       </template>
       <label for="anVideo">Film (opcjonalnie)</label>
       <div v-if="videoInfo(currentAnn.video)" class="ann-video">
@@ -1251,7 +1252,7 @@
           <button v-if="currentEvent.image" type="button" :disabled="imgBusy" @click="currentEvent.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
         </div>
         <input ref="evImg" type="file" accept="image/*" hidden @change="pickEventImage">
-        <label v-if="currentEvent.image" class="check"><input v-model="currentEvent.projector" type="checkbox">Pokaż grafikę na rzutniku — w pętli ogłoszeń przed i po nabożeństwie</label>
+        <label v-if="currentEvent.image" class="check"><input v-model="currentEvent.projector" type="checkbox">Pokaż na nabożeństwie — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
       </template>
       <label v-if="api.enabled" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
       <!-- Zapisy: limit miejsc (dorośli + dzieci), dzieci, zatwierdzanie przez twórcę, termin; brak miejsc → lista rezerwowa -->
@@ -1760,14 +1761,14 @@
         </button>
       </div>
 
-      <div class="kh-top2">
+      <div class="kh-top2" :class="{ solo: !importantAnns.length }">
         <button v-if="nextService" class="kh-svc" @click="open(nextService)">
           <span class="kh-tag"><svg class="i"><use href="#calendar"/></svg>Najbliższe nabożeństwo</span>
           <b>{{ pretty(nextService.date).replace(/ \d{4}$/, '') }}, {{ nextService.time || DEFAULT_TIME }}</b>
           <span class="kh-body">{{ [nextService.sermonTitle, nextService.passage].filter(Boolean).join(' · ') || 'Bez tytułu kazania' }}<template v-if="nextService.speaker"> — {{ nextService.speaker }}</template></span>
           <span class="kh-foot"><span class="kh-until" :class="{ live: countdown?.live }">{{ countdown?.live ? 'W trakcie' : untilText }}</span>{{ nextService.place || DEFAULT_PLACE }}<em v-if="canEdit && missing(nextService).length" class="kh-pill bad">Braki</em></span>
         </button>
-        <section class="kh-panel">
+        <section v-if="importantAnns.length" class="kh-panel">
           <div class="kh-panel-h"><h2>Komunikaty rady zboru</h2><span v-if="importantAnns.length" class="kh-count">{{ importantAnns.length }}</span><span v-if="newAnnCount" class="kh-muted">{{ newAnnCount }} {{ newAnnCount === 1 ? 'nowy' : 'nowe' }}</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie ogłoszenia</button></div>
           <div v-if="importantAnns.length" class="kh-notes">
             <button v-for="a in importantAnns" :key="a.id" class="kh-note" :class="{ fresh: annIsNew(a) }" @click="openAnn(a)">
@@ -2425,7 +2426,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.70 · 18.10.2026'
+const VERSION = '2.71 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
