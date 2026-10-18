@@ -50,7 +50,10 @@ assert.ok(st.months[0].confirmed); assert.equal(st.months[0].items[0].confirmed,
 // Kasia: dziesięcina nie wystarczyła — potwierdza mniej, deklaracja maleje
 assert.equal(ok(await K.rpc('confirm_month', { m: month(), amounts: { dach: 60 } })), 60)
 assert.equal((await db.query(`select amount from pledges where goal_id = 'dach' and person <> $1`, [ma.id])).rows[0].amount, 60)
-err(await K.rpc('confirm_month', { m: month(), amounts: { dach: 500 } }), /najwyżej/)
+err(await K.rpc('confirm_month', { m: month(), amounts: { dach: 500 } }), /już potwierdzony/) // ostateczne
+// po potwierdzeniu: deklaracja zamknięta do nowego miesiąca
+err(await K.rpc('pledge_set', { g: 'dach', amt: 80 }), /zmienisz od/)
+err(await M.rpc('confirm_month', { m: month(), amounts: {} }), /już potwierdzony/)
 err(await K.rpc('confirm_month', { m: month(1), amounts: {} }), /bieżący albo poprzedni/)
 err(await K.rpc('confirm_month', { m: month(-3), amounts: {} }), /bieżący albo poprzedni/)
 ov = ok(await K.rpc('goals_overview'))
@@ -69,8 +72,11 @@ await db.query(`select pledge_reminders()`) // wersja dla zaplanowanej funkcji d
 // poprzedni miesiąc da się potwierdzić
 assert.equal(ok(await M.rpc('confirm_month', { m: month(-1), amounts: {} })), 200)
 
-// zamknięty cel: zwiększyć nie można, zmniejszyć tak; nowej deklaracji też nie
+// nowa deklaracja na inny cel po potwierdzeniu miesiąca — liczy się od następnego miesiąca
+ok(await R.from('goals').upsert({ id: 'mlodziez', title: 'Wyjazd młodzieży', target: 3000, ends }))
+ok(await M.rpc('pledge_set', { g: 'mlodziez', amt: 50 }))
+assert.equal(String((await db.query(`select since from pledges where goal_id = 'mlodziez'`)).rows[0].since.toISOString?.() ?? (await db.query(`select since::text as s from pledges where goal_id = 'mlodziez'`)).rows[0].s).slice(0, 7), month(1).slice(0, 7))
+// zamknięty cel: zwiększyć nie można
 ok(await R.from('goals').update({ closed: true }).eq('id', 'dach'))
-err(await M.rpc('pledge_set', { g: 'dach', amt: 300 }), /zamknięty/)
-ok(await M.rpc('pledge_set', { g: 'dach', amt: 0 }))
+err(await K.rpc('pledge_set', { g: 'dach', amt: 300 }), /zamknięty|zmienisz od/)
 console.log('cele: wszystkie testy OK')

@@ -1,7 +1,7 @@
 // Pozwala zainstalować stronę jako aplikację i otworzyć ją bez zasięgu (z ostatnio pobranej wersji).
 // Pliki strony: najpierw sieć (żeby zawsze była najnowsza wersja), a bez internetu — kopia.
 // Dane (Dysk Google, baza Supabase) nigdy nie są tu zapisywane — zawsze idą prosto do źródła.
-const CACHE = 'kns-nabo-v87'
+const CACHE = 'kns-nabo-v88'
 const SHELL = ['./', './index.html', './drive.js', './api.js', './church.js', './supa.js', './home.css', './config.js', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png', './badge.png', './favicon.png', './maskable-192.png', './maskable-512.png']
 const LIBRARY = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net)\//
 

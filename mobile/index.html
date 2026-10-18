@@ -537,6 +537,16 @@
   .goal-people th { color: var(--muted); font-weight: 600; }
   .goal-people td.miss { color: #ff8a65; }
   .goal-form { margin-bottom: 14px; }
+  .gc-final { margin-top: 12px; padding: 12px; border: 1px solid rgba(232, 163, 61, .45); border-radius: 12px; background: rgba(0, 0, 0, .15); }
+  .gc-transfer { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 10px 0; font-size: 14px; }
+  .gc-transfer dt { color: var(--muted); }
+  .gc-transfer dd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+  .gc-transfer code { font-size: 13px; padding: 2px 6px; border-radius: 6px; background: var(--panel2); word-break: break-all; }
+  .gc-warn { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0; color: #ffb36b; font-size: 13.5px; }
+  .gc-warn .i { flex: none; width: 17px; height: 17px; margin-top: 1px; }
+  .goal-locked { margin-top: 12px; }
+  .goal-support { margin: 0 0 14px; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; }
+  .goal-support summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   .goal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .goal-form-row input { width: 100%; }
   .asb-seasons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -1661,9 +1671,23 @@
         <template v-if="goals.reduce?.month === m.month">
           <p class="note">Wpisz, ile faktycznie poszło na każdy cel — deklaracje zmniejszą się do tych kwot (na kolejne miesiące też).</p>
           <div v-for="it in goals.reduce.items" :key="it.goal" class="gc-reduce"><label :for="'gr' + it.goal">{{ it.title }}</label><input :id="'gr' + it.goal" v-model.number="it.value" type="number" min="0" :max="it.amount" step="10" inputmode="numeric"><small>z {{ zl(it.amount) }}</small></div>
-          <div class="row"><button class="primary" :disabled="busy" @click="confirmMonth(m, true)">Potwierdź mniejsze kwoty</button><button :disabled="busy" @click="goals.reduce = null">Anuluj</button></div>
+          <div v-if="goals.confirming?.month !== m.month" class="row"><button class="primary" :disabled="busy" @click="askConfirm(m, true)">Dalej — z tymi kwotami</button><button :disabled="busy" @click="goals.reduce = null">Anuluj</button></div>
         </template>
-        <div v-else class="row"><button class="primary" :disabled="busy" @click="confirmMonth(m)"><svg class="i"><use href="#check"/></svg>Tak, potwierdzam</button><button :disabled="busy" @click="startReduce(m)">Nie — zmniejszam deklaracje</button></div>
+        <div v-else-if="goals.confirming?.month !== m.month" class="row"><button class="primary" :disabled="busy" @click="askConfirm(m)"><svg class="i"><use href="#check"/></svg>Tak, potwierdzam</button><button :disabled="busy" @click="startReduce(m)">Nie — zmniejszam deklaracje</button></div>
+        <!-- drugi krok: przelew i ostateczne potwierdzenie -->
+        <div v-if="goals.confirming?.month === m.month" class="gc-final">
+          <b>Wyślij przelew dziesięciny — co najmniej {{ zl(goals.confirming.total) }}</b>
+          <dl v-if="support.account || support.blik" class="gc-transfer">
+            <template v-if="support.account"><dt>Konto</dt><dd><code>{{ support.account }}</code><button class="small" @click="copyText(support.account.replace(/\s/g, ''), 'konto')">{{ copiedWhat === 'konto' ? 'Skopiowano' : 'Kopiuj' }}</button></dd></template>
+            <template v-if="support.name"><dt>Odbiorca</dt><dd>{{ support.name }}</dd></template>
+            <dt>Tytuł</dt><dd><code>{{ transferTitle(m) }}</code><button class="small" @click="copyText(transferTitle(m), 'tytul')">{{ copiedWhat === 'tytul' ? 'Skopiowano' : 'Kopiuj' }}</button></dd>
+            <template v-if="support.blik"><dt>BLIK</dt><dd>na numer <code>{{ support.blik }}</code><button class="small" @click="copyText(support.blik.replace(/\s/g, ''), 'blik')">{{ copiedWhat === 'blik' ? 'Skopiowano' : 'Kopiuj' }}</button></dd></template>
+          </dl>
+          <p v-else class="note">Dane do przelewu ustawia administrator (na tej stronie, pod listą celów).</p>
+          <p class="gc-warn"><svg class="i"><use href="#alert"/></svg><span>Potwierdzenie jest ostateczne: tego miesiąca ani swoich deklaracji nie zmienisz do {{ nextMonthStart }}.</span></p>
+          <label class="check"><input v-model="goals.sent" type="checkbox">Wysłałem(-am) przelew dziesięciny — co najmniej {{ zl(goals.confirming.total) }}</label>
+          <div class="row"><button class="primary" :disabled="busy || !goals.sent" @click="confirmMonth(m)"><svg class="i"><use href="#check"/></svg>Potwierdzam ostatecznie</button><button :disabled="busy" @click="goals.confirming = null">Wróć</button></div>
+        </div>
       </template>
     </section>
 
@@ -1698,6 +1722,14 @@
       <p v-if="goals.status.monthly" class="note">Razem deklarujesz <b>{{ zl(goals.status.monthly) }}</b> miesięcznie ze swojej dziesięciny.</p>
       <div v-if="goals.busy && !goals.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 3" :key="n" class="skel skel-row"></div></div>
       <p v-else-if="!goals.list.length" class="note">Nie ma jeszcze celów.{{ goals.canManage ? ' Dodaj pierwszy — „Nowy cel”.' : ' Ogłasza je rada zboru.' }}</p>
+      <details v-if="canManage" class="goal-support">
+        <summary>Dane do przelewu dziesięciny (widzą je członkowie przy potwierdzaniu)</summary>
+        <label for="spAcc">Numer konta</label><input id="spAcc" v-model="supportEdit.account" inputmode="numeric" placeholder="np. 12 1020 …" autocomplete="off">
+        <label for="spName">Odbiorca</label><input id="spName" v-model="supportEdit.name" placeholder="Kościół Na Skale" autocomplete="off">
+        <label for="spTitle">Tytuł przelewu (miesiąc i imię dopiszą się same)</label><input id="spTitle" v-model="supportEdit.title" placeholder="Dziesięcina" autocomplete="off">
+        <label for="spBlik">Telefon do BLIK</label><input id="spBlik" v-model="supportEdit.blik" inputmode="tel" placeholder="np. 789 571 542" autocomplete="off">
+        <div class="row"><button class="primary" :disabled="busy" @click="saveSupport">Zapisz dane</button></div>
+      </details>
       <article v-for="g in goals.list" :key="g.id" class="goal" :class="{ closed: g.closed, focus: goals.open === g.id }">
         <img v-if="g.image" class="goal-img" :src="g.image" alt="" loading="lazy">
         <div class="goal-h"><b>{{ g.title }}</b><span class="ann-tag">{{ g.closed ? 'zakończony' : 'do ' + shortDate(g.ends) }}</span></div>
@@ -1707,7 +1739,9 @@
         </div>
         <div class="goal-nums"><span><b>{{ zl(g.confirmed) }}</b> z {{ zl(g.target) }} · {{ goalPct(g) }}%</span><span>{{ g.people }} {{ g.people === 1 ? 'osoba' : g.people % 10 >= 2 && g.people % 10 <= 4 && (g.people % 100 < 10 || g.people % 100 >= 20) ? 'osoby' : 'osób' }} · {{ zl(g.monthly) }} / mies.</span></div>
         <small v-if="!g.closed" class="goal-legend"><i class="lg-done"></i>potwierdzone <i class="lg-proj"></i>z deklaracjami do terminu: {{ zl(goalProjAmount(g)) }}</small>
-        <div class="goal-mine">
+        <p v-if="monthLocked && g.mine" class="note goal-locked">{{ monthName(thisMonth).replace(/^./, c => c.toUpperCase()) }} potwierdzony — deklarację zmienisz od {{ nextMonthStart }}.</p>
+        <div v-else class="goal-mine">
+          <p v-if="monthLocked && !g.mine" class="note">Ten miesiąc już potwierdziłeś — nowa deklaracja liczy się od {{ nextMonthStart }}.</p>
           <label :for="'gm' + g.id">{{ g.mine ? 'Twoja deklaracja' : 'Ile z dziesięciny co miesiąc?' }} <small>(zł miesięcznie)</small></label>
           <div class="row">
             <input :id="'gm' + g.id" v-model.number="goals.amount[g.id]" type="number" min="0" step="10" inputmode="numeric" :disabled="g.closed && !g.mine" placeholder="np. 100">
@@ -2584,7 +2618,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.76 · 18.10.2026'
+const VERSION = '2.77 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -4028,7 +4062,13 @@ createApp({
     // Rada ogłasza cel (kwota, termin). Członek deklaruje, ile ze SWOJEJ dziesięciny przeznacza na cel co miesiąc,
     // a po miesiącu potwierdza, że jego dziesięcina pokryła wszystkie deklaracje — albo je zmniejsza (cele.sql).
     const goalsView = ref(false)
-    const goals = Vue.reactive({ list: [], status: { months: [], monthly: 0 }, canManage: false, busy: false, error: '', open: '', edit: null, amount: {}, people: {}, reduce: null })
+    const goals = Vue.reactive({ list: [], status: { months: [], monthly: 0 }, canManage: false, busy: false, error: '', open: '', edit: null, amount: {}, people: {}, reduce: null, confirming: null, sent: false })
+    const support = ref({}), supportEdit = Vue.reactive({ account: '', name: '', title: '', blik: '' })
+    async function loadSupport() { try { support.value = (await api.call('support')) || {}; Object.assign(supportEdit, { account: '', name: '', title: '', blik: '' }, support.value) } catch { /* bez danych */ } }
+    const saveSupport = () => guard(async () => { await api.call('setSupport', { ...supportEdit }); await loadSupport(); showToast('Zapisano dane do przelewu.') })
+    const transferTitle = m => [(support.value.title || 'Dziesięcina') + ' ' + String(m.month).slice(5, 7) + '/' + String(m.month).slice(0, 4), me.value?.name].filter(Boolean).join(' — ')
+    const copiedWhat = ref('')
+    async function copyText(t, what) { try { await navigator.clipboard.writeText(t); copiedWhat.value = what; setTimeout(() => { if (copiedWhat.value === what) copiedWhat.value = '' }, 1800) } catch { /* bez schowka */ } }
     const zl = n => (Math.round(+n || 0)).toLocaleString('pl') + ' zł'
     const thisMonth = computed(() => todayStr.value.slice(0, 7) + '-01')
     const prevMonth = computed(() => { const d = new Date(thisMonth.value + 'T12:00'); d.setMonth(d.getMonth() - 1); return localDate(d).slice(0, 7) + '-01' })
@@ -4037,6 +4077,8 @@ createApp({
     const itemsSum = m => (m?.items || []).reduce((t, it) => t + (+it.amount || 0), 0)
     // do potwierdzenia: poprzedni miesiąc bez potwierdzenia
     const goalDue = computed(() => (goals.status.months || []).find(m => !m.confirmed && String(m.month).slice(0, 10) < thisMonth.value && itemsSum(m) > 0) || null)
+    const monthLocked = computed(() => (goals.status.months || []).some(m => String(m.month).slice(0, 10) === thisMonth.value && m.confirmed))
+    const nextMonthStart = computed(() => { const d = new Date(thisMonth.value + 'T12:00'); d.setMonth(d.getMonth() + 1); return d.toLocaleDateString('pl', { day: 'numeric', month: 'long' }) })
     const goalPct = g => Math.min(100, Math.round((g.confirmed / g.target) * 100) || 0)
     const goalProjAmount = g => g.confirmed + Math.max(0, g.monthly * g.months_left - g.confirmed_now)
     const goalProj = g => Math.min(100, Math.round((goalProjAmount(g) / g.target) * 100) || 0)
@@ -4053,6 +4095,7 @@ createApp({
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false; asbView.value = false
       goalsView.value = true; goals.open = id; goals.edit = null; goals.reduce = null; scrollTo(0, 0)
+      loadSupport()
       return loadGoals().then(() => {
         if (id && goals.canManage) loadGoalPeople(id)
         if (id) nextTick(() => document.querySelector('.goal.focus')?.scrollIntoView({ block: 'start' }))
@@ -4065,11 +4108,18 @@ createApp({
       showToast(amt ? 'Deklaracja: ' + zl(amt) + ' miesięcznie na „' + g.title + '”' : 'Wycofano deklarację')
     })
     function withdraw(g) { if (confirm('Wycofać deklarację na „' + g.title + '”? To, co już potwierdziłeś, zostaje w zebranej kwocie.')) { goals.amount[g.id] = 0; savePledge(g) } }
-    function startReduce(m) { goals.reduce = { month: m.month, items: (m.items || []).map(it => ({ ...it, value: it.amount })) } }
-    const confirmMonth = (m, reduced) => guard(async () => {
-      const amounts = reduced ? Object.fromEntries(goals.reduce.items.map(it => [it.goal, Math.max(0, Math.min(it.amount, Math.round(+it.value || 0)))])) : {}
-      const total = await api.call('confirmMonth', { m: String(m.month).slice(0, 10), amounts })
-      goals.reduce = null
+    function startReduce(m) { goals.confirming = null; goals.reduce = { month: m.month, items: (m.items || []).map(it => ({ ...it, value: it.amount })) } }
+    // Dwa kroki: „Tak” (albo mniejsze kwoty) → przelew i ostateczne potwierdzenie (bez zmian do nowego miesiąca).
+    const reducedAmounts = () => Object.fromEntries(goals.reduce.items.map(it => [it.goal, Math.max(0, Math.min(it.amount, Math.round(+it.value || 0)))]))
+    function askConfirm(m, reduced = false) {
+      const amounts = reduced ? reducedAmounts() : {}
+      goals.confirming = { month: m.month, total: reduced ? Object.values(amounts).reduce((a, b) => a + b, 0) : itemsSum(m), amounts }
+      goals.sent = false
+      loadSupport()
+    }
+    const confirmMonth = m => guard(async () => {
+      const total = await api.call('confirmMonth', { m: String(m.month).slice(0, 10), amounts: goals.confirming?.amounts || {} })
+      goals.reduce = null; goals.confirming = null; goals.sent = false
       await loadGoals()
       showToast('Potwierdzono ' + monthName(m.month) + ': ' + zl(total))
     })
@@ -4521,7 +4571,7 @@ createApp({
       bulk, annFromImages,
       MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
       goalsView, goals, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
-      startReduce, confirmMonth, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
+      startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,

@@ -85,9 +85,12 @@ drop policy if exists pledge_months_read on public.pledge_months;
 create policy pledge_months_read on public.pledge_months for select to authenticated using (person = auth.uid() or can_manage_goals());
 
 -- Deklaracja (nowa, zmiana, 0 = wycofanie). Zwiększyć można tylko przed terminem celu.
+-- Po potwierdzeniu bieżącego miesiąca deklaracje są zamknięte do 1. dnia następnego; nowa deklaracja na inny cel
+-- liczy się wtedy od następnego miesiąca.
 create or replace function public.pledge_set(g text, amt int) returns void
 language plpgsql security definer set search_path = public as $$
-declare goal goals;
+declare goal goals; cur date := date_trunc('month', current_date)::date; nxt date := (date_trunc('month', current_date) + interval '1 month')::date;
+  locked boolean; old int;
 begin
   if not is_active() then raise exception 'Deklaracje składają członkowie z kontem.'; end if;
   select * into goal from goals where id = g;
@@ -97,21 +100,30 @@ begin
      and amt > coalesce((select amount from pledges where goal_id = g and person = auth.uid()), 0) then
     raise exception 'Ten cel jest już zamknięty — można tylko zmniejszyć deklarację.';
   end if;
-  insert into pledges (goal_id, person, amount) values (g, auth.uid(), amt)
+  locked := exists (select 1 from pledge_months where person = auth.uid() and month = cur and confirmed is not null);
+  old := coalesce((select amount from pledges where goal_id = g and person = auth.uid()), 0);
+  if locked and old > 0 and amt <> old then
+    raise exception 'Ten miesiąc jest już potwierdzony — deklarację zmienisz od %.', to_char(nxt, 'DD.MM.YYYY');
+  end if;
+  insert into pledges (goal_id, person, amount, since) values (g, auth.uid(), amt, case when locked then nxt else cur end)
   on conflict (goal_id, person) do update set amount = excluded.amount, updated = now(),
-    since = case when pledges.amount = 0 and excluded.amount > 0 then date_trunc('month', current_date)::date else pledges.since end;
+    since = case when pledges.amount = 0 and excluded.amount > 0 then excluded.since else pledges.since end;
 end $$;
 revoke all on function public.pledge_set(text, int) from public, anon;
 grant execute on function public.pledge_set(text, int) to authenticated;
 
--- Potwierdzenie miesiąca (bieżący albo poprzedni): amounts = {"cel": kwota}. Kwota mniejsza niż deklaracja
--- zmniejsza deklarację na przyszłość; większej niż deklaracja nie da się potwierdzić. Można poprawić (nadpisuje).
+-- Potwierdzenie miesiąca (bieżący albo poprzedni) — razem z wysłaniem przelewu dziesięciny, ostateczne:
+-- amounts = {"cel": kwota}. Kwota mniejsza niż deklaracja zmniejsza deklarację na przyszłość; większej się nie da.
 create or replace function public.confirm_month(m date, amounts jsonb) returns int
 language plpgsql security definer set search_path = public as $$
 declare mon date := date_trunc('month', m)::date; cur date := date_trunc('month', current_date)::date; p pledges; a int; total int := 0;
 begin
   if not is_active() then raise exception 'Potwierdzają członkowie z kontem.'; end if;
   if mon > cur or mon < (cur - interval '1 month')::date then raise exception 'Potwierdzić można bieżący albo poprzedni miesiąc.'; end if;
+  -- potwierdzenie jest ostateczne (bez poprawiania)
+  if exists (select 1 from pledge_months where person = auth.uid() and month = mon and confirmed is not null) then
+    raise exception 'Ten miesiąc jest już potwierdzony — nie można go zmienić.';
+  end if;
   for p in select * from pledges where person = auth.uid() and since <= mon and (amount > 0 or (amounts ? goal_id)) loop
     a := coalesce((amounts ->> p.goal_id)::int, p.amount);
     if a < 0 then raise exception 'Kwota nie może być ujemna.'; end if;

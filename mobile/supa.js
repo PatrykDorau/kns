@@ -151,6 +151,9 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'bandPeople') return check(await sb.rpc('band_people'))
       if (action === 'asbPeople') return check(await sb.rpc('asb_people'))
       // Cele wsparcia: część dziesięciny na wybrany cel, potwierdzana co miesiąc (cele.sql).
+      // Dane do przelewu dziesięciny (konto, odbiorca, BLIK) — zmienia administrator.
+      if (action === 'support') return (check(await sb.from('site_settings').select('value').eq('key', 'wsparcie')) || [])[0]?.value || {}
+      if (action === 'setSupport') return check(await sb.rpc('set_site_setting', { k: 'wsparcie', v: { account: data.account || '', name: data.name || '', title: data.title || '', blik: data.blik || '' } }))
       if (action === 'goals') return check(await sb.rpc('goals_overview')) || []
       if (action === 'pledgeStatus') return check(await sb.rpc('my_pledge_status')) || {}
       if (action === 'canGoals') return !!check(await sb.rpc('can_manage_goals'))
