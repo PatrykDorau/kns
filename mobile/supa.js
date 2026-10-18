@@ -150,6 +150,9 @@ export function createSupa(config, client = window.supabase.createClient(config.
       if (action === 'asbRemind') { const n = check(await sb.rpc('asb_remind', { meeting: data.id })); await pushInbox(); return n }
       if (action === 'bandPeople') return check(await sb.rpc('band_people'))
       if (action === 'asbPeople') return check(await sb.rpc('asb_people'))
+      // Przeczytane ogłoszenia — na koncie, więc „Nowe” znika na każdym urządzeniu.
+      if (action === 'seenAnns') return (check(await sb.from('seen_announcements').select('ann_id')) || []).map(x => x.ann_id)
+      if (action === 'markSeen') return check(await sb.rpc('mark_seen', { ids: data.ids || [] }))
       // Wiadomość do rang i służb: wpisy w dzwonku robi baza, telefony — /api/push { inbox: true }.
       if (action === 'broadcastOptions') return check(await sb.rpc('broadcast_options'))
       if (action === 'broadcast') {

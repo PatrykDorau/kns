@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import Icon from './Icon.vue'
-import { access, copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
+import { access, copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, loadSeenAnns, markSeenAnns, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from './store.js'
 import { videoInfo } from '../mobile/church.js'
 
 // Strona startowa (wzór: pulpit z powitaniem, pasem kart i tygodniem): najbliższe nabożeństwo i komunikaty
@@ -11,7 +11,10 @@ const active = a => a.audience !== 'council' && (!a.until || a.until >= today())
 const newest = (a, b) => (b.date || 0) - (a.date || 0)
 const notices = computed(() => churchAnnouncements.value.filter(a => a.important && active(a)).sort(newest))
 const pinnedFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || newest(a, b)
-const news = computed(() => churchAnnouncements.value.filter(a => !a.important && active(a)).sort(pinnedFirst).slice(0, 8))
+// Start: 6 najnowszych ogłoszeń, reszta w „Wszystkie” (z liczbą i ile z nich nowych).
+const newsAll = computed(() => churchAnnouncements.value.filter(a => !a.important && active(a)).sort(pinnedFirst))
+const news = computed(() => newsAll.value.slice(0, 6))
+const more = computed(() => { const rest = newsAll.value.slice(6); return { n: rest.length, fresh: rest.filter(isNew).length } })
 // „Wszystkie”: komunikaty rady i ogłoszenia razem (jak na stronie).
 const allAnns = computed(() => churchAnnouncements.value.filter(active).sort(pinnedFirst))
 const listOpen = ref(false)
@@ -44,16 +47,27 @@ const until = computed(() => {
 })
 // Ogłoszenie w okienku: grafika, treść i film (wgrany gra od razu; YouTube/Vimeo — w przeglądarce).
 const shown = ref(null)
-// „Nowe”: komunikat z ostatnich 14 dni, którego jeszcze nie otwierano na tym komputerze.
+// „Nowe”: ogłoszenie z ostatnich 30 dni, którego ta osoba jeszcze nie otworzyła — pamięta konto (strona, telefon
+// i komputer razem); bez połączenia — ten komputer.
 const seen = ref((() => { try { return JSON.parse(localStorage.getItem('kns-seen-anns') || '[]') } catch { return [] } })())
-const isNew = a => !seen.value.includes(a.id) && Date.now() - (+a.date || 0) < 14 * 864e5
+const isNew = a => !seen.value.includes(a.id) && Date.now() - (+a.date || 0) < 30 * 864e5
 const newCount = computed(() => notices.value.filter(isNew).length)
+const keepSeen = () => { try { localStorage.setItem('kns-seen-anns', JSON.stringify(seen.value.slice(-300))) } catch { /* bez zapisu */ } }
 function openNotice(a) {
   shown.value = a
   if (seen.value.includes(a.id)) return
-  seen.value = [...seen.value, a.id].slice(-200)
-  try { localStorage.setItem('kns-seen-anns', JSON.stringify(seen.value)) } catch { /* bez zapisu */ }
+  seen.value = [...seen.value, a.id]
+  keepSeen()
+  markSeenAnns([a.id])
 }
+onMounted(async () => {
+  const res = await loadSeenAnns()
+  if (!res?.ids) return
+  const local = seen.value.filter(id => !res.ids.includes(id) && churchAnnouncements.value.some(a => a.id === id))
+  seen.value = [...new Set([...res.ids, ...seen.value])]
+  keepSeen()
+  if (local.length) markSeenAnns(local)
+})
 const vid = computed(() => videoInfo(shown.value?.video))
 const copied = ref(false)
 async function share(id) { if (await copyLink('ogloszenie', id)) { copied.value = true; setTimeout(() => { copied.value = false }, 2500) } }
@@ -100,13 +114,14 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
     <section class="kh-panel">
       <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span><span class="kh-spacer"></span><button v-if="allAnns.length" class="kh-link" @click="listOpen = true">Wszystkie</button></div>
       <div v-if="news.length" class="kh-anns">
-        <article v-for="a in news" :key="a.id" class="kh-ann kh-clickable" @click="shown = a">
+        <article v-for="a in news" :key="a.id" class="kh-ann kh-clickable" :class="{ fresh: isNew(a) }" @click="openNotice(a)">
           <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
           <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
-          <span class="kh-ann-text"><b><Icon v-if="a.pinned" name="pin" class="kh-pin" />{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
+          <span class="kh-ann-text"><b><Icon v-if="a.pinned" name="pin" class="kh-pin" /><span class="kh-ann-t">{{ a.title }}</span><em v-if="isNew(a)" class="kh-new">Nowe</em><em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
           <small>{{ shortDate(a.date) }}</small>
         </article>
       </div>
+      <button v-if="more.n" class="kh-more" @click="listOpen = true">Jeszcze {{ more.n }} {{ more.n === 1 ? 'ogłoszenie' : more.n < 5 ? 'ogłoszenia' : 'ogłoszeń' }}<em v-if="more.fresh" class="kh-new">{{ more.fresh }} {{ more.fresh === 1 ? 'nowe' : 'nowych' }}</em><Icon name="right" /></button>
       <p v-else class="kh-none">Nie ma nowych ogłoszeń. Dodaje się je w aplikacji na telefon (Więcej → Ogłoszenia).</p>
     </section>
 
@@ -129,7 +144,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
       <button class="kh-ib kh-close" title="Zamknij" aria-label="Zamknij" @click="listOpen = false"><Icon name="x" /></button>
       <h2>Wszystkie ogłoszenia</h2>
       <div class="kh-anns">
-        <article v-for="a in allAnns" :key="a.id" class="kh-ann kh-clickable" @click="shown = a">
+        <article v-for="a in allAnns" :key="a.id" class="kh-ann kh-clickable" :class="{ fresh: isNew(a) }" @click="openNotice(a)">
           <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
           <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
           <span class="kh-ann-text"><b><Icon v-if="a.pinned" name="pin" class="kh-pin" />{{ a.title }}<em v-if="a.important" class="kh-film">Rada zboru</em><em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>

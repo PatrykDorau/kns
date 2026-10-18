@@ -116,6 +116,9 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
     lyrics, listenLyrics,
     // Skład zespołu: osoby ze służby muzycznej (dla osób z prawem edycji).
+    // Przeczytane ogłoszenia (na koncie — te same co na stronie i telefonie).
+    seenAnns: () => safe(async () => { await active(); return { ids: (check(await sb.from('seen_announcements').select('ann_id')) || []).map(x => x.ann_id) } }),
+    markSeen: ids => safe(async () => { await active(); check(await sb.rpc('mark_seen', { ids })); return { ok: true } }),
     bandPeople: () => safe(async () => { await active(); return { people: check(await sb.rpc('band_people')) || [] } }),
     // Osoby (administrator): lista, zatwierdzanie, rangi.
     people: () => safe(async () => {

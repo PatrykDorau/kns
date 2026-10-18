@@ -67,6 +67,8 @@ export async function removeChurchEvent(id) {
 }
 // Osoby i powiadomienia (baza danych).
 export const loadBandPeople = () => (cloud ? cloud.bandPeople() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
+export const loadSeenAnns = () => (cloud ? cloud.seenAnns() : Promise.resolve({ ids: [] }))
+export const markSeenAnns = ids => (cloud ? cloud.markSeen(ids) : Promise.resolve({}))
 export const loadListen = () => (cloud ? cloud.listen() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 export const loadPublicPreview = () => (cloud ? cloud.publicPreview() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))
 export const loadPeople = () => (cloud ? cloud.people() : Promise.resolve({ error: 'Brak połączenia z bazą danych.' }))

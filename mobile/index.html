@@ -1817,13 +1817,14 @@
         <section class="kh-panel">
           <div class="kh-panel-h"><h2>Ogłoszenia</h2><span class="kh-muted">z newslettera</span><span class="kh-spacer"></span><button class="kh-link" @click="openAnns">Wszystkie</button></div>
           <div v-if="boardNews.length" class="kh-anns">
-            <button v-for="a in boardNews" :key="a.id" class="kh-ann" @click="openAnn(a)">
+            <button v-for="a in boardNews" :key="a.id" class="kh-ann" :class="{ fresh: annIsNew(a) }" @click="openAnn(a)">
               <img v-if="a.image" class="kh-ann-ic kh-ann-img" :src="a.image" alt="" loading="lazy">
               <span v-else class="kh-ann-ic">{{ a.title.trim()[0]?.toUpperCase() }}</span>
-              <span class="kh-ann-text"><b><svg v-if="a.pinned" class="i kh-pin"><use href="#pin"/></svg>{{ a.title }}<em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
+              <span class="kh-ann-text"><b><svg v-if="a.pinned" class="i kh-pin"><use href="#pin"/></svg><span class="kh-ann-t">{{ a.title }}</span><em v-if="annIsNew(a)" class="kh-new">Nowe</em><em v-if="a.video" class="kh-film">▶ Film</em></b><span>{{ a.text }}</span></span>
               <small>{{ shortDate(a.date) }}</small>
             </button>
           </div>
+          <button v-if="boardMore.n" class="kh-more" @click="openAnns">Jeszcze {{ boardMore.n }} {{ boardMore.n === 1 ? 'ogłoszenie' : boardMore.n < 5 ? 'ogłoszenia' : 'ogłoszeń' }}<em v-if="boardMore.fresh" class="kh-new">{{ boardMore.fresh }} {{ boardMore.fresh === 1 ? 'nowe' : 'nowych' }}</em><svg class="i"><use href="#chev"/></svg></button>
           <p v-else class="kh-none">Nie ma nowych ogłoszeń.</p>
         </section>
 
@@ -2442,7 +2443,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.73 · 18.10.2026'
+const VERSION = '2.74 · 18.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2715,7 +2716,7 @@ createApp({
       events.value = allEvents.filter(e => e.status !== 'pending'); pendingEvents.value = allEvents.filter(e => e.status === 'pending')
       types.value = mergeTypes(data.templates); typesBase = data.templatesUpdated || 0
       announcements.value = (data.announcements || []).filter(a => a.status !== 'pending'); pendingAnns.value = (data.announcements || []).filter(a => a.status === 'pending')
-      if (api.enabled) setTimeout(loadInbox) // po ustawieniu „ready”
+      if (api.enabled) { setTimeout(loadInbox); setTimeout(loadSeenAnns) } // po ustawieniu „ready”
     }
     // Z serwerem kont nowa osoba loguje się najpierw samą tożsamością — o Dysk pytamy dopiero po zatwierdzeniu.
     const start = (choose = false) => guard(async () => {
@@ -3304,14 +3305,28 @@ createApp({
     // Zwykłe ogłoszenia — osoby z prawem edycji; komunikaty rady i ogłoszenia dla rady — rada i pastor.
     const annEditable = computed(() => !!currentAnn.value && mayChange(currentAnn.value, annSavedOnce.value) && (hasCouncil.value || (!currentAnn.value.important && currentAnn.value.audience !== 'council' && annAudience !== 'council')))
     function openAnns() { annView.value = true; scrollTo(0, 0) }
-    // „Nowe”: komunikat z ostatnich 14 dni, którego ta osoba jeszcze nie otworzyła (pamięta przeglądarka).
+    // „Nowe”: ogłoszenie z ostatnich 30 dni, którego ta osoba jeszcze nie otworzyła. Zalogowanym pamięta konto
+    // (telefon i komputer razem), gościom — przeglądarka.
     const seenAnns = ref((() => { try { return JSON.parse(localStorage.getItem('kns-seen-anns') || '[]') } catch { return [] } })())
-    const annIsNew = a => !seenAnns.value.includes(a.id) && Date.now() - (+a.date || 0) < 14 * 864e5
+    const annIsNew = a => !seenAnns.value.includes(a.id) && Date.now() - (+a.date || 0) < 30 * 864e5
     const newAnnCount = computed(() => importantAnns.value.filter(annIsNew).length)
+    const keepSeen = () => { try { localStorage.setItem('kns-seen-anns', JSON.stringify(seenAnns.value.slice(-300))) } catch { /* tryb prywatny */ } }
     function markAnnSeen(id) {
       if (!id || seenAnns.value.includes(id)) return
-      seenAnns.value = [...seenAnns.value, id].slice(-200)
-      try { localStorage.setItem('kns-seen-anns', JSON.stringify(seenAnns.value)) } catch { /* tryb prywatny */ }
+      seenAnns.value = [...seenAnns.value, id]
+      keepSeen()
+      if (api.enabled) api.call('markSeen', { ids: [id] }).catch(() => {})
+    }
+    // Po zalogowaniu: przeczytane z konta + to, co otwarto w tej przeglądarce wcześniej (dopisane na konto).
+    async function loadSeenAnns() {
+      if (!api.enabled) return
+      try {
+        const remote = (await api.call('seenAnns')) || []
+        const local = seenAnns.value.filter(id => !remote.includes(id) && announcements.value.some(a => a.id === id))
+        seenAnns.value = [...new Set([...remote, ...seenAnns.value])]
+        keepSeen()
+        if (local.length) api.call('markSeen', { ids: local }).catch(() => {})
+      } catch { /* gość albo brak sieci — zostaje pamięć przeglądarki */ }
     }
     function openAnn(a) {
       markAnnSeen(a?.id)
@@ -3973,7 +3988,11 @@ createApp({
       else if (t.id === 'planner') nextService.value ? open(nextService.value) : create(nextSundayDate)
       else if (desktopApp.url) location.href = desktopApp.url
     }
-    const boardNews = computed(() => activeAnns.value.filter(a => !a.important).slice(0, 8))
+    // Start: 6 najnowszych ogłoszeń, reszta w „Wszystkie” (z liczbą i ile z nich nowych).
+    const BOARD_MAX = 6
+    const boardAll = computed(() => activeAnns.value.filter(a => !a.important))
+    const boardNews = computed(() => boardAll.value.slice(0, BOARD_MAX))
+    const boardMore = computed(() => { const rest = boardAll.value.slice(BOARD_MAX); return { n: rest.length, fresh: rest.filter(annIsNew).length } })
     const weekRange = computed(() => {
       const f = d => asDate(d).toLocaleDateString('pl', { day: 'numeric', month: 'short' }).replace('.', '')
       return f(weekDays.value[0].date) + ' – ' + f(weekDays.value[6].date)
@@ -4298,7 +4317,7 @@ createApp({
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
       migrating, migrated, migrate,
       gcalView, gcal, openGcal, renewGcal, copyGcal,
-      weekDays, greeting, firstName, webTiles, chooseTile, boardNews, weekRange,
+      weekDays, greeting, firstName, webTiles, chooseTile, boardNews, boardMore, weekRange,
       moreView, openMore, nextService, nextSundayDate, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,

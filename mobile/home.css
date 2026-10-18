@@ -227,3 +227,13 @@ img.kh-note-ic { object-fit: cover; padding: 0; }
 .kh-panel-h .kh-spacer + .kh-link { margin-left: 0; }
 /* Sekcje stron: wyraźny początek panelu */
 .kh-panel { border-color: color-mix(in srgb, var(--line) 60%, #fff 12%); }
+/* Ogłoszenia na starcie: wiersze się nie ściskają (wcześniej nachodziły na siebie), 6 najnowszych + „Jeszcze N”. */
+.kh-anns { max-height: none; overflow: visible; }
+.kh-ann { flex: none; }
+.kh-ann-text b { display: flex; align-items: center; gap: 6px; }
+.kh-ann-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.kh-ann-text b .kh-new, .kh-ann-text b .kh-film { flex: none; }
+.kh-ann.fresh { background: rgba(232, 163, 61, .07); }
+.kh-more { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 8px; padding: 9px; border: 1px dashed var(--line); border-radius: 12px; background: transparent; color: var(--muted); font-size: 13px; }
+.kh-more:hover { color: var(--text); border-color: var(--accent, #e8a33d); }
+.kh-more .i, .kh-more svg { width: 14px; height: 14px; }
