@@ -56,7 +56,7 @@ export function stopShare() {
 }
 
 /* ---------- odbiór (laptop ze streamem) ---------- */
-export const remote = reactive({ state: 'off', since: 0, error: '' }) // off | connecting | on
+export const remote = reactive({ state: 'off', since: 0, error: '', step: '' }) // off | connecting | on; step — etap łączenia
 let rx = null // { key, id, sig, pc, video, timer }
 function rxReset() {
   if (!rx) return
@@ -69,12 +69,13 @@ export function startReceive(key, onStream) {
   stopReceive()
   if (!key) return
   rx = { key, id: uid() + uid(), sig: null, pc: null, onStream }
-  remote.state = 'connecting'; remote.error = ''
+  remote.state = 'connecting'; remote.error = ''; remote.step = 'czekam na laptop przy rzutniku (Ustawienia aplikacji → „Udostępniaj obraz rzutnika”)'
   rx.sig = screenSignal(key, async m => {
     if (!rx) return
     try {
-      if (m.t === 'ready') rxWant()
+      if (m.t === 'ready') { remote.step = 'rzutnik udostępnia — łączę…'; rxWant() }
       else if (m.t === 'offer' && m.to === rx.id) {
+        remote.step = 'rzutnik odpowiedział — zestawiam połączenie…'
         rx.pc?.close()
         const pc = new RTCPeerConnection({ iceServers: ICE })
         rx.pc = pc
@@ -82,8 +83,9 @@ export function startReceive(key, onStream) {
         pc.ontrack = e => { if (rx?.pc === pc && e.streams[0]) rx.onStream?.(e.streams[0]) }
         pc.onconnectionstatechange = () => {
           if (rx?.pc !== pc) return
-          if (pc.connectionState === 'connected') { remote.state = 'on'; remote.since = Date.now() }
-          else if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) rxReset()
+          if (pc.connectionState === 'connected') { remote.state = 'on'; remote.since = Date.now(); remote.step = '' }
+          else if (pc.connectionState === 'failed') { remote.step = 'połączenie nie przeszło przez sieć (zapora/router) — próbuję ponownie'; rxReset() }
+          else if (['disconnected', 'closed'].includes(pc.connectionState)) { remote.step = 'połączenie zerwane — łączę ponownie…'; rxReset() }
         }
         await pc.setRemoteDescription({ type: 'offer', sdp: m.sdp })
         await pc.setLocalDescription(await pc.createAnswer())
