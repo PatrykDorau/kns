@@ -519,7 +519,8 @@ export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.pre
 export const OVERLAYS = { lyrics: ['camera', 'projector', 'projectorPip'], lowerThird: ['camera', 'projectorPip'] }
 export function setPip(p) { change(l => { l.pip = { ...l.pip, ...p } }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
-export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, lyricsOn: p.lyricsOn, pip: p.pip }) }) }
+// (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
+export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, pip: p.pip }) }) }
 export function setDirect(v) { studio.direct = !!v; if (v) take() }
 // Wygląd na start (zapamiętane okienko): ten sam na podglądzie i wizji.
 export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip } }

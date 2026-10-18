@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
-import { api, cameraLock, listenLyrics, loadListen, lyricsNow, prettyDate, serviceTime, servicePlace, settings } from './store.js'
+import { api, cameraLock, loadListen, prettyDate, serviceTime, servicePlace, settings } from './store.js'
+import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from './lyricsFeed.js'
 import { OVERLAYS, SCENES, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from './studio.js'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
@@ -30,7 +31,7 @@ onMounted(async () => {
   await checkHardware()
   loadStudioDevices()
 })
-onBeforeUnmount(() => { off?.(); offLive?.(); offKey?.(); unlisten?.(); clearInterval(ytTimer); pauseIdle() })
+onBeforeUnmount(() => { off?.(); offLive?.(); offKey?.(); clearInterval(ytTimer); pauseIdle() })
 
 /* ---------- studio (obraz składany w aplikacji) ---------- */
 let offKey = null
@@ -213,7 +214,7 @@ async function goLive() {
   await new Promise(r => setTimeout(r, 800))
   const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality, fps: settings.streamFps, kbps: +settings.streamKbps || 0 })
   if (res?.error) { liveError.value = res.error; cameraLock.value = false; return }
-  feed(lyricsLast.value.text) // napisy od pierwszej klatki
+  refeedLyrics() // napisy od pierwszej klatki
   watchGoLive()
 }
 // Transmisja bez automatycznego startu (np. zaplanowana w YouTube Studio): gdy YouTube zobaczy obraz — „na żywo”.
@@ -241,22 +242,15 @@ async function stopLive() {
   setTimeout(loadYt, 4000)
 }
 // Napisy: z rzutnika na tym komputerze, z innego komputera (kanał na żywo z adresu …/napisy?k=…) albo bez.
-const lyricsKey = computed(() => { const raw = String(settings.streamLyricsKey || ''); const m = raw.match(/[?&]k=([\w-]+)/); return m ? m[1] : raw.trim().replace(/[^\w-]/g, '') })
-const lyricsLast = ref({ text: '', at: 0 })
-let unlisten = null
-const feed = text => { lyricsLast.value = { text, at: Date.now() }; studio.lyrics = text; api.streamLyrics?.(text) }
-watch([() => settings.streamLyrics, lyricsKey], () => {
-  unlisten?.(); unlisten = null
-  feed(settings.streamLyrics === 'local' ? lyricsNow.value : '')
-  if (settings.streamLyrics === 'remote' && lyricsKey.value) unlisten = listenLyrics(lyricsKey.value, feed)
-}, { immediate: true })
-watch(lyricsNow, t => { if (settings.streamLyrics === 'local') feed(t) })
+// Napisy podaje moduł lyricsFeed (działa też przy otwartym Rzutniku) — tu tylko stan.
+startLyricsFeed()
 const lyricsInfo = computed(() => {
   if (settings.streamLyrics === 'off') return 'wyłączone'
   if (settings.streamLyrics === 'remote' && !lyricsKey.value) return 'wklej adres napisów z komputera z rzutnikiem'
-  const t = lyricsLast.value.text.split('\n')[0]
-  if (settings.streamLyrics === 'remote' && !lyricsLast.value.at) return 'czekam na rzutnik…'
-  return t ? 'teraz: „' + t + (lyricsLast.value.text.includes('\n') ? '…' : '') + '”' : 'teraz bez tekstu (brak pieśni albo „Ukryj”)'
+  const t = lyricsFeed.text.split('\n')[0]
+  const link = settings.streamLyrics === 'remote' ? (lyricsFeed.link === 'local' ? ' (rzutnik na tym komputerze)' : lyricsFeed.link === 'connecting' ? ' · łączę ponownie…' : '') : ''
+  if (settings.streamLyrics === 'remote' && !lyricsFeed.at) return (lyricsFeed.link === 'connecting' ? 'łączę z rzutnikiem…' : 'czekam na rzutnik…')
+  return (t ? 'teraz: „' + t + (lyricsFeed.text.includes('\n') ? '…' : '') + '”' : 'teraz bez tekstu (brak pieśni albo „Ukryj”)') + link
 })
 async function endBroadcast(b) { if (confirm('Zakończyć transmisję „' + b.title + '”? Widzowie zobaczą jej koniec.')) await ytDo(() => api.ytEnd(b.id)) }
 const B_STATUS = { created: 'Zaplanowana', ready: 'Gotowa — czeka na obraz', testStarting: 'Test…', testing: 'Test', liveStarting: 'Startuje…', live: 'NA ŻYWO' }

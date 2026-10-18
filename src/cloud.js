@@ -38,29 +38,63 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
   // Napisy pieśni przez internet: kanał na żywo „napisy-<klucz>” (bez zapisu w bazie, bez logowania). Strona
   // kns-nabo.netlify.app/napisy?k=<klucz> (OBS na komputerze od streamu, w dowolnej sieci) pokazuje to, co tu nadajemy,
   // a po połączeniu prosi („hello”) o bieżącą zwrotkę.
-  let lyricsCh = null, lyricsKey = '', lyricsNow = { text: '' }
-  const lyricsSend = () => lyricsCh?.send({ type: 'broadcast', event: 'napisy', payload: lyricsNow }).catch(() => {})
-  function lyrics(key, text) {
-    if (key !== lyricsKey) {
-      if (lyricsCh) sb.removeChannel(lyricsCh)
-      lyricsCh = null; lyricsKey = key
-      if (key) {
-        lyricsCh = sb.channel('napisy-' + key, { config: { broadcast: { self: false } } })
-        lyricsCh.on('broadcast', { event: 'hello' }, lyricsSend)
-        lyricsCh.subscribe(status => { if (status === 'SUBSCRIBED') lyricsSend() })
-      }
-    }
-    lyricsNow = { text: String(text || '') }
-    if (key) lyricsSend()
-  }
-
-  // Odbiór napisów z rzutnika na innym komputerze (ten sam kanał co strona /napisy).
-  function listenLyrics(key, onText) {
+  // Jeden kanał na klucz w tej aplikacji — wspólny dla nadawania (rzutnik) i odbioru (stream). Dwa kanały o tej samej
+  // nazwie na jednym połączeniu serwer traktuje jak duplikat i jeden zamyka — stąd wcześniejsze „znikanie” napisów.
+  // Rzutnik i stream na tym samym komputerze: zwrotka idzie od razu, bez internetu (serwer i tak nie odsyła własnych
+  // wiadomości). Zerwany kanał otwiera się sam (coraz rzadziej: 1, 2, 4… do 30 s), a odbiorca co 20 s prosi o
+  // bieżącą zwrotkę (gdyby jakaś wiadomość zginęła).
+  const chans = new Map() // klucz → { ch, ok, listeners, retry, timer }
+  let lyricsKey = '', lyricsNow = { text: '' }
+  const wanted = (key, c) => chans.get(key) === c && (c.listeners.size > 0 || lyricsKey === key)
+  function openChan(key, c) {
     const ch = sb.channel('napisy-' + key, { config: { broadcast: { self: false } } })
-    ch.on('broadcast', { event: 'napisy' }, ({ payload }) => onText(String(payload?.text || '')))
-    ch.subscribe(status => { if (status === 'SUBSCRIBED') ch.send({ type: 'broadcast', event: 'hello', payload: {} }).catch(() => {}) })
-    return () => sb.removeChannel(ch)
+    c.ch = ch; c.ok = false
+    ch.on('broadcast', { event: 'napisy' }, ({ payload }) => { if (lyricsKey !== key) c.listeners.forEach(f => f(String(payload?.text || ''))) })
+    ch.on('broadcast', { event: 'hello' }, () => { if (lyricsKey === key) lyricsSend() })
+    ch.subscribe(status => {
+      if (c.ch !== ch) return // stary kanał (po ponownym otwarciu)
+      if (status === 'SUBSCRIBED') {
+        c.ok = true; c.retry = 0
+        if (lyricsKey === key) lyricsSend()
+        else if (c.listeners.size) ch.send({ type: 'broadcast', event: 'hello', payload: {} }).catch(() => {})
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        c.ok = false
+        if (!wanted(key, c)) return
+        clearTimeout(c.timer)
+        c.timer = setTimeout(() => { if (!wanted(key, c)) return; const old = c.ch; openChan(key, c); sb.removeChannel(old).catch(() => {}) }, Math.min(30000, 1000 * 2 ** c.retry++))
+      }
+    })
   }
+  function chanFor(key) {
+    let c = chans.get(key)
+    if (!c) { c = { ch: null, ok: false, listeners: new Set(), retry: 0, timer: 0 }; chans.set(key, c); openChan(key, c) }
+    return c
+  }
+  function release(key) {
+    const c = chans.get(key)
+    if (!c || c.listeners.size || lyricsKey === key) return
+    clearTimeout(c.timer); chans.delete(key); sb.removeChannel(c.ch).catch(() => {})
+  }
+  const lyricsSend = () => { const c = chans.get(lyricsKey); if (c?.ok) c.ch.send({ type: 'broadcast', event: 'napisy', payload: lyricsNow }).catch(() => {}) }
+  // Nadawanie z rzutnika (klucz '' = wyłączone).
+  function lyrics(key, text) {
+    if (key !== lyricsKey) { const old = lyricsKey; lyricsKey = key; if (old) release(old); if (key) chanFor(key) }
+    lyricsNow = { text: String(text || '') }
+    if (!key) return
+    lyricsSend()
+    chans.get(key)?.listeners.forEach(f => f(lyricsNow.text)) // stream na tym samym komputerze — od razu
+  }
+  // Odbiór napisów (stream): z innego komputera przez internet albo z rzutnika na tym samym komputerze.
+  function listenLyrics(key, onText) {
+    const c = chanFor(key)
+    c.listeners.add(onText)
+    if (lyricsKey === key) onText(lyricsNow.text)
+    else if (c.ok) c.ch.send({ type: 'broadcast', event: 'hello', payload: {} }).catch(() => {})
+    const ask = setInterval(() => { if (lyricsKey !== key && c.ok) c.ch.send({ type: 'broadcast', event: 'hello', payload: {} }).catch(() => {}) }, 20000)
+    return () => { clearInterval(ask); c.listeners.delete(onText); release(key) }
+  }
+  // Stan kanału (do pulpitu Stream): 'local' — rzutnik na tym komputerze, 'ok', 'connecting'.
+  const lyricsLink = key => (lyricsKey === key ? 'local' : chans.get(key)?.ok ? 'ok' : 'connecting')
 
   // Wynik w kształcie odpowiedzi folderu wspólnego: błąd zamiast wyjątku.
   const safe = job => job().catch(e => ({ error: e.message, needLogin: !!e.needLogin }))
@@ -114,7 +148,7 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
     publicPreview: () => safe(async () => check(await sb.rpc('public_preview'))),
     // „Posłuchaj”: linki YouTube i Spotify (czyta też gość).
     listen: () => safe(async () => ((check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {})),
-    lyrics, listenLyrics,
+    lyrics, listenLyrics, lyricsLink,
     // Skład zespołu: osoby ze służby muzycznej (dla osób z prawem edycji).
     // Przeczytane ogłoszenia (na koncie — te same co na stronie i telefonie).
     seenAnns: () => safe(async () => { await active(); return { ids: (check(await sb.from('seen_announcements').select('ann_id')) || []).map(x => x.ann_id) } }),

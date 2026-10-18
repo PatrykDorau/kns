@@ -115,7 +115,8 @@ export const overlayUrl = ref('')
 // Nadawanie z aplikacji trzyma obraz z ATEM — podgląd kamer w Stream go wtedy oddaje.
 export const cameraLock = ref(false)
 // Napisy z innego komputera (rzutnik gdzie indziej): kanał na żywo z kluczem z adresu …/napisy?k=…
-export function listenLyrics(key, onText) { return cloud ? cloud.listenLyrics(key, onText) : () => {} } // napisy pieśni na przezroczystym tle (źródło „Przeglądarka” w OBS)
+export function listenLyrics(key, onText) { return cloud ? cloud.listenLyrics(key, onText) : () => {} }
+export const lyricsLink = key => (cloud ? cloud.lyricsLink(key) : 'connecting') // napisy pieśni na przezroczystym tle (źródło „Przeglądarka” w OBS)
 export const renamingId = ref(null)
 export const renameValue = ref('')
 export const confirmId = ref(null)

@@ -35,21 +35,38 @@
   document.body.style.setProperty('--s', (parseFloat(q.get('rozmiar')) || 6) + 'vh')
   if (q.get('pasek') === '1') t.classList.add('bar')
   if (q.get('cien') === '0') t.classList.add('flat')
-  let last = null
+  let last = null, turn = 0
   function set(text) {
     text = String(text || '')
     if (text === last) return
     last = text
+    const mine = ++turn // szybkie zmiany: wygrywa ostatnia (bez nadpisania starszą zwrotką)
     t.classList.remove('on')
-    setTimeout(() => { t.textContent = text; if (text) t.classList.add('on') }, text && t.textContent ? 200 : 0)
+    setTimeout(() => { if (mine !== turn) return; t.textContent = text; if (text) t.classList.add('on') }, text && t.textContent ? 200 : 0)
   }
   if (!key) document.getElementById('help').style.display = 'block'
   else {
     const sb = supabase.createClient('https://igkjlgdpvgdeqfqctnnf.supabase.co', 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI', { auth: { persistSession: false } })
-    const ch = sb.channel('napisy-' + key, { config: { broadcast: { self: false } } })
-    ch.on('broadcast', { event: 'napisy' }, ({ payload }) => set(payload?.text))
-    // Po połączeniu prosimy rzutnik o bieżącą zwrotkę (nie trzeba czekać na zmianę slajdu).
-    ch.subscribe(status => { if (status === 'SUBSCRIBED') ch.send({ type: 'broadcast', event: 'hello', payload: {} }) })
+    // Po połączeniu prosimy rzutnik o bieżącą zwrotkę; zerwany kanał otwiera się sam (1, 2, 4… do 30 s),
+    // a co 20 s pytamy jeszcze raz (gdyby jakaś wiadomość zginęła).
+    let ch = null, ok = false, retry = 0, timer = 0
+    const hello = () => ch && ok && ch.send({ type: 'broadcast', event: 'hello', payload: {} }).catch(() => {})
+    function open() {
+      const c = sb.channel('napisy-' + key, { config: { broadcast: { self: false } } })
+      ch = c; ok = false
+      c.on('broadcast', { event: 'napisy' }, ({ payload }) => set(payload?.text))
+      c.subscribe(status => {
+        if (ch !== c) return
+        if (status === 'SUBSCRIBED') { ok = true; retry = 0; hello() }
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          ok = false; clearTimeout(timer)
+          timer = setTimeout(() => { const old = ch; open(); sb.removeChannel(old).catch(() => {}) }, Math.min(30000, 1000 * 2 ** retry++))
+        }
+      })
+    }
+    open()
+    setInterval(hello, 20000)
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) hello() })
   }
 </script>
 </body>
