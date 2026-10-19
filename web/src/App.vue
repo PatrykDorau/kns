@@ -26,6 +26,7 @@ import AsbPublicView from '@/views/AsbPublicView.vue'
 import AsbView from '@/views/AsbView.vue'
 import VotesView from '@/views/VotesView.vue'
 import AsbPreviewDialog from '@/components/dialogs/AsbPreviewDialog.vue'
+import LiveEvent from '@/components/LiveEvent.vue'
 import GoalsView from '@/views/GoalsView.vue'
 import ListenView from '@/views/ListenView.vue'
 import ProfileView from '@/views/ProfileView.vue'
@@ -160,7 +161,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -2595,5 +2596,6 @@ export default defineComponent({
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
   <BugReportDialog v-if="bugs.form" />
+  <LiveEvent v-if="ready" :class="{ tabbed: showTabs }" />
   <TabBar v-if="showTabs" />
 </template>

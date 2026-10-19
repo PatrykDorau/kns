@@ -1,7 +1,7 @@
 // Długie tytuły (wydarzenia, ogłoszenia, nabożeństwa na listach): zamiast „…” tekst powoli przesuwa się w pętli
 // — w lewo do końca, chwila przerwy, z powrotem. Działa samo dla elementów z listy TITLES, które się nie mieszczą.
 const TITLES = [
-  '.ev .body b', '.card .title', '.week-title', '.kh-ann-text b', '.kh-ann-t', '.hw-row-text b',
+  '.ev .body b', '.card .title', '.le-title', '.week-title', '.kh-ann-text b', '.kh-ann-t', '.hw-row-text b',
   'header h1', '.vote-ev-list button b', '.inbox-item b', '.ann b', '.bug-head b',
 ].join(', ')
 const SPEED = 35 // px na sekundę

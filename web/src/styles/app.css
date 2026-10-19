@@ -667,20 +667,32 @@ div.asb-row { cursor: default; }
 .mn-sec { margin: 18px 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .mn-team { margin-top: 8px; }
 /* „Trwa teraz” (strona startowa) i obecność na spotkaniu */
-.live-ev { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 16px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); border-radius: 18px;
-  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--c) 20%, transparent), transparent 60%), var(--panel); }
-.le-top { display: flex; align-items: center; gap: 8px; }
-.le-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 60%, transparent); animation: le-pulse 1.8s infinite; }
+/* „Trwa teraz”: małe okienko w rogu (nad dolnym paskiem na telefonie), rozwijane, z zamknięciem */
+.live-ev { position: fixed; z-index: 30; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: min(360px, calc(100vw - 32px)); padding: 6px 6px 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); border-radius: 18px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.6);
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--c) 22%, transparent), transparent 60%), var(--panel); }
+.live-ev.tabbed { bottom: calc(92px + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) { .live-ev.tabbed { bottom: calc(16px + env(safe-area-inset-bottom)); } }
+.le-top { display: flex; align-items: center; gap: 4px; }
+.le-head { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; text-align: left; font: inherit; box-shadow: none; }
+.le-head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.le-chev { flex: none; width: 16px; height: 16px; color: var(--muted); transition: transform .2s; }
+.live-ev.open .le-chev { transform: rotate(180deg); }
+.le-x { flex: none; }
+.le-pulse { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 60%, transparent); animation: le-pulse 1.8s infinite; }
 @keyframes le-pulse { 70% { box-shadow: 0 0 0 10px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
-.le-tag { color: var(--c); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+.le-tag { color: var(--c); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+.le-title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.le-body { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 6px 0; }
 .le-count { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 13px; }
 .le-count svg.i { width: 15px; height: 15px; }
-.le-title { font-size: 19px; }
 .le-meta { color: var(--muted); font-size: 13px; }
-.le-act { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.le-act { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .le-act button { min-height: 40px; }
 .le-in { display: inline-flex; align-items: center; gap: 6px; color: var(--ok); font-weight: 600; padding: 0 6px; }
 .le-in svg.i { width: 16px; height: 16px; }
+.le-pop-enter-active, .le-pop-leave-active { transition: opacity .25s, transform .25s; }
+.le-pop-enter-from, .le-pop-leave-to { opacity: 0; transform: translateY(12px); }
 .ev-attend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .ea-count { flex: 1 1 200px; display: flex; align-items: baseline; gap: 8px; }
 .ea-count b { font-size: 26px; color: var(--accent); }
