@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
+import NewSongDialog from '@/components/display/NewSongDialog.vue'
 import {
   activeService, addToService, clearService, firstLine, prettyDate, serviceModal, frozenAt, goLive, hidden, liveId, managerOpen, moveInService, removeFromService, search, selectedId,
   serviceList, serviceResults, songs, verses,
@@ -9,6 +10,7 @@ import {
 // Zakładka „Pieśni” to lista na najbliższe nabożeństwo. Cała baza (dodawanie, import, edycja)
 // jest w osobnym oknie „Baza pieśni”.
 const confirmClear = ref(false)
+const newSong = ref(false) // okno „Nowa pieśń”
 // Tryb zaznaczania: zdejmowanie wielu pieśni z listy naraz (pieśni zostają w bazie).
 const picking = ref(false)
 const picked = ref(new Set())
@@ -52,7 +54,7 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
              @keydown.enter.prevent="serviceResults[0] && addToService(serviceResults[0])" @keydown.esc.stop="search.service = ''">
     </label>
     <ul v-if="search.service.trim()" class="results">
-      <li v-if="!serviceResults.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta — otwórz ją i zaimportuj pieśni.' }}</li>
+      <li v-if="!serviceResults.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta — otwórz ją i zaimportuj pieśni.' }} <button class="small" @click="newSong = true"><Icon name="plus" />Nowa pieśń</button></li>
       <li v-for="song in serviceResults" :key="song.id">
         <button @click="addToService(song)"><Icon name="plus" /><span class="meta"><span class="name">{{ title(song) }}</span><span class="kind">{{ firstLine(song) }}</span></span></button>
       </li>
@@ -61,6 +63,7 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
 
   <div class="service-head">
     <h2>Na to nabożeństwo</h2>
+    <button class="iconbtn" title="Nowa pieśń — wpisz tekst, trafi do bazy i na tę listę" aria-label="Nowa pieśń" @click="newSong = true"><Icon name="plus" /></button>
     <template v-if="serviceList.length">
       <template v-if="confirmClear">
         <button class="del-yes small" title="Usuwa wszystkie pieśni z listy (zostają w bazie)" @click="clearService(); confirmClear = false">Wyczyścić?</button>
@@ -106,5 +109,6 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
     </li>
   </ul>
 
+  <NewSongDialog v-if="newSong" @close="newSong = false" />
   <button class="wide browse" @click="managerOpen = true"><Icon name="pencil" />Baza pieśni ({{ songs.length }})</button>
 </template>
