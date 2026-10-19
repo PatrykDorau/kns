@@ -1,0 +1,43 @@
+// Scena „Rzutnik”: obraz rzutnika przez sieć (WebRTC z laptopa przy rzutniku) albo to, co pokazuje Rzutnik
+// w tej aplikacji (grafika, film, tekst).
+import { H, W, studio } from './state'
+import { background, fit, fullImage, g, img, text } from './paint'
+import { connectMedia } from './audio'
+
+let projVideo: HTMLVideoElement = null, remoteVideo: HTMLVideoElement = null
+// Obraz rzutnika z innego komputera (WebRTC) — null, gdy połączenie zerwane.
+export function setRemoteScreen(stream) {
+  if (!stream) { if (remoteVideo) remoteVideo.srcObject = null; studio.remoteScreen = false; return }
+  if (!remoteVideo) { remoteVideo = document.createElement('video'); remoteVideo.muted = true; remoteVideo.playsInline = true }
+  remoteVideo.srcObject = stream; remoteVideo.play().catch(() => {}); studio.remoteScreen = true
+}
+export function projectorFrame(t) {
+  if (studio.remoteScreen && remoteVideo?.readyState >= 2) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); fit(remoteVideo, remoteVideo.videoWidth, remoteVideo.videoHeight, 0, 0, W, H); return }
+  const p = studio.projector
+  if (p.kind === 'image' && p.url) { const im = img(p.url); if (im) { fullImage(im); return } }
+  if (p.kind === 'video' && p.url) {
+    if (!projVideo) { projVideo = document.createElement('video'); projVideo.crossOrigin = 'anonymous'; projVideo.playsInline = true; connectMedia(projVideo) }
+    if (projVideo.dataset.src !== p.url) { projVideo.dataset.src = p.url; projVideo.src = p.url }
+    // zgranie z rzutnikiem: czas i pauza
+    const want = (p.time || 0) + (p.playing ? (Date.now() - (p.at || Date.now())) / 1000 : 0)
+    if (projVideo.readyState >= 1 && Math.abs(projVideo.currentTime - want) > 0.6) projVideo.currentTime = want
+    if (p.playing && projVideo.paused) projVideo.play().catch(() => {})
+    if (!p.playing && !projVideo.paused) projVideo.pause()
+    if (projVideo.readyState >= 2) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); fit(projVideo, projVideo.videoWidth, projVideo.videoHeight, 0, 0, W, H) } else { g.fillStyle = '#000'; g.fillRect(0, 0, W, H) }
+    return
+  }
+  if (projVideo && !projVideo.paused) projVideo.pause()
+  if (p.kind === 'text' && p.text) {
+    const s = p.style || {}
+    g.fillStyle = s.bg || '#000'; g.fillRect(0, 0, W, H)
+    const lines = String(p.text).split('\n')
+    const size = Math.round((s.fs || 12) * 6.5), lh = size * 1.3
+    const total = lines.length * lh
+    const y0 = s.valign === 'top' ? 120 + size : s.valign === 'bottom' ? H - 120 - total + size : (H - total) / 2 + size
+    const align = s.align || 'center', x = align === 'left' ? 120 : align === 'right' ? W - 120 : W / 2
+    lines.forEach((l, i) => text(l, x, y0 + i * lh, { size, weight: 700, color: s.color || '#fff', align, shadow: s.shadow ? 16 : 0 }))
+    return
+  }
+  background(t)
+  text('Rzutnik nic teraz nie pokazuje', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' })
+}
