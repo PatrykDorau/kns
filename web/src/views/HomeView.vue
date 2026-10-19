@@ -2,12 +2,14 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import LiveEvent from '@/components/LiveEvent.vue'
 
 // HomeView
-export default defineComponent({ setup: () => useApp() })
+export default defineComponent({ components: { LiveEvent }, setup: () => useApp() })
 </script>
 
 <template>
+  <LiveEvent />
   <!-- Szeroki ekran (przeglądarka na komputerze): ten sam układ i te same style co w aplikacji na komputer (home.css). -->
   <div class="kh kh-web">
     <div class="kh-hello">

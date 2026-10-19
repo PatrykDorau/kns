@@ -29,6 +29,18 @@ export default defineComponent({ setup: () => useApp() })
       <h3 class="view-h">Program</h3>
       <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" readonly></program-editor>
     </template>
+    <template v-if="isMeeting(currentEvent) && api.enabled && (attendance[currentEvent.id] || canCheckIn(currentEvent))">
+      <h3 class="view-h">Obecność</h3>
+      <div class="ev-attend">
+        <span class="ea-count"><b>{{ attendance[currentEvent.id]?.count ?? '…' }}</b><small>z {{ attendance[currentEvent.id]?.members ?? '…' }} członków zameldowało się</small></span>
+        <template v-if="canCheckIn(currentEvent)">
+          <button v-if="!attendance[currentEvent.id]?.me" class="primary" :disabled="checkinBusy" @click="checkIn(currentEvent)"><svg class="i"><use href="#check"/></svg>Zamelduj się</button>
+          <button v-else class="ghost" :disabled="checkinBusy" @click="checkIn(currentEvent, false)">Wycofaj zameldowanie</button>
+        </template>
+        <small v-else-if="!attendance[currentEvent.id]?.me" class="muted">Zameldować się można w dniu spotkania.</small>
+        <details v-if="attendance[currentEvent.id]?.names?.length" class="ea-names"><summary>Kto był ({{ attendance[currentEvent.id].names.length }})</summary><p>{{ attendance[currentEvent.id].names.join(', ') }}</p></details>
+      </div>
+    </template>
     <template v-if="api.enabled && (eventVotes.length || (votes.canRun && ['czlonkowskie', 'rada'].includes(currentEvent.type)))">
       <h3 class="view-h">Głosowania</h3>
       <div class="ev-votes">

@@ -174,6 +174,8 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'electionNominate') return check(await sb.rpc('election_nominate', { e: data.e, who: data.who, withdraw: !!data.withdraw }))
       if (action === 'electionReview') return check(await sb.rpc('election_review', { c: data.c, ok: data.ok }))
       if (action === 'electionStatus') return check(await sb.rpc('election_status', { e: data.e, s: data.s }))
+      if (action === 'checkin') return check(await sb.rpc('event_checkin', { eid: data.id, on_: data.on !== false }))
+      if (action === 'attendance') return check(await sb.rpc('event_attendance_info', { eid: data.id }))
       if (action === 'electionVote') return check(await sb.rpc('election_vote', { e: data.e, choices: data.choices }))
       if (action === 'electionRemove') return check(await sb.rpc('election_remove', { e: data.e }))
       if (action === 'goals') return check(await sb.rpc('goals_overview')) || []

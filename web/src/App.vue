@@ -65,7 +65,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.93 · 19.10.2026'
+const VERSION = '2.94 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -741,6 +741,7 @@ export default defineComponent({
       currentEvent.value = { type: 'inne', title: '', date: today(), time: '', place: '', description: '', program: [], ...JSON.parse(JSON.stringify(ev)) }
       if (['czlonkowskie', 'rada'].includes(currentEvent.value.type) && api.enabled) loadProtocols()
       if (api.enabled) loadVotes() // głosowania podpięte pod to spotkanie
+      loadAttendance(currentEvent.value)
       eventSaved = JSON.stringify(currentEvent.value); eventBase = ev.updated || 0; eventType = currentEvent.value.type
       eventEditing.value = false
       loadSignup()
@@ -1716,6 +1717,34 @@ export default defineComponent({
         .sort((a, b) => a.date.localeCompare(b.date)).slice(0, 40)
     })
     // głosowania podpięte pod otwarte wydarzenie
+    /* ---------- trwa teraz: wydarzenie, które właśnie się odbywa; obecność na spotkaniach ---------- */
+    const MEETINGS = ['czlonkowskie', 'rada']
+    const isMeeting = ev => !!ev && MEETINGS.includes(ev.type)
+    const yesterdayStr = computed(() => { const d = new Date(); d.setDate(d.getDate() - 1); return localDate(d) })
+    // od 45 min przed początkiem do ok. 5 godz. po nim (bez godziny — cały dzień); najpierw spotkania
+    const liveEvent = computed(() => {
+      now.value
+      const t = Date.now()
+      return events.value.filter(e => e.date === todayStr.value || e.date === yesterdayStr.value).filter(e => {
+        const start = new Date(e.date + 'T' + (e.time || '00:00')).getTime()
+        return t >= start - 45 * 60e3 && t <= start + (e.time ? 5 : 24) * 3600e3
+      }).sort((a, b) => Number(isMeeting(b)) - Number(isMeeting(a)) || (a.time || '').localeCompare(b.time || ''))[0] || null
+    })
+    const attendance = reactive({}) // id spotkania → { count, members, me, names }
+    const checkinBusy = ref(false)
+    const canCheckIn = ev => isMeeting(ev) && api.enabled && me.value?.status === 'active' && [todayStr.value, yesterdayStr.value].includes(ev.date) && (ev.type !== 'rada' || votes.canRun || hasCouncil.value)
+    async function loadAttendance(ev) {
+      if (!isMeeting(ev) || !api.enabled) return
+      try { attendance[ev.id] = await api.call('attendance', { id: ev.id }) } catch { /* bez stanu obecności */ }
+    }
+    async function checkIn(ev, on = true) {
+      checkinBusy.value = true
+      try { await api.call('checkin', { id: ev.id, on }); await loadAttendance(ev); toast.value = on ? 'Zameldowano — dziękujemy!' : 'Wycofano zameldowanie'; setTimeout(() => { toast.value = '' }, 2500) }
+      catch (e) { error.value = e.message } finally { checkinBusy.value = false }
+    }
+    const liveVotes = computed(() => (liveEvent.value ? votes.list.filter(v => v.event_id === liveEvent.value.id && v.status !== 'closed') : []))
+    watch(liveEvent, ev => { if (ev && api.enabled) { loadAttendance(ev); if (isMeeting(ev)) loadVotes().catch(() => {}) } }, { immediate: false })
+    watch(ready, r => { if (r && liveEvent.value) { loadAttendance(liveEvent.value); if (isMeeting(liveEvent.value) && api.enabled) loadVotes().catch(() => {}) } })
     const eventVotes = computed(() => (currentEvent.value ? votes.list.filter(e => e.event_id === currentEvent.value.id) : []))
     function newVoteFor(id) { openVotes().then(() => newElection(id)) }
     function goToVote(e) { openVotes().then(() => { votes.open = e.id; nextTick(() => document.querySelector('.vote.focus')?.scrollIntoView({ block: 'start', behavior: 'smooth' })) }) }
@@ -2213,7 +2242,7 @@ export default defineComponent({
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return provideApp({
-      votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
