@@ -900,7 +900,9 @@ function openOutput(displayId) {
   const list = displays()
   const target = screen.getAllDisplays().find(d => d.id === displayId)
   // Pełny ekran tylko na innym ekranie niż panel sterowania — inaczej zasłoniłby przyciski.
-  const fullscreen = !!target && !list.find(d => d.id === displayId).current
+  // testy automatyczne: okno rzutnika niewidoczne (nie zasłania ekranu ani nie trafia na prawdziwy rzutnik)
+  const hidden = !!process.env.RZUTNIK_HIDDEN
+  const fullscreen = !hidden && !!target && !list.find(d => d.id === displayId).current
 
   // Na rzutniku okno jest przezroczyste i zakrywa cały ekran: gdy nic nie jest wyświetlane,
   // widać przez nie pulpit. Nie łapie myszy ani klawiatury, więc nie przeszkadza w pracy.
@@ -908,7 +910,8 @@ function openOutput(displayId) {
     ...(fullscreen
       ? { ...target.bounds, frame: false, transparent: true, resizable: false, focusable: false, skipTaskbar: true, hasShadow: false }
       : { width: 960, height: 540, backgroundColor: '#000000' }),
-    title: 'Kościół Na Skale — obraz na rzutnik', autoHideMenuBar: true, webPreferences, ...icon,
+    title: 'Kościół Na Skale — obraz na rzutnik', autoHideMenuBar: true, ...icon,
+    webPreferences: hidden ? { ...webPreferences, offscreen: true } : webPreferences, show: !hidden,
   })
   output = win
   win.displayId = fullscreen ? displayId : null

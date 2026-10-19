@@ -50,7 +50,10 @@ export function stopShare() {
   if (!tx) return
   for (const pc of tx.peers.values()) pc.close()
   tx.stream?.getTracks().forEach(t => t.stop())
-  tx.sig?.close()
+  // odbiorca od razu wie, że obrazu już nie ma (samo zamknięcie połączenia zauważyłby dopiero po kilkunastu sekundach)
+  const sig = tx.sig
+  sig?.send({ t: 'bye' })
+  setTimeout(() => sig?.close(), 1000)
   tx = null
   Object.assign(share, { on: false, viewers: 0 })
 }
@@ -74,6 +77,7 @@ export function startReceive(key, onStream) {
     if (!rx) return
     try {
       if (m.t === 'ready') { remote.step = 'rzutnik udostępnia — łączę…'; rxWant() }
+      else if (m.t === 'bye') { if (rx.pc) { rxReset(); remote.step = 'rzutnik przestał wyświetlać — czekam, aż znów zacznie' } }
       else if (m.t === 'offer' && m.to === rx.id) {
         remote.step = 'rzutnik odpowiedział — zestawiam połączenie…'
         rx.pc?.close()
