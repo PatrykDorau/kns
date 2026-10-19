@@ -510,6 +510,65 @@
   .gc-later b { color: var(--text); }
   .gc-later button { flex: none; }
   .goal-locked { display: flex; gap: 8px; align-items: flex-start; }
+  /* głosowania */
+  .vote { margin-bottom: 14px; padding: 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; gap: 10px; }
+  .vote.st-voting { border-color: rgba(242, 165, 60, .5); box-shadow: 0 18px 40px -24px rgba(242, 165, 60, .5); }
+  .vote-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .vote-h b { flex: 1; min-width: 0; font-size: 18px; }
+  .vote-status { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--panel2); color: var(--muted); }
+  .vote-status.voting { background: var(--accent); color: #1f1608; }
+  .vote-status.nominations { background: rgba(110, 168, 255, .15); color: var(--blue); }
+  .vote-desc { margin: 0; white-space: pre-wrap; }
+  .vote-status.paused { background: rgba(255, 179, 107, .15); color: #ffb36b; }
+  .vote.st-paused { border-color: rgba(255, 179, 107, .4); }
+  .vote-paused { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 14px; border-radius: 14px; background: rgba(255, 179, 107, .1); color: #ffcf9e; }
+  .vote-ctl > * { flex: 1; }
+  .vote-event { align-self: flex-start; min-height: 0; padding: 6px 10px; border-radius: 10px; font-size: 13.5px; }
+  .vote-event .chev { width: 16px; height: 16px; color: var(--muted); }
+  .vote-select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+  .ev-votes { display: flex; flex-direction: column; gap: 8px; }
+  .ev-vote { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); }
+  .ev-vote.voting { border-color: rgba(242, 165, 60, .5); }
+  .ev-vote b { flex: 1; min-width: 140px; }
+  .ev-vote-add { align-self: flex-start; }
+  .vote-meta { margin: 0; color: var(--muted); font-size: 13px; }
+  .vote-lbl { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .vote-nominate label { margin-top: 4px; }
+  .vote-nominate .row select { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+  .vote-nominate .row button { flex: none; }
+  .vote-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+  .vote-chips small { color: var(--muted); }
+  .vote-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 14px; }
+  .vote-chip button.icon { min-width: 28px; min-height: 28px; padding: 4px; color: inherit; }
+  .vote-review { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .vote-cand { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--panel2); }
+  .vote-cand > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .vote-cand small { color: var(--muted); font-size: 12.5px; }
+  .vote-cand.no { opacity: .6; }
+  .vote-cand.ok { box-shadow: inset 3px 0 0 var(--ok); }
+  .vote-start, .vote-send { width: 100%; margin-top: 4px; }
+  .vote-opt { display: flex; align-items: center; justify-content: flex-start; gap: 12px; width: 100%; min-height: 54px; text-align: left; border-radius: 14px; }
+  .vote-opt.on { border-color: var(--accent); background: var(--accent-soft); }
+  .vote-opt b { font-size: 16px; }
+  .vote-box { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--muted); }
+  .vote-box.radio { border-radius: 50%; }
+  .vote-box .i { width: 15px; height: 15px; stroke-width: 3; opacity: 0; }
+  .vote-opt.on .vote-box { background: var(--accent); border-color: var(--accent); color: #1f1608; }
+  .vote-opt.on .vote-box .i { opacity: 1; }
+  .vote-done { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+  .vote-res { display: flex; flex-direction: column; gap: 4px; }
+  .vote-res > span { display: flex; justify-content: space-between; gap: 10px; }
+  .vote-res em { font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .vote-res.top b { color: var(--accent); }
+  .vote-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .vote-seg button { flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+  .vote-seg button small { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+  .vote-seg button.on { border-color: var(--accent); background: var(--accent-soft); }
+  .ann-tip { display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(110, 168, 255, .35); background: rgba(110, 168, 255, .08); }
+  .ann-tip > .i { flex: none; width: 22px; height: 22px; color: var(--blue); }
+  .ann-tip > span { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+  .ann-tip small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+  @media (max-width: 560px) { .ann-tip { flex-wrap: wrap; } .ann-tip > button { width: 100%; } }
   .goal-locked .i { flex: none; width: 17px; height: 17px; margin-top: 2px; color: var(--accent); }
   .goal-confirm p { margin: 8px 0; }
   .gc-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -893,6 +952,7 @@
   <symbol id="serve" viewBox="0 0 24 24"><path d="M12 11.2s-3.6-2.1-3.6-4.5a2 2 0 0 1 3.6-1.2 2 2 0 0 1 3.6 1.2c0 2.4-3.6 4.5-3.6 4.5Z M2.5 13.5H6l2.8 1.8h3.7a1.6 1.6 0 0 1 0 3.2H9.2 M12.5 18.5h4.3l4-3.4a1.5 1.5 0 0 0-2-2.2l-3.3 2.4 M2.5 12.5v8"/></symbol>
   <symbol id="heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9.2-8.8C1.3 8 3.2 4.5 6.6 4.5c2 0 3.4 1.1 4.4 2.6l1 1.4 1-1.4c1-1.5 2.4-2.6 4.4-2.6 3.4 0 5.3 3.5 3.8 6.7C19 15.6 12 20 12 20Z"/></symbol>
   <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></symbol>
+  <symbol id="image" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM11 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM21 15l-5-5L5 21"/></symbol>
   <symbol id="sun" viewBox="0 0 24 24"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
   <symbol id="moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></symbol>
   <symbol id="cloudoff" viewBox="0 0 24 24"><path d="m3 3 18 18M8 6.6A6 6 0 0 1 17.7 10H18a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.3-9.4"/></symbol>
@@ -946,7 +1006,7 @@
   </div>
   <header>
     <img src="znak.png" alt="">
-    <h1>{{ current ? (svcEditing && canEdit ? 'Edycja nabożeństwa' : 'Nabożeństwo') : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja materiału' : 'Nowy materiał') : MAT_TYPES[matType(currentProto)]) : currentEvent ? (eventEditing && eventEditable ? (eventSavedOnce ? 'Edycja wydarzenia' : 'Nowe wydarzenie') : 'Wydarzenie') : protoView ? 'Materiały' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : listenView ? 'Posłuchaj' : asbView ? 'ASB' : goalsView ? 'Cele wsparcia' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
+    <h1>{{ current ? (svcEditing && canEdit ? 'Edycja nabożeństwa' : 'Nabożeństwo') : currentAnn ? (annEditing ? (annSavedOnce ? 'Edycja ogłoszenia' : 'Nowe ogłoszenie') : 'Ogłoszenie') : annView ? 'Ogłoszenia' : currentProto ? (protoEditing ? (protoSavedOnce ? 'Edycja materiału' : 'Nowy materiał') : MAT_TYPES[matType(currentProto)]) : currentEvent ? (eventEditing && eventEditable ? (eventSavedOnce ? 'Edycja wydarzenia' : 'Nowe wydarzenie') : 'Wydarzenie') : protoView ? 'Materiały' : tplType ? (tplType.name || 'Nowy rodzaj') : tplView ? 'Szablony' : calView ? 'Kalendarz' : song ? (song.isNew ? 'Nowa pieśń' : 'Pieśń') : songView ? 'Baza pieśni' : peopleView ? 'Osoby' : gcalView ? 'Kalendarz Google' : profileView ? 'Mój profil' : serveView ? 'Zaangażuj się' : listenView ? 'Posłuchaj' : asbView ? 'ASB' : goalsView ? 'Cele wsparcia' : votesView ? 'Głosowania' : moreView ? 'Więcej' : 'KNS Nabo' }}</h1>
     <button v-if="current" class="ghost back" @click="back"><svg class="i"><use href="#back"/></svg>{{ svcEditing && services.some(x => x.id === current.id) ? 'Podgląd' : cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
     <button v-else-if="currentAnn" class="ghost back" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
     <button v-else-if="annView" class="ghost back to-start" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
@@ -957,7 +1017,7 @@
     <button v-else-if="protoView" class="ghost back to-start" @click="protoView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
     <button v-else-if="song" class="ghost back" @click="closeSong"><svg class="i"><use href="#back"/></svg>Pieśni</button>
     <button v-else-if="profileView" class="ghost back to-start" @click="profileView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-    <button v-else-if="serveView || listenView || asbView || goalsView" class="ghost wide-only back to-start" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
+    <button v-else-if="serveView || listenView || asbView || goalsView || votesView" class="ghost wide-only back to-start" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
     <button v-else-if="gcalView" class="ghost back" @click="gcalView = false; calView = true"><svg class="i"><use href="#back"/></svg>Kalendarz</button>
     <button v-else-if="songView || peopleView" class="ghost back to-start" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
     <template v-else>
@@ -1125,6 +1185,11 @@
     <template v-else>
     <p v-if="!annSavedOnce && !canEdit && !canReview" class="pending-note"><svg class="i"><use href="#bell"/></svg>Ogłoszenie pojawi się po zatwierdzeniu przez lidera newslettera, radę zboru albo administratora.</p>
     <fieldset class="plain" :disabled="!annEditable">
+      <div v-if="!currentAnn.image && drive.uploadImage" class="ann-tip">
+        <svg class="i"><use href="#monitor"/></svg>
+        <span><b>Ma się wyświetlać na nabożeństwie?</b><small>Na rzutniku i na transmisji pokazują się tylko grafiki — najpierw dodaj grafikę z ogłoszeniem (co, kiedy, gdzie), potem tytuł i treść.</small></span>
+        <button type="button" class="small" :disabled="imgBusy" @click="$refs.annImg.click()"><svg class="i"><use href="#image"/></svg>{{ imgBusy ? 'Wysyłam…' : 'Dodaj grafikę' }}</button>
+      </div>
       <label for="anTitle">Tytuł <span class="req">*</span></label>
       <input id="anTitle" v-model="currentAnn.title" :class="{ invalid: !currentAnn.title.trim() }" autocomplete="off">
       <label for="anText">Treść</label>
@@ -1192,8 +1257,8 @@
   <template v-else-if="annView">
     <div v-if="canAnnounce" class="ann-new-row">
       <button class="primary" @click="newAnn"><svg class="i"><use href="#plus"/></svg>Nowe ogłoszenie</button>
-      <button v-if="canEdit && drive.uploadImage" :disabled="bulk.busy" title="Zaznacz kilka grafik naraz — z każdej powstanie ogłoszenie pokazywane na nabożeństwie" @click="$refs.annBulk.click()"><svg class="i"><use href="#plus"/></svg>{{ bulk.busy ? 'Wgrywam ' + bulk.done + ' z ' + bulk.total + '…' : 'Dodaj z grafik' }}</button>
-      <input ref="annBulk" type="file" accept="image/*" multiple hidden @change="annFromImages">
+      <button v-if="canEdit && drive.uploadImage" :disabled="bulk.busy" title="Wybierz grafikę — otworzy się nowe ogłoszenie z nią (do uzupełnienia i zapisania)" @click="$refs.annBulk.click()"><svg class="i"><use href="#image"/></svg>{{ bulk.busy ? 'Wgrywam grafikę…' : 'Z grafiki' }}</button>
+      <input ref="annBulk" type="file" accept="image/*" hidden @change="annFromImages">
     </div>
     <p v-if="!activeAnns.length" class="note">Nie ma aktualnych ogłoszeń.</p>
     <button v-for="a in activeAnns" :key="a.id" class="ann" :class="{ important: a.important, fresh: annIsNew(a) }" @click="openAnn(a)">
@@ -1309,6 +1374,22 @@
       <template v-if="(currentEvent.program || []).length">
         <h3 class="view-h">Program</h3>
         <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" readonly></program-editor>
+      </template>
+      <template v-if="api.enabled && (eventVotes.length || (votes.canRun && ['czlonkowskie', 'rada'].includes(currentEvent.type)))">
+        <h3 class="view-h">Głosowania</h3>
+        <div class="ev-votes">
+          <div v-for="e in eventVotes" :key="e.id" class="ev-vote" :class="e.status">
+            <span class="vote-status" :class="e.status">{{ VOTE_STATUS[e.status === 'nominations' && e.kind === 'options' ? 'ready' : e.status] }}</span>
+            <b>{{ e.title }}</b>
+            <template v-if="votes.canRun">
+              <button v-if="e.status === 'nominations' || e.status === 'paused'" class="small primary" :disabled="busy || !e.candidates.some(c => c.accepted)" :title="e.candidates.some(c => c.accepted) ? '' : 'Najpierw zatwierdź kandydatów'" @click="setElectionStatus(e, 'voting')">{{ e.status === 'paused' ? 'Wznów' : 'Aktywuj' }}</button>
+              <button v-if="e.status === 'voting'" class="small" :disabled="busy" @click="setElectionStatus(e, 'paused')">Wstrzymaj</button>
+              <button v-if="e.status === 'voting' || e.status === 'paused'" class="small danger" :disabled="busy" @click="setElectionStatus(e, 'closed')">Zakończ</button>
+            </template>
+            <button class="small" @click="goToVote(e)">{{ e.status === 'voting' && !e.voted ? 'Głosuj' : e.status === 'closed' ? 'Wyniki' : 'Otwórz' }}<svg class="i"><use href="#chev"/></svg></button>
+          </div>
+          <button v-if="votes.canRun" class="small ev-vote-add" @click="newVoteFor(currentEvent.id)"><svg class="i"><use href="#plus"/></svg>Nowe głosowanie na tym spotkaniu</button>
+        </div>
       </template>
       <template v-if="['czlonkowskie', 'rada'].includes(currentEvent.type) && eventProtocols.length">
         <h3 class="view-h">Protokoły</h3>
@@ -1726,6 +1807,127 @@
 
   <!-- Posłuchaj: YouTube i Spotify (linki ustawia administrator) -->
   <!-- Cele wsparcia: deklaracje z dziesięciny, potwierdzanie miesięcy, pasek postępu; rada — cele i kto ile -->
+  <!-- Wybory i głosowania: zgłoszenia → rada zatwierdza → tajne głosowanie (można kilka) → wyniki -->
+  <template v-else-if="votesView && !current">
+    <p class="goals-intro">Wybory (np. rady zboru) i głosowania na spotkaniach członkowskich. Najpierw członkowie zgłaszają kandydatów, rada zatwierdza listę, potem każdy członek oddaje <b>tajny</b> głos — można wybrać kilka osób, jeśli wybory na to pozwalają.</p>
+    <p v-if="votes.error" class="error">{{ votes.error }}</p>
+    <div class="section"><h2>Głosowania</h2><button v-if="votes.canRun && !votes.edit" class="small" @click="newElection"><svg class="i"><use href="#plus"/></svg>Nowe</button></div>
+
+    <!-- formularz (rada) -->
+    <section v-if="votes.edit" class="goal-form vote-form">
+      <h2>{{ votes.edit._new ? 'Nowe głosowanie' : 'Edycja głosowania' }}</h2>
+      <label for="vTitle">Tytuł <span class="req">*</span></label>
+      <input id="vTitle" v-model="votes.edit.title" maxlength="160" placeholder="np. Wybory rady zboru 2027, Uchwała o zakupie nagłośnienia" autocomplete="off">
+      <label for="vDesc">Opis (zasady, ile osób wybieramy, do kiedy)</label>
+      <textarea id="vDesc" v-model="votes.edit.description" class="ann-text"></textarea>
+      <template v-if="votes.edit._new || votes.edit.status === 'nominations'">
+        <label>Na kogo / na co głosujemy</label>
+        <div class="vote-seg" role="group" aria-label="Rodzaj">
+          <button type="button" :class="{ on: votes.edit.kind === 'people' }" @click="votes.edit.kind = 'people'"><b>Na osoby</b><small>członkowie zgłaszają kandydatów, rada zatwierdza</small></button>
+          <button type="button" :class="{ on: votes.edit.kind === 'options' }" @click="votes.edit.kind = 'options'"><b>Na odpowiedzi</b><small>np. Za / Przeciw / Wstrzymuję się</small></button>
+        </div>
+        <template v-if="votes.edit.kind === 'options'">
+          <label for="vOpts">Odpowiedzi — każda w osobnej linii</label>
+          <textarea id="vOpts" v-model="votes.edit.optionsText" class="ann-text" placeholder="Za&#10;Przeciw&#10;Wstrzymuję się"></textarea>
+        </template>
+        <label for="vMax">Ile można wybrać na jednej karcie</label>
+        <input id="vMax" v-model.number="votes.edit.max_choices" type="number" min="1" max="50" inputmode="numeric" style="max-width:140px">
+      </template>
+      <label for="vEvent">Spotkanie (opcjonalnie) — głosowanie widać w wydarzeniu w kalendarzu</label>
+      <select id="vEvent" v-model="votes.edit.event_id" class="vote-select">
+        <option value="">— bez spotkania —</option>
+        <option v-for="ev in voteEvents" :key="ev.id" :value="ev.id">{{ shortDate(ev.date) }} · {{ ev.title || typeOf(ev.type).name }}</option>
+      </select>
+      <label class="check"><input v-model="votes.edit.results_public" type="checkbox">Wyniki widzą wszyscy członkowie (inaczej tylko rada)</label>
+      <div class="bar">
+        <button class="primary" :disabled="busy || !votes.edit.title.trim() || (votes.edit.kind === 'options' && optionsOf(votes.edit).length < 2)" @click="saveElection">Zapisz</button>
+        <button :disabled="busy" @click="votes.edit = null">Anuluj</button>
+        <button v-if="!votes.edit._new" class="danger" :disabled="busy" @click="removeElection(votes.edit)"><svg class="i"><use href="#trash"/></svg>Usuń</button>
+      </div>
+    </section>
+
+    <template v-else>
+      <div v-if="votes.busy && !votes.list.length" class="skel-list" aria-busy="true"><div v-for="n in 2" :key="n" class="skel skel-row"></div></div>
+      <p v-else-if="!votes.list.length" class="note">Nie ma jeszcze głosowań.{{ votes.canRun ? ' Utwórz pierwsze — „Nowe”.' : ' Ogłasza je rada zboru.' }}</p>
+      <article v-for="e in votes.list" :key="e.id" class="vote" :class="['st-' + e.status, { focus: votes.open === e.id }]">
+        <div class="vote-h">
+          <span class="vote-status" :class="e.status">{{ VOTE_STATUS[e.status === 'nominations' && e.kind === 'options' ? 'ready' : e.status] }}</span>
+          <b>{{ e.title }}</b>
+          <button v-if="votes.canRun && e.status !== 'closed'" class="icon" title="Edytuj" aria-label="Edytuj głosowanie" @click="editElection(e)"><svg class="i"><use href="#pencil"/></svg></button>
+        </div>
+        <p v-if="e.description" class="vote-desc">{{ e.description }}</p>
+        <p class="vote-meta">{{ e.kind === 'people' ? 'Na osoby' : 'Na odpowiedzi' }} · {{ e.max_choices === 1 ? 'jeden wybór' : 'do ' + e.max_choices + ' wyborów' }} · głos tajny</p>
+        <button v-if="eventOf(e)" class="vote-event" @click="openEvent(eventOf(e))"><svg class="i"><use href="#calendar"/></svg>{{ eventOf(e).title || typeOf(eventOf(e).type).name }} · {{ shortDate(eventOf(e).date) }}<svg class="i chev"><use href="#chev"/></svg></button>
+
+        <!-- 1. zgłaszanie kandydatów -->
+        <template v-if="e.status === 'nominations'">
+          <div v-if="e.kind === 'people'" class="vote-nominate">
+            <label :for="'vn' + e.id">Zgłoś kandydata</label>
+            <div class="row">
+              <select :id="'vn' + e.id" :value="votes.pick[e.id] || ''" @focus="loadElectionPeople" @change="votes.pick[e.id] = $event.target.value">
+                <option value="">— wybierz osobę —</option>
+                <option v-for="p in votes.people.filter(p => !e.candidates.some(c => c.person === p.id && c.mine))" :key="p.id" :value="p.id">{{ p.name }}</option>
+              </select>
+              <button class="primary" :disabled="busy || !votes.pick[e.id]" @click="nominate(e)">Zgłoś</button>
+            </div>
+            <div v-if="e.candidates.some(c => c.mine)" class="vote-chips">
+              <small>Twoje zgłoszenia:</small>
+              <span v-for="c in e.candidates.filter(c => c.mine)" :key="c.id" class="vote-chip">{{ c.label }}<button class="icon" :aria-label="'Wycofaj zgłoszenie: ' + c.label" title="Wycofaj zgłoszenie" @click="nominate(e, c.person, true)"><svg class="i"><use href="#x"/></svg></button></span>
+            </div>
+          </div>
+          <!-- rada: kto bierze udział -->
+          <div v-if="votes.canRun" class="vote-review">
+            <small class="vote-lbl">{{ e.kind === 'people' ? 'Zgłoszeni — kto bierze udział (decyduje rada)' : 'Odpowiedzi' }}</small>
+            <div v-for="c in e.candidates" :key="c.id" class="vote-cand" :class="{ ok: c.accepted === true, no: c.accepted === false }">
+              <span><b>{{ c.label }}</b><small v-if="e.kind === 'people'">{{ c.nominations }} {{ c.nominations === 1 ? 'zgłoszenie' : c.nominations < 5 ? 'zgłoszenia' : 'zgłoszeń' }}</small></span>
+              <template v-if="e.kind === 'people'">
+                <button class="small" :class="{ primary: c.accepted === true }" :disabled="busy" @click="reviewCand(c, c.accepted === true ? null : true)"><svg class="i"><use href="#check"/></svg>{{ c.accepted === true ? 'Bierze udział' : 'Zatwierdź' }}</button>
+                <button class="small" :class="{ danger: c.accepted === false }" :disabled="busy" @click="reviewCand(c, c.accepted === false ? null : false)"><svg class="i"><use href="#x"/></svg>{{ c.accepted === false ? 'Odrzucony' : 'Odrzuć' }}</button>
+              </template>
+            </div>
+            <p v-if="!e.candidates.length" class="note">Nikt jeszcze nie został zgłoszony.</p>
+            <button class="primary vote-start" :disabled="busy || !e.candidates.some(c => c.accepted)" @click="setElectionStatus(e, 'voting')"><svg class="i"><use href="#check"/></svg>Rozpocznij głosowanie ({{ e.candidates.filter(c => c.accepted).length }})</button>
+          </div>
+        </template>
+
+        <!-- 2. głosowanie -->
+        <template v-else-if="e.status === 'voting' || e.status === 'paused'">
+          <p v-if="e.voted" class="vote-done"><svg class="i"><use href="#check"/></svg>Twój głos został oddany. Dziękujemy!</p>
+          <p v-else-if="e.status === 'paused'" class="vote-paused"><svg class="i"><use href="#info"/></svg>Głosowanie jest wstrzymane — prowadzący włączy je w odpowiednim momencie.</p>
+          <template v-else>
+            <small class="vote-lbl">{{ e.max_choices === 1 ? 'Wybierz jedną odpowiedź' : 'Wybierz do ' + e.max_choices }} · wybrano {{ (votes.ballot[e.id] || []).length }}</small>
+            <button v-for="c in e.candidates" :key="c.id" class="vote-opt" :class="{ on: (votes.ballot[e.id] || []).includes(c.id) }" :aria-pressed="(votes.ballot[e.id] || []).includes(c.id)" :disabled="!(votes.ballot[e.id] || []).includes(c.id) && e.max_choices > 1 && (votes.ballot[e.id] || []).length >= e.max_choices" @click="toggleBallot(e, c)">
+              <span class="vote-box" :class="{ radio: e.max_choices === 1 }"><svg class="i"><use href="#check"/></svg></span><b>{{ c.label }}</b>
+            </button>
+            <button class="primary vote-send" :disabled="busy || !(votes.ballot[e.id] || []).length" @click="castVote(e)">Oddaj głos</button>
+            <p class="note">Głos jest tajny — nikt nie zobaczy, na kogo głosowałeś(-aś). Oddanego głosu nie da się zmienić.</p>
+          </template>
+          <div v-if="votes.canRun" class="vote-review">
+            <small class="vote-lbl">Frekwencja: {{ e.turnout }} z {{ e.eligible }} członków</small>
+            <div class="goal-bar"><i class="done" :style="{ width: Math.round(e.turnout / Math.max(1, e.eligible) * 100) + '%' }"></i></div>
+            <div class="row vote-ctl">
+              <button v-if="e.status === 'voting'" :disabled="busy" title="Nikt nie odda głosu, dopóki nie wznowisz — oddane głosy zostają" @click="setElectionStatus(e, 'paused')"><svg class="i"><use href="#x"/></svg>Wstrzymaj</button>
+              <button v-else class="primary" :disabled="busy" @click="setElectionStatus(e, 'voting')"><svg class="i"><use href="#check"/></svg>Wznów głosowanie</button>
+              <button class="danger" :disabled="busy" @click="setElectionStatus(e, 'closed')">Zakończ i policz</button>
+            </div>
+          </div>
+        </template>
+
+        <!-- 3. wyniki -->
+        <template v-else>
+          <template v-if="e.candidates.some(c => c.votes != null)">
+            <small class="vote-lbl">Wyniki · głosowało {{ e.turnout }} z {{ e.eligible }}</small>
+            <div v-for="(c, i) in [...e.candidates].filter(c => c.accepted).sort((a, b) => b.votes - a.votes)" :key="c.id" class="vote-res" :class="{ top: i < e.max_choices && c.votes > 0 }">
+              <span><b>{{ c.label }}</b><em>{{ c.votes }} {{ c.votes === 1 ? 'głos' : c.votes % 10 >= 2 && c.votes % 10 <= 4 && (c.votes % 100 < 10 || c.votes % 100 >= 20) ? 'głosy' : 'głosów' }}</em></span>
+              <div class="goal-bar"><i class="done" :style="{ width: Math.round(c.votes / Math.max(1, e.turnout) * 100) + '%' }"></i></div>
+            </div>
+          </template>
+          <p v-else class="note">Wyniki zna rada zboru.</p>
+        </template>
+      </article>
+    </template>
+  </template>
+
   <template v-else-if="goalsView && !current">
     <p class="goals-intro">Część swojej dziesięciny możesz przeznaczyć na wybrany cel. Deklarujesz kwotę <b>miesięcznie</b>, a po każdym miesiącu potwierdzasz, że Twoja dziesięcina wyniosła co najmniej sumę deklaracji — jeśli nie, zmniejszasz je. Twoje kwoty widzisz Ty i rada zboru, pozostali — tylko pasek postępu.</p>
     <p v-if="goals.error" class="error">{{ goals.error }}</p>
@@ -1938,6 +2140,7 @@
       <button v-if="canMsg" @click="openMsg()"><svg class="i"><use href="#megaphone"/></svg><span>Wyślij wiadomość</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openAsb"><svg class="i"><use href="#users"/></svg><span>{{ canAsb ? 'ASB — grafik spotkań' : 'ASB — terminarz spotkań' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openListen"><svg class="i"><use href="#music"/></svg><span>Posłuchaj</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-if="api.enabled" @click="openVotes()"><svg class="i"><use href="#check"/></svg><span>Głosowania</span><small v-if="votesOpen" class="count-pill">{{ votesOpen }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button v-if="api.enabled" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span>Cele wsparcia</span><small v-if="goalDue" class="count-pill">!</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
       <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
@@ -2084,6 +2287,11 @@
         </section>
         <section v-if="api.enabled" class="hw-col">
           <h3 class="hw-h"><span class="hw-step">4</span>Wspólnota</h3>
+          <button v-for="e in votes.list.filter(x => x.status === 'voting' && !x.voted)" :key="e.id" class="hw-row hw-due" @click="openVotes()">
+            <span class="hw-thumb"><svg class="i"><use href="#check"/></svg></span>
+            <span class="hw-row-text"><b>Głosowanie: {{ e.title }}</b><small>oddaj tajny głos</small></span>
+            <svg class="i hw-arr"><use href="#chev"/></svg>
+          </button>
           <button v-if="goalDue" class="hw-row hw-due" @click="openGoals()">
             <span class="hw-thumb"><svg class="i"><use href="#money"/></svg></span>
             <span class="hw-row-text"><b>Potwierdź {{ monthName(goalDue.month).split(' ')[0] }}</b><small>dziesięcina co najmniej {{ zl(itemsSum(goalDue)) }}</small></span>
@@ -2753,7 +2961,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.87 · 18.10.2026'
+const VERSION = '2.89 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2955,7 +3163,7 @@ createApp({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
-    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value)
+    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value)
     const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
@@ -3168,6 +3376,7 @@ createApp({
         ...(api.enabled ? [{ title: 'Wspólnota', items: [
           { id: 'serve', icon: 'serve', name: 'Zaangażuj się' },
           { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '' },
+          { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '' },
           { id: 'listen', icon: 'music', name: 'Posłuchaj' },
           { id: 'asb', icon: 'users', name: 'ASB' },
         ] }] : []),
@@ -3184,10 +3393,10 @@ createApp({
     })
     function navOn(id) {
       const editor = current.value || currentEvent.value || currentAnn.value || currentProto.value || song.value || tplType.value
-      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || moreView.value
+      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || moreView.value
       return {
         home: !editor && !other, cal: !!currentEvent.value || calView.value || gcalView.value, svc: !!current.value, anns: annView.value || !!currentAnn.value,
-        serve: serveView.value, goals: goalsView.value, listen: listenView.value, asb: asbView.value,
+        serve: serveView.value, goals: goalsView.value, votes: votesView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
     }
@@ -3202,6 +3411,7 @@ createApp({
       else if (id === 'anns') openAnns()
       else if (id === 'serve') openServe()
       else if (id === 'goals') openGoals()
+      else if (id === 'votes') openVotes()
       else if (id === 'listen') openListen()
       else if (id === 'asb') openAsb()
       else if (id === 'songs') openSongs()
@@ -3212,7 +3422,7 @@ createApp({
       else showServices()
       scrollTo(0, 0)
     }
-    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
+    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -3405,7 +3615,7 @@ createApp({
       return visibleItems.value.filter(it => it.date >= todayStr.value && it.date <= until).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -3451,6 +3661,7 @@ createApp({
     function openEvent(ev) {
       currentEvent.value = { type: 'inne', title: '', date: today(), time: '', place: '', description: '', program: [], ...JSON.parse(JSON.stringify(ev)) }
       if (['czlonkowskie', 'rada'].includes(currentEvent.value.type) && api.enabled) loadProtocols()
+      if (api.enabled) loadVotes() // głosowania podpięte pod to spotkanie
       eventSaved = JSON.stringify(currentEvent.value); eventBase = ev.updated || 0; eventType = currentEvent.value.type
       eventEditing.value = false
       loadSignup()
@@ -3789,28 +4000,25 @@ createApp({
       e.target.value = ''
       if (!file || !currentAnn.value) return
       imgBusy.value = true
-      guard(async () => { currentAnn.value.image = await drive.uploadImage(await shrinkImage(file, 1920)) }).finally(() => { imgBusy.value = false })
+      guard(async () => { const first = !currentAnn.value.image; currentAnn.value.image = await drive.uploadImage(await shrinkImage(file, 1920)); if (first && !annSavedOnce.value) currentAnn.value.projector = true }).finally(() => { imgBusy.value = false })
     }
 
-    // Kilka grafik naraz → ogłoszenia (tytuł z nazwy pliku, „Pokaż na nabożeństwie” zaznaczone, dla wszystkich).
-    const bulk = Vue.reactive({ busy: false, done: 0, total: 0 })
+    // Z grafiki → nowe ogłoszenie z tą grafiką (tytuł z nazwy pliku, „Pokaż na nabożeństwie”, dla wszystkich) —
+    // otwarte do uzupełnienia; trafia do ogłoszeń dopiero po „Zapisz”.
+    const bulk = Vue.reactive({ busy: false })
     async function annFromImages(e) {
-      const files = [...(e.target.files || [])]
+      const file = e.target.files?.[0]
       e.target.value = ''
-      if (!files.length) return
-      Object.assign(bulk, { busy: true, done: 0, total: files.length })
+      if (!file) return
+      bulk.busy = true
       await guard(async () => {
-        for (const f of files) {
-          const image = await drive.uploadImage(await shrinkImage(f, 1920))
-          const title = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
-          const data = { id: uid(), title, text: '', audience: 'public', important: false, until: '', image, projector: true, author: me.value?.name || drive.account() || 'telefon', date: Date.now(), updated: Date.now(), updatedBy: drive.account() || 'telefon' }
-          await drive.saveAnnouncement(data, 0, false)
-          place(announcements, pendingAnns, data)
-          bulk.done++
-        }
+        const image = await drive.uploadImage(await shrinkImage(file, 1920))
+        newAnn()
+        Object.assign(currentAnn.value, { title: file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim(), audience: 'public', image, projector: true })
+        annView.value = true
+        nextTick(() => document.getElementById('anTitle')?.select())
       })
       bulk.busy = false
-      if (bulk.done) showToast('Dodano ogłoszenia z grafik: ' + bulk.done + ' — uzupełnij tytuły i opisy.')
     }
 
     // Film: wgrany plik do 50 MB (limit bazy) — dłuższe lepiej wrzucić na YouTube i wkleić link.
@@ -3969,7 +4177,7 @@ createApp({
       profile.name = me.value.name || ''; profile.grupa = me.value.grupa || ''; status.value = ''
       current.value = null; currentEvent.value = null; currentAnn.value = null; currentProto.value = null
       songView.value = false; peopleView.value = false; calView.value = false; gcalView.value = false; annView.value = false; protoView.value = false; tplView.value = false
-      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
+      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
       api.call('groups').then(r => { groupNames.value = r.groups || [] }, () => {})
     }
     const saveProfile = () => guard(async () => {
@@ -4370,6 +4578,63 @@ createApp({
       guard(async () => { goals.edit.image = await drive.uploadImage(await shrinkImage(file, 1600)) }).finally(() => { imgBusy.value = false })
     }
 
+    /* ---------- Wybory i głosowania (wybory.sql) ---------- */
+    const votesView = ref(false)
+    const votes = Vue.reactive({ list: [], canRun: false, busy: false, error: '', edit: null, people: [], pick: {}, ballot: {}, open: '' })
+    const votesOpen = computed(() => votes.list.filter(e => e.status === 'voting' && !e.voted).length)
+    const VOTE_STATUS = { nominations: 'Zgłaszanie kandydatów', ready: 'Przygotowane', voting: 'Głosowanie trwa', paused: 'Wstrzymane', closed: 'Zakończone' }
+    const eventOf = e => (e.event_id ? events.value.find(x => x.id === e.event_id) || null : null)
+    // spotkania do podpięcia: od tygodnia wstecz, najpierw członkowskie i rady
+    const voteEvents = computed(() => events.value.filter(ev => ev.date >= localDate(new Date(Date.now() - 7 * 864e5)))
+      .sort((a, b) => (['czlonkowskie', 'rada'].includes(b.type) - ['czlonkowskie', 'rada'].includes(a.type)) || a.date.localeCompare(b.date)).slice(0, 60))
+    // głosowania podpięte pod otwarte wydarzenie
+    const eventVotes = computed(() => (currentEvent.value ? votes.list.filter(e => e.event_id === currentEvent.value.id) : []))
+    function newVoteFor(id) { openVotes().then(() => newElection(id)) }
+    function goToVote(e) { openVotes().then(() => { votes.open = e.id; nextTick(() => document.querySelector('.vote.focus')?.scrollIntoView({ block: 'start', behavior: 'smooth' })) }) }
+    async function loadVotes() {
+      if (!api.enabled || !ready.value) return
+      votes.busy = true; votes.error = ''
+      try { const [list, can] = await Promise.all([api.call('elections'), api.call('canElections')]); votes.list = list || []; votes.canRun = !!can }
+      catch (e) { votes.error = e.message || String(e) } finally { votes.busy = false }
+    }
+    async function loadElectionPeople() { if (!votes.people.length) try { votes.people = (await api.call('electionPeople')) || [] } catch (e) { votes.error = e.message } }
+    function openVotes() {
+      resetViews(); votesView.value = true; votes.edit = null; scrollTo(0, 0)
+      return loadVotes().then(() => { if (votes.list.some(e => e.status === 'nominations' && e.kind === 'people')) loadElectionPeople() })
+    }
+    const optionsOf = e => String(e.optionsText || '').split('\n').map(x => x.trim()).filter(Boolean)
+    function newElection(eventId = '') { votes.edit = { _new: true, id: '', title: '', description: '', kind: 'people', max_choices: 1, results_public: true, optionsText: 'Za\nPrzeciw\nWstrzymuję się', status: 'nominations', event_id: typeof eventId === 'string' ? eventId : '' }; scrollTo(0, 0) }
+    function editElection(e) { votes.edit = { id: e.id, title: e.title, description: e.description, kind: e.kind, max_choices: e.max_choices, results_public: e.results_public, status: e.status, event_id: e.event_id || '', optionsText: e.kind === 'options' ? e.candidates.map(c => c.label).join('\n') : '' }; scrollTo(0, 0) }
+    const saveElection = () => guard(async () => {
+      const e = votes.edit
+      await api.call('electionSave', { e: { id: e.id || undefined, title: e.title.trim(), description: e.description || '', kind: e.kind, max_choices: Math.max(1, +e.max_choices || 1), results_public: !!e.results_public, event_id: e.event_id || '', ...(e.kind === 'options' ? { options: optionsOf(e) } : {}) } })
+      votes.edit = null
+      await loadVotes()
+      showToast('Zapisano głosowanie.')
+    })
+    const removeElection = e => { if (confirm('Usunąć „' + e.title + '” razem ze zgłoszeniami i głosami? Tego nie da się cofnąć.')) guard(async () => { await api.call('electionRemove', { e: e.id }); votes.edit = null; await loadVotes() }) }
+    const nominate = (e, who = votes.pick[e.id], withdraw = false) => guard(async () => {
+      await api.call('electionNominate', { e: e.id, who, withdraw })
+      votes.pick[e.id] = ''
+      await loadVotes()
+      showToast(withdraw ? 'Wycofano zgłoszenie.' : 'Zgłoszono kandydata — rada zdecyduje, kto bierze udział.')
+    })
+    const reviewCand = (c, ok) => guard(async () => { await api.call('electionReview', { c: c.id, ok }); await loadVotes() })
+    const setElectionStatus = (e, s) => {
+      const ask = s === 'voting' && e.status === 'nominations' ? 'Rozpocząć głosowanie? Lista kandydatów zostanie zamknięta, a członkowie dostaną powiadomienie.' : s === 'closed' ? 'Zakończyć głosowanie? Potem nie da się już oddać głosu.' : ''
+      if (!ask || confirm(ask)) guard(async () => { await api.call('electionStatus', { e: e.id, s }); await loadVotes(); if (s !== 'closed') showToast(s === 'paused' ? 'Głosowanie wstrzymane.' : 'Głosowanie aktywne.') })
+    }
+    function toggleBallot(e, c) {
+      const cur = votes.ballot[e.id] || []
+      votes.ballot[e.id] = e.max_choices === 1 ? (cur[0] === c.id ? [] : [c.id]) : cur.includes(c.id) ? cur.filter(x => x !== c.id) : cur.length < e.max_choices ? [...cur, c.id] : cur
+    }
+    const castVote = e => {
+      const chosen = (votes.ballot[e.id] || []).map(id => e.candidates.find(c => c.id === id)?.label).filter(Boolean)
+      if (!confirm('Oddać głos na: ' + chosen.join(', ') + '?\n\nGłos jest tajny i ostateczny — nie da się go zmienić.')) return
+      guard(async () => { await api.call('electionVote', { e: e.id, choices: votes.ballot[e.id] }); votes.ballot[e.id] = []; await loadVotes(); showToast('Głos oddany. Dziękujemy!') })
+    }
+    watch(ready, ok => { if (ok && api.enabled) loadVotes() }, { immediate: true })
+
     /* ---------- Posłuchaj ---------- */
     const listen = ref({}), listenView = ref(false)
     const listenEdit = Vue.reactive({ youtube: '', youtubeMore: '', spotify: '' })
@@ -4394,7 +4659,7 @@ createApp({
     }
     function openListen() {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
-      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false
+      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false
       listenView.value = true; scrollTo(0, 0); loadListen()
     }
     const saveListen = () => guard(async () => { await api.call('setListen', { ...listenEdit }); await loadListen(); status.value = 'Zapisano linki.' })
@@ -4428,7 +4693,7 @@ createApp({
     function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { loadMsgOpts(); openMoreView() }
-    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -4697,6 +4962,7 @@ createApp({
       if (serveView.value) return '/zaangazuj-sie'
       if (listenView.value) return '/posluchaj'
       if (goalsView.value) return goals.open ? '/cel/' + encodeURIComponent(goals.open) : '/cele'
+      if (votesView.value) return '/glosowania'
       if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
       if (calView.value) return '/kalendarz'
       if (moreView.value) return '/wiecej'
@@ -4714,7 +4980,7 @@ createApp({
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; asbForm.value = null; fromCal = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; asbForm.value = null; fromCal = false
     }
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
     async function applyRoute(path) {
@@ -4740,6 +5006,7 @@ createApp({
         else if (view === 'posluchaj') openListen()
         else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : 'plan'; await openAsb(); if (id && id !== 'pomysly') asbOpenId(id) }
         else if (view === 'cele' || view === 'cel') openGoals(view === 'cel' ? id : '')
+        else if (view === 'glosowania') openVotes()
         else if (view === 'profil') openProfile()
         else if (view === 'wiecej') openMore()
         else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); const sg = view === 'piesn' && songs.value.find(x => x.id === id); if (sg) openSong(sg) }
@@ -4795,9 +5062,10 @@ createApp({
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
       el.classList.toggle('has-side', ready.value)
-      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || annView.value || protoView.value || tplView.value || songView.value))
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return {
+      votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, asDate, boardAll,
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,

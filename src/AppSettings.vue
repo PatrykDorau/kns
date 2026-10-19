@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Icon from './Icon.vue'
-import { api, flush, overlayUrl, remoteUrl, settings, uid } from './store.js'
+import { api, flush, output, overlayUrl, remoteUrl, settings, uid } from './store.js'
 import { share } from './screenShare.js'
 
 const emit = defineEmits(['close'])
@@ -74,7 +74,7 @@ async function importBackup() {
                 <input v-model="settings.screenShare" class="sw" type="checkbox" aria-label="Udostępniaj obraz rzutnika">
               </div>
               <div v-if="settings.screenShare" class="st-row sub">
-                <span :class="['st-pill', share.error ? 'bad' : share.viewers ? 'ok' : 'wait']">{{ share.error || (share.viewers ? 'Stream odbiera obraz' + (share.viewers > 1 ? ' (' + share.viewers + ')' : '') : 'Czekam na laptop ze streamem') }}</span>
+                <span :class="['st-pill', share.error ? 'bad' : share.viewers ? 'ok' : 'wait']">{{ share.error || (!output.open ? 'Obraz ruszy po „Rozpocznij wyświetlanie”' : share.viewers ? 'Stream odbiera obraz' + (share.viewers > 1 ? ' (' + share.viewers + ')' : '') : 'Czekam na laptop ze streamem') }}</span>
               </div>
               <div class="st-row">
                 <span class="st-txt"><b>Napisy pieśni</b><small>Bieżąca zwrotka — na transmisję w Stream albo do OBS (adres poniżej).</small></span>

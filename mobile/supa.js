@@ -163,6 +163,16 @@ export function createSupa(config, client = window.supabase.createClient(config.
       // Dane do przelewu dziesięciny (konto, odbiorca, BLIK) — zmienia administrator.
       if (action === 'support') return (check(await sb.from('site_settings').select('value').eq('key', 'wsparcie')) || [])[0]?.value || {}
       if (action === 'setSupport') return check(await sb.rpc('set_site_setting', { k: 'wsparcie', v: { account: data.account || '', name: data.name || '', title: data.title || '', blik: data.blik || '' } }))
+      // wybory i głosowania (wybory.sql)
+      if (action === 'elections') return check(await sb.rpc('elections_overview')) || []
+      if (action === 'canElections') return !!check(await sb.rpc('can_run_elections'))
+      if (action === 'electionPeople') return check(await sb.rpc('election_people')) || []
+      if (action === 'electionSave') return check(await sb.rpc('election_save', { e: data.e }))
+      if (action === 'electionNominate') return check(await sb.rpc('election_nominate', { e: data.e, who: data.who, withdraw: !!data.withdraw }))
+      if (action === 'electionReview') return check(await sb.rpc('election_review', { c: data.c, ok: data.ok }))
+      if (action === 'electionStatus') return check(await sb.rpc('election_status', { e: data.e, s: data.s }))
+      if (action === 'electionVote') return check(await sb.rpc('election_vote', { e: data.e, choices: data.choices }))
+      if (action === 'electionRemove') return check(await sb.rpc('election_remove', { e: data.e }))
       if (action === 'goals') return check(await sb.rpc('goals_overview')) || []
       if (action === 'pledgeStatus') return check(await sb.rpc('my_pledge_status')) || {}
       if (action === 'canGoals') return !!check(await sb.rpc('can_manage_goals'))

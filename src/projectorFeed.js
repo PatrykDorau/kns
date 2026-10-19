@@ -1,7 +1,7 @@
 // Scena „Rzutnik” w studiu: to, co pokazuje Rzutnik na TYM komputerze (zdjęcie, film, tekst, slajd prezentacji).
 // Rzutnik na innym komputerze — przechwytywanie ekranu przez sieć (osobno).
 import { watch } from 'vue'
-import { api, displayId, hidden, liveSlide, publishProjector, settings, unpublishProjector, video } from './store.js'
+import { api, displayId, hidden, liveSlide, output, publishProjector, settings, unpublishProjector, video } from './store.js'
 import { setRemoteScreen, studio } from './studio.js'
 import { lyricsKey } from './lyricsFeed.js'
 import { startReceive, startShare, stopReceive, stopShare } from './screenShare.js'
@@ -31,7 +31,8 @@ export function startProjectorFeed() {
   }
   watch([() => settings.lyricsOnline, () => settings.screenShare, () => settings.lyricsKey], announce, { immediate: true })
   // laptop przy rzutniku: udostępnia ekran rzutnika (klucz — ten sam co napisy przez internet)
-  watch([() => settings.screenShare, () => settings.lyricsKey, displayId], ([on, key, disp]) => { if (on && key) startShare(key, disp); else stopShare() }, { immediate: true })
+  // tylko gdy rzutnik naprawdę wyświetla (okno rzutnika otwarte) — inaczej to byłby zwykły pulpit tego ekranu
+  watch([() => settings.screenShare, () => settings.lyricsKey, displayId, () => output.value.open], ([on, key, disp, open]) => { if (on && key && open) startShare(key, disp); else stopShare() }, { immediate: true })
   // laptop ze streamem: odbiera, gdy napisy idą z innego komputera (wklejony adres z kluczem)
   // (także z własnym kluczem — test „zdalnego” przesyłania na jednym komputerze)
   watch([() => settings.screenRemote, () => settings.streamLyrics, lyricsKey, () => settings.lyricsKey], ([on, mode, key, own]) => { if (on && mode === 'remote' && key) startReceive(key, setRemoteScreen); else stopReceive() }, { immediate: true })
