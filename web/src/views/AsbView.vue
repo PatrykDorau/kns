@@ -66,6 +66,9 @@ export default defineComponent({ setup: () => useApp() })
           </span>
           <span v-if="m.attendance != null" class="asb-att" title="Frekwencja">{{ m.attendance }}</span>
         </button>
+        <div v-if="(m.files || []).length" class="asb-file-row">
+          <button v-for="f in m.files" :key="f.path" type="button" class="chipbtn" :title="'Otwórz ' + f.name" @click="asbOpenFile(f)"><svg class="i"><use href="#clip"/></svg>{{ f.name }}</button>
+        </div>
       </template>
     </template>
   </template>

@@ -38,14 +38,15 @@ export default defineComponent({ setup: () => useApp() })
       <textarea id="asNote" v-model="asbForm.note" class="short" placeholder="Ustalenia, co przygotować, kto przynosi…"></textarea>
       <label for="asStudy">Rozważanie dla prowadzącego</label>
       <textarea id="asStudy" v-model="asbForm.study" placeholder="Fragment Biblii, myśli, pytania do dyskusji…"></textarea>
+      <label>Załączniki <small class="muted">(rozważanie, materiały, prezentacja — widzą je wszyscy z ASB)</small></label>
       <div class="asb-files">
         <div v-for="f in asbForm.files" :key="f.path" class="mn-person">
           <span><b>{{ f.name }}</b></span>
           <button :disabled="busy" @click="asbOpenFile(f)">Otwórz</button>
           <button class="icon" :disabled="busy" :aria-label="'Usuń załącznik ' + f.name" title="Usuń załącznik" @click="asbRemoveFile(f)"><svg class="i"><use href="#x"/></svg></button>
         </div>
-        <input ref="asbFileInput" type="file" hidden @change="asbAddFile">
-        <button type="button" :disabled="busy" @click="$refs.asbFileInput.click()"><svg class="i"><use href="#plus"/></svg>Załącz plik z rozważaniem</button>
+        <input ref="asbFileInput" type="file" multiple hidden @change="asbAddFile">
+        <button type="button" :disabled="busy" @click="$refs.asbFileInput.click()"><svg class="i"><use href="#clip"/></svg>{{ busy ? 'Wgrywam…' : 'Dodaj załącznik' }}</button>
       </div>
       <template v-if="asbForm.kind === 'cykliczne'">
         <label for="asConcept">Koncepcja okresu — co i po co robimy</label>

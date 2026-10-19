@@ -1532,11 +1532,13 @@ export default defineComponent({
         loadAsb()
       })
     }
+    // załączniki spotkania ASB (rozważanie, materiały, prezentacja) — kilka plików naraz
     const asbAddFile = e => {
-      const f = e.target.files?.[0]; e.target.value = ''
-      if (!f) return
-      if (f.size > 25 * 1024 * 1024) { error.value = 'Plik jest za duży (najwyżej 25 MB).'; return }
-      guard(async () => { const path = await drive.uploadAsbFile(f); asbForm.value?.files.push({ name: f.name, path }) })
+      const list = [...(e.target.files || [])]; e.target.value = ''
+      if (!list.length) return
+      const big = list.find(f => f.size > 25 * 1024 * 1024)
+      if (big) { error.value = 'Plik „' + big.name + '” jest za duży (najwyżej 25 MB).'; return }
+      guard(async () => { for (const f of list) { const path = await drive.uploadAsbFile(f); asbForm.value?.files.push({ name: f.name, path }) } })
     }
     function asbRemoveFile(f) {
       if (!confirm('Usunąć załącznik „' + f.name + '”? (Zniknie po zapisaniu spotkania.)')) return

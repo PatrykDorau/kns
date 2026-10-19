@@ -978,6 +978,10 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .account .roles { color: var(--text); }
 .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
 .linkbtn, button.linkbtn { display: inline; min-height: 0; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+/* ASB: załączniki pod wierszem spotkania */
+.asb-file-row { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 10px 12px; }
+.asb-file-row .chipbtn { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 30px; font-size: 13px; }
+.asb-file-row .chipbtn svg.i { flex: none; width: 14px; height: 14px; }
 /* zgłoszenia błędów i backlog */
 .bug-form label { display: block; margin-top: 10px; }
 .bug-form input, .bug-form textarea { width: 100%; }
