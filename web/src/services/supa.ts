@@ -286,7 +286,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
     async saveEvent(ev, base = 0, force = false) {
       await guardNewer('events', ev.id, base, force, 'to wydarzenie')
       const { status, mine, ...data } = ev
-      check(await sb.from('events').upsert({ id: ev.id, type: ev.type || 'inne', date: day(ev.date), is_public: ev.public ?? null, data, ...(status ? { status } : {}), updated: ev.updated || Date.now(), updated_by: ev.updatedBy || who() }))
+      check(await sb.from('events').upsert({ id: ev.id, type: ev.type || 'inne', date: day(ev.date), is_public: (ev.ministries || []).length ? false : ev.public ?? null, ministries: ev.ministries || [], data, ...(status ? { status } : {}), updated: ev.updated || Date.now(), updated_by: ev.updatedBy || who() }))
     },
     async removeEvent(id) { check(await sb.from('events').delete().eq('id', id)) },
     async saveTemplates(types, base = 0, force = false) {
@@ -343,7 +343,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
     async saveAnnouncement(item, base = 0, force = false) {
       await guardNewer('announcements', item.id, base, force, 'to ogłoszenie')
       const { audience, status, mine, ...data } = item
-      check(await sb.from('announcements').upsert({ id: item.id, audience: audience || 'members', important: !!item.important, until: day(item.until), data, ...(status ? { status } : {}), updated: item.updated || Date.now(), updated_by: item.updatedBy || who() }))
+      check(await sb.from('announcements').upsert({ id: item.id, audience: audience || 'members', important: !!item.important, until: day(item.until), ministries: item.audience === 'council' ? [] : item.ministries || [], data, ...(status ? { status } : {}), updated: item.updated || Date.now(), updated_by: item.updatedBy || who() }))
     },
     async removeAnnouncement(item) { check(await sb.from('announcements').delete().eq('id', item.id)) },
     // Grafiki ogłoszeń: publiczny kosz „ogloszenia” w Supabase Storage (losowe nazwy plików).

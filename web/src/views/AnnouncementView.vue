@@ -2,9 +2,10 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import MinistryPicker from '@/components/MinistryPicker.vue'
 
 // ogłoszenie
-export default defineComponent({ setup: () => useApp() })
+export default defineComponent({ components: { MinistryPicker }, setup: () => useApp() })
 </script>
 
 <template>
@@ -19,7 +20,7 @@ export default defineComponent({ setup: () => useApp() })
     <div class="ann-tags">
       <span v-if="currentAnn.pinned" class="ann-tag pin"><svg class="i"><use href="#pin"/></svg>Przypięte</span>
       <span v-if="currentAnn.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady zboru</span>
-      <span class="ann-tag">{{ AUDIENCE[currentAnn.audience] }}</span>
+      <span class="ann-tag">{{ (currentAnn.ministries || []).length ? 'Tylko: ' + ministryNames(currentAnn.ministries) : AUDIENCE[currentAnn.audience] }}</span>
       <span v-if="currentAnn.until" class="ann-tag">ważne do {{ shortDate(currentAnn.until) }}</span>
       <span v-if="currentAnn.projector && currentAnn.image" class="ann-tag"><svg class="i"><use href="#monitor"/></svg>Na rzutniku</span>
     </div>
@@ -80,6 +81,7 @@ export default defineComponent({ setup: () => useApp() })
       <option value="members">Członkowie (zatwierdzeni)</option>
       <option v-if="hasCouncil || currentAnn.audience === 'council'" value="council">Tylko rada zboru</option>
     </select>
+    <MinistryPicker v-if="api.enabled && currentAnn.audience !== 'council'" :model-value="currentAnn.ministries || []" @update:model-value="v => { currentAnn.ministries = v; if (v.length && currentAnn.audience === 'public') currentAnn.audience = 'members' }" />
     <label v-if="hasCouncil && currentAnn.audience !== 'council'" class="check"><input v-model="currentAnn.important" type="checkbox">Komunikat rady zboru — na górze strony głównej</label>
     <label v-if="canEdit || canReview" class="check"><input v-model="currentAnn.pinned" type="checkbox">Przypnij — zawsze nad innymi ogłoszeniami</label>
     <label for="anUntil">Ważne do (opcjonalnie)</label>

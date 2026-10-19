@@ -102,8 +102,8 @@ function trescNewslettera() {
   const until = Utilities.formatDate(new Date(Date.now() + 14 * 86400000), tz, 'yyyy-MM-dd')
   const range = '&date=gte.' + from + '&date=lte.' + until
   const services = baza('services?select=data' + range).map(r => r.data)
-  const events = baza('events?select=data,type' + range + '&type=neq.rada&status=eq.published').map(r => r.data)
-  const anns = baza('announcements?select=data,important,until&audience=neq.council&status=eq.published').filter(r => !r.until || r.until >= from)
+  const events = baza('events?select=data,type&ministries=eq.%7B%7D' + range + '&type=neq.rada&status=eq.published').map(r => r.data)
+  const anns = baza('announcements?select=data,important,until&audience=neq.council&status=eq.published&ministries=eq.%7B%7D').filter(r => !r.until || r.until >= from)
     .map(r => Object.assign({}, r.data, { important: r.important })).sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0))
   const tpl = baza('templates?select=types&id=eq.main')
   const types = (tpl[0] && tpl[0].types) || []

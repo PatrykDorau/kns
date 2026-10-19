@@ -2,9 +2,10 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import MinistryPicker from '@/components/MinistryPicker.vue'
 
 // EventView
-export default defineComponent({ setup: () => useApp() })
+export default defineComponent({ components: { MinistryPicker }, setup: () => useApp() })
 </script>
 
 <template>
@@ -13,7 +14,7 @@ export default defineComponent({ setup: () => useApp() })
   <!-- podgląd wydarzenia (zawsze najpierw; edycja po „Edytuj”) -->
   <article v-if="!eventEditable || !eventEditing" class="ann-view ev-view">
     <img v-if="currentEvent.image" class="ann-hero" :src="currentEvent.image" alt="">
-    <div class="ann-tags"><span class="ann-tag" :style="{ background: 'color-mix(in srgb, ' + typeOf(currentEvent.type).color + ' 22%, transparent)', color: typeOf(currentEvent.type).color }">{{ typeOf(currentEvent.type).name }}</span></div>
+    <div class="ann-tags"><span class="ann-tag" :style="{ background: 'color-mix(in srgb, ' + typeOf(currentEvent.type).color + ' 22%, transparent)', color: typeOf(currentEvent.type).color }">{{ typeOf(currentEvent.type).name }}</span><span v-if="(currentEvent.ministries || []).length" class="ann-tag"><svg class="i"><use href="#users"/></svg>Tylko: {{ ministryNames(currentEvent.ministries) }}</span></div>
     <h2 class="ann-view-title">{{ currentEvent.title || typeOf(currentEvent.type).name }}</h2>
     <p v-if="typeOf(currentEvent.type).community" class="ev-community"><svg class="i"><use href="#users"/></svg>Inicjatywa członków kościoła{{ currentEvent.createdBy ? ' — organizuje: ' + currentEvent.createdBy : '' }}</p>
     <div class="facts">
@@ -142,7 +143,8 @@ export default defineComponent({ setup: () => useApp() })
       <input ref="evImg" type="file" accept="image/*" hidden @change="pickEventImage">
       <label v-if="currentEvent.image" class="check"><input v-model="currentEvent.projector" type="checkbox">Pokaż na nabożeństwie — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
     </template>
-    <label v-if="api.enabled" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
+    <MinistryPicker v-if="api.enabled" :model-value="currentEvent.ministries || []" @update:model-value="v => { currentEvent.ministries = v; if (v.length) currentEvent.public = false }" />
+    <label v-if="api.enabled && !(currentEvent.ministries || []).length" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
     <!-- Zapisy: limit miejsc (dorośli + dzieci), dzieci, zatwierdzanie przez twórcę, termin; brak miejsc → lista rezerwowa -->
     <template v-if="api.enabled">
       <label class="check"><input type="checkbox" :checked="!!currentEvent.signup?.enabled" @change="toggleSignup($event.target.checked)">Zapisy na to wydarzenie</label>

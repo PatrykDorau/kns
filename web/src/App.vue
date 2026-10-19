@@ -683,7 +683,10 @@ export default defineComponent({
     const calPreset = computed(() => CAL_PRESETS.value.find(p => sameSet(p.types, calSel.value))?.id || '')
     function setCalPreset(p) { calSel.value = [...p.types]; keepCal(); selDay.value = '' }
     const calMatch = it => { const q = plain(calQuery.value.trim()); return !q || plain([it.title, it.place, typeOf(it.type).name].join(' ')).includes(q) }
-    const visibleItems = computed(() => calItems.value.filter(it => (!calSel.value.length || calSel.value.includes(it.type)) && calMatch(it)))
+    // „Dla mnie”: moje rodzaje wydarzeń i wszystko, co jest dla moich służb (np. próby zespołu, w którym służę)
+    const myMinistryIds = computed(() => serve.list.filter(m => m.mine === 'active' || m.leader).map(m => m.id))
+    const forMyMinistry = it => (it.ref?.ministries || []).some(id => myMinistryIds.value.includes(id))
+    const visibleItems = computed(() => calItems.value.filter(it => (!calSel.value.length || calSel.value.includes(it.type) || (calPreset.value === 'me' && forMyMinistry(it))) && calMatch(it)))
     const calView = ref(false), month0 = ref(today().slice(0, 7)), selDay = ref(''), pickType = ref(false)
     const WEEK = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd']
     const todayStr = computed(() => { now.value; return today() })
@@ -1246,6 +1249,7 @@ export default defineComponent({
     /* ---------- służby („Zaangażuj się”) ---------- */
     const serveView = ref(false), mEdit = ref(null), memberNames = ref([])
     const serve = reactive({ list: [], busy: false, error: '' })
+    const ministryNames = ids => (ids || []).map(id => serve.list.find(m => m.id === id)?.name || id).join(', ') // nazwy służb (widoczność)
     const serveTab = ref('all') // 'all' — wszystkie służby, 'mine' — moja służba (dyspozycyjność)
     // służby szukające chętnych na stronie startowej: dwie pierwsze i ile jeszcze
     const seekingAll = computed(() => serve.list.filter(m => m.seeking))
@@ -2354,7 +2358,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, ministryNames, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,

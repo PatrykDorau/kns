@@ -50,7 +50,7 @@ const folder = {
 const props = {}
 ctx.PropertiesService = { getScriptProperties: () => ({ getProperty: k => (k === 'SUPABASE_SECRET' ? 'sb_secret_TEST' : props[k] || null), setProperty: (k, v) => { props[k] = v } }) }
 vm.createContext(ctx)
-vm.runInContext(src + '\nthis.sprawdzTeraz = sprawdzTeraz; this.checkSunday = checkSunday; this.newsletterBazy = newsletterBazy; this.bazaUdostepnij = bazaUdostepnij;', ctx)
+vm.runInContext(src + '\nCONFIG.recipients = ["pastor@kns.pl"]; this.sprawdzTeraz = sprawdzTeraz; this.checkSunday = checkSunday; this.newsletterBazy = newsletterBazy; this.bazaUdostepnij = bazaUdostepnij;', ctx)
 
 const check = ctx.checkSunday(new Date(), 'Europe/Warsaw')
 assert.equal(check.service.sermonTitle, 'Światłość')

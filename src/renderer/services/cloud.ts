@@ -182,7 +182,7 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       const p = await active()
       const [row] = check(await sb.from('events').select('updated').eq('id', ev.id))
       if (row && (row.updated || 0) > base) throw new Error('Ktoś inny zmienił to wydarzenie w międzyczasie — kliknij „Synchronizuj” i spróbuj ponownie.')
-      check(await sb.from('events').upsert({ id: ev.id, type: ev.type || 'inne', date: day(ev.date), is_public: ev.public ?? null, data: ev, updated: ev.updated || Date.now(), updated_by: ev.updatedBy || p.email }))
+      check(await sb.from('events').upsert({ id: ev.id, type: ev.type || 'inne', date: day(ev.date), is_public: (ev.ministries || []).length ? false : ev.public ?? null, ministries: ev.ministries || [], data: ev, updated: ev.updated || Date.now(), updated_by: ev.updatedBy || p.email }))
       return { ok: true }
     }),
     removeEvent: id => safe(async () => { await active(); check(await sb.from('events').delete().eq('id', id)); return { ok: true } }),
