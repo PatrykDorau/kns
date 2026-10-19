@@ -2,9 +2,10 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import AvailabilityPanel from '@/components/AvailabilityPanel.vue'
 
 // Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) Zaangażuj się: służby szukające chętnych, zgłoszenia, akceptacja przez lidera
-export default defineComponent({ setup: () => useApp() })
+export default defineComponent({ components: { AvailabilityPanel }, setup: () => useApp() })
 </script>
 
 <template>
@@ -13,6 +14,7 @@ export default defineComponent({ setup: () => useApp() })
   <div v-if="serve.busy && !serve.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="serve.error" class="error">{{ serve.error }}</p>
   <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canCreateMinistry ? ' — dodaj pierwszą.' : '.' }}</p>
+  <AvailabilityPanel />
   <template v-for="sec in serveSections" :key="sec.id">
   <h2 class="mn-sec">{{ sec.title }}</h2>
   <div class="mn-grid">

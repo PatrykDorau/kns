@@ -970,7 +970,7 @@ textarea.ann-text { min-height: 160px; }
 .gate { display: flex; flex-direction: column; align-items: center; }
 .gate > img { display: block; margin: 0 auto 16px; }
 .pub-week { margin-bottom: 8px; }
-.phone-thoughts { margin: 18px 0 4px; }
+.phone-thoughts { margin: 18px 0 20px; }
 .phone-thoughts .kh-th-list { grid-template-columns: 1fr; }
 .pub-week .kh-ev { cursor: default; }
 .pub-week .kh-day { background: color-mix(in srgb, var(--panel) 90%, transparent); border-color: var(--line); }
@@ -1059,3 +1059,23 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .cal-types[open] > summary .i { transform: rotate(90deg); }
 .cal-types > summary .pill { min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-size: 11.5px; text-align: center; }
 .cal-types .filters { margin-top: 4px; }
+/* dyspozycyjność w służbach (Zaangażuj się) */
+.avail { margin-bottom: 18px; }
+.avail-hint { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.avail-card { margin-bottom: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.avail-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.avail-h b { flex: 1; }
+.avail-days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.avail-day { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 58px; min-height: 0; padding: 6px 4px; border-radius: 12px; }
+.avail-day small { color: var(--muted); font-size: 11.5px; }
+.avail-day span { font-size: 17px; font-weight: 800; }
+.st-yes { color: var(--ok) !important; } .avail-day.st-yes { border-color: color-mix(in srgb, var(--ok) 55%, transparent); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.st-no { color: var(--bad-text, #f08080) !important; } .avail-day.st-no { border-color: color-mix(in srgb, #e5534b 55%, transparent); background: color-mix(in srgb, #e5534b 12%, transparent); }
+.st-maybe { color: var(--accent) !important; } .avail-day.st-maybe { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: var(--accent-soft); }
+.avail-table-wrap { margin-top: 10px; overflow-x: auto; }
+.avail-table { border-collapse: collapse; font-size: 13px; margin-bottom: 10px; }
+.avail-table th, .avail-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.avail-table tbody th { text-align: left; font-weight: 600; }
+.avail-table thead th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.avail-table td { font-weight: 800; }
+.avail-sum th, .avail-sum td { color: var(--muted); font-weight: 700 !important; border-bottom: 0; }

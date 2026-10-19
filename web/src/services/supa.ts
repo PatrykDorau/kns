@@ -141,6 +141,10 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'groups') return { groups: check(await sb.rpc('group_names')) || [] }
       // Służby: tablica, zgłoszenia, akceptacja (lider/administrator), edycja.
       if (action === 'ministries') return check(await sb.rpc('ministry_board')) || []
+      // Dyspozycyjność w służbach (niedziele): moje odpowiedzi, tabela dla lidera, przypomnienie.
+      if (action === 'availability') return check(await sb.rpc('availability_board')) || []
+      if (action === 'availabilitySet') return check(await sb.rpc('availability_set', { mid: data.id, d: data.day, st: data.state || null }))
+      if (action === 'availabilityRemind') return check(await sb.rpc('availability_remind', { mid: data.id }))
       if (action === 'joinMinistry') return check(await sb.rpc('ministry_join', { mid: data.id }))
       if (action === 'leaveMinistry') return check(await sb.rpc('ministry_leave', { mid: data.id }))
       if (action === 'decideMinistry') return check(await sb.rpc('ministry_decide', { mid: data.id, who: data.who, accept: !!data.accept }))
