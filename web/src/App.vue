@@ -451,6 +451,7 @@ export default defineComponent({
         ] },
         ...(api.enabled ? [{ title: 'Wspólnota', items: [
           { id: 'serve', icon: 'serve', name: 'Zaangażuj się' },
+          ...(serve.list.some(m => m.mine === 'active' || m.leader) || canManage.value ? [{ id: 'myserve', icon: 'users', name: 'Moja służba' }] : []),
           { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '' },
           { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '' },
           { id: 'listen', icon: 'music', name: 'Posłuchaj' },
@@ -473,7 +474,7 @@ export default defineComponent({
       const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || moreView.value
       return {
         home: !editor && !other, cal: !!currentEvent.value || calView.value || gcalView.value, svc: !!current.value, anns: annView.value || !!currentAnn.value,
-        serve: serveView.value, goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
+        serve: serveView.value && serveTab.value === 'all', myserve: serveView.value && serveTab.value === 'mine', goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
     }
@@ -488,6 +489,7 @@ export default defineComponent({
       else if (id === 'svc') nextService.value ? open(nextService.value) : create(planSunday.value)
       else if (id === 'anns') openAnns()
       else if (id === 'serve') openServe()
+      else if (id === 'myserve') openServe('mine')
       else if (id === 'goals') openGoals()
       else if (id === 'votes') openVotes()
       else if (id === 'listen') openListen()
@@ -1191,7 +1193,7 @@ export default defineComponent({
       else if (e) openEvent(e)
       else if (sv) open(sv)
       else if (mId || q.get('sluzby')) {
-        openServe(); linkedMinistry.value = mId || ''
+        openServe(q.get('sluzby') === 'moja' ? 'mine' : 'all'); linkedMinistry.value = mId || ''
         if (mId) { const stop = watch(() => serve.list, () => { const el = document.getElementById('sluzba-' + mId); if (el) { stop(); nextTick(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' })) } }) }
       } else if (q.get('asb')) openAsbMeeting(q.get('asb'))
       else if (annId || evId || svcId) error.value = 'Nie znaleziono tej rzeczy — mogła zostać usunięta albo nie masz do niej dostępu.'
@@ -1244,12 +1246,22 @@ export default defineComponent({
     /* ---------- służby („Zaangażuj się”) ---------- */
     const serveView = ref(false), mEdit = ref(null), memberNames = ref([])
     const serve = reactive({ list: [], busy: false, error: '' })
+    const serveTab = ref('all') // 'all' — wszystkie służby, 'mine' — moja służba (dyspozycyjność)
+    // służby szukające chętnych na stronie startowej: dwie pierwsze i ile jeszcze
+    const seekingAll = computed(() => serve.list.filter(m => m.seeking))
+    function openMinistry(m) {
+      openServe(); linkedMinistry.value = m.id
+      nextTick(() => document.getElementById('sluzba-' + m.id)?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+    }
+    let retriedServe = false
     async function loadServe() {
       if (!api.enabled) return
       serve.busy = true; serve.error = ''
       try { serve.list = (await api.call('ministries')) || [] } catch (e) { serve.error = e.message } finally { serve.busy = false }
+      if (!serve.list.length && !serve.error && !retriedServe) { retriedServe = true; setTimeout(loadServe, 2000) } // pierwsze wczytanie tuż po zalogowaniu bywa puste
     }
-    function openServe() {
+    function openServe(tab = 'all') {
+      serveTab.value = tab === 'mine' ? 'mine' : 'all'
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false
       serveView.value = true; scrollTo(0, 0); loadServe()
@@ -1966,7 +1978,7 @@ export default defineComponent({
     // dla służby technicznej kafelek pobiera instalator.
     // W aplikacji na komputer (strona wbudowana) Rzutnik i Stream otwierają się od razu.
     const inApp = !!window.knsDesktop
-    watch(ready, ok => { if (ok && api.enabled && innerWidth >= 1024) { loadGoals(); loadServe() } }, { immediate: true })
+    watch(() => ready.value && !!me.value, ok => { if (ok && api.enabled) { loadGoals(); loadServe() } }, { immediate: true }) // po zalogowaniu (cele i służby — strona startowa)
     const webTiles = computed(() => {
       const tech = canCamera.value
       const app = !tech ? 'Tylko dla służby technicznej' : inApp ? 'Otwórz w aplikacji' : desktopApp.url ? 'Pobierz na komputer' + (desktopApp.size ? ' · ' + desktopApp.size : '') : 'W aplikacji na komputer'
@@ -2342,7 +2354,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,

@@ -1,10 +1,17 @@
 <script lang="ts">
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
-import { defineComponent } from 'vue'
+import { defineComponent, onMounted } from 'vue'
 import { useApp } from '@/composables/useApp'
 
 // HomeView
-export default defineComponent({ setup: () => useApp() })
+export default defineComponent({
+  setup() {
+    const app = useApp()
+    // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
+    onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
+    return app
+  },
+})
 </script>
 
 <template>
@@ -119,11 +126,12 @@ export default defineComponent({ setup: () => useApp() })
           <span class="hw-row-text"><b>{{ g.title }}</b><span class="hw-bar"><i :style="{ width: goalPct(g) + '%' }"></i></span><small>{{ zl(g.confirmed) }} z {{ zl(g.target) }} · {{ goalPct(g) }}%</small></span>
           <svg class="i hw-arr"><use href="#chev"/></svg>
         </button>
-        <button v-if="serve.list.some(m => m.seeking)" class="hw-row" @click="openServe">
+        <button v-for="m in seekingAll.slice(0, 2)" :key="m.id" class="hw-row" @click="openMinistry(m)">
           <span class="hw-thumb"><svg class="i"><use href="#serve"/></svg></span>
-          <span class="hw-row-text"><b>Szukają chętnych</b><small>{{ serve.list.filter(m => m.seeking).map(m => m.name).join(', ') }}</small></span>
+          <span class="hw-row-text"><b>{{ m.name }}</b><small>szuka chętnych{{ m.mine === 'active' ? ' · służysz tu' : m.mine === 'pending' ? ' · zgłoszono' : '' }}</small></span>
           <svg class="i hw-arr"><use href="#chev"/></svg>
         </button>
+        <button v-if="seekingAll.length > 2" class="hw-link hw-more-seek" @click="openServe">Szuka chętnych jeszcze {{ seekingAll.length - 2 }} {{ seekingAll.length - 2 === 1 ? 'służba' : seekingAll.length - 2 < 5 ? 'służby' : 'służb' }}<svg class="i"><use href="#chev"/></svg></button>
         <div class="hw-links">
           <button class="hw-link" @click="openGoals()">Cele wsparcia<svg class="i"><use href="#chev"/></svg></button>
           <button class="hw-link" @click="openServe">Zaangażuj się<svg class="i"><use href="#chev"/></svg></button>

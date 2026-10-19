@@ -20,7 +20,7 @@ export default defineComponent({ setup: () => useApp() })
           <small>{{ [asbPreview.date ? pretty(asbPreview.date) : 'Termin do ustalenia', asbPreview.time, asbPreview.place].filter(Boolean).join(' · ') }}</small>
         </span>
       </div>
-      <p v-if="asbMissing(asbPreview).length" class="asb-miss"><svg class="i"><use href="#warn"/></svg>Brakuje: {{ asbMissing(asbPreview).join(', ') }}</p>
+      <p v-if="canAsb && asbMissing(asbPreview).length" class="asb-miss"><svg class="i"><use href="#warn"/></svg>Brakuje: {{ asbMissing(asbPreview).join(', ') }}</p>
       <dl class="asb-prev-dl">
         <template v-if="asbPreview.concept"><dt>Cykl</dt><dd>{{ asbPreview.concept }}</dd></template>
         <template v-if="asbPreview.leader"><dt>Prowadzi</dt><dd>{{ asbPreview.leader }}</dd></template>
@@ -36,7 +36,7 @@ export default defineComponent({ setup: () => useApp() })
       </template>
     </div>
     <div class="np-foot">
-      <button class="primary" @click="asbEdit(asbPreview); asbPreview = null"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
+      <button v-if="canAsb" class="primary" @click="asbEdit(asbPreview); asbPreview = null"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
       <button @click="asbPreview = null">Zamknij</button>
     </div>
   </div>

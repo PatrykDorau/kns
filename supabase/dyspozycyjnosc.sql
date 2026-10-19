@@ -1,5 +1,5 @@
 -- Dyspozycyjność w służbach: członek służby zaznacza na najbliższe niedziele „mogę / nie mogę / nie wiem”,
--- lider (albo administrator) widzi tabelę osoby × niedziele i może przypomnieć tym, którzy nie uzupełnili.
+-- wszyscy w służbie widzą tabelę osoby × niedziele, a lider (albo administrator) może przypomnieć tym, którzy nie uzupełnili.
 -- Wszystko przez funkcje poniżej — bezpośredni dostęp do tabeli jest zamknięty. Uruchamiać po sluzby.sql. Można wielokrotnie.
 create table if not exists public.ministry_availability (
   ministry_id text not null references public.ministries (id) on delete cascade,
@@ -19,7 +19,7 @@ language sql stable as $$
     lateral (select x.t + ((7 - extract(dow from x.t)::int) % 7) as s) y, generate_series(0, greatest(1, least(n, 26)) - 1) g)
 $$;
 
--- Służby, w których służę albo którymi kieruję: niedziele, moje odpowiedzi, a liderom — tabela całej służby.
+-- Służby, w których służę albo którymi kieruję: niedziele, moje odpowiedzi i tabela całej służby.
 create or replace function public.availability_board(weeks int default 9) returns jsonb
 language plpgsql stable security definer set search_path = public as $$
 declare days date[] := next_sundays(weeks);
@@ -31,7 +31,7 @@ begin
       'lead', is_ministry_leader(m.id),
       'mine', coalesce((select jsonb_object_agg(a.day, a.state) from ministry_availability a
                  where a.ministry_id = m.id and a.person = auth.uid() and a.day = any (days)), '{}'::jsonb),
-      'people', case when is_ministry_leader(m.id) then coalesce((select jsonb_agg(jsonb_build_object(
+      'people', case when is_ministry_leader(m.id) or exists (select 1 from ministry_members x where x.ministry_id = m.id and x.person = auth.uid() and x.status = 'active') then coalesce((select jsonb_agg(jsonb_build_object(
                     'id', p.id, 'name', coalesce(nullif(p.name, ''), split_part(p.email, '@', 1)),
                     'states', coalesce((select jsonb_object_agg(a.day, a.state) from ministry_availability a
                                 where a.ministry_id = m.id and a.person = p.id and a.day = any (days)), '{}'::jsonb)) order by p.name)
@@ -66,7 +66,7 @@ begin
   who := array(select x.person from ministry_members x where x.ministry_id = mid and x.status = 'active' and x.person <> auth.uid()
     and (select count(*) from ministry_availability a where a.ministry_id = mid and a.person = x.person and a.day = any (days)) < cardinality(days));
   if cardinality(who) > 0 then
-    perform inbox_add(who, 'Dyspozycyjność: ' || nm, 'Zaznacz, w które niedziele możesz służyć.', './?sluzby=1');
+    perform inbox_add(who, 'Dyspozycyjność: ' || nm, 'Zaznacz, w które niedziele możesz służyć.', './?sluzby=moja');
   end if;
   return cardinality(who);
 end $$;

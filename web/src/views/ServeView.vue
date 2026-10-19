@@ -9,12 +9,17 @@ export default defineComponent({ components: { AvailabilityPanel }, setup: () =>
 </script>
 
 <template>
+  <div v-if="sideNav.some(g => g.items.some(i => i.id === 'myserve'))" class="serve-tabs" role="tablist">
+    <button role="tab" :aria-selected="serveTab === 'all'" @click="serveTab = 'all'"><svg class="i"><use href="#serve"/></svg>Wszystkie służby</button>
+    <button role="tab" :aria-selected="serveTab === 'mine'" @click="serveTab = 'mine'"><svg class="i"><use href="#users"/></svg>Moja służba</button>
+  </div>
+  <AvailabilityPanel v-if="serveTab === 'mine'" />
+  <template v-else>
   <p class="note" style="margin-top:0">Wybierz służbę i zgłoś się — lider służby potwierdzi zgłoszenie.</p>
   <button v-if="canCreateMinistry" class="primary" style="width:100%;margin-bottom:12px" @click="editMinistry()"><svg class="i"><use href="#plus"/></svg>Nowa służba</button>
   <div v-if="serve.busy && !serve.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="serve.error" class="error">{{ serve.error }}</p>
   <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canCreateMinistry ? ' — dodaj pierwszą.' : '.' }}</p>
-  <AvailabilityPanel />
   <template v-for="sec in serveSections" :key="sec.id">
   <h2 class="mn-sec">{{ sec.title }}</h2>
   <div class="mn-grid">
@@ -56,5 +61,6 @@ export default defineComponent({ components: { AvailabilityPanel }, setup: () =>
     </div>
   </article>
   </div>
+  </template>
   </template>
 </template>

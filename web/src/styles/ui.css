@@ -484,3 +484,9 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 @media (max-width: 420px) { .hw-nav .hw-dots { display: none; } }
 .more-sec { margin: 18px 4px 8px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .more-sec:first-child { margin-top: 4px; }
+/* pole wyszukiwania: obramowanie i podświetlenie na całym polu (z ikoną), a nie na samym tekście */
+.ann-search { transition: border-color .15s, box-shadow .15s, background-color .15s; }
+.ann-search input, .ann-search input:hover, .ann-search input:focus { border: 0 !important; box-shadow: none !important; background: transparent !important; }
+@media (hover: hover) { .ann-search:hover { border-color: var(--edge-hi); } }
+.ann-search:focus-within { border-color: rgba(242, 165, 60, .75); box-shadow: var(--ring); background-color: var(--field-focus); }
+.ann-search:focus-within > svg.i { color: var(--accent); }

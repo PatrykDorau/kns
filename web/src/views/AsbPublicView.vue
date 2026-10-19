@@ -14,13 +14,14 @@ export default defineComponent({ setup: () => useApp() })
   <p v-else-if="!asbPubUpcoming.length" class="note">Na razie nie ma zaplanowanych spotkań.</p>
   <template v-for="g in asbPubGroups" :key="g.month">
     <h2 class="mn-sec">{{ g.month }}</h2>
-    <div v-for="m in g.list" :key="m.id" class="asb-row" :class="['k-' + m.kind, { past: m.date < todayStr }]">
+    <button v-for="m in g.list" :key="m.id" class="asb-row" :class="['k-' + m.kind, { past: m.date < todayStr }]" @click="asbPreview = m">
       <span class="asb-date"><small>{{ wd(m.date) }}</small><b>{{ day(m.date) }}</b><small>{{ month(m.date) }}</small></span>
       <span class="asb-body">
         <span v-if="m.kind !== 'cykliczne'" class="asb-badge">{{ asbKindName(m.kind) }}</span>
         <b>{{ m.topic || 'Spotkanie ASB' }}</b>
+        <small v-if="m.leader">Prowadzi: {{ m.leader }}</small>
         <small v-if="m.time || m.place">{{ [m.time, m.place].filter(Boolean).join(' · ') }}</small>
       </span>
-    </div>
+    </button>
   </template>
 </template>

@@ -29,7 +29,7 @@ for (const d of days) assert.equal(new Date(d + 'T12:00:00Z').getUTCDay(), 0)
 
 // członek: tablica i odpowiedzi
 let mine = ok(await M.rpc('availability_board'))
-assert.equal(mine.length, 1); assert.equal(mine[0].member, true); assert.equal(mine[0].lead, false); assert.deepEqual(mine[0].people, [])
+assert.equal(mine.length, 1); assert.equal(mine[0].member, true); assert.equal(mine[0].lead, false); assert.equal(mine[0].people.length, 2) // członek też widzi tabelę
 ok(await M.rpc('availability_set', { mid: 'tech', d: days[0], st: 'yes' }))
 ok(await M.rpc('availability_set', { mid: 'tech', d: days[1], st: 'no' }))
 ok(await M.rpc('availability_set', { mid: 'tech', d: days[1], st: 'maybe' })) // zmiana

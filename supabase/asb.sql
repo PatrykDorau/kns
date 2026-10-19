@@ -117,6 +117,8 @@ update public.asb_meetings set kind = kind;
 create or replace function public.asb_public() returns jsonb
 language sql stable security definer set search_path = public as $$
   select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'date', m.date, 'time', m.time, 'kind', m.kind, 'topic', m.topic, 'place', m.place)
+      -- zalogowani członkowie: także prowadzący i cykl (bez notatek i frekwencji)
+      || case when is_active() then jsonb_build_object('leader', m.leader, 'helper', m.helper, 'concept', m.concept) else '{}'::jsonb end
     order by m.date, m.sort), '[]'::jsonb)
   from asb_meetings m
   where m.date between current_date - 7 and current_date + 183 and m.kind <> 'wewnetrzne'
