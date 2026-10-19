@@ -50,7 +50,7 @@ export default defineComponent({ setup: () => useApp() })
       <h2 class="mn-sec">{{ g.month }}</h2>
       <template v-for="m in g.list" :key="m.id">
         <p v-if="m.conceptStart" class="asb-concept">{{ m.concept }}</p>
-        <button class="asb-row" :class="['k-' + m.kind, { past: m.date && m.date < todayStr, next: asbNext && m.id === asbNext.id, pause: asbPause(m), incomplete: asbMissing(m).length }]" @click="asbEdit(m)">
+        <button class="asb-row" :class="['k-' + m.kind, { past: m.date && m.date < todayStr, next: asbNext && m.id === asbNext.id, pause: asbPause(m), incomplete: asbMissing(m).length }]" @click="asbPreview = m">
           <span class="asb-date"><small>{{ m.date ? wd(m.date) : '' }}</small><b>{{ m.date ? day(m.date) : '—' }}</b><small>{{ m.date ? month(m.date) : '' }}</small></span>
           <span class="asb-body">
             <span v-if="m.kind !== 'cykliczne'" class="asb-badge">{{ asbKindName(m.kind) }}</span>

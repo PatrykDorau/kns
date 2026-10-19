@@ -764,6 +764,18 @@ header .bell .count { position: absolute; top: 0; right: 0; min-width: 16px; hei
 .np-panel .searchbox { margin-bottom: 10px; }
 .np-list { flex: 1; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; }
 .np-foot { display: flex; justify-content: flex-end; padding-top: 12px; }
+/* ASB: podgląd spotkania */
+.asb-prev .np-foot { gap: 8px; }
+.asb-prev .asb-miss { display: flex; align-items: center; gap: 6px; margin: 4px 0; color: var(--accent); font-size: 14px; }
+.asb-prev .asb-miss .i { flex: none; width: 16px; height: 16px; }
+.asb-prev-top { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.asb-prev-top h3 { margin: 2px 0; font-size: 19px; line-height: 1.25; }
+.asb-prev-top small { color: var(--muted); }
+.asb-prev-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 10px 0; }
+.asb-prev-dl dt { color: var(--muted); font-size: 13px; }
+.asb-prev-dl dd { margin: 0; font-weight: 600; }
+.asb-prev h4 { margin: 14px 0 4px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.asb-prev-text { margin: 0; white-space: pre-wrap; line-height: 1.5; }
 .np-foot .primary { width: 100%; }
 @media (min-width: 720px) { .np-foot .primary { width: auto; } }
 .profile-head { display: flex; align-items: center; gap: 14px; padding: 14px; margin: 4px 0 6px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }

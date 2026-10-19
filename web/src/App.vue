@@ -25,6 +25,7 @@ import ServeView from '@/views/ServeView.vue'
 import AsbPublicView from '@/views/AsbPublicView.vue'
 import AsbView from '@/views/AsbView.vue'
 import VotesView from '@/views/VotesView.vue'
+import AsbPreviewDialog from '@/components/dialogs/AsbPreviewDialog.vue'
 import GoalsView from '@/views/GoalsView.vue'
 import ListenView from '@/views/ListenView.vue'
 import ProfileView from '@/views/ProfileView.vue'
@@ -159,7 +160,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -1390,7 +1391,7 @@ export default defineComponent({
       return { date, wd: wd(date), n: day(date), items: pubItems.value.filter(it => it.date === date) }
     }))
     /* ---------- ASB: grafik spotkań i pomysły ---------- */
-    const asbView = ref(false), asbForm = ref(null)
+    const asbView = ref(false), asbForm = ref(null), asbPreview = ref(null) // asbPreview: podgląd spotkania (bez edycji)
     const asb = reactive({ meetings: [], ideas: [], people: [], pub: [], pubAll: false, season: '', tab: 'plan', kind: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
     const canAsb = computed(() => api.enabled && (canManage.value || (me.value?.roles || []).includes('asb')))
     // Rodzaje spotkań (kolory w CSS: .k-cykliczne, .k-wewnetrzne, .k-ewangelizacyjne).
@@ -2331,7 +2332,7 @@ export default defineComponent({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      asb, asbView, asbForm, canAsb, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete,
+      asb, asbView, asbForm, asbPreview, canAsb, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete,
       booting, annIsNew, newAnnCount, annQuery, annHintsOpen, shownActiveAnns, shownOldAnns, annHints, hintParts, pickHint, isActive,
       ASB_KINDS, asbWhen, asbKindName, asbMissing, asbMissingCount, asbLeaderHints, asbPubUpcoming, asbPubShown, asbPubGroups,
       msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
@@ -2559,6 +2560,7 @@ export default defineComponent({
 
   <!-- ASB: edycja spotkania -->
   <AsbMeetingDialog v-if="asbForm" />
+  <AsbPreviewDialog v-if="asbPreview && !asbForm" />
 
   <!-- Powiadomienia w aplikacji (zawsze włączone; telefon i e-mail — dodatkowo, w ustawieniach) -->
   <InboxDialog v-if="inboxOpen" />
