@@ -81,7 +81,7 @@ header button.back { color: var(--accent); }
 .goal-confirm.due { box-shadow: 0 0 0 1px rgba(242, 165, 60, .35), 0 18px 40px -24px rgba(242, 165, 60, .55); }
 button.card, button.ann, button.song, .more-list button, button.ev { transition: transform .18s var(--ease), border-color .18s, box-shadow .2s var(--ease), background-color .18s; }
 @media (hover: hover) {
-  button.card:hover, button.ann:hover, button.song:hover, button.ev:hover { transform: translateY(-2px); border-color: rgba(242, 165, 60, .38) !important; box-shadow: var(--shadow-2); }
+  button.card:hover, button.ann:hover, button.song:hover, button.ev:hover { border-color: rgba(242, 165, 60, .38) !important; box-shadow: var(--shadow-2); }
 }
 .card .date { background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02)); box-shadow: inset 0 0 0 1px var(--edge); }
 
@@ -313,7 +313,7 @@ p.note:only-child, .empty { border-radius: var(--r); }
 .fact small { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .fact b { font-size: 15px; font-weight: 650; }
 a.fact { transition: border-color .15s, transform .15s var(--ease); }
-a.fact:hover { border-color: rgba(242, 165, 60, .45); transform: translateY(-1px); }
+a.fact:hover { border-color: rgba(242, 165, 60, .45); }
 a.fact:not([href]) { pointer-events: none; }
 .ann-view-title { font-size: 30px !important; letter-spacing: -.025em !important; }
 .dv-hero { display: flex; flex-direction: column; gap: 10px; }
@@ -370,7 +370,7 @@ a.fact:not([href]) { pointer-events: none; }
 .notice b { color: var(--p-ink); }
 .notice .notice-text { opacity: 1; }
 .hw-banner-ic { color: var(--p-accent) !important; background: rgba(184, 100, 28, .12) !important; box-shadow: inset 0 0 0 1px rgba(184, 100, 28, .25) !important; }
-.hw-banner:hover, .goal-banner:hover { transform: translateY(-2px) rotate(-.15deg); }
+/* bez „podskakiwania” przy najechaniu — tylko obramowanie i cień (bez przesunięcia układu) */
 .invite { border-radius: 18px !important; }
 .invite b, .goal-banner b { color: var(--p-ink); }
 .hw-banner .kh-new { background: var(--p-accent); color: #fff; }

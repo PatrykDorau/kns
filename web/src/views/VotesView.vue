@@ -26,17 +26,34 @@ export default defineComponent({ setup: () => useApp() })
         <button type="button" :class="{ on: votes.edit.kind === 'options' }" @click="votes.edit.kind = 'options'"><b>Na odpowiedzi</b><small>np. Za / Przeciw / Wstrzymuję się</small></button>
       </div>
       <template v-if="votes.edit.kind === 'options'">
-        <label for="vOpts">Odpowiedzi — każda w osobnej linii</label>
-        <textarea id="vOpts" v-model="votes.edit.optionsText" class="ann-text" placeholder="Za&#10;Przeciw&#10;Wstrzymuję się"></textarea>
+        <label>Odpowiedzi <small class="muted">(w tej kolejności na karcie)</small></label>
+        <div class="vote-opts">
+          <div v-for="(o, i) in votes.edit.opts" :key="i" class="vote-opt">
+            <span class="vote-opt-n">{{ i + 1 }}</span>
+            <input v-model="votes.edit.opts[i]" maxlength="120" :placeholder="['Za', 'Przeciw', 'Wstrzymuję się'][i] || 'Odpowiedź'" :aria-label="'Odpowiedź ' + (i + 1)" autocomplete="off" @keydown.enter.prevent="addOption(i + 1)">
+            <button type="button" class="icon" :disabled="i === 0" title="Wyżej" aria-label="Przesuń wyżej" @click="moveOption(i, -1)"><svg class="i"><use href="#up"/></svg></button>
+            <button type="button" class="icon" :disabled="votes.edit.opts.length <= 2" title="Usuń odpowiedź" aria-label="Usuń odpowiedź" @click="votes.edit.opts.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
+          </div>
+          <button type="button" class="ghost vote-opt-add" @click="addOption()"><svg class="i"><use href="#plus"/></svg>Dodaj odpowiedź</button>
+        </div>
       </template>
       <label for="vMax">Ile można wybrać na jednej karcie</label>
       <input id="vMax" v-model.number="votes.edit.max_choices" type="number" min="1" max="50" inputmode="numeric" style="max-width:140px">
     </template>
     <label for="vEvent">Spotkanie (opcjonalnie) — głosowanie widać w wydarzeniu w kalendarzu</label>
-    <select id="vEvent" v-model="votes.edit.event_id" class="vote-select">
-      <option value="">— bez spotkania —</option>
-      <option v-for="ev in voteEvents" :key="ev.id" :value="ev.id">{{ shortDate(ev.date) }} · {{ ev.title || typeOf(ev.type).name }}</option>
-    </select>
+    <div class="vote-ev">
+      <div class="ann-search"><svg class="i"><use href="#search"/></svg><input id="vEvent" v-model="voteEv.query" type="search" placeholder="Szukaj spotkania: nazwa, miejsce, data…" autocomplete="off"></div>
+      <div class="chips" role="group" aria-label="Rodzaj spotkań">
+        <button v-for="[id, name] in VOTE_EV_TYPES" :key="id" type="button" class="chipbtn" :class="{ on: voteEv.type === id }" @click="voteEv.type = id">{{ name }}</button>
+      </div>
+      <div class="vote-ev-list" role="listbox" aria-label="Spotkanie">
+        <button type="button" role="option" :aria-selected="!votes.edit.event_id" :class="{ on: !votes.edit.event_id }" @click="votes.edit.event_id = ''"><b>Bez spotkania</b></button>
+        <button v-for="ev in voteEventsShown" :key="ev.id" type="button" role="option" :aria-selected="votes.edit.event_id === ev.id" :class="{ on: votes.edit.event_id === ev.id }" @click="votes.edit.event_id = ev.id">
+          <i class="cal-dot" :style="{ background: typeOf(ev.type).color }"></i><b>{{ ev.title || typeOf(ev.type).name }}</b><small>{{ shortDate(ev.date) }}{{ ev.place ? ' · ' + ev.place : '' }}</small>
+        </button>
+        <p v-if="!voteEventsShown.length" class="note">Brak spotkań{{ voteEv.query ? ' dla „' + voteEv.query + '”' : '' }} — zmień filtr albo „Wszystkie”.</p>
+      </div>
+    </div>
     <label class="check"><input v-model="votes.edit.results_public" type="checkbox">Wyniki widzą wszyscy członkowie (inaczej tylko rada)</label>
     <div class="bar">
       <button class="primary" :disabled="busy || !votes.edit.title.trim() || (votes.edit.kind === 'options' && optionsOf(votes.edit).length < 2)" @click="saveElection">Zapisz</button>

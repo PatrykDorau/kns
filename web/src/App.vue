@@ -30,7 +30,6 @@ import MoreView from '@/views/MoreView.vue'
 import HomeView from '@/views/HomeView.vue'
 import ServiceEditView from '@/views/ServiceEditView.vue'
 import PublicListen from '@/components/PublicListen.vue'
-import PublicAsb from '@/components/PublicAsb.vue'
 import BandPickDialog from '@/components/dialogs/BandPickDialog.vue'
 import AddPersonDialog from '@/components/dialogs/AddPersonDialog.vue'
 import QrDialog from '@/components/dialogs/QrDialog.vue'
@@ -66,7 +65,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.90 · 19.10.2026'
+const VERSION = '2.91 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -158,7 +157,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, PublicAsb, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -323,10 +322,20 @@ export default defineComponent({
     /* ---------- osoby (administrator) ---------- */
     const peopleView = ref(false), people = ref([]), peopleBusy = ref(false)
     const withDraft = p => ({ ...p, draft: p.status === 'pending' && !p.roles.length ? ['czlonek'] : [...p.roles], busy: false, error: '' })
+    // wyszukiwanie osób (imię, e-mail), filtr rangi; edycja rang jednej osoby naraz (lista z wyszukiwaniem)
+    const peopleUi = reactive({ query: '', rank: '', open: '', rankQuery: '' })
+    const peopleMatch = p => {
+      const q = plain(peopleUi.query.trim())
+      return (!q || plain((p.name || '') + ' ' + p.email).includes(q)) && (!peopleUi.rank || p.roles.includes(peopleUi.rank))
+    }
+    const rankName = id => ranks.value.find(r => r.id === id)?.name || id
+    const ranksShown = computed(() => { const q = plain(peopleUi.rankQuery.trim()); return ranks.value.filter(r => !q || plain(r.name).includes(q)) })
+    function openRanks(p) { peopleUi.open = peopleUi.open === p.email ? '' : p.email; peopleUi.rankQuery = '' }
+    function cancelRanks(p) { p.draft = [...p.roles]; peopleUi.open = '' }
     const peopleGroups = computed(() => [
-      { id: 'pending', title: 'Czekają na zatwierdzenie', list: people.value.filter(p => p.status === 'pending').sort((a, b) => b.requested - a.requested) },
-      { id: 'active', title: 'Członkowie', list: people.value.filter(p => p.status === 'active').sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, 'pl')) },
-      { id: 'rejected', title: 'Bez dostępu', list: people.value.filter(p => p.status === 'rejected') },
+      { id: 'pending', title: 'Czekają na zatwierdzenie', list: people.value.filter(p => p.status === 'pending' && peopleMatch(p)).sort((a, b) => b.requested - a.requested) },
+      { id: 'active', title: 'Członkowie', list: people.value.filter(p => p.status === 'active' && peopleMatch(p)).sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, 'pl')) },
+      { id: 'rejected', title: 'Bez dostępu', list: people.value.filter(p => p.status === 'rejected' && peopleMatch(p)) },
     ].filter(g => g.list.length))
     const pendingCount = computed(() => people.value.filter(p => p.status === 'pending').length)
     const initials = p => (p.name || p.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
@@ -1656,6 +1665,15 @@ export default defineComponent({
     // spotkania do podpięcia: od tygodnia wstecz, najpierw członkowskie i rady
     const voteEvents = computed(() => events.value.filter(ev => ev.date >= localDate(new Date(Date.now() - 7 * 864e5)))
       .sort((a, b) => (['czlonkowskie', 'rada'].includes(b.type) - ['czlonkowskie', 'rada'].includes(a.type)) || a.date.localeCompare(b.date)).slice(0, 60))
+    // wybór spotkania w głosowaniu: wyszukiwanie i filtr (spotkania członkowskie, rada, wszystkie); od 30 dni wstecz
+    const voteEv = reactive({ query: '', type: 'meetings' })
+    const VOTE_EV_TYPES = [['meetings', 'Spotkania członkowskie i rada'], ['czlonkowskie', 'Członkowskie'], ['rada', 'Rada zboru'], ['all', 'Wszystkie']]
+    const voteEventsShown = computed(() => {
+      const q = plain(voteEv.query.trim()), from = localDate(new Date(Date.now() - 30 * 864e5))
+      const typeOk = ev => voteEv.type === 'all' || (voteEv.type === 'meetings' ? ['czlonkowskie', 'rada'].includes(ev.type) : ev.type === voteEv.type)
+      return events.value.filter(ev => (ev.date >= from || ev.id === votes.edit?.event_id) && typeOk(ev) && (!q || plain([ev.title, typeOf(ev.type).name, ev.place, ev.date].join(' ')).includes(q)))
+        .sort((a, b) => a.date.localeCompare(b.date)).slice(0, 40)
+    })
     // głosowania podpięte pod otwarte wydarzenie
     const eventVotes = computed(() => (currentEvent.value ? votes.list.filter(e => e.event_id === currentEvent.value.id) : []))
     function newVoteFor(id) { openVotes().then(() => newElection(id)) }
@@ -1671,9 +1689,12 @@ export default defineComponent({
       resetViews(); votesView.value = true; votes.edit = null; scrollTo(0, 0)
       return loadVotes().then(() => { if (votes.list.some(e => e.status === 'nominations' && e.kind === 'people')) loadElectionPeople() })
     }
-    const optionsOf = e => String(e.optionsText || '').split('\n').map(x => x.trim()).filter(Boolean)
-    function newElection(eventId = '') { votes.edit = { _new: true, id: '', title: '', description: '', kind: 'people', max_choices: 1, results_public: true, optionsText: 'Za\nPrzeciw\nWstrzymuję się', status: 'nominations', event_id: typeof eventId === 'string' ? eventId : '' }; scrollTo(0, 0) }
-    function editElection(e) { votes.edit = { id: e.id, title: e.title, description: e.description, kind: e.kind, max_choices: e.max_choices, results_public: e.results_public, status: e.status, event_id: e.event_id || '', optionsText: e.kind === 'options' ? e.candidates.map(c => c.label).join('\n') : '' }; scrollTo(0, 0) }
+    // odpowiedzi w głosowaniu „na odpowiedzi”: każda w osobnym polu, w kolejności na karcie
+    const optionsOf = e => (e.opts || []).map(x => String(x).trim()).filter(Boolean)
+    function addOption(at = votes.edit.opts.length) { votes.edit.opts.splice(at, 0, ''); nextTick(() => (document.querySelectorAll('.vote-opts input')[at] as HTMLInputElement)?.focus()) }
+    function moveOption(i, d) { const o = votes.edit.opts, j = i + d; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]] }
+    function newElection(eventId = '') { votes.edit = { _new: true, id: '', title: '', description: '', kind: 'people', max_choices: 1, results_public: true, opts: ['Za', 'Przeciw', 'Wstrzymuję się'], status: 'nominations', event_id: typeof eventId === 'string' ? eventId : '' }; scrollTo(0, 0) }
+    function editElection(e) { votes.edit = { id: e.id, title: e.title, description: e.description, kind: e.kind, max_choices: e.max_choices, results_public: e.results_public, status: e.status, event_id: e.event_id || '', opts: e.kind === 'options' ? e.candidates.map(c => c.label) : ['', ''] }; scrollTo(0, 0) }
     const saveElection = () => guard(async () => {
       const e = votes.edit
       await api.call('electionSave', { e: { id: e.id || undefined, title: e.title.trim(), description: e.description || '', kind: e.kind, max_choices: Math.max(1, +e.max_choices || 1), results_public: !!e.results_public, event_id: e.event_id || '', ...(e.kind === 'options' ? { options: optionsOf(e) } : {}) } })
@@ -2134,7 +2155,7 @@ export default defineComponent({
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return provideApp({
-      votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, asDate, boardAll,
       events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
@@ -2161,7 +2182,7 @@ export default defineComponent({
       weekDays, greeting, firstName, webTiles, chooseTile, boardNews, boardMore, weekRange,
       inviteEvent, moreView, openMore, nextService, nextSundayDate, planSunday, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
-      peopleView, people, peopleBusy, peopleGroups, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
+      peopleView, people, peopleBusy, peopleGroups, peopleUi, rankName, ranksShown, openRanks, cancelRanks, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
@@ -2345,8 +2366,6 @@ export default defineComponent({
   <!-- Strona dla gości (bez konta albo przed zatwierdzeniem): tylko „Posłuchaj — odkryj nas”. -->
   <PublicListen v-if="!ready && !booting && !embedded && (listenYt || listenSp || isChannelLink(listen.youtube))" />
 
-  <!-- Strona dla gości: terminarz ASB (spotkania studenckie; bez spotkań wewnętrznych, prowadzących i notatek) -->
-  <PublicAsb v-if="!ready && !booting && !embedded && asbPubShown.length" />
 
   <!-- Skład zespołu: wybór osoby ze służby muzycznej (instrument wybiera się potem w wierszu) -->
   <BandPickDialog v-if="bandPick.open" />

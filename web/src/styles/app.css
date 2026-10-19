@@ -663,7 +663,36 @@ div.asb-row { cursor: default; }
 .asb-idea > span { flex: 1; min-width: 0; }
 .asb-idea-add { margin-bottom: 12px; }
 .mn-sec { margin: 18px 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.mn-team { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.mn-team { margin-top: 8px; }
+/* głosowanie: wybór spotkania (wyszukiwanie, filtr, lista) */
+.vote-ev { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.vote-ev .ann-search { margin: 0; }
+.vote-ev .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.vote-ev-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; padding: 4px; border: 1px solid var(--line); border-radius: 12px; }
+.vote-ev-list button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: inherit; text-align: left; font: inherit; }
+.vote-ev-list button b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.vote-ev-list button small { flex: none; color: var(--muted); font-size: 12px; }
+.vote-ev-list button.on { border-color: rgba(242,165,60,.55); background: var(--accent-soft); }
+.vote-ev-list .cal-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+/* głosowanie: odpowiedzi w osobnych polach */
+.vote-opts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.vote-opt { display: flex; align-items: center; gap: 6px; }
+.vote-opt input { flex: 1; min-width: 0; }
+.vote-opt-n { flex: none; width: 24px; text-align: center; color: var(--muted); font-weight: 700; font-size: 13px; }
+.vote-opt .icon { flex: none; }
+.vote-opt-add { align-self: flex-start; }
+/* służby: karty w siatce (szeroki ekran — dwie kolumny), lista osób zwinięta */
+.mn-grid { display: grid; gap: 10px; }
+.mn-grid .ministry { margin-bottom: 0; }
+@media (min-width: 1000px) { .mn-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+.mn-who { border-top: 1px dashed var(--line); padding-top: 8px; }
+.mn-who > summary { display: flex; align-items: center; gap: 8px; list-style: none; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 600; min-height: 32px; }
+.mn-who > summary::-webkit-details-marker { display: none; }
+.mn-who > summary span { flex: 1; }
+.mn-who > summary svg.i { width: 16px; height: 16px; }
+.mn-who .mn-chev { transition: transform .2s; }
+.mn-who[open] .mn-chev { transform: rotate(180deg); }
+.mn-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .mn-team > small { display: block; margin-bottom: 6px; color: var(--muted); }
 .mn-team .mn-add { margin-top: 6px; }
 .ministry.linked { box-shadow: 0 0 0 2px var(--accent); }
@@ -848,7 +877,7 @@ textarea.ann-text { min-height: 160px; }
   .more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; background: none; border: 0; border-radius: 0; overflow: visible; margin-bottom: 14px; }
   .more-list button { min-height: 76px; padding: 14px 18px; border-radius: 18px !important; border: 1px solid var(--line) !important;
     background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0)), color-mix(in srgb, var(--panel) 74%, transparent) !important; backdrop-filter: blur(10px); transition: border-color .15s, transform .15s; }
-  .more-list button:hover { border-color: rgba(242, 165, 60, .55) !important; transform: translateY(-1px); }
+  .more-list button:hover { border-color: rgba(242, 165, 60, .55) !important; }
   .more-list button > svg.i:first-child { width: 42px; height: 42px; padding: 10px; border-radius: 12px; color: var(--accent); background: linear-gradient(135deg, rgba(242, 165, 60, .26), rgba(242, 165, 60, .07)); }
   .more-list button span { font-size: 16px; font-weight: 600; }
 }
@@ -885,6 +914,21 @@ textarea.ann-text { min-height: 160px; }
 button.rank { min-height: 34px; padding: 4px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); background: none; }
 button.rank.on { color: var(--accent); background: var(--accent-soft); border-color: rgba(232, 163, 61, .5); font-weight: 600; }
 .p-actions { display: flex; gap: 8px; margin-top: 12px; }
+/* osoby: wyszukiwanie, przypisane rangi, edycja rang z listą */
+.people-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.people-tools .ann-search { flex: 1 1 260px; margin: 0; }
+.people-tools select { flex: 1 1 200px; height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+.p-head .p-ranks-btn { margin-left: auto; flex: none; min-height: 34px; padding: 4px 12px; font-size: 13px; }
+.p-head .p-ranks-btn svg.i { width: 15px; height: 15px; }
+.p-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.p-rank-edit { margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); }
+.p-rank-edit .ann-search { margin: 0 0 8px; }
+.p-rank-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px; max-height: 300px; overflow: auto; }
+.p-rank { display: flex; align-items: center; gap: 8px; min-height: 36px; margin: 0; font-size: 14px; color: var(--text); padding: 6px 10px; border: 1px solid transparent; border-radius: 9px; cursor: pointer; }
+.p-rank > input[type=checkbox] { flex: none !important; width: 18px !important; min-width: 0 !important; height: 18px !important; margin: 0 !important; }
+.p-rank > span { flex: 1; text-align: left; }
+.p-rank { justify-content: flex-start; text-align: left; }
+.p-rank.on { border-color: rgba(242,165,60,.45); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .p-actions > button { flex: 1; }
 .p-actions .ghost { flex: 0 1 auto; color: var(--bad-text); }
 .p-error { margin: 8px 0 0; font-size: 14px; color: var(--bad-text); }

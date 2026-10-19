@@ -15,6 +15,7 @@ export default defineComponent({ setup: () => useApp() })
   <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canCreateMinistry ? ' — dodaj pierwszą.' : '.' }}</p>
   <template v-for="sec in serveSections" :key="sec.id">
   <h2 class="mn-sec">{{ sec.title }}</h2>
+  <div class="mn-grid">
   <article v-for="m in sec.list" :key="m.id" :id="'sluzba-' + m.id" class="ministry" :class="{ seeking: m.seeking, linked: linkedMinistry === m.id }">
     <div class="mn-head">
       <span class="mn-ic"><svg class="i"><use href="#users"/></svg></span>
@@ -25,16 +26,19 @@ export default defineComponent({ setup: () => useApp() })
       <button v-if="m.lead" class="icon" aria-label="Edytuj służbę" title="Edytuj służbę" @click="editMinistry(m)"><svg class="i"><use href="#pencil"/></svg></button>
     </div>
     <p v-if="m.description" class="mn-desc">{{ m.description }}</p>
-    <p class="mn-meta"><template v-if="m.leaders.length">Lider: {{ m.leaders.map(l => l.name).join(', ') }}</template><template v-if="!m.lead"><template v-if="m.leaders.length"> · </template>{{ m.members.length ? 'Służą: ' + m.members.join(', ') : 'Nikt jeszcze nie służy' }}</template></p>
-    <!-- lider: osoby w służbie — dodawanie i usuwanie -->
-    <div v-if="m.lead" class="mn-team">
-      <small>Służą ({{ m.people.length }})</small>
-      <div v-for="p in m.people" :key="p.id" class="mn-person">
-        <span><b>{{ p.name }}</b></span>
-        <button class="icon" :disabled="busy" :aria-label="'Usuń ' + p.name + ' ze służby'" title="Usuń ze służby" @click="removeFromMinistry(m, p)"><svg class="i"><use href="#x"/></svg></button>
+    <p v-if="m.leaders.length" class="mn-meta">Lider: {{ m.leaders.map(l => l.name).join(', ') }}</p>
+    <!-- kto służy — zwinięte; lider po rozwinięciu dodaje i usuwa osoby -->
+    <details class="mn-who">
+      <summary><svg class="i"><use href="#users"/></svg><span>{{ (m.lead ? m.people.length : m.members.length) ? 'Kto służy · ' + (m.lead ? m.people.length : m.members.length) : 'Nikt jeszcze nie służy' }}</span><svg class="i mn-chev"><use href="#down"/></svg></summary>
+      <div v-if="m.lead" class="mn-team">
+        <div v-for="p in m.people" :key="p.id" class="mn-person">
+          <span><b>{{ p.name }}</b></span>
+          <button class="icon" :disabled="busy" :aria-label="'Usuń ' + p.name + ' ze służby'" title="Usuń ze służby" @click="removeFromMinistry(m, p)"><svg class="i"><use href="#x"/></svg></button>
+        </div>
+        <button class="ghost mn-add" :disabled="busy" @click="openAddPerson(m)"><svg class="i"><use href="#plus"/></svg>Dodaj osobę</button>
       </div>
-      <button class="ghost mn-add" :disabled="busy" @click="openAddPerson(m)"><svg class="i"><use href="#plus"/></svg>Dodaj osobę</button>
-    </div>
+      <div v-else-if="m.members.length" class="mn-names"><span v-for="n in m.members" :key="n" class="ann-tag">{{ n }}</span></div>
+    </details>
     <div v-if="!m.leader" class="mn-actions">
       <button v-if="!m.mine" :class="{ primary: m.seeking }" :disabled="busy" @click="joinMinistry(m)">Chcę się zaangażować</button>
       <template v-else-if="m.mine === 'pending'"><span class="mn-state">Zgłoszono — czeka na lidera</span><button class="ghost" :disabled="busy" @click="leaveMinistry(m)">Wycofaj</button></template>
@@ -49,5 +53,6 @@ export default defineComponent({ setup: () => useApp() })
       </div>
     </div>
   </article>
+  </div>
   </template>
 </template>

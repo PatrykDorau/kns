@@ -8,19 +8,41 @@ export default defineComponent({ setup: () => useApp() })
 </script>
 
 <template>
+  <!-- wyszukiwanie osób i filtr rangi -->
+  <div class="people-tools">
+    <div class="ann-search"><svg class="i"><use href="#search"/></svg><input v-model="peopleUi.query" type="search" placeholder="Szukaj osoby: imię, nazwisko, e-mail…" aria-label="Szukaj osoby" autocomplete="off"></div>
+    <select v-model="peopleUi.rank" aria-label="Filtr rangi">
+      <option value="">Wszystkie rangi</option>
+      <option v-for="r in ranks" :key="r.id" :value="r.id">{{ r.name }}</option>
+    </select>
+  </div>
   <div v-if="peopleBusy && !people.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 6" :key="n" class="skel skel-row"></div></div>
+  <p v-else-if="people.length && !peopleGroups.length" class="note">Nikt nie pasuje do wyszukiwania.</p>
   <template v-for="group in peopleGroups" :key="group.id">
     <div class="section"><h2>{{ group.title }} · {{ group.list.length }}</h2></div>
-    <div v-for="p in group.list" :key="p.email" class="person" :class="p.status">
+    <div v-for="p in group.list" :key="p.email" class="person" :class="[p.status, { open: peopleUi.open === p.email }]">
       <div class="p-head">
         <span class="avatar">{{ initials(p) }}</span>
         <span class="meta"><b>{{ p.name || p.email }}</b><small>{{ p.email }}<template v-if="p.status === 'pending' && p.requested"> · {{ ago(p.requested) }}</template></small></span>
+        <button v-if="p.status !== 'rejected'" class="p-ranks-btn" :aria-expanded="peopleUi.open === p.email" @click="openRanks(p)"><svg class="i"><use href="#pencil"/></svg>{{ peopleUi.open === p.email ? 'Zwiń' : 'Rangi' }}</button>
       </div>
-      <div v-if="p.status !== 'rejected'" class="ranks" role="group" :aria-label="'Rangi: ' + (p.name || p.email)">
-        <button v-for="r in ranks" :key="r.id" class="rank" :class="{ on: p.draft.includes(r.id) }" :aria-pressed="p.draft.includes(r.id)" :disabled="p.busy" @click="toggleRank(p, r.id)">{{ r.name }}</button>
+      <!-- przypisane rangi (zawsze widoczne) -->
+      <div v-if="p.status !== 'rejected'" class="p-tags">
+        <span v-for="id in p.draft" :key="id" class="ann-tag pin">{{ rankName(id) }}</span>
+        <span v-if="!p.draft.length" class="muted" style="font-size:13px">bez rangi</span>
+      </div>
+      <!-- edycja rang: wyszukiwanie i lista z polami wyboru (wygodne także przy wielu rangach) -->
+      <div v-if="peopleUi.open === p.email" class="p-rank-edit" role="group" :aria-label="'Rangi: ' + (p.name || p.email)">
+        <div class="ann-search"><svg class="i"><use href="#search"/></svg><input v-model="peopleUi.rankQuery" type="search" placeholder="Szukaj rangi…" aria-label="Szukaj rangi" autocomplete="off"></div>
+        <div class="p-rank-list">
+          <label v-for="r in ranksShown" :key="r.id" class="p-rank" :class="{ on: p.draft.includes(r.id) }">
+            <input type="checkbox" :checked="p.draft.includes(r.id)" :disabled="p.busy" @change="toggleRank(p, r.id)"><span>{{ r.name }}</span>
+          </label>
+          <p v-if="!ranksShown.length" class="note">Brak rangi „{{ peopleUi.rankQuery }}”.</p>
+        </div>
       </div>
       <p v-if="p.error" class="p-error">{{ p.error }}</p>
-      <div class="p-actions">
+      <div v-if="p.status === 'pending' || p.status === 'rejected' || peopleUi.open === p.email || rolesChanged(p)" class="p-actions">
         <template v-if="p.status === 'pending'">
           <button :disabled="p.busy" @click="setPerson(p, 'rejected')">Odrzuć</button>
           <button class="primary" :disabled="p.busy" @click="setPerson(p, 'active')">{{ p.busy ? 'Zapisuję…' : 'Zatwierdź' }}</button>
@@ -28,6 +50,7 @@ export default defineComponent({ setup: () => useApp() })
         <button v-else-if="p.status === 'rejected'" :disabled="p.busy" @click="setPerson(p, 'active')">{{ p.busy ? 'Zapisuję…' : 'Przywróć dostęp' }}</button>
         <template v-else>
           <button v-if="p.email !== me?.email" class="ghost" :disabled="p.busy" @click="setPerson(p, 'rejected')">Odbierz dostęp</button>
+          <button v-if="rolesChanged(p)" :disabled="p.busy" @click="cancelRanks(p)">Anuluj</button>
           <button class="primary" :disabled="p.busy || !rolesChanged(p)" @click="setPerson(p)">{{ p.busy ? 'Zapisuję…' : rolesChanged(p) ? 'Zapisz rangi' : 'Zapisane' }}</button>
         </template>
       </div>

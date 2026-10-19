@@ -34,7 +34,7 @@
 .kh-tile { display: grid; grid-template-columns: 46px minmax(0, 1fr) 18px; align-items: center; gap: 14px; min-height: 0; padding: 14px 16px; border-radius: 18px; text-align: left;
   background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0)), color-mix(in srgb, var(--panel) 74%, transparent); backdrop-filter: blur(10px); border: 1px solid var(--line);
   transition: border-color .15s, transform .15s, box-shadow .15s; }
-.kh-tile:hover:not(:disabled) { border-color: color-mix(in srgb, var(--tc) 60%, transparent); transform: translateY(-1px); box-shadow: 0 12px 28px -14px color-mix(in srgb, var(--tc) 55%, transparent); background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0)), var(--panel); }
+.kh-tile:hover:not(:disabled) { border-color: color-mix(in srgb, var(--tc) 60%, transparent); box-shadow: 0 12px 28px -14px color-mix(in srgb, var(--tc) 55%, transparent); background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0)), var(--panel); }
 .kh-tile:disabled { opacity: 1; cursor: default; }
 .kh-tile { --tc: var(--amber, #f2a53c); }
 .kh-tile:nth-child(1) { --tc: var(--blue, #6ea8ff); }
