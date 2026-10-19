@@ -20,6 +20,8 @@ export default defineComponent({ setup: () => useApp() })
     <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
     <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+    <button v-if="api.enabled" @click="reportBug"><svg class="i"><use href="#alert"/></svg><span>Zgłoś błąd albo pomysł</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+    <button v-if="api.enabled" @click="openBugs"><svg class="i"><use href="#list"/></svg><span>{{ canManage || (me?.roles || []).includes('dev') ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     <button class="theme-btn" @click="toggleTheme"><svg class="i"><use :href="theme === 'dark' ? '#sun' : '#moon'"/></svg><span>{{ theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
   </nav>
   <div v-if="desktop" class="getapp more-getapp">

@@ -3,6 +3,8 @@
 import { computed, defineComponent, nextTick, reactive, ref, watch, watchEffect } from 'vue'
 import { CONFIG } from '@/services/config'
 import { provideApp } from '@/composables/useApp'
+import BugsView from '@/views/BugsView.vue'
+import BugReportDialog from '@/components/dialogs/BugReportDialog.vue'
 import SideNav from '@/components/SideNav.vue'
 import AccountBar from '@/components/AccountBar.vue'
 import AppHeader from '@/components/AppHeader.vue'
@@ -65,7 +67,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.94 · 19.10.2026'
+const VERSION = '2.95 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -157,7 +159,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -448,6 +450,7 @@ export default defineComponent({
           ...(canManage.value ? [{ id: 'people', icon: 'user', name: 'Osoby', badge: pendingCount.value || '' }] : []),
           ...(canMsg.value ? [{ id: 'msg', icon: 'mail', name: 'Wyślij wiadomość' }] : []),
           ...(cueTopic && tech && !inApp ? [{ id: 'camera', icon: 'camera', name: 'Kamera (sygnały)' }] : []),
+          { id: 'bugs', icon: 'alert', name: canManage.value || (me.value?.roles || []).includes('dev') ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' },
         ] },
       ]
     })
@@ -456,7 +459,7 @@ export default defineComponent({
       const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || moreView.value
       return {
         home: !editor && !other, cal: !!currentEvent.value || calView.value || gcalView.value, svc: !!current.value, anns: annView.value || !!currentAnn.value,
-        serve: serveView.value, goals: goalsView.value, votes: votesView.value, listen: listenView.value, asb: asbView.value,
+        serve: serveView.value, goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
     }
@@ -464,6 +467,7 @@ export default defineComponent({
       if (id === 'display' || id === 'stream') { window.knsDesktop?.open(id); return }
       if (id === 'msg') { openMsg(); return }
       if (id === 'camera') { openCamera(); return }
+      if (id === 'bugs') { openBugs(); return }
       if (!closeAll()) return
       resetViews()
       if (id === 'cal') openCalendar()
@@ -482,7 +486,7 @@ export default defineComponent({
       else showServices()
       scrollTo(0, 0)
     }
-    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
+    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -694,7 +698,7 @@ export default defineComponent({
       return (near.length >= 5 ? near : next.slice(0, 5)).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -1280,7 +1284,7 @@ export default defineComponent({
       profile.name = me.value.name || ''; profile.grupa = me.value.grupa || ''; status.value = ''
       current.value = null; currentEvent.value = null; currentAnn.value = null; currentProto.value = null
       songView.value = false; peopleView.value = false; calView.value = false; gcalView.value = false; annView.value = false; protoView.value = false; tplView.value = false
-      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
+      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
       api.call('groups').then(r => { groupNames.value = r.groups || [] }, () => {})
     }
     const saveProfile = () => guard(async () => {
@@ -1699,7 +1703,37 @@ export default defineComponent({
     }
 
     /* ---------- Wybory i głosowania (wybory.sql) ---------- */
-    const votesView = ref(false)
+    const votesView = ref(false), bugsView = ref(false)
+    /* ---------- zgłoś błąd / backlog (administrator i deweloperzy) ---------- */
+    const BUG_STATUS = { new: 'Nowe', doing: 'W trakcie', done: 'Zrobione', rejected: 'Odrzucone' }
+    const bugs = reactive({ list: [], backlog: false, busy: false, error: '', filter: 'open', people: [], open: 0, form: null })
+    // formularz zgłoszenia (z każdego miejsca aplikacji): gdzie i na czym — dopisywane samo
+    function reportBug() { bugs.form = { title: '', body: '', busy: false, error: '', sent: false } }
+    async function sendBug() {
+      const f = bugs.form
+      if (!f.title.trim()) return
+      f.busy = true; f.error = ''
+      try {
+        const device = [navigator.userAgent.match(/(Chrome|Firefox|Safari|Edg)\/[\d.]+/)?.[0] || '', /android|iphone|ipad/i.test(navigator.userAgent) ? 'telefon' : 'komputer', innerWidth + '×' + innerHeight, 'wersja ' + VERSION, window.knsDesktop ? 'aplikacja na komputer' : ''].filter(Boolean).join(' · ')
+        await api.call('bugReport', { title: f.title.trim(), body: f.body.trim(), page: location.pathname + location.search, device })
+        api.call('pushInbox').catch(() => {})
+        f.sent = true
+        if (bugsView.value) loadBugs()
+      } catch (e) { f.error = e.message } finally { f.busy = false }
+    }
+    async function loadBugs() {
+      bugs.busy = true; bugs.error = ''
+      try {
+        const r = await api.call('bugsList'); bugs.list = r.list; bugs.backlog = r.backlog
+        if (bugs.backlog && !bugs.people.length) bugs.people = await api.call('backlogPeople')
+      } catch (e) { bugs.error = e.message } finally { bugs.busy = false }
+    }
+    function openBugs() { if (!closeAll()) return; resetViews(); bugsView.value = true; scrollTo(0, 0); loadBugs() }
+    const bugsShown = computed(() => bugs.list.filter(b => bugs.filter === 'all' || (bugs.filter === 'open' ? ['new', 'doing'].includes(b.status) : bugs.filter === 'mine' ? b.mine : b.status === bugs.filter)))
+    const bugCounts = computed(() => ({ open: bugs.list.filter(b => ['new', 'doing'].includes(b.status)).length, done: bugs.list.filter(b => b.status === 'done').length }))
+    async function updateBug(b, patch) {
+      try { await api.call('bugUpdate', { id: b.id, ...patch }); api.call('pushInbox').catch(() => {}); await loadBugs() } catch (e) { error.value = e.message }
+    }
     const votes = reactive({ list: [], canRun: false, busy: false, error: '', edit: null, people: [], pick: {}, ballot: {}, open: '' })
     const votesOpen = computed(() => votes.list.filter(e => e.status === 'voting' && !e.voted).length)
     const VOTE_STATUS = { nominations: 'Zgłaszanie kandydatów', ready: 'Przygotowane', voting: 'Głosowanie trwa', paused: 'Wstrzymane', closed: 'Zakończone' }
@@ -1819,7 +1853,7 @@ export default defineComponent({
     }
     function openListen() {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
-      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false
+      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false
       listenView.value = true; scrollTo(0, 0); loadListen()
     }
     const saveListen = () => guard(async () => { await api.call('setListen', { ...listenEdit }); await loadListen(); status.value = 'Zapisano linki.' })
@@ -1853,7 +1887,7 @@ export default defineComponent({
     function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { loadMsgOpts(); openMoreView() }
-    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -2140,6 +2174,7 @@ export default defineComponent({
       if (listenView.value) return '/posluchaj'
       if (goalsView.value) return goals.open ? '/cel/' + encodeURIComponent(goals.open) : '/cele'
       if (votesView.value) return '/glosowania'
+      if (bugsView.value) return '/zgloszenia'
       if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
       if (calView.value) return '/kalendarz'
       if (moreView.value) return '/wiecej'
@@ -2157,7 +2192,7 @@ export default defineComponent({
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; asbForm.value = null; fromCal = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false
     }
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
     async function applyRoute(path) {
@@ -2184,6 +2219,7 @@ export default defineComponent({
         else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : 'plan'; await openAsb(); if (id && id !== 'pomysly') asbOpenId(id) }
         else if (view === 'cele' || view === 'cel') openGoals(view === 'cel' ? id : '')
         else if (view === 'glosowania') openVotes()
+        else if (view === 'zgloszenia') openBugs()
         else if (view === 'profil') openProfile()
         else if (view === 'wiecej') openMore()
         else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); const sg = view === 'piesn' && songs.value.find(x => x.id === id); if (sg) openSong(sg) }
@@ -2242,7 +2278,7 @@ export default defineComponent({
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return provideApp({
-      liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
@@ -2440,6 +2476,7 @@ export default defineComponent({
   <!-- Cele wsparcia: deklaracje z dziesięciny, potwierdzanie miesięcy, pasek postępu; rada — cele i kto ile -->
   <!-- Wybory i głosowania: zgłoszenia → rada zatwierdza → tajne głosowanie (można kilka) → wyniki -->
   <VotesView v-else-if="votesView && !current" />
+  <BugsView v-else-if="bugsView && !current" />
 
   <GoalsView v-else-if="goalsView && !current" />
 
@@ -2508,5 +2545,6 @@ export default defineComponent({
 
 
   <!-- Dolny pasek: główne części aplikacji (chowa się przy edycji, żeby nie zasłaniał „Zapisz”). -->
+  <BugReportDialog v-if="bugs.form" />
   <TabBar v-if="showTabs" />
 </template>

@@ -978,3 +978,26 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .account .roles { color: var(--text); }
 .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
 .linkbtn, button.linkbtn { display: inline; min-height: 0; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+/* zgłoszenia błędów i backlog */
+.bug-form label { display: block; margin-top: 10px; }
+.bug-form input, .bug-form textarea { width: 100%; }
+.bug-sent { display: flex; gap: 10px; align-items: flex-start; color: var(--text); }
+.bug-sent svg.i { flex: none; color: var(--ok); }
+.bug-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.bug { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+.bug.new { border-color: rgba(242, 165, 60, .45); }
+.bug-head { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; width: 100%; padding: 12px 14px; border: 0; border-radius: 0; background: none; color: inherit; text-align: left; font: inherit; }
+.bug-head b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bug-head small { grid-column: 2; color: var(--muted); font-size: 12px; }
+.bug-status { grid-row: span 2; align-self: start; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; background: var(--panel2); color: var(--muted); }
+.bug-status.new { background: var(--accent-soft); color: var(--accent); }
+.bug-status.doing { background: rgba(91, 192, 235, .16); color: #5bc0eb; }
+.bug-status.done { background: var(--ok-soft); color: var(--ok); }
+.bug-body { padding: 0 14px 14px; }
+.bug-text { white-space: pre-wrap; margin: 0 0 8px; }
+.bug-meta { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+.bug-note { padding: 8px 10px; border-radius: 10px; background: var(--panel2); }
+.bug-ctl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.bug-ctl label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.bug-ctl select { height: 42px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; }
+.bug-body textarea { width: 100%; }

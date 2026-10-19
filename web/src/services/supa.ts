@@ -174,6 +174,10 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'electionNominate') return check(await sb.rpc('election_nominate', { e: data.e, who: data.who, withdraw: !!data.withdraw }))
       if (action === 'electionReview') return check(await sb.rpc('election_review', { c: data.c, ok: data.ok }))
       if (action === 'electionStatus') return check(await sb.rpc('election_status', { e: data.e, s: data.s }))
+      if (action === 'bugReport') return check(await sb.rpc('bug_report', { t: data.title, b: data.body || '', pg: data.page || '', dev: data.device || '' }))
+      if (action === 'bugsList') return { list: check(await sb.rpc('bugs_list')) || [], backlog: !!check(await sb.rpc('can_backlog')) }
+      if (action === 'bugUpdate') return check(await sb.rpc('bug_update', { bid: data.id, st: data.status ?? null, who: data.assignee || null, nt: data.note ?? null, unassign: !!data.unassign }))
+      if (action === 'backlogPeople') return check(await sb.rpc('backlog_people')) || []
       if (action === 'checkin') return check(await sb.rpc('event_checkin', { eid: data.id, on_: data.on !== false }))
       if (action === 'attendance') return check(await sb.rpc('event_attendance_info', { eid: data.id }))
       if (action === 'electionVote') return check(await sb.rpc('election_vote', { e: data.e, choices: data.choices }))

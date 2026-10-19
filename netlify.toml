@@ -58,6 +58,11 @@
   status = 200
 
 [[redirects]]
+  from = "/zgloszenia"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/cele"
   to = "/index.html"
   status = 200
