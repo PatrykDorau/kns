@@ -67,7 +67,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.95 · 19.10.2026'
+const VERSION = '2.96 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -424,7 +424,9 @@ export default defineComponent({
     // Ilustracje w karcie najbliższego nabożeństwa — zmieniają się co 9 s (płynnie).
     const HERO_ART = ['swit.svg', 'pole.svg', 'jezioro.svg', 'noc.svg']
     const heroArt = ref(0)
-    setInterval(() => { if (!document.hidden) heroArt.value = (heroArt.value + 1) % HERO_ART.length }, 9000)
+    let heroHold = 0 // po ręcznym przewinięciu chwila przerwy w automatycznej zmianie
+    setInterval(() => { if (!document.hidden && Date.now() > heroHold) heroArt.value = (heroArt.value + 1) % HERO_ART.length }, 9000)
+    function heroStep(d) { heroArt.value = (heroArt.value + d + HERO_ART.length) % HERO_ART.length; heroHold = Date.now() + 20000 }
     const mapLink = place => (/^(online|zoom|teams|meet)\b/i.test(String(place).trim()) ? null : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place))
     const sideNav = computed(() => {
       const tech = canCamera.value
@@ -2281,7 +2283,7 @@ export default defineComponent({
     })
     return provideApp({
       bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
-      sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, asDate, boardAll,
+      sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,

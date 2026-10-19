@@ -34,6 +34,12 @@ export default defineComponent({ components: { LiveEvent }, setup: () => useApp(
     <article class="hw-feature">
       <div class="hw-visual">
         <span v-for="(a, i) in HERO_ART" :key="a" class="hw-art" :class="{ on: i === heroArt }" :style="{ backgroundImage: 'url(' + a + ')' }" aria-hidden="true"></span>
+        <!-- przewijanie obrazów (strzałki i kropki) -->
+        <span class="hw-nav">
+          <button type="button" class="hw-arrow" aria-label="Poprzedni obraz" @click.stop="heroStep(-1)"><svg class="i"><use href="#back"/></svg></button>
+          <span class="hw-dots" aria-hidden="true"><i v-for="(a, i) in HERO_ART" :key="a" :class="{ on: i === heroArt }"></i></span>
+          <button type="button" class="hw-arrow" aria-label="Następny obraz" @click.stop="heroStep(1)"><svg class="i"><use href="#chev"/></svg></button>
+        </span>
         <span class="hw-step">1</span><span class="hw-kicker">Najbliższe nabożeństwo</span>
         <template v-if="nextService">
           <div class="hw-date"><b>{{ asDate(nextService.date).getDate() }}</b><span>{{ asDate(nextService.date).toLocaleDateString('pl', { month: 'long' }) }}<small>{{ asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) }}</small></span></div>
