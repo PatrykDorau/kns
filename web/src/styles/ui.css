@@ -463,3 +463,24 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 .mq { text-overflow: clip !important; animation: mq var(--mq-t, 10s) ease-in-out infinite; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); }
 @keyframes mq { 0%, 12% { text-indent: 0; } 45%, 57% { text-indent: var(--mq); } 90%, 100% { text-indent: 0; } }
 @media (prefers-reduced-motion: reduce) { .mq { animation: none; text-overflow: ellipsis !important; } }
+/* Telefon i tablet: ta sama strona startowa co na komputerze (karta nabożeństwa, baner, kolumny), tylko ciaśniej */
+@media (max-width: 1023px) {
+  #app.home-wide .phone-home { display: none !important; }
+  #app.home-wide .kh-web { display: flex !important; gap: 20px !important; padding-top: 4px; }
+  .kh-web .kh-hello h1 { font-size: 28px; }
+  .hw-banner { gap: 12px; padding: 14px 16px; flex-wrap: wrap; }
+  .hw-banner .hw-banner-ic { display: none; }
+  .hw-banner .hw-banner-text { flex: 1 1 100%; }
+  .hw-banner .hw-go { margin-left: auto; }
+  .hw-feature { border-radius: 20px; }
+  .hw-visual { min-height: 230px !important; padding: 18px 18px; }
+  .hw-visual .hw-step { top: 18px; left: 18px; }
+  .hw-kicker { margin-left: 36px; }
+  .hw-nav { right: 14px; top: 16px; }
+  .hw-date b { font-size: 72px; }
+  .hw-info { padding: 20px 18px; }
+  .hw-cols { grid-template-columns: 1fr; gap: 26px; }
+}
+@media (max-width: 420px) { .hw-nav .hw-dots { display: none; } }
+.more-sec { margin: 18px 4px 8px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.more-sec:first-child { margin-top: 4px; }

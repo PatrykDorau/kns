@@ -4,24 +4,23 @@ import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
 
 // MoreView
-export default defineComponent({ setup: () => useApp() })
+const TAB_IDS = ['home', 'cal', 'serve'] // są w dolnym pasku
+export default defineComponent({ setup: () => ({ ...useApp(), TAB_IDS }) })
 </script>
 
 <template>
-  <nav class="more-list" aria-label="Więcej">
-    <button v-if="canMsg" @click="openMsg()"><svg class="i"><use href="#megaphone"/></svg><span>Wyślij wiadomość</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="api.enabled" @click="openAsb"><svg class="i"><use href="#users"/></svg><span>{{ canAsb ? 'ASB — grafik spotkań' : 'ASB — terminarz spotkań' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="api.enabled" @click="openListen"><svg class="i"><use href="#music"/></svg><span>Posłuchaj</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="api.enabled" @click="openVotes()"><svg class="i"><use href="#check"/></svg><span>Głosowania</span><small v-if="votesOpen" class="count-pill">{{ votesOpen }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="api.enabled" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span>Cele wsparcia</span><small v-if="goalDue" class="count-pill">!</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button @click="openSongs"><svg class="i"><use href="#music"/></svg><span>Pieśni</span><small>{{ songs.length }}</small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg><span>Ogłoszenia</span><small>{{ activeAnns.length || '' }}</small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button @click="openProtocols"><svg class="i"><use href="#list"/></svg><span>Materiały</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="canManage" @click="openPeople"><svg class="i"><use href="#users"/></svg><span>Osoby</span><small v-if="pendingCount" class="count-pill">{{ pendingCount }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="canEdit" @click="openTemplates"><svg class="i"><use href="#calendar"/></svg><span>Szablony wydarzeń</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="cueTopic && canCamera" @click="openCamera"><svg class="i"><use href="#camera"/></svg><span>Kamera (sygnały)</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+  <!-- te same grupy i pozycje co w bocznym pasku na komputerze (bez tych z dolnego paska) -->
+  <template v-for="grp in sideNav" :key="grp.title">
+    <template v-if="grp.items.some(it => !TAB_IDS.includes(it.id))">
+      <h2 v-if="grp.title" class="more-sec">{{ grp.title }}</h2>
+      <nav class="more-list" :aria-label="grp.title || 'Więcej'">
+        <button v-for="it in grp.items.filter(it => !TAB_IDS.includes(it.id))" :key="it.id" @click="navTo(it.id)"><svg class="i"><use :href="'#' + it.icon"/></svg><span>{{ it.name }}</span><small v-if="it.badge" class="count-pill">{{ it.badge }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
+      </nav>
+    </template>
+  </template>
+  <h2 class="more-sec">Inne</h2>
+  <nav class="more-list" aria-label="Inne">
     <button v-if="api.enabled" @click="reportBug"><svg class="i"><use href="#alert"/></svg><span>Zgłoś błąd albo pomysł</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
-    <button v-if="api.enabled" @click="openBugs"><svg class="i"><use href="#list"/></svg><span>{{ canManage || (me?.roles || []).includes('dev') ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     <button class="theme-btn" @click="toggleTheme"><svg class="i"><use :href="theme === 'dark' ? '#sun' : '#moon'"/></svg><span>{{ theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
   </nav>
   <div v-if="desktop" class="getapp more-getapp">
