@@ -1,10 +1,10 @@
 // Scena „Rzutnik” w studiu: to, co pokazuje Rzutnik na TYM komputerze (zdjęcie, film, tekst, slajd prezentacji).
 // Rzutnik na innym komputerze — przechwytywanie ekranu przez sieć (osobno).
 import { watch } from 'vue'
-import { api, displayId, hidden, liveSlide, output, publishProjector, settings, unpublishProjector, video } from '../stores/store.js'
-import { setRemoteScreen, studio } from './studio.js'
-import { lyricsKey } from './lyricsFeed.js'
-import { startReceive, startShare, stopReceive, stopShare } from './screenShare.js'
+import { api, displayId, hidden, liveSlide, output, publishProjector, settings, unpublishProjector, video } from '@/stores'
+import { setRemoteScreen, studio } from '@/services/studio'
+import { lyricsKey } from '@/services/lyricsFeed'
+import { startReceive, startShare, stopReceive, stopShare } from '@/services/screenShare'
 
 const url = p => (/^https?:\/\//.test(p) ? p : 'media://local/' + encodeURIComponent(p))
 let started = false

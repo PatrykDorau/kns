@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import Icon from './Icon.vue'
-import { calendarRequest, canUse, loadInbox, readInbox, role } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { calendarRequest, canUse, loadInbox, readInbox, role } from '@/stores'
 
 // Powiadomienia w aplikacji (dzwonek) — te same co na telefonie: zgłoszenia do zatwierdzenia, zgłoszenia do służby,
 // wiadomości od liderów. Zawsze włączone; telefon i e-mail to dodatkowe kanały ustawiane na telefonie.

@@ -2,8 +2,8 @@
 // który ekran jest otwarty (np. przejście na Rzutnik nie zatrzymuje napisów na streamie).
 // Źródło: rzutnik na tym komputerze, rzutnik na innym komputerze (kanał na żywo z adresu …/napisy?k=…) albo brak.
 import { computed, reactive, watch } from 'vue'
-import { api, listenLyrics, lyricsLink, lyricsNow, settings } from '../stores/store.js'
-import { studio } from './studio.js'
+import { api, listenLyrics, lyricsLink, lyricsNow, settings } from '@/stores'
+import { studio } from '@/services/studio'
 
 export const lyricsFeed = reactive({ text: '', at: 0, link: '' })
 // klucz z wklejonego adresu (…/napisy?k=abc) albo sam klucz

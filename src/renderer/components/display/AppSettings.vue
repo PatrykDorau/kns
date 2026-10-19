@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import { api, flush, output, overlayUrl, remoteUrl, settings, uid } from '../../stores/store.js'
-import { share } from '../../services/screenShare.js'
+import Icon from '@/components/common/Icon.vue'
+import { api, flush, output, overlayUrl, remoteUrl, settings, uid } from '@/stores'
+import { share } from '@/services/screenShare'
 
 const emit = defineEmits(['close'])
 const message = ref('')

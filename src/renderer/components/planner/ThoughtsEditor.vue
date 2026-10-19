@@ -1,6 +1,6 @@
 <script setup>
 import { nextTick, ref, watch } from 'vue'
-import Icon from '../common/Icon.vue'
+import Icon from '@/components/common/Icon.vue'
 
 // Myśli z kazania: każda myśl w osobnym polu (zapis jak na telefonie: jedna myśl w linii).
 const model = defineModel({ type: String, default: '' })

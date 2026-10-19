@@ -1,12 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import Thumb from '../common/Thumb.vue'
-import TextStyle from './TextStyle.vue'
-import ColorAlpha from '../common/ColorAlpha.vue'
+import Icon from '@/components/common/Icon.vue'
+import Thumb from '@/components/common/Thumb.vue'
+import TextStyle from '@/components/display/TextStyle.vue'
+import ColorAlpha from '@/components/common/ColorAlpha.vue'
 import {
   COUNTDOWN, liveId, nextServiceStart, sendText, KIND, entrySlide, frozenAt, itemById, items, label, pickFiles, removeEntry, selected, selectedIndex, selectedStep, setLoopStep, setVerse, settings, textPopup, uid, verseKey, verses,
-} from '../../stores/store.js'
+} from '@/stores'
 
 const startLabel = computed(() => new Date(nextServiceStart.value).toLocaleString('pl', { weekday: 'long', hour: '2-digit', minute: '2-digit' }))
 // „Za N minut” liczy się od kliknięcia; wyświetlany tekst od razu dostaje nowy czas.

@@ -4,7 +4,7 @@
 // Zestawienie połączenia (kto, oferta, odpowiedź, adresy sieciowe) idzie kanałem na żywo z tym samym kluczem co
 // napisy przez internet; sam obraz już nie przechodzi przez serwer.
 import { reactive } from 'vue'
-import { api, screenSignal, uid } from '../stores/store.js'
+import { api, screenSignal, uid } from '@/stores'
 
 const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]
 

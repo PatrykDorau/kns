@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import { services, songs, today } from '../../stores/store.js'
-import { ago, bookName, bookOf, bookShort, isNewTestament, keywords, songHistory, tally } from '../../services/stats.js'
+import Icon from '@/components/common/Icon.vue'
+import { services, songs, today } from '@/stores'
+import { ago, bookName, bookOf, bookShort, isNewTestament, keywords, songHistory, tally } from '@/services/stats'
 
 // Statystyki odbytych nabożeństw (do dziś): pieśni i kazania, w wybranym okresie.
 const emit = defineEmits(['close'])

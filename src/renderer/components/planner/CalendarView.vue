@@ -1,12 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import Brand from '../common/Brand.vue'
-import SyncButton from '../common/SyncButton.vue'
-import ProgramEditor from './ProgramEditor.vue'
-import NotifyPicker from '../common/NotifyPicker.vue'
-import { addMinutes, category, categoryName, programFrom } from '../../../../mobile/church.js'
-import { copyLink, downloadQr, access, notifyPeople, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import Brand from '@/components/common/Brand.vue'
+import SyncButton from '@/components/common/SyncButton.vue'
+import ProgramEditor from '@/components/planner/ProgramEditor.vue'
+import NotifyPicker from '@/components/common/NotifyPicker.vue'
+import { addMinutes, category, categoryName, programFrom } from '@web/church.js'
+import { copyLink, downloadQr, access, notifyPeople, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from '@/stores'
 
 // Kalendarz życia kościoła: nabożeństwa i inne wydarzenia. Wydarzenia zmieniają osoby z prawem edycji;
 // nabożeństwo otwiera się w Organizacji nabożeństw (tam są pieśni, załączniki i program).

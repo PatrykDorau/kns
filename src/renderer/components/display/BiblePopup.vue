@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import { BOOKS, parseRef, passage, toSlides } from '../../services/bible.js'
-import { activeService, addPassage, bible, bibleOpen, importBible, loadBible, nearestService } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { BOOKS, parseRef, passage, toSlides } from '@/services/bible'
+import { activeService, addPassage, bible, bibleOpen, importBible, loadBible, nearestService } from '@/stores'
 
 // Biblia na rzutniku: odnośnik → podgląd slajdów → pętla w materiałach (przełączana strzałkami).
 const refText = ref('')

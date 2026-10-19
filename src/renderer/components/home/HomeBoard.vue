@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import { access, copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, loadSeenAnns, markSeenAnns, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from '../../stores/store.js'
-import { videoInfo } from '../../../../mobile/church.js'
+import Icon from '@/components/common/Icon.vue'
+import { access, copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, loadSeenAnns, markSeenAnns, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from '@/stores'
+import { videoInfo } from '@web/church.js'
 
 // Strona startowa (wzór: pulpit z powitaniem, pasem kart i tygodniem): najbliższe nabożeństwo i komunikaty
 // rady w pasie przewijanym w bok, pod spodem ogłoszenia (newsletter) i tydzień dzień po dniu.

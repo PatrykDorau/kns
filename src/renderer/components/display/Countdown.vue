@@ -1,5 +1,5 @@
 <script setup>
-import { countdown } from '../../stores/store.js'
+import { countdown } from '@/stores'
 
 // Odliczanie do najbliższego nabożeństwa: dni, godziny, minuty, sekundy, a pod spodem kiedy i gdzie.
 defineProps({ compact: Boolean })

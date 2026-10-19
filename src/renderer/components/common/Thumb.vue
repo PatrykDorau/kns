@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import Icon from './Icon.vue'
-import { itemById } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { itemById } from '@/stores'
 
 // Miniatura elementu: zdjęcie, pierwsza klatka filmu, próbka tekstu; pętla i prezentacja
 // pokazują swój pierwszy slajd ze znaczkiem pętli.

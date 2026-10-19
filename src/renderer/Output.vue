@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import Stage from './components/display/Stage.vue'
+import Stage from '@/components/display/Stage.vue'
 
 const item = ref(null)
 const stage = ref(null)

@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import SyncButton from '../common/SyncButton.vue'
-import { applyService, importService, missingInfo, nearestService, relDay, serviceModal, services, settings, today } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import SyncButton from '@/components/common/SyncButton.vue'
+import { applyService, importService, missingInfo, nearestService, relDay, serviceModal, services, settings, today } from '@/stores'
 
 // Rzutnik: wczytanie zaplanowanego nabożeństwa — pieśni i załączniki ładują się same.
 const message = ref('')

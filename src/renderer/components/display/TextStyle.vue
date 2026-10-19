@@ -1,8 +1,8 @@
 <script setup>
-import Icon from '../common/Icon.vue'
-import Thumb from '../common/Thumb.vue'
-import ColorAlpha from '../common/ColorAlpha.vue'
-import { pickBackground, setBackground } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import Thumb from '@/components/common/Thumb.vue'
+import ColorAlpha from '@/components/common/ColorAlpha.vue'
+import { pickBackground, setBackground } from '@/stores'
 
 // Wygląd tekstu — wspólny dla pojedynczych tekstów i dla wszystkich pieśni.
 defineProps({ model: Object })

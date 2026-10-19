@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import { loadListen, loadPublicPreview, DEFAULT_TIME, DEFAULT_PLACE } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { loadListen, loadPublicPreview, DEFAULT_TIME, DEFAULT_PLACE } from '@/stores'
 
 // Przed zalogowaniem (i dla czekających na zatwierdzenie): to samo co na stronie — odliczanie do nabożeństwa
 // i „Posłuchaj — odkryj nas” (najnowsze kazanie z YouTube i podcast na Spotify). Style: mobile/home.css.

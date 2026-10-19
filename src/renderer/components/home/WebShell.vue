@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
-import { api } from '../../stores/store.js'
+import { api } from '@/stores'
 
 // Ekran startowy aplikacji na komputer = strona kns-nabo (dokładnie to samo co w przeglądarce), zalogowana tym
 // samym kontem Google. Rzutnik i Stream otwierają się z kafelków strony jako ekrany aplikacji.

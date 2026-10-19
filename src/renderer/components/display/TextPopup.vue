@@ -1,6 +1,6 @@
 <script setup>
-import Icon from '../common/Icon.vue'
-import { label, textPopup, verseKey, verses } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { label, textPopup, verseKey, verses } from '@/stores'
 
 // Duże okno do wygodnej edycji tekstu (pieśni albo zwykłego slajdu z tekstem).
 const close = () => { textPopup.value = null }

@@ -1,21 +1,21 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import Stage from './Stage.vue'
-import Icon from '../common/Icon.vue'
-import Brand from '../common/Brand.vue'
-import MaterialsPanel from './MaterialsPanel.vue'
-import SongsPanel from './SongsPanel.vue'
-import Inspector from './Inspector.vue'
-import AppSettings from './AppSettings.vue'
-import SongManager from './SongManager.vue'
-import TextPopup from './TextPopup.vue'
-import ServiceImport from './ServiceImport.vue'
-import BiblePopup from './BiblePopup.vue'
+import Stage from '@/components/display/Stage.vue'
+import Icon from '@/components/common/Icon.vue'
+import Brand from '@/components/common/Brand.vue'
+import MaterialsPanel from '@/components/display/MaterialsPanel.vue'
+import SongsPanel from '@/components/display/SongsPanel.vue'
+import Inspector from '@/components/display/Inspector.vue'
+import AppSettings from '@/components/display/AppSettings.vue'
+import SongManager from '@/components/display/SongManager.vue'
+import TextPopup from '@/components/display/TextPopup.vue'
+import ServiceImport from '@/components/display/ServiceImport.vue'
+import BiblePopup from '@/components/display/BiblePopup.vue'
 import {
   bibleOpen, view, addFiles, api, busy, canGo, displayId, displays, followStep, frozen, frozenLabel, goLive, jumpToKey, role, loopPlaying, loopStep, selectedStep, stepLoop, hidden, init, label, liveId, liveIsVideo,
   managerOpen, mirroring, notice, output, selected, selectedId, selectedIndex, selectedView, previewVideo, selectedFrozen, sendText, serviceList, serviceModal, startRename, stepBy, tab, textPopup, toggleFrozen, toggleHidden,
   textDirty, toggleOutput, verses, video, volume,
-} from '../../stores/store.js'
+} from '@/stores'
 
 const previewStage = ref(null)
 const showSettings = ref(false)

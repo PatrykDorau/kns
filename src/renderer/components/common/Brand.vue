@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import Icon from './Icon.vue'
+import Icon from '@/components/common/Icon.vue'
 
 // Logo wspólnoty: pełne (ekran wyboru służby) albo sam znak (nagłówki paneli).
 // Pliki leżą w folderze public: logo.png i znak.png. Gdy ich nie ma, zostaje ikona zastępcza.

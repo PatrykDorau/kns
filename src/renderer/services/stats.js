@@ -1,5 +1,5 @@
 // Statystyki z historii nabożeństw: pieśni (ile razy i kiedy) i kazania (księgi, mówcy, słowa w tytułach).
-import { BOOKS, parseRef, plain } from './bible.js'
+import { BOOKS, parseRef, plain } from '@/services/bible'
 
 // Pieśń z nabożeństwa → klucz w bazie: po identyfikatorze, a gdy go nie ma — po numerze i tytule.
 export function songKey(entry, songs) {

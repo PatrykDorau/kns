@@ -1,6 +1,6 @@
 <script setup>
-import Icon from './Icon.vue'
-import { settings, sharedStatus, syncShared, syncing } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { settings, sharedStatus, syncShared, syncing } from '@/stores'
 
 // Ręczna synchronizacja z folderem wspólnym (poza tym aplikacja robi to sama co kilkanaście sekund).
 defineProps({ status: Boolean })

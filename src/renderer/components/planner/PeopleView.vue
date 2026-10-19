@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import Brand from '../common/Brand.vue'
-import { access, loadPeople, role, setPerson } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import Brand from '@/components/common/Brand.vue'
+import { access, loadPeople, role, setPerson } from '@/stores'
 
 // Osoby (administrator): zatwierdzanie nowych kont, rangi, odbieranie dostępu — to samo co na telefonie (Więcej → Osoby).
 const people = ref([])

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
-import Icon from './Icon.vue'
-import { loadDirectory } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { loadDirectory } from '@/stores'
 
 // Wybór odbiorców powiadomienia: grupy (wszyscy, rangi) albo pojedyncze osoby. v-model = lista identyfikatorów osób.
 const ids = defineModel({ type: Array, default: () => [] })

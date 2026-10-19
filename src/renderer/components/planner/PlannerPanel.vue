@@ -1,18 +1,18 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import Icon from '../common/Icon.vue'
-import SyncButton from '../common/SyncButton.vue'
-import SongManager from '../display/SongManager.vue'
-import Brand from '../common/Brand.vue'
-import StatsPanel from './StatsPanel.vue'
-import ProgramEditor from './ProgramEditor.vue'
-import ThoughtsEditor from './ThoughtsEditor.vue'
-import { addMinutes, category, categoryName, programFrom } from '../../../../mobile/church.js'
-import { ago, songHistory } from '../../services/stats.js'
+import Icon from '@/components/common/Icon.vue'
+import SyncButton from '@/components/common/SyncButton.vue'
+import SongManager from '@/components/display/SongManager.vue'
+import Brand from '@/components/common/Brand.vue'
+import StatsPanel from '@/components/planner/StatsPanel.vue'
+import ProgramEditor from '@/components/planner/ProgramEditor.vue'
+import ThoughtsEditor from '@/components/planner/ThoughtsEditor.vue'
+import { addMinutes, category, categoryName, programFrom } from '@web/church.js'
+import { ago, songHistory } from '@/services/stats'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,
   removeService, role, services, settings, songs, sortedServices, syncShared, uid, DEFAULT_TIME, DEFAULT_PLACE, relDay, churchTypes, plannerRequest, loadBandPeople,
-} from '../../stores/store.js'
+} from '@/stores'
 
 // Organizacja nabożeństw: plan, z którego korzystają potem rzutnik i stream.
 // Zmiany robi się na kopii roboczej; do nabożeństwa (i do innych komputerów) trafiają dopiero po „Zapisz”.

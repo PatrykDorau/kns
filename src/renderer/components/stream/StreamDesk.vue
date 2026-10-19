@@ -1,11 +1,11 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import Icon from '../common/Icon.vue'
-import Thumb from '../common/Thumb.vue'
-import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, loadProjectors, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from '../../stores/store.js'
-import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from '../../services/lyricsFeed.js'
-import { remote as remoteScreen } from '../../services/screenShare.js'
-import { OVERLAYS, SCENES, airMedia, mediaCtl, mediaSlide, setMediaPos, setOverlayMode, showMediaFull, showMediaOverlay, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from '../../services/studio.js'
+import Icon from '@/components/common/Icon.vue'
+import Thumb from '@/components/common/Thumb.vue'
+import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, loadProjectors, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from '@/stores'
+import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from '@/services/lyricsFeed'
+import { remote as remoteScreen } from '@/services/screenShare'
+import { OVERLAYS, SCENES, airMedia, mediaCtl, mediaSlide, setMediaPos, setOverlayMode, showMediaFull, showMediaOverlay, addCountdown, checkHardware, differs, initLook, listCameras, pauseIdle, previewCanvas, requestKeyFrame, setAudio, setCamera, setCountdown, setDirect, setFps, setPip, setScene, showSlide, slideCandidates, upcomingService, startEncoding, stopEncoding, studio, studioCanvas, take, toggleLowerThird, toggleLyrics } from '@/services/studio'
 
 // Pulpit streamu: ATEM przez sieć (która kamera na wizji, podgląd, Cut/Auto) i YouTube (stały klucz, transmisje
 // z tytułem i opisem z nabożeństwa). Mikser zostaje sprzętowy — aplikacja tylko nim steruje.

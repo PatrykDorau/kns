@@ -1,12 +1,12 @@
 <script setup>
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import Icon from '../common/Icon.vue'
-import SyncButton from '../common/SyncButton.vue'
-import Brand from '../common/Brand.vue'
-import Countdown from '../display/Countdown.vue'
-import StreamDesk from './StreamDesk.vue'
-import { api, cameraLock, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from '../../stores/store.js'
-import { addMinutes, categoryName } from '../../../../mobile/church.js'
+import Icon from '@/components/common/Icon.vue'
+import SyncButton from '@/components/common/SyncButton.vue'
+import Brand from '@/components/common/Brand.vue'
+import Countdown from '@/components/display/Countdown.vue'
+import StreamDesk from '@/components/stream/StreamDesk.vue'
+import { api, cameraLock, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from '@/stores'
+import { addMinutes, categoryName } from '@web/church.js'
 
 // Stream: podgląd wszystkich kamer podłączonych do komputera i dane nabożeństwa pod ręką.
 const cams = ref([]) // { id, label, stream | error }

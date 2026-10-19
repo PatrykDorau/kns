@@ -8,7 +8,7 @@
 // Działa niezależnie od otwartego widoku (moduł), żeby wyjście z ekranu Stream nie przerwało transmisji.
 import { reactive } from 'vue'
 import qrcode from 'qrcode-generator'
-import { api, currentAnnouncements, itemById, nearestService, projectorGraphics, serviceTime, servicePlace, sortedServices } from '../stores/store.js'
+import { api, currentAnnouncements, itemById, nearestService, projectorGraphics, serviceTime, servicePlace, sortedServices } from '@/stores'
 
 export const SCENES = [
   ['camera', 'Kamera'],

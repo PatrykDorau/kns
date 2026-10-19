@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue'
-import Icon from '../common/Icon.vue'
-import { CATEGORIES, addMinutes, categoryName, offsetOf, setCategory } from '../../../../mobile/church.js'
-import { uid } from '../../stores/store.js'
+import Icon from '@/components/common/Icon.vue'
+import { CATEGORIES, addMinutes, categoryName, offsetOf, setCategory } from '@web/church.js'
+import { uid } from '@/stores'
 
 // Program nabożeństwa (ten sam zapis co na telefonie): punkty trzymają przesunięcie w minutach
 // od początku, więc po zmianie godziny nabożeństwa cały program przesuwa się razem z nią.

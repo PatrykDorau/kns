@@ -1,10 +1,10 @@
 <script setup>
 import { ref } from 'vue'
-import Icon from '../common/Icon.vue'
+import Icon from '@/components/common/Icon.vue'
 import {
   activeService, addToService, clearService, firstLine, prettyDate, serviceModal, frozenAt, goLive, hidden, liveId, managerOpen, moveInService, removeFromService, search, selectedId,
   serviceList, serviceResults, songs, verses,
-} from '../../stores/store.js'
+} from '@/stores'
 
 // Zakładka „Pieśni” to lista na najbliższe nabożeństwo. Cała baza (dodawanie, import, edycja)
 // jest w osobnym oknie „Baza pieśni”.

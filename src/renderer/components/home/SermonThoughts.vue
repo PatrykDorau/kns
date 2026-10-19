@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { canUse, plannerRequest, role, services, DEFAULT_TIME } from '../../stores/store.js'
+import { canUse, plannerRequest, role, services, DEFAULT_TIME } from '@/stores'
 
 // Myśli z kazania: z ostatniego nabożeństwa, które już się zaczęło (widoczne cały tydzień, do początku następnego) — widżet tylko wtedy, gdy kaznodzieja dodał myśli
 // (pole „Myśli z kazania” w nabożeństwie, jedna myśl w linii). Style: mobile/home.css.

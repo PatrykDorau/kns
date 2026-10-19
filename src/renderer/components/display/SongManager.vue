@@ -1,10 +1,10 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import Icon from '../common/Icon.vue'
+import Icon from '@/components/common/Icon.vue'
 import {
   addToService, api, applySongChanges, managerOpen, matchSongs, pickSongs, songsFromDrive, plannerTarget, role, search, selectedId, settings,
   songs, sortSongs, tab, uid, verseKey, verses,
-} from '../../stores/store.js'
+} from '@/stores'
 
 // Baza pieśni działa na wersji roboczej: nic nie trafia do prawdziwej bazy (ani na rzutnik, ani na
 // dysk wspólny), dopóki nie kliknie się „Zapisz”. „Cofnij” wycofuje ostatnią czynność.

@@ -1,11 +1,11 @@
 <script setup>
 import { ref } from 'vue'
-import Icon from '../common/Icon.vue'
-import Thumb from '../common/Thumb.vue'
+import Icon from '@/components/common/Icon.vue'
+import Thumb from '@/components/common/Thumb.vue'
 import {
   bibleOpen, addLoop, addCountdown, addText, addAnnouncements, currentAnnouncements, projectorGraphics, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
   renameValue, renamingId, search, selectedId, startRename, visibleItems,
-} from '../../stores/store.js'
+} from '@/stores'
 
 // Tryb zaznaczania: pola wyboru przy wierszach i jedno usunięcie dla wielu naraz.
 const picking = ref(false)
