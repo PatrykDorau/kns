@@ -1,4 +1,4 @@
-// Podróbka klienta Supabase do testów: te wywołania, których używa mobile/supa.js, zamieniane na SQL
+// Podróbka klienta Supabase do testów: te wywołania, których używa web/src/services/supa.ts, zamieniane na SQL
 // w PGlite (Postgres w Node albo w przeglądarce) — jako zalogowana osoba (rola authenticated, auth.uid())
 // albo gość (anon). Dzięki temu testy przechodzą przez prawdziwe reguły dostępu z supabase/schema.sql.
 

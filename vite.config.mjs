@@ -9,7 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src/renderer', import.meta.url)),
-      '@web': fileURLToPath(new URL('./mobile', import.meta.url)),
+      '@web': fileURLToPath(new URL('./web/src', import.meta.url)),
     },
   },
   // <webview> (strona kns-nabo w aplikacji) to znacznik Electrona, nie komponent Vue

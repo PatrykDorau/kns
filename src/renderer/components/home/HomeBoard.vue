@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { access, copyLink, downloadQr, calendarRequest, canUse, churchAnnouncements, churchEvents, churchTypes, countdown, loadSeenAnns, markSeenAnns, nearestService, planAlert, plannerRequest, role, services, today, DEFAULT_TIME, DEFAULT_PLACE } from '@/stores'
-import { videoInfo } from '@web/church.js'
+import { videoInfo } from '@web/services/church'
 
 // Strona startowa (wzór: pulpit z powitaniem, pasem kart i tygodniem): najbliższe nabożeństwo i komunikaty
 // rady w pasie przewijanym w bok, pod spodem ogłoszenia (newsletter) i tydzień dzień po dniu.
@@ -75,7 +75,7 @@ function openItem(it) { it.kind === 'service' ? openService(it.id) : openCalenda
 </script>
 
 <template>
-  <!-- Góra: najbliższe nabożeństwo i panel komunikatów rady zboru (lista, „Nowe”). Style: mobile/home.css. -->
+  <!-- Góra: najbliższe nabożeństwo i panel komunikatów rady zboru (lista, „Nowe”). Style: web/src/styles/home.css. -->
   <div class="kh-top2" :class="{ solo: !notices.length }">
     <article v-if="!svc" class="kh-svc kh-svc-empty">
       <span class="kh-tag"><Icon name="calendar" />Najbliższe nabożeństwo</span>

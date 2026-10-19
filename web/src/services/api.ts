@@ -6,7 +6,7 @@ export function createApi(config, drive) {
   const url = config.apiUrl || ''
   return {
     enabled: !!url,
-    async call(action, data = {}) {
+    async call(action, data: any = {}) {
       let res
       try {
         res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, token: drive.accessToken(), ...data }) })
@@ -47,7 +47,7 @@ export function createDemoApi() {
   people = people || start()
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(people)) } catch { /* tryb prywatny */ } }
   const copy = x => JSON.parse(JSON.stringify(x))
-  const inDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
+  const inDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return new Date(+d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   const ACTIONS = {
     me: () => ({ person: people[0], ranks: RANKS }),
     public: () => ({
@@ -72,7 +72,7 @@ export function createDemoApi() {
   return {
     enabled: true,
     demo: true,
-    async call(action, data = {}) {
+    async call(action, data: any = {}) {
       await new Promise(r => setTimeout(r, 250))
       if (!ACTIONS[action]) throw new Error('Nieznane polecenie.')
       return copy(ACTIONS[action](data))

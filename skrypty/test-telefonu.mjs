@@ -1,4 +1,4 @@
-// Test mobile/drive.js na udawanym API Dysku Google (bez sieci): node skrypty/test-telefonu.mjs
+// Test web/src/services/drive.ts na udawanym API Dysku Google (bez sieci): node skrypty/test-telefonu.mjs
 import assert from 'node:assert/strict'
 
 const FOLDER = 'application/vnd.google-apps.folder'
@@ -49,7 +49,7 @@ globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => {
 store['kns-auth'] = JSON.stringify({ token: 't', expires: Date.now() + 3600e3, email: 'a@b.pl' })
 globalThis.window = {}
 
-const { createDrive } = await import('../mobile/drive.js')
+const { createDrive } = await import('../web/src/services/drive.ts')
 const config = { clientId: 'x', folderName: 'Aplikacja KNS Nabo', servicesFolder: 'nabozenstwa', songsFolder: 'piesni' }
 const byName = (name, parent) => [...files.values()].find(f => f.name === name && (!parent || f.parents.includes(parent)) && !f.trashed)
 

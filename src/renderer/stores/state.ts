@@ -1,6 +1,6 @@
 // Stan aplikacji (reaktywny) i stałe — bez zależności od innych modułów stanu.
 import { reactive, ref } from 'vue'
-import { mergeTypes } from '@web/church.js'
+import { mergeTypes } from '@web/services/church'
 import { BAZA, createCloud } from '@/services/cloud'
 import type { KnsApi, LibraryItem, OutputState, Role, Service, Settings, Song, TextStyle } from '@/types'
 

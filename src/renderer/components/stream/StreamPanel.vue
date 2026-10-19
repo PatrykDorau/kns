@@ -6,7 +6,7 @@ import Brand from '@/components/common/Brand.vue'
 import Countdown from '@/components/display/Countdown.vue'
 import StreamDesk from '@/components/stream/StreamDesk.vue'
 import { api, cameraLock, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from '@/stores'
-import { addMinutes, categoryName } from '@web/church.js'
+import { addMinutes, categoryName } from '@web/services/church'
 
 // Stream: podgląd wszystkich kamer podłączonych do komputera i dane nabożeństwa pod ręką.
 const cams = ref([]) // { id, label, stream | error }

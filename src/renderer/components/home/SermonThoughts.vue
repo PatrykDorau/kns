@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { canUse, plannerRequest, role, services, DEFAULT_TIME } from '@/stores'
 
 // Myśli z kazania: z ostatniego nabożeństwa, które już się zaczęło (widoczne cały tydzień, do początku następnego) — widżet tylko wtedy, gdy kaznodzieja dodał myśli
-// (pole „Myśli z kazania” w nabożeństwie, jedna myśl w linii). Style: mobile/home.css.
+// (pole „Myśli z kazania” w nabożeństwie, jedna myśl w linii). Style: web/src/styles/home.css.
 const now = ref(Date.now())
 setInterval(() => { now.value = Date.now() }, 60000)
 const startsAt = s => new Date(s.date + 'T' + (s.time || DEFAULT_TIME)).getTime()

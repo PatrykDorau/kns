@@ -4,7 +4,7 @@ import Icon from '@/components/common/Icon.vue'
 import { loadListen, loadPublicPreview, DEFAULT_TIME, DEFAULT_PLACE } from '@/stores'
 
 // Przed zalogowaniem (i dla czekających na zatwierdzenie): to samo co na stronie — odliczanie do nabożeństwa
-// i „Posłuchaj — odkryj nas” (najnowsze kazanie z YouTube i podcast na Spotify). Style: mobile/home.css.
+// i „Posłuchaj — odkryj nas” (najnowsze kazanie z YouTube i podcast na Spotify). Style: web/src/styles/home.css.
 // Filmy i podcast otwierają się w przeglądarce (odtwarzacze w ramce nie działają w aplikacji z pliku).
 const pub = ref(null)
 const listen = ref<{ youtube?: string; spotify?: string }>({})

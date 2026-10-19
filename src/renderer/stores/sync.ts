@@ -1,6 +1,6 @@
 // Wspólna baza (dawniej folder wspólny): nabożeństwa i pieśni na wielu komputerach.
 import { ref } from 'vue'
-import { mergeTypes } from '@web/church.js'
+import { mergeTypes } from '@web/services/church'
 import { hide } from './display'
 import { dropFile } from './library'
 import { plain } from './lists'

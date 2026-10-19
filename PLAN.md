@@ -121,7 +121,7 @@ Zmiany pod `LockService`. Adresy z `SERWER.admins` są zawsze administratorami.
 - Komputer: Electron + Vue + TypeScript (`src/renderer` — okno, `src/main` — proces główny, `src/preload`; budowanie `npm run build` → `dist`, `dist-electron`; testy `tests/electron`, `skrypty/test-app`), wydania na GitHub Releases (ostatnie 1.2.3; w repozytorium są już zmiany na 1.3.0), automatyczne aktualizacje.
   Budowanie: `npx vite build` → `npx electron-builder --win --publish never "-c.directories.output=%TEMP%/kns-out"`,
   kopia do `release/`, wydanie skryptem przez API GitHuba (logowanie z menedżera haseł Gita).
-- Telefon: `mobile/` (bez budowania, Vue z CDN), Netlify `kns-nabo.netlify.app` (publikuje się samo po `git push`),
+- Telefon: `web/` (Vite + Vue + TS, budowane do `web/dist`), Netlify `kns-nabo.netlify.app` (publikuje się samo po `git push`),
   funkcja `netlify/functions/push.mjs` (powiadomienia Web Push, zmienne VAPID_PRIVATE i PUSH_SECRET w Netlify).
 - Testy: `node skrypty/test-serwera.cjs` (serwer na udawanym Apps Script), `node skrypty/test-telefonu.mjs` (drive.js na udawanym Dysku),
   `bash skrypty/test-ui/przygotuj.sh` + `npx vite "$TEMP/kns-mtest" --port 5183` (cała aplikacja na udawanym Google).

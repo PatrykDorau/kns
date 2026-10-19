@@ -1,10 +1,10 @@
-// Test mobile/supa.js (dane aplikacji w Supabase) na prawdziwym schemacie i regułach dostępu w PGlite:
+// Test web/src/services/supa.ts (dane aplikacji w Supabase) na prawdziwym schemacie i regułach dostępu w PGlite:
 //   npm i --no-save @electric-sql/pglite@0.2.17 && node supabase/test-supa.mjs
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
 import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
-import { createSupa } from '../mobile/supa.js'
+import { createSupa } from '../web/src/services/supa.ts'
 
 const db = new PGlite()
 await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])

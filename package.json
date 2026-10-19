@@ -10,8 +10,10 @@
     "build": "vite build && node skrypty/build-main.mjs",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --win",
-    "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.main.json",
-    "build:main": "node skrypty/build-main.mjs"
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.main.json && vue-tsc --noEmit -p web/tsconfig.json",
+    "build:main": "node skrypty/build-main.mjs",
+    "dev:web": "vite --config web/vite.config.mjs",
+    "build:web": "vite build --config web/vite.config.mjs"
   },
   "build": {
     "appId": "pl.rzutnik.app",

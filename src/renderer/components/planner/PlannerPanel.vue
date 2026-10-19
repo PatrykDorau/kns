@@ -8,7 +8,7 @@ import Brand from '@/components/common/Brand.vue'
 import StatsPanel from '@/components/planner/StatsPanel.vue'
 import ProgramEditor from '@/components/planner/ProgramEditor.vue'
 import ThoughtsEditor from '@/components/planner/ThoughtsEditor.vue'
-import { addMinutes, category, categoryName, programFrom } from '@web/church.js'
+import { addMinutes, category, categoryName, programFrom } from '@web/services/church'
 import { ago, songHistory } from '@/services/stats'
 import {
   attachToService, exportService, findSongs, firstLine, importService, managerOpen, missingInfo, plannerTarget, selectedId, verses, nearestService, newService, planAlert, planReady, prettyDate, today,

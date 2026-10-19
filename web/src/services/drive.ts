@@ -17,7 +17,7 @@ const SCOPE = 'https://www.googleapis.com/auth/drive'
 // Sama tożsamość (adres e-mail, imię) — wystarcza osobie, która czeka na zatwierdzenie.
 const IDENTITY = 'openid email profile'
 
-import { eventFolderName } from './church.js'
+import { eventFolderName } from './church.ts'
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
 const EVENTS = 'wydarzenia', TEMPLATES = 'szablony', NEWS = 'ogloszenia'
@@ -69,7 +69,7 @@ export function createDrive(config) {
   const protoIndex = new Map() // id protokołu → { folderId, fileId, name }
   let newsDirId = '', councilRootId = null // null — jeszcze nie sprawdzano; '' — brak dostępu do folderu rady
 
-  async function call(url, options = {}) {
+  async function call(url, options: any = {}) {
     const res = await fetch(url, { ...options, headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } })
     if (res.status === 401) { token = ''; writeAuth({ email }); throw Object.assign(new Error('Sesja wygasła — zaloguj się ponownie.'), { auth: true }) }
     if (res.status === 403 && (options.method || 'GET') !== 'GET') throw new Error('Nie masz uprawnień do zmian w folderze aplikacji — poproś administratora o odpowiednią rangę.')
@@ -111,7 +111,7 @@ export function createDrive(config) {
     })
     const url = init.headers.get('Location')
     if (!url) throw new Error('Dysk Google nie przyjął pliku.')
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       xhr.open('PUT', url)
       xhr.upload.onprogress = e => e.lengthComputable && onProgress?.(e.loaded / e.total)
@@ -132,7 +132,7 @@ export function createDrive(config) {
   async function loadExtra(subfolder) {
     const [eventsDir, templatesDir, newsDir, councilRoot] = await Promise.all([subfolder(EVENTS), subfolder(TEMPLATES), subfolder(NEWS), councilFolder()])
     eventsDirId = eventsDir || ''; templatesDirId = templatesDir || ''; newsDirId = newsDir || ''
-    const newsFile = async (dir, audience) => {
+    const newsFile = async (dir, audience?) => {
       const [file] = dir ? await list(`${quote(dir)} in parents and name='ogloszenia.json' and trashed=false`) : []
       const data = file ? await read(file.id).catch(e => { if (e.auth) throw e; return null }) : null
       return (data?.items || []).map(a => (audience ? { ...a, audience } : a))
@@ -200,7 +200,7 @@ export function createDrive(config) {
   const read = async id => (await call(`${API}/files/${id}?alt=media&supportsAllDrives=true`)).json()
   const write = (id, data) => call(`${UPLOAD}/files/${id}?uploadType=media&supportsAllDrives=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
   const patch = (id, body) => call(`${API}/files/${id}?supportsAllDrives=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-  async function create(meta, data) {
+  async function create(meta, data?) {
     if (data === undefined) return (await call(`${API}/files?supportsAllDrives=true&fields=id`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(meta) })).json()
     const form = new FormData()
     form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }))
@@ -218,10 +218,10 @@ export function createDrive(config) {
     // choose — pokaż wybór konta (pierwsze logowanie, „inne konto”); bez niego Google loguje po cichu
     // ostatnim kontem, co jest wygodne przy odnawianiu sesji.
     // access — 'drive' (Dysk; z serwerem kont także tożsamość), 'identity' (tylko adres i imię).
-    signIn: (choose = false, access = 'drive') => new Promise((resolve, reject) => {
+    signIn: (choose = false, access = 'drive') => new Promise<void>((resolve, reject) => {
       if (!window.google?.accounts?.oauth2) return reject(new Error('Nie udało się wczytać logowania Google — sprawdź internet.'))
       const wanted = access === 'identity' ? IDENTITY : config.apiUrl ? IDENTITY + ' ' + SCOPE : SCOPE
-      client = client || google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: wanted, callback: () => {} })
+      client = client || window.google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: wanted, callback: () => {} })
       client.callback = async res => {
         if (res.error) return reject(new Error('Logowanie nie powiodło się.'))
         token = res.access_token
@@ -241,7 +241,7 @@ export function createDrive(config) {
     // Zapomina konto — następne logowanie pokaże wybór konta.
     forget() { token = ''; email = ''; writeAuth({}) },
     signOut() {
-      if (token && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(token, () => {})
+      if (token && window.google?.accounts?.oauth2) window.google.accounts.oauth2.revoke(token, () => {})
       token = ''; email = ''
       writeAuth({})
     },
@@ -322,9 +322,9 @@ export function createDrive(config) {
     // Protokoły jednego rodzaju (wczytywane dopiero, gdy są potrzebne).
     async loadProtocols(kind) {
       const dir = await protocolsDir(kind)
-      const dirs = new Map((await list(`${quote(dir)} in parents and mimeType='${FOLDER}' and trashed=false`)).map(f => [f.id, f]))
+      const dirs = new Map((await list(`${quote(dir)} in parents and mimeType='${FOLDER}' and trashed=false`)).map((f: any) => [f.id, f]))
       const out = []
-      await Promise.all([...dirs.values()].map(async folder => {
+      await Promise.all([...dirs.values()].map(async (folder: any) => {
         try {
           const [file] = await list(`'${folder.id}' in parents and name='protokol.json' and trashed=false`)
           if (!file) return
@@ -480,7 +480,7 @@ export function createDrive(config) {
 /* ---------- tryb pokazowy ---------- */
 export function createDemo() {
   const KEY = 'kns-demo'
-  const sunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
+  const sunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return new Date(+d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   const start = () => ({
     songs: [
       { id: 'd1', number: '12', title: 'Kiedy ranne wstają zorze', text: 'Kiedy ranne wstają zorze,\nTobie ziemia, Tobie morze\n\nA człowiek, który bez miary' },
@@ -500,7 +500,7 @@ export function createDemo() {
       { id: 'demoan03', title: 'Rekolekcje rady', text: 'Wyjazd rady zboru 14–15 listopada.', audience: 'council', date: Date.now() - 2 * 86400000, updated: 1, author: 'Pastor' },
     ],
   })
-  function inDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
+  function inDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return new Date(+d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   let data
   try { data = JSON.parse(localStorage.getItem(KEY)) } catch { /* brak zapisu */ }
   data = data || start()

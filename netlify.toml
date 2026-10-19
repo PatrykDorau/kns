@@ -1,7 +1,8 @@
 [build]
-  # Na Netlify trafia strona na telefon (organizacja nabożeństw), bez budowania,
+  # Na Netlify trafia strona na telefon (web/, Vite + Vue) — budowana do web/dist,
   # oraz funkcja wysyłająca powiadomienia na telefon (netlify/functions/push.mjs → /api/push).
-  publish = "mobile"
+  command = "npm run build:web"
+  publish = "web/dist"
 
 [build.environment]
   # Netlify instaluje zależności z package.json — sam Electron nie jest tu potrzebny.

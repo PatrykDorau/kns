@@ -40,8 +40,10 @@ Instalator i wersja przenośna powstają w folderze `release`.
 
 ## Organizacja nabożeństw na telefonie
 
-Folder `mobile` to osobna strona internetowa (bez budowania) do planowania nabożeństw z telefonu. Czyta i zapisuje te same pliki w folderze wspólnym na Dysku Google, po zalogowaniu kontem Google.
+Folder `web` to strona internetowa (Vite + Vue + TypeScript) do organizacji kościoła z telefonu — dane w bazie Supabase, logowanie kontem Google.
 
-- Wystawiona na Netlify — plik `netlify.toml` wskazuje folder `mobile`, więc po połączeniu repozytorium z Netlify każda zmiana publikuje się sama.
-- `mobile/config.js`: identyfikator klienta OAuth z Google Cloud Console oraz folder aplikacji na Dysku (identyfikator albo nazwa) i nazwy podfolderów.
+- `web/src`: `App.vue` (widoki), `components/`, `services/` (baza, Dysk, konfiguracja, wspólne `church.ts`), `styles/`; pliki stałe (ikony, grafiki, `sw.js`, `napisy.html`) w `web/public`.
+- Podgląd: `npm run dev:web`; budowanie: `npm run build:web` → `web/dist`. Netlify buduje i publikuje to samo po każdym `git push` (`netlify.toml`).
+- Test bez Google i Supabase: `npx vite --config web/vite.config.mjs --mode baza --port 5184` (prawdziwy schemat bazy w przeglądarce, udawane logowanie — opis w `web/vite.config.mjs`).
+- `web/src/services/config.ts`: identyfikator klienta OAuth z Google Cloud Console oraz folder aplikacji na Dysku (identyfikator albo nazwa) i nazwy podfolderów.
 - `?demo` na końcu adresu włącza tryb pokazowy bez logowania.

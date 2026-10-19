@@ -1,5 +1,5 @@
 // Ustawienia strony nabożeństw na telefon.
-window.KNS_CONFIG = {
+export const CONFIG: Record<string, any> = {
   // Identyfikator klienta OAuth z Google Cloud Console (typ: aplikacja internetowa).
   // Adres strony — tylko pod nim działa logowanie Google (Authorized JavaScript origins w Google Cloud).
   appUrl: 'https://kns-nabo.netlify.app',
@@ -36,3 +36,9 @@ window.KNS_CONFIG = {
   protocolsFolder: 'KNS Nabo — Protokoły', // spotkania członkowskie — czytają wszyscy zatwierdzeni
   councilFolder: 'KNS Nabo — Rada', // rada zboru — tylko rada, pastor i administrator
 }
+
+// Testy bez Google (skrypty/test-ui, vite --mode baza|dysk): udawane logowanie i Dysk, adres strony testowej;
+// „baza” — prawdziwy schemat bazy w przeglądarce (PGlite), „dysk” — dane na udawanym Dysku i serwer kont.
+const MODE = import.meta.env?.MODE
+if (MODE === 'baza' || MODE === 'dysk') Object.assign(CONFIG, { folderId: '', appUrl: location.origin })
+if (MODE === 'dysk') Object.assign(CONFIG, { apiUrl: 'https://mock.api/exec', supabaseUrl: '' })

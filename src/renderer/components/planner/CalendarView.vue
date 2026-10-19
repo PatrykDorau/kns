@@ -5,7 +5,7 @@ import Brand from '@/components/common/Brand.vue'
 import SyncButton from '@/components/common/SyncButton.vue'
 import ProgramEditor from '@/components/planner/ProgramEditor.vue'
 import NotifyPicker from '@/components/common/NotifyPicker.vue'
-import { addMinutes, category, categoryName, programFrom } from '@web/church.js'
+import { addMinutes, category, categoryName, programFrom } from '@web/services/church'
 import { copyLink, downloadQr, access, notifyPeople, calendarRequest, canUse, churchEvents, churchTypes, me, plannerRequest, removeChurchEvent, role, saveChurchEvent, services, today, uid, DEFAULT_TIME, DEFAULT_PLACE } from '@/stores'
 
 // Kalendarz życia kościoła: nabożeństwa i inne wydarzenia. Wydarzenia zmieniają osoby z prawem edycji;

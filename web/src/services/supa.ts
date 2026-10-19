@@ -2,14 +2,17 @@
 // więc ekrany aplikacji się nie zmieniają. Dostępu pilnuje baza (reguły RLS według rang, supabase/schema.sql).
 // Pliki (zdjęcia, filmy, prezentacje) zostają na Dysku Google: do nich potrzebne jest osobne pozwolenie
 // Google, o które aplikacja pyta dopiero przy dodawaniu załącznika.
-import { createDrive } from './drive.js'
+import { createClient } from '@supabase/supabase-js'
+import { createDrive } from './drive.ts'
 
 // Rangi z bazy → kształt używany w aplikacji (jak w serwer.gs).
 const rank = r => ({ id: r.id, name: r.name, edit: r.can_edit, council: r.council, protocols: r.protocols, manage: r.manage, approve: !!r.approve })
 const view = p => ({ email: p.email, name: p.name || '', grupa: p.grupa || '', status: p.status, roles: p.roles || [], requested: p.requested ? new Date(p.requested).getTime() : 0, newsletter: !!p.newsletter })
 const day = d => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : null)
 
-export function createSupa(config, client = window.supabase.createClient(config.supabaseUrl, config.supabaseKey, {
+// Klient bazy z npm; w teście z udawaną bazą (vite --mode baza) skrypt udawana-baza.js podstawia window.supabase.
+const makeClient = (...a) => ((typeof window !== 'undefined' && window.supabase?.createClient) || createClient)(...a)
+export function createSupa(config, client = makeClient(config.supabaseUrl, config.supabaseKey, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
 })) {
   const sb = client
@@ -79,7 +82,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
 
   const api = {
     enabled: true,
-    async call(action, data = {}) {
+    async call(action, data: any = {}) {
       if (action === 'public') return check(await sb.rpc('public_preview'))
       // „Posłuchaj”: linki YouTube i Spotify (czyta każdy, także gość; zmienia administrator).
       if (action === 'listen') return (check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {}
@@ -342,7 +345,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
 
     // Jednorazowo (administrator): wszystko z plików na Dysku Google do bazy. Rekord, który w bazie jest
     // nowszy niż na Dysku, zostaje. Zwraca liczby przeniesionych rzeczy.
-    async migrateFromDrive(step = () => {}) {
+    async migrateFromDrive(step: (text: string) => void = () => {}) {
       if (!files) throw new Error('Brak dostępu do Dysku.')
       step('Łączę z Dyskiem Google…')
       if (!files.hasDrive()) await files.signIn(true, 'drive')
@@ -362,7 +365,7 @@ export function createSupa(config, client = window.supabase.createClient(config.
         for (let i = 0; i < rows.length; i += 500) check(await sb.from(table).upsert(rows.slice(i, i + 500)))
         return rows.length
       }
-      const counts = {}
+      const counts: Record<string, number> = {}
       step('Przenoszę nabożeństwa…')
       counts.services = await put('services', d.services.map(s => ({ id: s.id, date: day(s.date), data: s, updated: s.updated || 0, updated_by: s.updatedBy || null })))
       step('Przenoszę pieśni…')

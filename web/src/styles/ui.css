@@ -362,7 +362,7 @@ a.fact:not([href]) { pointer-events: none; }
 /* ---------- motyw papieru z plamą kawy (jak na grafikach ogłoszeń) ---------- */
 .paper, .goal-banner, .invite, .hw-banner, .notice {
   --p-ink: #3a2a1f; --p-muted: #7a6350; --p-accent: #b8641c;
-  background: url("papier.svg") center / cover no-repeat, #efe5d6 !important; color: var(--p-ink) !important;
+  background: url("/papier.svg") center / cover no-repeat, #efe5d6 !important; color: var(--p-ink) !important;
   border: 0 !important; box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset, 0 14px 34px -16px rgba(0, 0, 0, .7) !important; }
 .goal-banner small, .invite small, .hw-banner-text > span, .notice .notice-text { color: var(--p-muted) !important; }
 .goal-banner > .i, .invite > .i, .goal-banner .chev { color: var(--p-accent) !important; }

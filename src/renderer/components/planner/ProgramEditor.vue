@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
-import { CATEGORIES, addMinutes, categoryName, offsetOf, setCategory } from '@web/church.js'
+import { CATEGORIES, addMinutes, categoryName, offsetOf, setCategory } from '@web/services/church'
 import { uid } from '@/stores'
 import type { ProgramItem } from '@/types'
 
