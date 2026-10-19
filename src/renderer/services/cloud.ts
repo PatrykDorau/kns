@@ -163,6 +163,20 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       const flag = f => (p.roles || []).some(r => ranks.some(x => x.id === r && x[f]))
       return { email: p.email, name: p.name || '', status: p.status, roles: p.roles || [], names: (p.roles || []).map(r => ranks.find(x => x.id === r)?.name).filter(Boolean), edit: flag('can_edit'), manage: flag('manage') }
     }),
+    // „Materiały” z aplikacji (protokoły, instrukcje, pliki) z plikiem — do Biblioteki Rzutnika i Mediów w Stream.
+    // Baza pokazuje tylko to, co ta osoba może zobaczyć (materiały rady — tylko rada).
+    materials: async () => {
+      await active()
+      const rows = await all(() => sb.from('protocols').select('id,data,kind').order('id'))
+      return rows.map(r => r.data || {}).filter(d => d.file).map(d => ({ id: d.id, title: d.title || '', type: d.type || (d.kind === 'material' ? 'plik' : 'protokol'), date: d.date || '', file: d.file, fileName: d.fileName || d.file }))
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    },
+    materialUrl: async (path: string) => {
+      await session()
+      const { data, error } = await sb.storage.from('protokoly').createSignedUrl(path, 3600)
+      if (error) throw new Error('Nie udało się pobrać pliku: ' + error.message)
+      return data.signedUrl
+    },
     // Wydarzenia (kalendarz): zapis od razu w bazie; nowsza wersja w bazie wstrzymuje zapis.
     saveEvent: (ev, base = 0) => safe(async () => {
       const p = await active()

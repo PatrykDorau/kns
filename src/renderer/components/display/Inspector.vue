@@ -143,7 +143,7 @@ function dropEntry(i) {
     <input id="lVol" v-model.number="selected.volume" type="range" min="0" max="1" step="0.05">
 
     <template v-if="loopCandidates.length">
-      <label for="lAdd">Dodaj z materiałów</label>
+      <label for="lAdd">Dodaj z Biblioteki</label>
       <select id="lAdd" @change="addToLoop">
         <option value="">Wybierz…</option>
         <option v-for="c in loopCandidates" :key="c.id" :value="c.id" :disabled="c.missing">{{ KIND[c.type] }}: {{ label(c) }}</option>

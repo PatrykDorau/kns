@@ -79,7 +79,7 @@ function add() {
         <span class="note">{{ slides.length ? `Wersetów: ${verses.length} · slajdów: ${slides.length}` : '' }}</span>
         <span class="spacer"></span>
         <button @click="bibleOpen = false">Anuluj</button>
-        <button class="primary" :disabled="!slides.length" @click="add"><Icon name="plus" />Dodaj do materiałów</button>
+        <button class="primary" :disabled="!slides.length" @click="add"><Icon name="plus" />Dodaj do Biblioteki</button>
       </div>
     </div>
   </div>

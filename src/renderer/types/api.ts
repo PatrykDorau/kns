@@ -33,6 +33,7 @@ export interface KnsApi {
   pickFiles: Invoke
   importFiles: Invoke
   readPdf: Invoke
+  fetchFile: Invoke
   saveImage: Invoke
   pptxToSlides: Invoke
   onPptxProgress: Listen

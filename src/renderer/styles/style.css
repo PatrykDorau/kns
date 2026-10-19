@@ -158,7 +158,7 @@ h2 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: u
 
 /* ---------- zakładki, wyszukiwarka, pieśni ---------- */
 input[type=number], input[type=search] { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
-.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 12px; background: var(--bg); border-radius: 12px; }
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 4px; padding: 4px; margin-bottom: 12px; background: var(--bg); border-radius: 12px; }
 .tabs button { border: 0; background: transparent; color: var(--muted); font-weight: 600; padding: 7px; }
 .tabs button[aria-selected=true] { background: var(--panel3); color: var(--text); }
 .pill { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 7px; font-size: 11px; }
@@ -1223,3 +1223,4 @@ main.stream > section:first-child { overflow-y: auto; }
 
 /* zwrotka na żywo: część napisów, która idzie teraz na stream */
 .vpart { margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: rgba(169, 139, 255, .18); color: #cbb8ff; font-size: 11px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.desk-mats { max-height: 320px; overflow: auto; margin: 8px 0; padding: 8px; border: 1px solid var(--line); border-radius: 12px; }

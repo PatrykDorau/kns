@@ -129,7 +129,7 @@ async function importBackup() {
           <!-- Obraz: przejścia i pliki -->
           <template v-else-if="tab === 'display'">
             <h4>Obraz i pliki</h4>
-            <p class="st-help">Jak rzutnik zmienia obraz i gdzie trzyma materiały.</p>
+            <p class="st-help">Jak rzutnik zmienia obraz i gdzie trzyma pliki z Biblioteki.</p>
             <div class="st-card">
               <div class="st-row">
                 <span class="st-txt"><b>Płynne przenikanie</b><small>Przy zmianie obrazu. Pętle mają własne ustawienie przejścia.</small></span>
@@ -140,7 +140,7 @@ async function importBackup() {
                 <input id="gFade" v-model.number="settings.fadeMs" type="range" min="100" max="3000" step="50">
               </div>
               <div class="st-row">
-                <span class="st-txt"><b>Kopiuj pliki do aplikacji</b><small>Materiały nie znikną po wyjęciu pendrive’a. Dotyczy plików dodawanych od teraz.</small></span>
+                <span class="st-txt"><b>Kopiuj pliki do aplikacji</b><small>Pliki w Bibliotece nie znikną po wyjęciu pendrive’a. Dotyczy plików dodawanych od teraz.</small></span>
                 <input v-model="settings.copyFiles" class="sw" type="checkbox" aria-label="Kopiuj dodawane pliki">
               </div>
             </div>
@@ -165,7 +165,7 @@ async function importBackup() {
           <!-- Kopia biblioteki -->
           <template v-else>
             <h4>Kopia biblioteki</h4>
-            <p class="st-help">Folder z materiałami, pieśniami i ustawieniami — do przeniesienia na inny komputer.</p>
+            <p class="st-help">Folder z Biblioteką, pieśniami i ustawieniami — do przeniesienia na inny komputer.</p>
             <div class="st-card">
               <div class="st-row"><span class="st-txt"><b>Zapisz kopię</b><small>Wybierz folder (np. pendrive).</small></span><button @click="exportBackup"><Icon name="folder" />Zapisz…</button></div>
               <div class="st-row"><span class="st-txt"><b>Wczytaj kopię</b><small>Zastępuje bibliotekę na tym komputerze.</small></span><button @click="importBackup"><Icon name="import" />Wczytaj…</button></div>

@@ -4,6 +4,7 @@ import Stage from '@/components/display/Stage.vue'
 import Icon from '@/components/common/Icon.vue'
 import Brand from '@/components/common/Brand.vue'
 import MaterialsPanel from '@/components/display/MaterialsPanel.vue'
+import ChurchMaterials from '@/components/display/ChurchMaterials.vue'
 import SongsPanel from '@/components/display/SongsPanel.vue'
 import Inspector from '@/components/display/Inspector.vue'
 import AppSettings from '@/components/display/AppSettings.vue'
@@ -150,10 +151,12 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
     <main>
       <section>
         <div class="tabs" role="tablist">
-          <button role="tab" :aria-selected="tab === 'materials'" @click="tab = 'materials'"><Icon name="image" />Materiały</button>
+          <button role="tab" :aria-selected="tab === 'materials'" @click="tab = 'materials'"><Icon name="image" />Biblioteka</button>
           <button role="tab" :aria-selected="tab === 'songs'" @click="tab = 'songs'"><Icon name="music" />Pieśni<span v-if="serviceList.length" class="pill">{{ serviceList.length }}</span></button>
+          <button role="tab" :aria-selected="tab === 'church'" title="Pliki z „Materiałów” w aplikacji (protokoły, instrukcje, pliki pomocnicze)" @click="tab = 'church'"><Icon name="folder" />Materiały</button>
         </div>
         <MaterialsPanel v-if="tab === 'materials'" />
+        <ChurchMaterials v-else-if="tab === 'church'" action="Do biblioteki" @added="tab = 'materials'" />
         <SongsPanel v-else />
       </section>
 

@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   importFiles: invoke('files:import'),
   readPdf: invoke('files:readPdf'),
   saveImage: invoke('files:saveImage'),
+  fetchFile: invoke('files:fetch'),
   pptxToSlides: invoke('files:pptx'),
   onPptxProgress: on('pptx:progress'),
   // niewidoczne okno renderujące slajdy

@@ -106,6 +106,22 @@ async function importFiles(paths, copy) {
   return result
 }
 
+// Plik z „Materiałów” (baza kościoła) do folderu mediów — tylko adresy naszego projektu Supabase, do 500 MB.
+const FETCH_HOST = 'igkjlgdpvgdeqfqctnnf.supabase.co'
+async function fetchToMedia(url, name) {
+  try {
+    const u = new URL(String(url))
+    if (u.protocol !== 'https:' || u.hostname !== FETCH_HOST) return { error: 'Niedozwolony adres pliku.' }
+    const res = await fetch(u)
+    if (!res.ok) return { error: 'Nie udało się pobrać pliku (' + res.status + ').' }
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.length > 500 * 1048576) return { error: 'Plik jest za duży (ponad 500 MB).' }
+    const file = await uniquePath(mediaDir(), path.basename(String(name || 'plik')))
+    await fs.promises.writeFile(file, buf)
+    return { path: file }
+  } catch (err) { return { error: 'Nie udało się pobrać pliku: ' + err.message } }
+}
+
 async function saveImage(name, bytes) {
   const file = await uniquePath(mediaDir(), String(name) + '.png')
   await fs.promises.writeFile(file, Buffer.from(bytes))
@@ -1000,6 +1016,7 @@ app.whenReady().then(() => {
   ipcMain.handle('files:import', (e, paths, copy) => importFiles(paths, copy))
   ipcMain.handle('files:readPdf', (e, p) => (typeof p === 'string' && p.toLowerCase().endsWith('.pdf') ? fs.promises.readFile(p) : null))
   ipcMain.handle('files:saveImage', (e, name, bytes) => saveImage(name, bytes))
+  ipcMain.handle('files:fetch', (e, url, name) => fetchToMedia(url, name))
   ipcMain.handle('files:pptx', (e, p) => (typeof p === 'string' && /\.pptx?$/i.test(p) ? convertPresentation(p) : { error: 'To nie jest prezentacja PowerPoint.' }))
   ipcMain.handle('pptx:data', () => preparePptxWindow())
   ipcMain.handle('pptx:slide', (e, index, count, rect) => capturePptxSlide(index, count, rect))

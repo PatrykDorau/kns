@@ -51,9 +51,9 @@ function drop(it) {
   <div class="searchrow">
     <label class="searchbox">
       <Icon name="search" />
-      <input v-model="search.materials" type="search" placeholder="Szukaj w materiałach" aria-label="Szukaj w materiałach">
+      <input v-model="search.materials" type="search" placeholder="Szukaj w Bibliotece" aria-label="Szukaj w Bibliotece">
     </label>
-    <button class="small" :aria-pressed="picking" title="Zaznaczanie wielu materiałów naraz" :disabled="!visibleItems.length" @click="picking ? stopPicking() : (picking = true)">{{ picking ? 'Gotowe' : 'Zaznacz' }}</button>
+    <button class="small" :aria-pressed="picking" title="Zaznaczanie wielu pozycji naraz" :disabled="!visibleItems.length" @click="picking ? stopPicking() : (picking = true)">{{ picking ? 'Gotowe' : 'Zaznacz' }}</button>
   </div>
   <div v-if="picking" class="bulk">
     <button class="small" @click="pickAll">{{ allPicked() ? 'Odznacz wszystkie' : 'Zaznacz wszystkie' }}</button>

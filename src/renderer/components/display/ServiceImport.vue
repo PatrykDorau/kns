@@ -39,7 +39,7 @@ async function fromFolder() {
         <SyncButton />
         <button class="iconbtn" aria-label="Zamknij" @click="serviceModal = false"><Icon name="x" /></button>
       </div>
-      <p class="note">Pieśni z nabożeństwa zastąpią obecną listę pieśni, a załączniki (np. prezentacja kaznodziei) trafią do materiałów. Można też wczytać tylko jedno z nich.</p>
+      <p class="note">Pieśni z nabożeństwa zastąpią obecną listę pieśni, a załączniki (np. prezentacja kaznodziei) trafią do Biblioteki. Można też wczytać tylko jedno z nich.</p>
 
       <div v-if="!list.length" class="empty">
         {{ past.length ? 'Nie ma nadchodzących nabożeństw.' : 'Nie ma zaplanowanych nabożeństw. Tworzy je służba „Organizacja nabożeństw”.' }}
@@ -65,8 +65,8 @@ async function fromFolder() {
               {{ busyId === svc.id ? 'Wczytuję…' : svc.id === settings.activeService ? 'Wczytaj ponownie' : 'Wczytaj wszystko' }}
             </button>
             <span class="only">
-              <button :disabled="busyId !== null || !svc.songs.length" title="Tylko pieśni — materiały zostają bez zmian" @click="load(svc, { songs: true })"><Icon name="music" />Pieśni</button>
-              <button :disabled="busyId !== null || !svc.files.length" title="Tylko załączniki — lista pieśni zostaje bez zmian" @click="load(svc, { files: true })"><Icon name="image" />Materiały</button>
+              <button :disabled="busyId !== null || !svc.songs.length" title="Tylko pieśni — Biblioteka zostaje bez zmian" @click="load(svc, { songs: true })"><Icon name="music" />Pieśni</button>
+              <button :disabled="busyId !== null || !svc.files.length" title="Tylko załączniki — lista pieśni zostaje bez zmian" @click="load(svc, { files: true })"><Icon name="image" />Załączniki</button>
             </span>
           </span>
         </li>
