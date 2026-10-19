@@ -240,6 +240,8 @@ button.cal-day.sel { background: var(--accent); color: #1f1608; border-color: tr
 button.cal-day.sel .cal-dots i { box-shadow: 0 0 0 1.5px #fff; }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 4px; margin: 12px 0 0; max-width: 100%; } /* rodzaje wydarzeń zawijają się — nie wychodzą poza ekran */
 .filters::-webkit-scrollbar { display: none; }
+.cal-search { margin: 14px 0 8px; }
+.cal-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 button.filter { flex: none; min-height: 32px; padding: 4px 12px 4px 10px; border-radius: 999px; font-size: 13px; color: var(--muted); background: none; gap: 6px; }
 button.filter i { width: 9px; height: 9px; border-radius: 50%; }
 button.filter.on { color: var(--text); background: var(--panel2); border-color: var(--muted); }
@@ -941,3 +943,4 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .readonly { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin: 0 0 6px; border-radius: 12px; background: var(--panel2); }
 .account .roles { color: var(--text); }
 .demo { background: #c98a00; color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
+.linkbtn, button.linkbtn { display: inline; min-height: 0; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }

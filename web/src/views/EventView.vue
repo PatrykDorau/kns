@@ -99,8 +99,9 @@ export default defineComponent({ setup: () => useApp() })
   <fieldset class="plain" :disabled="!eventEditable">
     <label for="evType">Rodzaj</label>
     <select id="evType" v-model="currentEvent.type" class="field" @change="typeChanged">
-      <option v-for="t in eventTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+      <option v-for="t in eventTypesFor" :key="t.id" :value="t.id">{{ t.name }}</option>
     </select>
+    <p v-if="!eventSavedOnce && canEdit" class="note" style="margin-top:4px">Nabożeństwo dodajesz w <button type="button" class="linkbtn" @click="newEvent('nabozenstwo')">Nabożeństwa → nowe nabożeństwo</button>.</p>
     <label for="evTitle">Nazwa <span class="req">*</span></label>
     <input id="evTitle" v-model="currentEvent.title" :class="{ invalid: !currentEvent.title.trim() }" autocomplete="off">
     <div class="row">

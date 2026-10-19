@@ -65,7 +65,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.91 · 19.10.2026'
+const VERSION = '2.92 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -641,14 +641,29 @@ export default defineComponent({
       ...services.value.filter(s => s.date).map(s => ({ kind: 'service', id: s.id, type: 'nabozenstwo', date: s.date, time: s.time || DEFAULT_TIME, place: s.place || DEFAULT_PLACE, title: s.sermonTitle ? 'Nabożeństwo: ' + s.sermonTitle : 'Nabożeństwo', ref: s })),
       ...events.value.filter(e => e.date).map(e => ({ kind: 'event', id: e.id, type: e.type, date: e.date, time: e.time || '', place: e.place || '', title: e.title || typeOf(e.type).name, ref: e })),
     ].sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00'))))
-    let hiddenSaved = []
-    try { hiddenSaved = JSON.parse(localStorage.getItem('kns-cal-hidden') || '[]') } catch { /* brak zapisu */ }
-    const hidden = ref(hiddenSaved)
-    function toggleType(id) {
-      hidden.value = hidden.value.includes(id) ? hidden.value.filter(x => x !== id) : [...hidden.value, id]
-      try { localStorage.setItem('kns-cal-hidden', JSON.stringify(hidden.value)) } catch { /* tryb prywatny */ }
-    }
-    const visibleItems = computed(() => calItems.value.filter(it => !hidden.value.includes(it.type)))
+    // Filtr kalendarza: nic nie zaznaczone = wszystko; gotowe zestawy dla każdego (Dla mnie — według rang),
+    // pojedyncze rodzaje do doprecyzowania; wyszukiwanie po nazwie, miejscu i rodzaju. Zapamiętane na tym urządzeniu.
+    let calSaved = []
+    try { calSaved = JSON.parse(localStorage.getItem('kns-cal-types') || '[]') } catch { /* brak zapisu */ }
+    const calSel = ref(calSaved), calQuery = ref('')
+    const keepCal = () => { try { localStorage.setItem('kns-cal-types', JSON.stringify(calSel.value)) } catch { /* tryb prywatny */ } }
+    function toggleType(id) { calSel.value = calSel.value.includes(id) ? calSel.value.filter(x => x !== id) : [...calSel.value, id]; keepCal() }
+    const myCalTypes = computed(() => {
+      const roles = me.value?.roles || []
+      return types.value.map(t => t.id).filter(id => (id !== 'rada' || hasCouncil.value) && (id !== 'studenckie' || roles.includes('asb') || canManage.value) && id !== 'proba')
+    })
+    const CAL_PRESETS = computed(() => [
+      { id: 'all', name: 'Wszystko', types: [] },
+      { id: 'me', name: 'Dla mnie', types: myCalTypes.value },
+      { id: 'services', name: 'Nabożeństwa', types: ['nabozenstwo'] },
+      { id: 'meetings', name: 'Spotkania', types: ['czlonkowskie', 'rada', 'domowe', 'studenckie'].filter(id => myCalTypes.value.includes(id)) },
+      { id: 'community', name: 'Wyjazdy i wydarzenia', types: types.value.filter(t => t.community).map(t => t.id) },
+    ])
+    const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x))
+    const calPreset = computed(() => CAL_PRESETS.value.find(p => sameSet(p.types, calSel.value))?.id || '')
+    function setCalPreset(p) { calSel.value = [...p.types]; keepCal(); selDay.value = '' }
+    const calMatch = it => { const q = plain(calQuery.value.trim()); return !q || plain([it.title, it.place, typeOf(it.type).name].join(' ')).includes(q) }
+    const visibleItems = computed(() => calItems.value.filter(it => (!calSel.value.length || calSel.value.includes(it.type)) && calMatch(it)))
     const calView = ref(false), month0 = ref(today().slice(0, 7)), selDay = ref(''), pickType = ref(false)
     const WEEK = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd']
     const todayStr = computed(() => { now.value; return today() })
@@ -668,11 +683,15 @@ export default defineComponent({
       } while (localDate(d).startsWith(month0.value))
       return out
     })
-    // Pod kalendarzem: wybrany dzień albo najbliższe 60 dni.
+    // Pod kalendarzem: wybrany dzień albo najbliższe — bez filtra 60 dni (co najmniej 5 pozycji); z filtrem albo
+    // wyszukiwaniem bez ograniczenia czasu (np. najbliższy wyjazd za pół roku też się pokaże).
     const agenda = computed(() => {
       if (selDay.value) return visibleItems.value.filter(it => it.date === selDay.value)
+      const next = visibleItems.value.filter(it => it.date >= todayStr.value)
+      if (calSel.value.length || calQuery.value.trim()) return next.slice(0, 30)
       const until = localDate(new Date(Date.now() + 60 * 86400000))
-      return visibleItems.value.filter(it => it.date >= todayStr.value && it.date <= until).slice(0, 30)
+      const near = next.filter(it => it.date <= until)
+      return (near.length >= 5 ? near : next.slice(0, 5)).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
     function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
@@ -728,14 +747,19 @@ export default defineComponent({
       notify.ids = []
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
     }
-    // „Zaproś kościół”: kalendarz z wyborem rodzaju nowego wydarzenia
-    function inviteEvent() { if (!calView.value) openCalendar(); pickType.value = true; nextTick(() => document.querySelector('.cal-actions')?.scrollIntoView({ block: 'center', behavior: 'smooth' })) }
+    // „Dodaj wydarzenie”: od razu formularz (rodzaj wybiera się w nim, nie wcześniej)
+    function inviteEvent() { if (!calView.value) openCalendar(); newEvent(canEdit.value || canReview.value ? 'inne' : 'inicjatywa') }
+    // rodzaje do wyboru w formularzu: spotkania rady i członkowskie — tylko osoby z prawem edycji
+    const eventTypesFor = computed(() => eventTypes.value.filter(t => canEdit.value || canReview.value || !['rada', 'czlonkowskie'].includes(t.id) || t.id === currentEvent.value?.type))
+    let autoProgram = '' // program z szablonu (dopóki nikt go nie zmienił, zmiana rodzaju go podmienia)
+    const programKey = list => JSON.stringify((list || []).map(p => [p.offset, p.category, p.title, p.person]))
     function newEvent(typeId) {
       pickType.value = false
       if (typeId === 'nabozenstwo') { create(selDay.value || undefined); fromCal = true; return }
       const t = typeOf(typeId)
       openEvent({ id: uid(), type: typeId, title: t.name, date: selDay.value || today(), time: t.time || '', place: t.place || '', description: '', program: programFrom(t, uid), createdBy: me.value?.name || drive.account() || 'telefon' })
       eventSaved = '' // nowe wydarzenie od razu jest „do zapisania”
+      autoProgram = programKey(currentEvent.value.program)
       eventEditing.value = true
     }
     // Zmiana rodzaju: podpowiedzi z szablonu zastępują tylko to, czego nikt jeszcze nie zmienił.
@@ -744,7 +768,7 @@ export default defineComponent({
       if (!ev.title.trim() || ev.title === old.name) ev.title = t.name
       if (!ev.place || ev.place === old.place) ev.place = t.place || ''
       if (!ev.time || ev.time === old.time) ev.time = t.time || ''
-      if (!ev.program.length) ev.program = programFrom(t, uid)
+      if (!ev.program.length || programKey(ev.program) === autoProgram) { ev.program = programFrom(t, uid); autoProgram = programKey(ev.program) }
       eventType = ev.type
     }
     function closeEvent() {
@@ -2157,7 +2181,7 @@ export default defineComponent({
     return provideApp({
       votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, asDate, boardAll,
-      events, types, typeOf, eventTypes, fillProgram, hidden, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
+      events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
