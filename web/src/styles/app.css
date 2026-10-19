@@ -1034,3 +1034,16 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .bug-ctl label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
 .bug-ctl select { height: 42px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; }
 .bug-body textarea { width: 100%; }
+/* kalendarz: wybrany dzień — jego wydarzenia od razu pod siatką, wyszukiwanie i filtry pod nimi */
+.cal-view { display: flex; flex-direction: column; }
+.cal-view > .cal-tools, .cal-view > .cal-list { order: 2; }
+.cal-view.day-first > .cal-list { order: 1; margin-bottom: 14px; }
+.cal-view.day-first > .cal-tools { order: 3; }
+.cal-view > .cal-head, .cal-view > .cal-grid { order: 0; }
+.cal-types { margin: 4px 0 10px; }
+.cal-types > summary { display: inline-flex; align-items: center; gap: 6px; list-style: none; cursor: pointer; min-height: 36px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.cal-types > summary::-webkit-details-marker { display: none; }
+.cal-types > summary .i { width: 15px; height: 15px; transition: transform .2s; }
+.cal-types[open] > summary .i { transform: rotate(90deg); }
+.cal-types > summary .pill { min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-size: 11.5px; text-align: center; }
+.cal-types .filters { margin-top: 4px; }
