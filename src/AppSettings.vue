@@ -6,6 +6,9 @@ import { share } from './screenShare.js'
 
 const emit = defineEmits(['close'])
 const message = ref('')
+// zakładki ustawień
+const TABS = [['stream', 'link', 'Dla streamu'], ['display', 'monitor', 'Obraz i pliki'], ['remote', 'gear', 'Pilot w telefonie'], ['backup', 'folder', 'Kopia biblioteki']]
+const tab = ref('stream')
 // Adres napisów z wybraną pozycją i rozmiarem (parametry czyta sama strona).
 const lyricsQuery = () => {
   const q = new URLSearchParams()
@@ -50,54 +53,114 @@ async function importBackup() {
 
 <template>
   <div class="overlay" @click.self="emit('close')" @keydown.esc="emit('close')">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Ustawienia aplikacji">
+    <div class="modal st-modal" role="dialog" aria-modal="true" aria-label="Ustawienia aplikacji">
       <div class="modal-head">
         <h3>Ustawienia aplikacji</h3>
         <button class="iconbtn" aria-label="Zamknij" :ref="el => el?.focus()" @click="emit('close')"><Icon name="x" /></button>
       </div>
+      <div class="st-body">
+        <nav class="st-nav" aria-label="Części ustawień">
+          <button v-for="[id, ic, name] in TABS" :key="id" :class="{ on: tab === id }" :aria-current="tab === id ? 'page' : null" @click="tab = id"><Icon :name="ic" />{{ name }}</button>
+        </nav>
 
-      <h4>Przejścia</h4>
-      <label class="check"><input type="checkbox" :checked="settings.fadeMs > 0" @change="settings.fadeMs = $event.target.checked ? 350 : 0"> Płynne przenikanie przy zmianie obrazu</label>
-      <template v-if="settings.fadeMs > 0">
-        <label for="gFade">Czas przejścia: {{ (settings.fadeMs / 1000).toLocaleString('pl') }} s</label>
-        <input id="gFade" v-model.number="settings.fadeMs" type="range" min="100" max="3000" step="50">
-      </template>
-      <p class="note">Pętle mają własne ustawienie przejścia.</p>
+        <div class="st-pane">
+          <!-- Dla streamu: obraz rzutnika i napisy na laptop ze streamem / OBS -->
+          <template v-if="tab === 'stream'">
+            <h4>Dla streamu</h4>
+            <p class="st-help">Laptop ze streamem dostaje stąd obraz rzutnika i napisy pieśni — przez internet, w dowolnej sieci. W Stream ten komputer pojawi się na liście sam.</p>
+            <div class="st-card">
+              <div class="st-row">
+                <span class="st-txt"><b>Obraz rzutnika</b><small>Cały ekran rzutnika (Rzutnik, PowerPoint, film — wszystko), bez dźwięku. W Stream: scena „Rzutnik”.</small></span>
+                <input v-model="settings.screenShare" class="sw" type="checkbox" aria-label="Udostępniaj obraz rzutnika">
+              </div>
+              <div v-if="settings.screenShare" class="st-row sub">
+                <span :class="['st-pill', share.error ? 'bad' : share.viewers ? 'ok' : 'wait']">{{ share.error || (share.viewers ? 'Stream odbiera obraz' + (share.viewers > 1 ? ' (' + share.viewers + ')' : '') : 'Czekam na laptop ze streamem') }}</span>
+              </div>
+              <div class="st-row">
+                <span class="st-txt"><b>Napisy pieśni</b><small>Bieżąca zwrotka — na transmisję w Stream albo do OBS (adres poniżej).</small></span>
+                <input v-model="settings.lyricsOnline" class="sw" type="checkbox" aria-label="Napisy przez internet">
+              </div>
+              <div v-if="settings.lyricsOnline || settings.screenShare" class="st-stack">
+                <span class="st-lbl">Adres tego rzutnika (dla OBS albo do wklejenia ręcznie)</span>
+                <div class="st-copy"><input :value="onlineLink" readonly aria-label="Adres napisów" @focus="$event.target.select()"><button class="small" @click="copyLyrics(onlineLink)"><Icon :name="copied === onlineLink ? 'check' : 'copy'" />{{ copied === onlineLink ? 'Skopiowano' : 'Kopiuj' }}</button><button class="small" title="Nowy adres — stary przestanie działać (Stream przejdzie na nowy sam)" @click="newLyricsKey">Nowy klucz</button></div>
+                <span class="st-hint">Kto zna adres, widzi napisy (a z udostępnianiem — także obraz rzutnika). Nie publikuj go.</span>
+              </div>
+            </div>
 
-      <h4>Pliki</h4>
-      <label class="check"><input v-model="settings.copyFiles" type="checkbox"> Kopiuj dodawane pliki do biblioteki aplikacji</label>
-      <p class="note">Dzięki temu materiały nie znikną po wyjęciu pendrive'a. Dotyczy plików dodawanych od teraz.</p>
+            <div class="st-card">
+              <div class="st-card-h"><span class="ic"><Icon name="monitor" /></span><span><b>Napisy w OBS</b><small>Przezroczyste tło z cieniem — źródło „Przeglądarka” nad kamerą.</small></span></div>
+              <div class="st-row">
+                <span class="st-txt"><b>Bez internetu</b><small>OBS na tym komputerze albo w tej samej sieci Wi-Fi.</small></span>
+                <input v-model="settings.lyrics" class="sw" type="checkbox" aria-label="Napisy w tej samej sieci">
+              </div>
+              <div v-if="settings.lyrics && overlayUrl" class="st-stack">
+                <div class="st-copy"><input :value="lyricsLink" readonly aria-label="Adres napisów w sieci lokalnej" @focus="$event.target.select()"><button class="small" @click="copyLyrics(lyricsLink)"><Icon :name="copied === lyricsLink ? 'check' : 'copy'" />{{ copied === lyricsLink ? 'Skopiowano' : 'Kopiuj' }}</button></div>
+              </div>
+              <template v-if="settings.lyricsOnline || (settings.lyrics && overlayUrl)">
+                <div class="st-grid2">
+                  <label>Pozycja<select v-model="settings.lyricsPos"><option value="dol">na dole</option><option value="srodek">na środku</option><option value="gora">na górze</option></select></label>
+                  <label>Rozmiar<select v-model.number="settings.lyricsSize"><option :value="4">mały</option><option :value="6">średni</option><option :value="8">duży</option></select></label>
+                </div>
+                <div class="st-row">
+                  <span class="st-txt"><b>Ciemny pasek pod tekstem</b><small>Lepiej czytelne na jasnym obrazie.</small></span>
+                  <input v-model="settings.lyricsBar" class="sw" type="checkbox" aria-label="Ciemny pasek pod tekstem">
+                </div>
+              </template>
+              <details class="st-help">
+                <summary>Jak dodać w OBS</summary>
+                <ol><li>Źródła → + → „Przeglądarka”.</li><li>Wklej adres, szerokość 1920, wysokość 1080.</li><li>Ustaw to źródło nad kamerą. „Ukryj” w Rzutniku chowa też napisy.</li><li>Po zmianie pozycji lub rozmiaru wklej adres ponownie.</li></ol>
+              </details>
+            </div>
+          </template>
 
-      <h4>Pilot w telefonie</h4>
-      <label class="check"><input v-model="settings.remote" type="checkbox"> Włącz sterowanie z telefonu (ta sama sieć Wi-Fi)</label>
-      <p v-if="remoteUrl" class="url">Otwórz w telefonie: <b>{{ remoteUrl }}</b></p>
-      <p class="note">Przyciski „Dalej”, „Wstecz” i „Ukryj”. Każdy, kto zna ten adres, może sterować obrazem.</p>
+          <!-- Obraz: przejścia i pliki -->
+          <template v-else-if="tab === 'display'">
+            <h4>Obraz i pliki</h4>
+            <p class="st-help">Jak rzutnik zmienia obraz i gdzie trzyma materiały.</p>
+            <div class="st-card">
+              <div class="st-row">
+                <span class="st-txt"><b>Płynne przenikanie</b><small>Przy zmianie obrazu. Pętle mają własne ustawienie przejścia.</small></span>
+                <input class="sw" type="checkbox" :checked="settings.fadeMs > 0" aria-label="Płynne przenikanie" @change="settings.fadeMs = $event.target.checked ? 350 : 0">
+              </div>
+              <div v-if="settings.fadeMs > 0" class="st-stack">
+                <label for="gFade">Czas przejścia: {{ (settings.fadeMs / 1000).toLocaleString('pl') }} s</label>
+                <input id="gFade" v-model.number="settings.fadeMs" type="range" min="100" max="3000" step="50">
+              </div>
+              <div class="st-row">
+                <span class="st-txt"><b>Kopiuj pliki do aplikacji</b><small>Materiały nie znikną po wyjęciu pendrive’a. Dotyczy plików dodawanych od teraz.</small></span>
+                <input v-model="settings.copyFiles" class="sw" type="checkbox" aria-label="Kopiuj dodawane pliki">
+              </div>
+            </div>
+          </template>
 
-      <h4>Napisy pieśni dla OBS (przezroczyste tło, z cieniem)</h4>
-      <p class="note">Bieżąca zwrotka z rzutnika, bez tła — w OBS źródło „Przeglądarka” nad kamerą. Nie trzeba kluczowania lumą w ATEM (luma wycina też cień).</p>
-      <label class="check"><input v-model="settings.lyricsOnline" type="checkbox"> Przez internet — OBS na innym komputerze, w dowolnej sieci</label>
-      <label class="check" title="Laptop ze streamem dostaje cały obraz z ekranu rzutnika (bez dźwięku) — scena „Rzutnik” w Stream"><input v-model="settings.screenShare" type="checkbox"> Udostępniaj obraz rzutnika do streamu (przez sieć)</label>
-      <p v-if="settings.screenShare" class="note">{{ share.error || (share.viewers ? 'Stream odbiera obraz (' + share.viewers + ').' : 'Czekam na laptop ze streamem — tam w Stream: Ustawienia nadawania → Napisy pieśni → „Rzutnik na innym komputerze” (ten komputer pojawi się na liście sam).') }} Udostępniany jest ekran wybrany dla rzutnika — także PowerPoint czy film spoza aplikacji.</p>
-      <p v-if="settings.lyricsOnline || settings.screenShare" class="url">Adres: <b>{{ onlineLink }}</b> <button class="small" @click="copyLyrics(onlineLink)">{{ copied === onlineLink ? 'Skopiowano' : 'Kopiuj' }}</button> <button class="small" title="Nowy adres — stary przestanie działać" @click="newLyricsKey">Nowy klucz</button></p>
-      <label class="check"><input v-model="settings.lyrics" type="checkbox"> Na tym komputerze albo w tej samej sieci (bez internetu)</label>
-      <p v-if="settings.lyrics && overlayUrl" class="url">Adres: <b>{{ lyricsLink }}</b> <button class="small" @click="copyLyrics(lyricsLink)">{{ copied === lyricsLink ? 'Skopiowano' : 'Kopiuj' }}</button></p>
-      <template v-if="settings.lyricsOnline || (settings.lyrics && overlayUrl)">
-        <div class="btnrow">
-          <label class="inline">Pozycja <select v-model="settings.lyricsPos"><option value="dol">na dole</option><option value="srodek">na środku</option><option value="gora">na górze</option></select></label>
-          <label class="inline">Rozmiar <select v-model.number="settings.lyricsSize"><option :value="4">mały</option><option :value="6">średni</option><option :value="8">duży</option></select></label>
-          <label class="check"><input v-model="settings.lyricsBar" type="checkbox"> Ciemny pasek pod tekstem</label>
+          <!-- Pilot w telefonie -->
+          <template v-else-if="tab === 'remote'">
+            <h4>Pilot w telefonie</h4>
+            <p class="st-help">Przyciski „Dalej”, „Wstecz” i „Ukryj” na telefonie — w tej samej sieci Wi-Fi.</p>
+            <div class="st-card">
+              <div class="st-row">
+                <span class="st-txt"><b>Sterowanie z telefonu</b><small>Każdy, kto zna adres, może sterować obrazem.</small></span>
+                <input v-model="settings.remote" class="sw" type="checkbox" aria-label="Sterowanie z telefonu">
+              </div>
+              <div v-if="remoteUrl" class="st-stack">
+                <span class="st-lbl">Otwórz w telefonie</span>
+                <div class="st-copy"><input :value="remoteUrl" readonly aria-label="Adres pilota" @focus="$event.target.select()"><button class="small" @click="copyLyrics(remoteUrl)"><Icon :name="copied === remoteUrl ? 'check' : 'copy'" />{{ copied === remoteUrl ? 'Skopiowano' : 'Kopiuj' }}</button></div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Kopia biblioteki -->
+          <template v-else>
+            <h4>Kopia biblioteki</h4>
+            <p class="st-help">Folder z materiałami, pieśniami i ustawieniami — do przeniesienia na inny komputer.</p>
+            <div class="st-card">
+              <div class="st-row"><span class="st-txt"><b>Zapisz kopię</b><small>Wybierz folder (np. pendrive).</small></span><button @click="exportBackup"><Icon name="folder" />Zapisz…</button></div>
+              <div class="st-row"><span class="st-txt"><b>Wczytaj kopię</b><small>Zastępuje bibliotekę na tym komputerze.</small></span><button @click="importBackup"><Icon name="import" />Wczytaj…</button></div>
+            </div>
+            <p v-if="message" class="st-pill ok">{{ message }}</p>
+          </template>
         </div>
-      </template>
-      <p class="note">W OBS: Źródła → + → „Przeglądarka” → wklej adres, szerokość 1920, wysokość 1080 → ustaw to źródło nad kamerą. „Ukryj” chowa też napisy. Po zmianie pozycji lub rozmiaru wklej adres w OBS ponownie. Kto zna adres przez internet, widzi napisy — nie publikuj go.</p>
-
-      <h4>Kopia biblioteki</h4>
-      <div class="btnrow">
-        <button @click="exportBackup"><Icon name="folder" />Zapisz kopię…</button>
-        <button @click="importBackup"><Icon name="import" />Wczytaj kopię…</button>
       </div>
-      <p class="note">Kopia to folder z materiałami, pieśniami i ustawieniami — do przeniesienia na inny komputer.</p>
-      <p v-if="message" class="url">{{ message }}</p>
-
     </div>
   </div>
 </template>

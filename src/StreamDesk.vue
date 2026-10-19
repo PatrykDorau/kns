@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import Thumb from './Thumb.vue'
 import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, loadProjectors, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from './store.js'
@@ -153,6 +153,23 @@ function pickProjector(id) {
 let projTimer = 0
 watch(() => settings.streamLyrics, mode => { clearInterval(projTimer); if (mode === 'remote') { refreshProjectors(); projTimer = setInterval(refreshProjectors, 60000) } }, { immediate: true })
 onBeforeUnmount(() => clearInterval(projTimer))
+
+/* ---------- gotowość przed startem (kliknięcie — ustawienia nadawania) ---------- */
+const readiness = computed(() => {
+  const st = engine.value === 'studio'
+  const cam = st ? settings.studioCamera : (devices.value.screens.find(x => x.value === settings.streamVideo)?.label || settings.streamVideo)
+  const mic = st ? settings.studioAudio : settings.streamAudio
+  const mode = settings.streamLyrics
+  const proj = mode === 'remote' ? (!settings.screenRemote ? { v: 'na innym laptopie — bez obrazu', cls: '' } : remoteScreen.state === 'on' ? { v: 'obraz z laptopa dociera', cls: 'ok' } : { v: remoteScreen.step || 'czekam na laptop przy rzutniku', cls: 'wait' })
+    : mode === 'local' ? { v: settings.studioLocalProjector ? 'w tej aplikacji' : 'w tej aplikacji — bez obrazu', cls: settings.studioLocalProjector ? 'ok' : '' } : { v: 'bez rzutnika', cls: '' }
+  return [
+    { k: 'Kamera', v: cam || 'brak — wybierz', cls: cam ? 'ok' : 'bad' },
+    { k: 'Dźwięk', v: mic || 'bez dźwięku', cls: mic ? 'ok' : 'wait' },
+    { k: 'Rzutnik', ...proj },
+    { k: 'Napisy', v: lyricsInfo.value, cls: mode === 'off' ? '' : lyricsFeed.text || lyricsFeed.at ? 'ok' : 'wait' },
+  ]
+})
+function openCfg() { settings.cfgFolded = false; settings.railFolded = false; nextTick(() => document.getElementById('desk-cfg')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }
 
 /* ---------- YouTube ---------- */
 const yt = ref({ loggedIn: false })
@@ -683,8 +700,10 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             <label v-if="chosenId === 'new'" class="desk-field">Widoczność
               <select v-model="privacy"><option value="public">Publiczna</option><option value="unlisted">Niepubliczna</option><option value="private">Prywatna</option></select>
             </label>
+            <div class="desk-ready" aria-label="Gotowość">
+              <button v-for="r in readiness" :key="r.k" :title="'Ustawienia nadawania — ' + r.k" @click="openCfg"><i :class="r.cls"></i><b>{{ r.k }}</b><span>{{ r.v }}</span></button>
+            </div>
             <button class="desk-golive" :disabled="ytBusy || (engine === 'simple' && !settings.streamVideo)" @click="goLive"><i></i>Rozpocznij transmisję</button>
-            <small class="muted desk-sub">Obraz: {{ videoLabel }} · napisy: {{ lyricsInfo }}</small>
             <p v-if="liveError" class="note bad">{{ liveError }}</p>
           </template>
           <template v-else>
@@ -694,40 +713,6 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             <button class="desk-stop" @click="stopLive">■ Zakończ transmisję</button>
           </template>
 
-          <details class="desk-set" :open="!settings.streamVideo">
-            <summary>Ustawienia nadawania</summary>
-            <fieldset class="desk-grid" :disabled="liveOn">
-              <label title="Studio: sceny, nakładki, okienko z kamerą — obraz koduje karta graficzna. Prosty: sam obraz z ATEM z napisami.">Tryb<select v-model="settings.streamEngine"><option value="studio" :disabled="studio.hardware === false">Studio (sceny i nakładki)</option><option value="simple">Prosty</option></select></label>
-              <template v-if="engine === 'studio'">
-                <label>Kamera<select :value="settings.studioCamera" @change="chooseCamera($event.target.value)"><option v-if="!studioDevices.video.length" value="">— brak —</option><option v-for="d in studioDevices.video" :key="d.deviceId" :value="d.label">{{ d.label || 'Kamera' }}</option></select></label>
-                <label>Dźwięk<select :value="settings.studioAudio" @change="chooseAudio($event.target.value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select></label>
-              </template>
-              <label v-if="engine !== 'studio'">Obraz<select v-model="settings.streamVideo"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
-              <label v-if="engine !== 'studio'">Dźwięk<select v-model="settings.streamAudio"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
-              <label title="Przepływność (bitrate) — ile danych na sekundę idzie do YouTube. Więcej = ostrzejszy obraz przy ruchu, ale potrzeba szybszego internetu (wysyłanie co najmniej 1,5× tyle).">Przepływność<select v-model.number="settings.streamKbps"><option :value="0">automatycznie ({{ (autoKbps / 1000).toLocaleString('pl') }} Mb/s)</option><option v-for="v in [3000, 4500, 6000, 8000, 10000, 12000]" :key="v" :value="v">{{ (v / 1000).toLocaleString('pl') }} Mb/s</option></select></label>
-              <label>Jakość<select v-model="settings.streamQuality"><option value="1080">1080p · {{ hiFps ? '9' : '6,8' }} Mb/s</option><option value="720">720p · {{ hiFps ? '5' : '3,5' }} Mb/s (słabszy internet)</option></select></label>
-              <label title="Tyle, ile wysyła ATEM: ATEM Software Control → Ustawienia → Standard wideo (np. 1080p50)">Klatki na sekundę<select v-model.number="settings.streamFps"><option :value="25">25</option><option :value="30">30</option><option :value="50">50</option><option :value="60">60</option></select></label>
-              <label>Napisy pieśni<select v-model="settings.streamLyrics"><option value="local">Rzutnik na tym komputerze</option><option value="remote">Rzutnik na innym komputerze</option><option value="off">bez napisów</option></select></label>
-            </fieldset>
-            <label class="check" title="Do testów albo gdy rzutnik i stream są na jednym komputerze: scena „Rzutnik” pokazuje to, co Rzutnik w tej aplikacji (bez sieci)"><input v-model="settings.studioLocalProjector" type="checkbox"> Rzutnik z tej aplikacji (ten sam komputer)</label>
-            <label v-if="settings.streamLyrics === 'remote'" class="check" title="Cały ekran rzutnika z drugiego laptopa (sam obraz) — scena „Rzutnik” i „Rzutnik + kamera”. Na laptopie przy rzutniku: Ustawienia aplikacji → „Udostępniaj obraz rzutnika”."><input v-model="settings.screenRemote" type="checkbox"> Obraz rzutnika przez sieć</label>
-            <div v-if="settings.streamLyrics === 'remote'" class="desk-proj">
-              <label>Rzutnik
-                <select :value="otherProjectors.some(p => p.id === settings.streamProjector) ? settings.streamProjector : ''" @change="$event.target.value ? pickProjector($event.target.value) : (manualKey = true)">
-                  <option v-if="!otherProjectors.length" value="">— nie widzę rzutnika —</option>
-                  <option v-for="p in otherProjectors" :key="p.id" :value="p.id">{{ p.name }}{{ p.id === settings.deviceId ? ' (ten komputer)' : '' }} · {{ p.screen ? 'obraz i napisy' : 'napisy' }} · {{ ago(p.updated) }}</option>
-                  <option value="">Wklej adres ręcznie…</option>
-                </select>
-              </label>
-              <button class="small" title="Odśwież listę" aria-label="Odśwież listę rzutników" @click="refreshProjectors"><Icon name="refresh" /></button>
-              <small class="muted">{{ otherProjectors.length ? 'Rzutniki z włączonymi napisami lub obrazem przez internet — wybierają się same.' : 'Na laptopie przy rzutniku: Ustawienia aplikacji → „Przez internet” albo „Udostępniaj obraz rzutnika”.' }}</small>
-            </div>
-            <input v-if="settings.streamLyrics === 'remote' && (manualKey || !otherProjectors.length)" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres napisów z drugiego komputera: Ustawienia aplikacji → Napisy → Przez internet → Kopiuj" aria-label="Adres napisów z drugiego komputera">
-            <p v-if="liveOn" class="note">W trakcie transmisji ustawienia są zablokowane — źródło dźwięku zmienisz na pasku stanu nad podglądem.</p>
-            <p class="note">Przepływność: YouTube zaleca dla 1080p 4,5–9 Mb/s (przy 50/60 kl./s górna część). Internet w kościele musi wysyłać ok. 1,5× tyle — sprawdź na speedtest.net („Upload”). Gdy YouTube pokazuje „słaby sygnał”, zmniejsz.</p>
-            <p class="note">Klatki na sekundę ustaw tak jak w ATEM (ATEM Software Control → Ustawienia → Standard wideo, np. 1080p50 → 50).</p>
-            <p v-if="engine === 'simple' && !devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>
-          </details>
 
           <details v-if="engine === 'studio'" class="desk-set">
             <summary>Plansza końcowa: wsparcie, YouTube, Spotify</summary>
@@ -778,6 +763,93 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             </div>
             <p class="note">Tylko jeśli nadajecie innym programem: klucz wklej raz w OBS albo wyślij do ATEM (mikser z internetem po kablu sieciowym).</p>
           </details>
+        </template>
+      </section>
+      <!-- Ustawienia nadawania: obraz i dźwięk, rzutnik i napisy, jakość — dostępne też przed połączeniem z YouTube -->
+      <section id="desk-cfg" class="desk-ctrl desk-cfg" :class="{ folded: settings.cfgFolded }">
+        <div class="desk-head">
+          <button class="desk-fold" :aria-expanded="!settings.cfgFolded" :title="settings.cfgFolded ? 'Rozwiń' : 'Zwiń'" @click="settings.cfgFolded = !settings.cfgFolded"><Icon :name="settings.cfgFolded ? 'right' : 'down'" /></button>
+          <h2 class="desk-fold-title" @click="settings.cfgFolded = !settings.cfgFolded">Ustawienia nadawania</h2>
+          <span v-if="liveOn" class="st-pill wait" title="W trakcie transmisji część ustawień jest zablokowana">w trakcie</span>
+        </div>
+        <template v-if="!settings.cfgFolded">
+          <!-- obraz i dźwięk -->
+          <div class="st-card">
+            <div class="st-card-h"><span class="ic"><Icon name="camera" /></span><span><b>Obraz i dźwięk</b><small>{{ engine === 'studio' ? 'Studio: sceny i nakładki składa aplikacja (karta graficzna).' : 'Prosty: sam obraz z ATEM z napisami.' }}</small></span></div>
+            <div class="st-stack">
+              <span class="st-lbl">Tryb</span>
+              <div class="st-seg" role="group" aria-label="Tryb">
+                <button :class="{ on: settings.streamEngine !== 'simple' }" :disabled="liveOn || studio.hardware === false" @click="settings.streamEngine = 'studio'">Studio</button>
+                <button :class="{ on: settings.streamEngine === 'simple' }" :disabled="liveOn" @click="settings.streamEngine = 'simple'">Prosty</button>
+              </div>
+            </div>
+            <div class="st-grid2">
+              <template v-if="engine === 'studio'">
+                <label>Kamera<select :value="settings.studioCamera" :disabled="liveOn" @change="chooseCamera($event.target.value)"><option v-if="!studioDevices.video.length" value="">— brak —</option><option v-for="d in studioDevices.video" :key="d.deviceId" :value="d.label">{{ d.label || 'Kamera' }}</option></select></label>
+                <label>Dźwięk<select :value="settings.studioAudio" :disabled="liveOn" @change="chooseAudio($event.target.value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select></label>
+              </template>
+              <template v-else>
+                <label>Obraz<select v-model="settings.streamVideo" :disabled="liveOn"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
+                <label>Dźwięk<select v-model="settings.streamAudio" :disabled="liveOn"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
+              </template>
+            </div>
+            <p v-if="liveOn" class="st-hint" style="padding-bottom:10px">Źródło dźwięku zmienisz w trakcie na pasku stanu nad podglądem.</p>
+            <p v-if="engine === 'simple' && !devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>
+          </div>
+
+          <!-- rzutnik i napisy -->
+          <div class="st-card">
+            <div class="st-card-h"><span class="ic"><Icon name="monitor" /></span><span><b>Rzutnik i napisy</b><small>Skąd scena „Rzutnik” bierze obraz i skąd przychodzą napisy pieśni.</small></span></div>
+            <div class="st-stack">
+              <span class="st-lbl">Rzutnik jest</span>
+              <div class="st-seg" role="group" aria-label="Gdzie jest rzutnik">
+                <button :class="{ on: settings.streamLyrics === 'remote' }" @click="settings.streamLyrics = 'remote'">Inny laptop</button>
+                <button :class="{ on: settings.streamLyrics === 'local' }" @click="settings.streamLyrics = 'local'">Ta aplikacja</button>
+                <button :class="{ on: settings.streamLyrics === 'off' }" @click="settings.streamLyrics = 'off'">Brak</button>
+              </div>
+            </div>
+            <template v-if="settings.streamLyrics === 'remote'">
+              <div class="st-stack">
+                <span class="st-lbl">Laptop z rzutnikiem</span>
+                <div class="st-copy">
+                  <select :value="otherProjectors.some(p => p.id === settings.streamProjector) ? settings.streamProjector : ''" aria-label="Laptop z rzutnikiem" style="flex:1;min-width:0" @change="$event.target.value ? pickProjector($event.target.value) : (manualKey = true)">
+                    <option v-if="!otherProjectors.length" value="">— nie widzę rzutnika —</option>
+                    <option v-for="p in otherProjectors" :key="p.id" :value="p.id">{{ p.name }}{{ p.id === settings.deviceId ? ' (ten komputer)' : '' }} · {{ p.screen ? 'obraz i napisy' : 'napisy' }} · {{ ago(p.updated) }}</option>
+                    <option value="">Wklej adres ręcznie…</option>
+                  </select>
+                  <button class="small" title="Odśwież listę" aria-label="Odśwież listę rzutników" @click="refreshProjectors"><Icon name="refresh" /></button>
+                </div>
+                <input v-if="manualKey || !otherProjectors.length" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres z laptopa przy rzutniku (Ustawienia aplikacji → Dla streamu → Kopiuj)" aria-label="Adres z laptopa przy rzutniku">
+                <span v-if="!otherProjectors.length" class="st-hint">Na laptopie przy rzutniku: Ustawienia aplikacji → Dla streamu → włącz „Obraz rzutnika” albo „Napisy pieśni”.</span>
+              </div>
+              <div class="st-row">
+                <span class="st-txt"><b>Obraz rzutnika</b><small>Scena „Rzutnik” pokazuje ekran laptopa z rzutnikiem.</small></span>
+                <input v-model="settings.screenRemote" class="sw" type="checkbox" aria-label="Obraz rzutnika przez sieć">
+              </div>
+              <div v-if="settings.screenRemote" class="st-row sub">
+                <span :class="['st-pill', remoteScreen.state === 'on' ? 'ok' : remoteScreen.error ? 'bad' : 'wait']">{{ !lyricsKey ? 'Wybierz laptop z rzutnikiem' : remoteScreen.state === 'on' ? 'Obraz dociera' : remoteScreen.error || remoteScreen.step || 'Łączę…' }}</span>
+              </div>
+            </template>
+            <div v-else-if="settings.streamLyrics === 'local'" class="st-row">
+              <span class="st-txt"><b>Obraz z Rzutnika w tej aplikacji</b><small>Gdy rzutnik i stream są na jednym komputerze (albo do testów).</small></span>
+              <input v-model="settings.studioLocalProjector" class="sw" type="checkbox" aria-label="Obraz z Rzutnika w tej aplikacji">
+            </div>
+            <div class="st-row sub"><span class="st-txt"><small>Napisy: {{ lyricsInfo }}</small></span></div>
+          </div>
+
+          <!-- jakość -->
+          <div class="st-card">
+            <div class="st-card-h"><span class="ic"><Icon name="chart" /></span><span><b>Jakość</b><small>Internet w kościele musi wysyłać ok. 1,5× przepływności (speedtest.net → „Upload”).</small></span></div>
+            <div class="st-grid2">
+              <label>Rozdzielczość<select v-model="settings.streamQuality" :disabled="liveOn"><option value="1080">1080p</option><option value="720">720p (słabszy internet)</option></select></label>
+              <label title="Tyle, ile wysyła ATEM: ATEM Software Control → Ustawienia → Standard wideo (np. 1080p50 → 50)">Klatki na sekundę<select v-model.number="settings.streamFps" :disabled="liveOn"><option :value="25">25</option><option :value="30">30</option><option :value="50">50</option><option :value="60">60</option></select></label>
+            </div>
+            <div class="st-stack">
+              <label>Przepływność</label>
+              <select v-model.number="settings.streamKbps" :disabled="liveOn"><option :value="0">automatycznie ({{ (autoKbps / 1000).toLocaleString('pl') }} Mb/s)</option><option v-for="v in [3000, 4500, 6000, 8000, 10000, 12000]" :key="v" :value="v">{{ (v / 1000).toLocaleString('pl') }} Mb/s</option></select>
+              <span class="st-hint">YouTube zaleca dla 1080p 4,5–9 Mb/s. Klatki ustaw jak w ATEM. Przy „słabym sygnale” — zmniejsz.</span>
+            </div>
+          </div>
         </template>
       </section>
       <slot name="side" />
