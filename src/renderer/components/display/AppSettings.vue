@@ -112,6 +112,18 @@ async function importBackup() {
                 <ol><li>Źródła → + → „Przeglądarka”.</li><li>Wklej adres, szerokość 1920, wysokość 1080.</li><li>Ustaw to źródło nad kamerą. „Ukryj” w Rzutniku chowa też napisy.</li><li>Po zmianie pozycji lub rozmiaru wklej adres ponownie.</li></ol>
               </details>
             </div>
+            <!-- napisy w częściach: rzutnik — cała zwrotka, stream — po kilka linijek -->
+            <div class="st-card">
+              <div class="st-card-h"><span class="ic"><Icon name="text" /></span><span><b>Napisy na streamie w częściach</b><small>Rzutnik pokazuje całą zwrotkę, a na streamie (i w OBS) napisy idą po kilka linijek — np. 5 linijek jako 3 + 2.</small></span></div>
+              <div class="st-grid2">
+                <label>Najwyżej linijek naraz<select v-model.number="settings.streamLines"><option :value="0">cała zwrotka</option><option :value="2">2</option><option :value="3">3</option><option :value="4">4</option></select></label>
+                <label>Następna część<select v-model="settings.streamPartMode" :disabled="!settings.streamLines"><option value="keys">strzałką (rzutnik stoi)</option><option value="auto">sama, po czasie</option></select></label>
+              </div>
+              <div v-if="settings.streamLines && settings.streamPartMode === 'auto'" class="st-stack">
+                <label>Czas na linijkę<select v-model.number="settings.streamLineSec"><option v-for="s in [3, 4, 5, 6, 8]" :key="s" :value="s">{{ s }} s</option></select></label>
+              </div>
+              <p v-if="settings.streamLines" class="st-hint" style="padding:0 14px 12px">{{ settings.streamPartMode === 'auto' ? 'Druga część pojawia się sama po czasie zależnym od liczby linijek pierwszej; strzałka jak zwykle przechodzi do następnej zwrotki.' : 'Strzałka w dół najpierw zmienia tylko napisy na streamie (rzutnik zostaje na całej zwrotce), kolejna — przechodzi do następnej zwrotki.' }}</p>
+            </div>
           </template>
 
           <!-- Obraz: przejścia i pliki -->

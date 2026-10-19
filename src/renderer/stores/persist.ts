@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { connectSharedDir, findSharedDir, refreshAccess } from './access'
 import { setDisplays, stepBy, toggleHidden } from './display'
 import { visibleItems } from './lists'
-import { label, liveItem, liveView, loopPlaying, loopStep, lyricsNow, verses } from './live'
+import { label, liveItem, liveView, loopPlaying, loopStep, lyricsNow, lyricsParts, streamPart, verses } from './live'
 import { computerUser, mergeSameDay, now, nowCoarse } from './services'
 import { BAZA, api, appUpdate, busy, cloud, confirmId, frozen, frozenAt, hidden, items, liveId, liveNonce, liveStart, liveStep, loaded, notice, output, overlayUrl, previewIndex, remoteUrl, selectedId, services, settings, songIndex, songs, uid, video, volume } from './state'
 import { SYNC_EVERY, markSynced, mergeTwinSongs, pushSoon, sharedAccount, songsChanged, syncIfStale, syncShared } from './sync'
@@ -129,6 +129,15 @@ export function wire() {
     if (!on) send(livePayload.value) // po odmrożeniu rzutnik dogania to, co zmieniło się w międzyczasie
   })
   watch(hidden, on => api.videoCmd({ type: 'blank', value: on }))
+  watch([liveId, songIndex, liveNonce], () => { streamPart.value = 0 })
+  let partTimer = 0
+  watch([lyricsParts, streamPart, () => settings.streamPartMode, () => settings.streamLineSec, frozen], () => {
+    clearTimeout(partTimer)
+    const parts = lyricsParts.value
+    if (settings.streamPartMode !== 'auto' || frozen.value || streamPart.value >= parts.length - 1) return
+    const lines = parts[streamPart.value].split('\n').length
+    partTimer = window.setTimeout(() => { if (streamPart.value < lyricsParts.value.length - 1) streamPart.value++ }, lines * Math.max(1, +settings.streamLineSec || 4) * 1000)
+  })
   watch(liveId, id => { if (!id) hidden.value = frozen.value = false })
   watch([liveId, liveNonce], () => { video.value = { time: 0, duration: 0, paused: true, step: liveStep.value } })
   watch(selectedId, () => { previewIndex.value = 0; confirmId.value = null; loopStep.value = 0; loopPlaying.value = false })

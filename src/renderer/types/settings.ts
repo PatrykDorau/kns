@@ -58,6 +58,9 @@ export interface Settings {
   donateTitle: string
   streamLyrics: 'local' | 'online' | 'none' | string
   streamLyricsKey: string
+  streamLines: number // napisy dla streamu: najwyżej tyle linijek naraz (0 — cała zwrotka)
+  streamPartMode: 'keys' | 'auto'
+  streamLineSec: number
   camLayout: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: boolean
   camOnTop: boolean

@@ -66,7 +66,21 @@ export function view(it, index = 0) {
 export const selectedIndex = computed(() => (selected.value?.id === liveId.value ? songIndex.value : previewIndex.value))
 export const selectedView = computed(() => view(selected.value, selectedIndex.value))
 // Bieżąca zwrotka pieśni na rzutniku (pusto przy „Ukryj” i gdy nie ma pieśni) — napisy dla OBS i nadawania.
-export const lyricsNow = computed(() => { const v = liveView.value; return !hidden.value && v?.type === 'text' && v.song ? v.text : '' })
+// Napisy pieśni (stream, OBS, przez internet): bieżąca zwrotka, a gdy ustawiono limit linijek — jej część.
+// Podział równy: 5 linijek przy limicie 3 → 3 + 2 (nie 3 + 2 + 0, nie 4 + 1). Rzutnik zawsze pokazuje całą zwrotkę.
+export function splitLyrics(text: string, max: number): string[] {
+  const lines = String(text || '').split('\n').filter(l => l.trim())
+  if (!lines.length) return []
+  if (!max || lines.length <= max) return [lines.join('\n')]
+  const n = Math.ceil(lines.length / max), base = Math.floor(lines.length / n), extra = lines.length % n
+  const out: string[] = []
+  for (let i = 0, at = 0; i < n; i++) { const k = base + (i < extra ? 1 : 0); out.push(lines.slice(at, at + k).join('\n')); at += k }
+  return out
+}
+export const streamPart = ref(0) // która część zwrotki idzie teraz na stream
+export const lyricsVerse = computed(() => { const v = liveView.value; return !hidden.value && v?.type === 'text' && v.song ? v.text : '' })
+export const lyricsParts = computed(() => splitLyrics(lyricsVerse.value, +settings.streamLines || 0))
+export const lyricsNow = computed(() => lyricsParts.value[Math.min(streamPart.value, Math.max(0, lyricsParts.value.length - 1))] || '')
 export const liveView = computed(() => {
   const it = liveItem.value
   if (it?.type === 'text' && liveFrozen.value) return JSON.parse(liveFrozen.value)

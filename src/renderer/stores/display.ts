@@ -1,9 +1,9 @@
 // Rzutnik: okno wyświetlania, „Wyświetl”, ukrywanie, zamrażanie, zwrotki i slajdy.
 import { computed } from 'vue'
 import { serviceList, visibleItems } from './lists'
-import { canGo, find, label, liveIsVideo, liveItem, parseSong, selected, selectedStep, slideCount, stepLoop, verseKey, verses, view } from './live'
+import { canGo, find, label, liveIsVideo, liveItem, parseSong, selected, selectedStep, slideCount, stepLoop, verseKey, verses, lyricsParts, streamPart, view } from './live'
 import { now } from './services'
-import { api, clamp, displayId, displays, frozen, frozenAt, hidden, liveFrozen, liveId, liveNonce, liveStart, liveStep, notice, output, previewIndex, previewVideo, selectedId, songIndex, video, volume } from './state'
+import { api, clamp, displayId, displays, frozen, frozenAt, hidden, liveFrozen, liveId, liveNonce, liveStart, liveStep, notice, output, previewIndex, previewVideo, selectedId, settings, songIndex, video, volume } from './state'
 
 /* ---------- rzutnik ---------- */
 export function setDisplays(list) {
@@ -95,6 +95,11 @@ export function setVerse(i) {
 export function stepBy(d, everything = false) {
   const song = liveItem.value?.type === 'song' ? liveItem.value : selected.value?.type === 'song' ? selected.value : null
   if (song) {
+    // napisy dla streamu w częściach: strzałka najpierw przechodzi po częściach, rzutnik zostaje na całej zwrotce
+    if (song.id === liveId.value && settings.streamPartMode !== 'auto' && lyricsParts.value.length > 1) {
+      if (d > 0 && streamPart.value < lyricsParts.value.length - 1) { streamPart.value++; return }
+      if (d < 0 && streamPart.value > 0) { streamPart.value--; return }
+    }
     const last = verses(song).length - 1
     const list = serviceList.value
     const at = list.findIndex(e => e.song.id === song.id)

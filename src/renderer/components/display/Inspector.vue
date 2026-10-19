@@ -5,6 +5,7 @@ import Thumb from '@/components/common/Thumb.vue'
 import TextStyle from '@/components/display/TextStyle.vue'
 import ColorAlpha from '@/components/common/ColorAlpha.vue'
 import {
+  lyricsParts, songIndex, streamPart,
   COUNTDOWN, liveId, nextServiceStart, sendText, KIND, entrySlide, frozenAt, itemById, items, label, pickFiles, removeEntry, selected, selectedIndex, selectedStep, setLoopStep, setVerse, settings, textPopup, uid, verseKey, verses,
 } from '@/stores'
 
@@ -73,7 +74,7 @@ function dropEntry(i) {
     <ol class="verses">
       <li v-for="(v, i) in verses(selected)" :key="i">
         <button :class="{ current: i === selectedIndex, ice: frozenAt?.id === selected.id && frozenAt.index === i }" @click="setVerse(i)">
-          <span class="vnum" :class="{ key: verseKey(selected, i) !== String(i + 1) }">{{ verseKey(selected, i) }}</span>{{ v }}
+          <span class="vnum" :class="{ key: verseKey(selected, i) !== String(i + 1) }">{{ verseKey(selected, i) }}</span>{{ v }}<em v-if="selected.id === liveId && i === songIndex && lyricsParts.length > 1" class="vpart" title="Ta część zwrotki jest teraz w napisach na streamie">stream {{ streamPart + 1 }}/{{ lyricsParts.length }}</em>
           <span v-if="frozenAt?.id === selected.id && frozenAt.index === i" class="badge ice" title="Ten slajd widać teraz na zamrożonym rzutniku"><Icon name="freeze" />NA RZUTNIKU</span>
         </button>
       </li>

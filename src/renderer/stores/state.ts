@@ -31,6 +31,9 @@ export const settings = reactive<Settings>({
   cueToken: '',
   atemAddress: '', atemDirect: false, ytPrivacy: 'public', // pulpit streamu: ATEM przez sieć i YouTube
   streamVideo: '', streamAudio: '', streamQuality: '1080', streamFps: 30, streamEngine: 'studio', studioCamera: '', studioAudio: '', streamKbps: 0, pipCorner: 'br', pipSize: 'small', studioAutoCamera: false, studioDirect: false, ytFolded: false, cfgFolded: false, mediaOpen: true, screenShare: false, screenRemote: true, deviceId: '', streamProjector: '', studioLocalProjector: false, cueFolded: false, svcFolded: false, railFolded: false, donateInit: false, studioHidden: ['svc'], studioSlideSec: 8, donateAccount: '', donatePhone: '789 571 542', donateName: 'Kościół Na Skale', donateTitle: 'Darowizna', streamLyrics: 'local', streamLyricsKey: '', // nadawanie bez OBS
+  // napisy dla streamu w częściach (rzutnik pokazuje całą zwrotkę): najwyżej N linijek naraz (0 — cała zwrotka);
+  // następna część strzałką ('keys' — pierwsze naciśnięcie zmienia tylko napisy) albo sama ('auto' — po N s na linijkę)
+  streamLines: 0, streamPartMode: 'keys', streamLineSec: 4,
   camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu
