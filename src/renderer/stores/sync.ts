@@ -1,5 +1,6 @@
 // Wspólna baza (dawniej folder wspólny): nabożeństwa i pieśni na wielu komputerach.
 import { ref } from 'vue'
+import { mergeTypes } from '@web/church.js'
 import { hide } from './display'
 import { dropFile } from './library'
 import { plain } from './lists'
@@ -96,7 +97,7 @@ export function changeSongId(song, id) {
 // Ta sama pieśń dwa razy (np. raz z numerem z bazy wspólnej, raz bez numeru z tego komputera):
 // zostaje ta z numerem, z nowszym tekstem, a odwołania w nabożeństwach przechodzą na nią.
 // Pieśni o tym samym tytule, ale różnych numerach, to różne pieśni — zostają obie.
-export function mergeTwinSongs(deleted) {
+export function mergeTwinSongs(deleted?) {
   const groups = new Map()
   for (const s of songs.value) {
     const key = plain(String(s.title || '')).replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
@@ -175,7 +176,7 @@ export function songsChanged() {
   songsDirty = true
   if (!settings.sharedDir) return
   clearTimeout(songSyncTimer)
-  songSyncTimer = setTimeout(syncShared, 3000)
+  songSyncTimer = window.setTimeout(syncShared, 3000)
 }
 
 export let pushing = false
@@ -206,7 +207,7 @@ export async function pushShared() {
 export let pushTimer = null
 export function pushSoon() {
   clearTimeout(pushTimer)
-  pushTimer = setTimeout(pushShared, 1500)
+  pushTimer = window.setTimeout(pushShared, 1500)
 }
 
 // Po zmianie folderu wszystko, co jest na tym komputerze, trafia do nowego folderu — a nie zostaje

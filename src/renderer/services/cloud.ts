@@ -102,7 +102,7 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
   // nie gryzą się (ten sam kanał na jednym połączeniu serwer zamyka, a własnych wiadomości nie odsyła).
   function signal(key, onMsg) {
     const rt = typeof window === 'undefined' ? sb : createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
-    let ch = null, ok = false, closed = false, retry = 0, timer = 0
+    let ch = null, ok = false, closed = false, retry = 0, timer: ReturnType<typeof setTimeout> | 0 = 0
     const queue = []
     const open = () => {
       const c = rt.channel('ekran-' + key, { config: { broadcast: { self: false } } })

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { canUse, plannerRequest, role, services, DEFAULT_TIME } from '@/stores'
 

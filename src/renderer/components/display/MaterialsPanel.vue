@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
+import { focusEl } from '@/utils/dom'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import {
@@ -90,7 +91,7 @@ function drop(it) {
         </span>
       </button>
       <span v-if="confirmId === it.id" class="confirm">
-        <button class="del-yes" :ref="el => el?.focus()" @click="remove(it)" @keydown.esc.stop="confirmId = null">Usuń</button>
+        <button class="del-yes" :ref="focusEl" @click="remove(it)" @keydown.esc.stop="confirmId = null">Usuń</button>
         <button @click="confirmId = null">Nie</button>
       </span>
       <span v-else class="actions">

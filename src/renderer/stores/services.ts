@@ -1,5 +1,6 @@
 // Nabożeństwa: daty, odliczanie, braki, tworzenie, łączenie, załączniki, wczytanie na rzutnik, przenoszenie.
 import { computed, ref } from 'vue'
+import type { Service } from '@/types'
 import { flash } from './display'
 import { addFiles, addPassage, dropFile, loadBible } from './library'
 import { serviceList } from './lists'
@@ -56,7 +57,7 @@ export const countdown = computed(() => {
 })
 // „dziś”, „jutro”, „za 4 dni”, „wczoraj”, „3 dni temu” — przy nabożeństwach na listach.
 export function relDay(date) {
-  const days = Math.round((new Date(date + 'T12:00') - new Date(today() + 'T12:00')) / 86400000)
+  const days = Math.round((+new Date(date + 'T12:00') - +new Date(today() + 'T12:00')) / 86400000)
   if (days === 0) return 'dziś'
   if (days === 1) return 'jutro'
   if (days === -1) return 'wczoraj'
@@ -83,7 +84,7 @@ export const computerUser = ref('')
 export const me = () => sharedAccount.value?.email || computerUser.value || 'ten komputer'
 
 // Na jeden dzień jest jedno nabożeństwo: „nowe” na zajęty dzień otwiera istniejące.
-export function newService(date = today(), add = true) {
+export function newService(date = today(), add = true): Service {
   const existing = services.value.find(s => s.date === date)
   if (existing) return existing
   const svc = { id: uid(), date, time: DEFAULT_TIME, place: DEFAULT_PLACE, sermonTitle: '', passage: '', speaker: '', band: '', notes: '', songs: [], files: [], createdBy: me() }

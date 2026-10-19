@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
 // Kolor z przezroczystością: próbka koloru + suwak krycia. Wartość zapisywana jako #rrggbbaa
@@ -20,8 +20,8 @@ function setAlpha(a) { props.model[props.field] = rgb.value + hex2(a) }
   <div class="coloralpha" :class="{ off: disabled }">
     <label>{{ label }}</label>
     <div class="ca-row">
-      <span class="ca-swatch"><input :value="rgb" type="color" :aria-label="label" :disabled="disabled" @input="setRgb($event.target.value)"><i :style="{ background: value }"></i></span>
-      <input :value="alpha" type="range" min="0" max="1" step="0.05" :aria-label="label + ' — krycie'" :disabled="disabled" @input="setAlpha(+$event.target.value)">
+      <span class="ca-swatch"><input :value="rgb" type="color" :aria-label="label" :disabled="disabled" @input="setRgb(($event.target as HTMLInputElement).value)"><i :style="{ background: value }"></i></span>
+      <input :value="alpha" type="range" min="0" max="1" step="0.05" :aria-label="label + ' — krycie'" :disabled="disabled" @input="setAlpha(+($event.target as HTMLInputElement).value)">
       <span class="ca-val">{{ Math.round(alpha * 100) }}%</span>
     </div>
   </div>

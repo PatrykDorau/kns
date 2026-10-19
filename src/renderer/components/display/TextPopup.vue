@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import Icon from '@/components/common/Icon.vue'
 import { label, textPopup, verseKey, verses } from '@/stores'
+import { focusOnce } from '@/utils/dom'
 
 // Duże okno do wygodnej edycji tekstu (pieśni albo zwykłego slajdu z tekstem).
 const close = () => { textPopup.value = null }
@@ -16,7 +17,7 @@ const close = () => { textPopup.value = null }
       <div class="mgr-cols">
         <div class="col">
           <label for="popText">{{ textPopup.type === 'song' ? 'Tekst (pusta linia = nowy slajd)' : 'Treść' }}</label>
-          <textarea id="popText" v-model="textPopup.text" :ref="el => el && !el.dataset.f && (el.dataset.f = 1, el.focus())" spellcheck="false"></textarea>
+          <textarea id="popText" v-model="textPopup.text" :ref="focusOnce" spellcheck="false"></textarea>
         </div>
         <div v-if="textPopup.type === 'song'" class="col">
           <label>Podział na slajdy: {{ verses(textPopup).length }}</label>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Stage from '@/components/display/Stage.vue'
 import Icon from '@/components/common/Icon.vue'
@@ -63,8 +63,8 @@ function togglePlay() {
   if (v) v.paused ? v.play().catch(() => {}) : v.pause()
 }
 const seekPos = () => seekValue.value ?? (bar.value.duration ? Math.round((bar.value.time / bar.value.duration) * 1000) : 0)
-function seekCommit(e) {
-  const time = (e.target.value / 1000) * bar.value.duration
+function seekCommit(e: Event) {
+  const time = (+(e.target as HTMLInputElement).value / 1000) * bar.value.duration
   if (liveIsVideo.value) api.videoCmd({ type: 'seek', value: time })
   else if (previewStage.value?.video) previewStage.value.video.currentTime = time
   seekValue.value = null
@@ -178,7 +178,7 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
             <Icon :name="bar.paused ? 'play' : 'pause'" />
           </button>
           <input class="seek" type="range" min="0" max="1000" :value="seekPos()" aria-label="Pozycja filmu"
-                 @input="seekValue = +$event.target.value" @change="seekCommit">
+                 @input="seekValue = +($event.target as HTMLInputElement).value" @change="seekCommit">
           <span class="time">{{ fmt(bar.time) }} / {{ fmt(bar.duration) }}</span>
           <Icon name="volume" />
           <input v-model.number="volume" class="vol" type="range" min="0" max="1" step="0.05" aria-label="Głośność na rzutniku" title="Głośność na rzutniku">

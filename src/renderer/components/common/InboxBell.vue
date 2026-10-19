@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { calendarRequest, canUse, loadInbox, readInbox, role } from '@/stores'
@@ -10,7 +10,7 @@ const open = ref(false)
 const unread = computed(() => list.value.filter(n => !n.read).length)
 async function load() { const r = await loadInbox(); if (!r.error) list.value = r.list }
 let timer
-onMounted(() => { load(); timer = setInterval(load, 60000) })
+onMounted(() => { load(); timer = window.setInterval(load, 60000) })
 onUnmounted(() => clearInterval(timer))
 function toggle() { open.value = !open.value; if (open.value) load() }
 function markRead(items) {

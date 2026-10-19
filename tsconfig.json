@@ -1,0 +1,30 @@
+{
+  // Aplikacja na komputer (okno Vue, src/renderer). Sprawdzanie: npm run typecheck
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "jsx": "preserve",
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    // pliki strony (mobile/*.js) są wspólne — importowane, ale nie sprawdzane
+    "allowJs": true,
+    "checkJs": false,
+    // na start łagodnie; zaostrzać stopniowo
+    "strict": false,
+    "noImplicitAny": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/*"],
+      "@web/*": ["mobile/*"]
+    }
+  },
+  "include": ["src/renderer/**/*.ts", "src/renderer/**/*.vue"]
+}

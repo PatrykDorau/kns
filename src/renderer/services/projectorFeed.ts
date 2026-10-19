@@ -27,7 +27,7 @@ export function startProjectorFeed() {
     if (!(settings.lyricsOnline || settings.screenShare)) { clearInterval(timer); timer = 0; unpublishProjector(settings.deviceId); return }
     host = host || (await api.hostname?.().catch(() => '')) || 'Komputer z rzutnikiem'
     publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare })
-    if (!timer) timer = setInterval(() => { if (settings.lyricsOnline || settings.screenShare) publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare }) }, 600000)
+    if (!timer) timer = window.setInterval(() => { if (settings.lyricsOnline || settings.screenShare) publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare }) }, 600000)
   }
   watch([() => settings.lyricsOnline, () => settings.screenShare, () => settings.lyricsKey], announce, { immediate: true })
   // laptop przy rzutniku: udostępnia ekran rzutnika (klucz — ten sam co napisy przez internet)

@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { focusEl } from '@/utils/dom'
 import Icon from '@/components/common/Icon.vue'
 import SyncButton from '@/components/common/SyncButton.vue'
 import SongManager from '@/components/display/SongManager.vue'
@@ -70,7 +71,7 @@ function bandAdd(name) {
   const b = { key: uid(), name: name.trim(), instrument: '' }
   current.value.bandList.push(b)
   bandPick.value = null
-  setTimeout(() => { const el = document.querySelector('[data-band="' + b.key + '"]'); el?.focus(); try { el?.showPicker?.() } catch { /* nie zawsze */ } }, 50)
+  setTimeout(() => { const el = document.querySelector<HTMLInputElement>('[data-band="' + b.key + '"]'); el?.focus(); try { el?.showPicker?.() } catch { /* nie zawsze */ } }, 50)
 }
 
 // Zmiana nabożeństwa albo wyjście z niezapisanymi zmianami wymaga potwierdzenia.
@@ -365,7 +366,7 @@ else load(nearestService.value)
           <div v-if="bandPick" class="overlay" @click.self="bandPick = null" @keydown.esc="bandPick = null">
             <div class="modal" role="dialog" aria-modal="true" aria-label="Dodaj osobę do składu">
               <div class="modal-head"><h3>Dodaj osobę do składu</h3><button class="iconbtn" aria-label="Zamknij" @click="bandPick = null"><Icon name="x" /></button></div>
-              <input v-model="bandPick.query" :ref="el => el?.focus()" placeholder="Szukaj albo wpisz imię i nazwisko" @keydown.enter="bandPick.query.trim() && bandAdd(bandPick.query)">
+              <input v-model="bandPick.query" :ref="focusEl" placeholder="Szukaj albo wpisz imię i nazwisko" @keydown.enter="bandPick.query.trim() && bandAdd(bandPick.query)">
               <p v-if="bandPick.busy" class="note">Wczytuję służbę muzyczną…</p>
               <p v-else-if="bandPick.error" class="note bad">{{ bandPick.error }}</p>
               <p v-else-if="!bandPick.people.length" class="note">Nie znalazłem służby muzycznej z osobami (nazwa z „muzy”, „uwielb” albo „zesp”) — wpisz imię i nazwisko.</p>

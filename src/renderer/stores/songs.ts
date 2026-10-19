@@ -1,4 +1,5 @@
 // Pieśni: lista na nabożeństwo, dodawanie i import (pliki, folder, Dysk Google).
+import type { Song } from '@/types'
 import { remove } from './library'
 import { serviceList } from './lists'
 import { api, busy, search, selectedId, settings, songs, tab, uid } from './state'
@@ -22,7 +23,7 @@ export function moveInService(from, to) {
 export function clearService() { settings.service = [] }
 
 export function addSong() {
-  const song = { id: uid(), type: 'song', number: '', title: '', text: '' }
+  const song: Song = { id: uid(), type: 'song', number: '', title: '', text: '' }
   songs.value.push(song)
   search.songs = ''
   return song

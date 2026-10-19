@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Brand from '@/components/common/Brand.vue'
@@ -25,10 +25,10 @@ const groups = computed(() => [
   { id: 'rejected', title: 'Bez dostępu', list: people.value.filter(p => p.status === 'rejected') },
 ].filter(g => g.list.length))
 const initials = p => (p.name || p.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
-const ago = t => { const h = Math.round((Date.now() - new Date(t)) / 3600e3); return h < 1 ? 'przed chwilą' : h < 24 ? h + ' godz. temu' : Math.round(h / 24) + ' dni temu' }
+const ago = t => { const h = Math.round((Date.now() - +new Date(t)) / 3600e3); return h < 1 ? 'przed chwilą' : h < 24 ? h + ' godz. temu' : Math.round(h / 24) + ' dni temu' }
 const changed = p => [...p.draft].sort().join() !== [...p.roles].sort().join()
 const toggle = (p, id) => { p.draft = p.draft.includes(id) ? p.draft.filter(r => r !== id) : [...p.draft, id] }
-async function save(p, status) {
+async function save(p, status?) {
   if (status === 'rejected' && p.status === 'active' && !confirm(`Odebrać dostęp osobie ${p.name || p.email}?`)) return
   p.busy = true; p.error = ''
   const res = await setPerson(p.email, status || null, status === 'rejected' ? p.roles : p.draft)

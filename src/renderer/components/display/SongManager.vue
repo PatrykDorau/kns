@@ -1,5 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import type { Song } from '@/types'
+import { focusOnce } from '@/utils/dom'
 import Icon from '@/components/common/Icon.vue'
 import {
   addToService, api, applySongChanges, managerOpen, matchSongs, pickSongs, songsFromDrive, plannerTarget, role, search, selectedId, settings,
@@ -9,7 +11,7 @@ import {
 // Baza pieśni działa na wersji roboczej: nic nie trafia do prawdziwej bazy (ani na rzutnik, ani na
 // dysk wspólny), dopóki nie kliknie się „Zapisz”. „Cofnij” wycofuje ostatnią czynność.
 const LIMIT = 300
-const copy = list => list.map(({ id, number, title, text }) => ({ id, type: 'song', number: number || '', title, text }))
+const copy = (list: Song[]): Song[] => list.map(({ id, number, title, text }) => ({ id, type: 'song', number: number || '', title, text }))
 let base = copy(songs.value) // stan bazy w chwili otwarcia / ostatniego zapisu
 const draft = ref(copy(songs.value))
 const history = ref([])
@@ -196,7 +198,7 @@ function use() {
       <div class="mgr-tools">
         <label class="searchbox">
           <Icon name="search" />
-          <input v-model="search.songs" :ref="el => el && !el.dataset.f && (el.dataset.f = 1, el.focus())" type="search"
+          <input v-model="search.songs" :ref="focusOnce" type="search"
                  placeholder="Numer, tytuł albo fragment tekstu" aria-label="Szukaj pieśni">
         </label>
         <button @click="create"><Icon name="plus" />Nowa</button>

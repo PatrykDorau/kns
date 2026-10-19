@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { itemById } from '@/stores'

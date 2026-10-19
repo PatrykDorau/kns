@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import ColorAlpha from '@/components/common/ColorAlpha.vue'
@@ -27,7 +27,7 @@ defineProps({ model: Object })
   <template v-if="model.bgImage">
     <label>Przyciemnienie zdjęcia: {{ Math.round((model.dim ?? 0.45) * 100) }}%</label>
     <input :value="model.dim ?? 0.45" type="range" min="0" max="0.9" step="0.05" aria-label="Przyciemnienie zdjęcia"
-           @input="model.dim = +$event.target.value">
+           @input="model.dim = +($event.target as HTMLInputElement).value">
   </template>
 
   <div class="row2">
@@ -41,7 +41,7 @@ defineProps({ model: Object })
     </div>
     <div>
       <label>W pionie</label>
-      <select :value="model.valign || 'center'" aria-label="Położenie w pionie" @change="model.valign = $event.target.value">
+      <select :value="model.valign || 'center'" aria-label="Położenie w pionie" @change="model.valign = ($event.target as HTMLInputElement).value">
         <option value="top">Od góry</option>
         <option value="center">Na środku</option>
         <option value="bottom">Na dole</option>
@@ -52,6 +52,6 @@ defineProps({ model: Object })
   <template v-if="model.shadow">
     <label>Wyrazistość cienia: {{ Math.round((model.shadowLevel ?? 0.6) * 100) }}%</label>
     <input :value="model.shadowLevel ?? 0.6" type="range" min="0.05" max="1" step="0.05" aria-label="Wyrazistość cienia"
-           @input="model.shadowLevel = +$event.target.value">
+           @input="model.shadowLevel = +($event.target as HTMLInputElement).value">
   </template>
 </template>

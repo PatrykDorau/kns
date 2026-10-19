@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { countdown } from '@/stores'
 
 // Odliczanie do najbliższego nabożeństwa: dni, godziny, minuty, sekundy, a pod spodem kiedy i gdzie.

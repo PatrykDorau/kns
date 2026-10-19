@@ -1,10 +1,10 @@
-// Test src/renderer/services/cloud.js (aplikacja na komputer ↔ baza) na prawdziwym schemacie w PGlite, razem z telefonem (mobile/supa.js):
+// Test src/renderer/services/cloud.ts (aplikacja na komputer ↔ baza) na prawdziwym schemacie w PGlite, razem z telefonem (mobile/supa.js):
 //   npm i --no-save @electric-sql/pglite@0.2.17 && node supabase/test-cloud.mjs
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
 import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
-import { createCloud } from '../src/renderer/services/cloud.js'
+import { createCloud } from '../src/renderer/services/cloud.ts'
 import { createSupa } from '../mobile/supa.js'
 
 const db = new PGlite()

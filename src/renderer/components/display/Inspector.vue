@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
@@ -17,9 +17,10 @@ function startCountdown() {
 const loopCandidates = computed(() => items.value.filter(i => i.type !== 'scene' && !i.hidden))
 const secondsLabel = ms => (ms / 1000).toLocaleString('pl', { maximumFractionDigits: 2 }) + ' s'
 
-function addToLoop(e) {
-  if (e.target.value) selected.value.entries.push({ key: uid(), ref: e.target.value, seconds: null })
-  e.target.value = ''
+function addToLoop(e: Event) {
+  const pick = e.target as HTMLSelectElement
+  if (pick.value) selected.value.entries.push({ key: uid(), ref: pick.value, seconds: null })
+  pick.value = ''
 }
 function moveEntry(from, to) {
   const list = selected.value.entries
@@ -101,7 +102,7 @@ function dropEntry(i) {
         <Thumb :item="itemById(e.ref)" />
         <span class="name">{{ label(itemById(e.ref)) }}</span>
         <input v-if="itemById(e.ref)?.type !== 'video'" v-model.number="e.seconds" class="secs" type="number" @click.stop min="1" max="3600"
-               :placeholder="selected.seconds" title="Czas tego slajdu w sekundach (puste = domyślny)" aria-label="Czas slajdu w sekundach">
+               :placeholder="selected.seconds == null ? undefined : String(selected.seconds)" title="Czas tego slajdu w sekundach (puste = domyślny)" aria-label="Czas slajdu w sekundach">
         <button class="iconbtn" :disabled="i === 0" title="Wyżej" aria-label="Przesuń wyżej" @click.stop="moveEntry(i, i - 1)"><Icon name="up" /></button>
         <button class="iconbtn" :disabled="i === selected.entries.length - 1" title="Niżej" aria-label="Przesuń niżej" @click.stop="moveEntry(i, i + 1)"><Icon name="down" /></button>
         <button class="iconbtn danger" title="Usuń z pętli" aria-label="Usuń z pętli" @click.stop="removeEntry(selected, i)"><Icon name="x" /></button>
@@ -112,7 +113,7 @@ function dropEntry(i) {
     <input id="lSec" v-model.number="selected.seconds" type="range" min="1" max="60" step="1">
     <p class="note">Inny czas dla pojedynczego slajdu wpisz w polu przy nim. Filmy grają do końca.</p>
 
-    <label class="check"><input type="checkbox" :checked="selected.auto !== false" @change="selected.auto = $event.target.checked"> Przełączaj slajdy automatycznie</label>
+    <label class="check"><input type="checkbox" :checked="selected.auto !== false" @change="selected.auto = ($event.target as HTMLInputElement).checked"> Przełączaj slajdy automatycznie</label>
     <p class="note">Prezentacje importują się z wyłączonym automatem. Po wyłączeniu pętla czeka — slajdy zmieniasz strzałkami pod podglądem, klawiszami <kbd>↓</kbd> <kbd>↑</kbd> albo klikając slajd na liście.</p>
 
     <label for="lTrans">Przejście między slajdami</label>

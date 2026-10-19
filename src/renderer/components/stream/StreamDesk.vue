@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
+import type { AtemState, LibraryItem, StreamState, YtOverview } from '@/types'
 import { TEXT_STYLE, api, busy, cameraLock, items, label, loadListen, loadProjectors, pickFiles, prettyDate, serviceTime, servicePlace, settings, uid } from '@/stores'
 import { lyricsFeed, lyricsKey, refeedLyrics, startLyricsFeed } from '@/services/lyricsFeed'
 import { remote as remoteScreen } from '@/services/screenShare'
@@ -12,7 +13,7 @@ import { OVERLAYS, SCENES, airMedia, mediaCtl, mediaSlide, setMediaPos, setOverl
 const props = defineProps({ service: { type: Object, default: null } })
 
 /* ---------- ATEM ---------- */
-const atem = ref({ connected: false, address: '', inputs: [], program: null, preview: null, streaming: '', recording: '' })
+const atem = ref<AtemState>({ connected: false, address: '', inputs: [], program: null, preview: null, streaming: '', recording: '' })
 const address = ref(settings.atemAddress || '')
 const atemError = ref('')
 const connecting = computed(() => !!atem.value.address && !atem.value.connected)
@@ -88,7 +89,7 @@ async function connect() {
   atem.value = await api.atemConnect(ip)
 }
 async function disconnect() { settings.atemAddress = ''; atem.value = await api.atemDisconnect() }
-async function run(name, arg) {
+async function run(name, arg?) {
   const res = await api.atemRun(name, arg)
   atemError.value = res?.error || ''
 }
@@ -125,7 +126,7 @@ const newText = ref('')
 function addMediaText() {
   const text = newText.value.trim()
   if (!text) return
-  const it = { ...TEXT_STYLE, id: uid(), type: 'text', name: text.split('\n')[0].slice(0, 40), text, fs: 9, valign: 'bottom', shadow: true }
+  const it: LibraryItem = { ...TEXT_STYLE, id: uid(), type: 'text', name: text.split('\n')[0].slice(0, 40), text, fs: 9, valign: 'bottom', shadow: true }
   items.value.push(it); newText.value = ''
   showMediaOverlay(it.id)
 }
@@ -134,6 +135,8 @@ const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).pa
 /* ---------- rzutnik na innym komputerze: wybór z listy zamiast wklejania adresu ---------- */
 const projectors = ref([]), manualKey = ref(false)
 // inne komputery najpierw; ten komputer na końcu (test „zdalnego” przesyłania na jednym komputerze)
+// rzutnik wybrany na liście ('' — żaden z widocznych)
+const pickedProjector = computed(() => (otherProjectors.value.some(p => p.id === settings.streamProjector) ? settings.streamProjector : ''))
 const otherProjectors = computed(() => [...projectors.value.filter(p => p.id !== settings.deviceId), ...projectors.value.filter(p => p.id === settings.deviceId)])
 const ago = t => { const m = Math.round((Date.now() - new Date(t).getTime()) / 60000); return m < 2 ? 'teraz' : m < 60 ? m + ' min temu' : m < 1440 ? Math.round(m / 60) + ' godz. temu' : Math.round(m / 1440) + ' dni temu' }
 async function refreshProjectors() {
@@ -151,7 +154,7 @@ function pickProjector(id) {
   if (p) { settings.streamLyricsKey = p.key; manualKey.value = false }
 }
 let projTimer = 0
-watch(() => settings.streamLyrics, mode => { clearInterval(projTimer); if (mode === 'remote') { refreshProjectors(); projTimer = setInterval(refreshProjectors, 60000) } }, { immediate: true })
+watch(() => settings.streamLyrics, mode => { clearInterval(projTimer); if (mode === 'remote') { refreshProjectors(); projTimer = window.setInterval(refreshProjectors, 60000) } }, { immediate: true })
 onBeforeUnmount(() => clearInterval(projTimer))
 
 /* ---------- gotowość przed startem (kliknięcie — ustawienia nadawania) ---------- */
@@ -172,7 +175,7 @@ const readiness = computed(() => {
 function openCfg() { settings.cfgFolded = false; settings.railFolded = false; nextTick(() => document.getElementById('desk-cfg')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }
 
 /* ---------- YouTube ---------- */
-const yt = ref({ loggedIn: false })
+const yt = ref<YtOverview>({ loggedIn: false })
 const ytBusy = ref(false), ytError = ref(''), showKey = ref(false), copied = ref('')
 let ytTimer = 0
 async function loadYt() {
@@ -184,13 +187,13 @@ async function loadYt() {
     const st = res.needLogin ? { loggedIn: false } : await api.ytStatus()
     yt.value = { ...yt.value, ...st }
     clearInterval(ytTimer)
-    if (st.loggedIn) ytTimer = setInterval(loadYt, 30000)
+    if (st.loggedIn) ytTimer = window.setInterval(loadYt, 30000)
     return
   }
   ytError.value = ''
   yt.value = res
   clearInterval(ytTimer)
-  if (res.loggedIn) ytTimer = setInterval(loadYt, 15000) // stan sygnału i transmisji
+  if (res.loggedIn) ytTimer = window.setInterval(loadYt, 15000) // stan sygnału i transmisji
 }
 async function ytDo(job) {
   ytBusy.value = true; ytError.value = ''
@@ -231,7 +234,7 @@ async function refreshFromService(b) {
   if (svc) await ytDo(() => api.ytUpdate({ id: b.id, title: ytTitle(svc), description: ytDescription(svc), start: ytStart(svc), privacy: b.privacy }))
 }
 /* ---------- nadawanie z aplikacji (bez OBS): obraz i dźwięk z ATEM po USB → napisy → YouTube ---------- */
-const live = ref({ running: false, starting: false })
+const live = ref<StreamState>({ running: false, starting: false })
 const liveOn = computed(() => live.value.running || live.value.starting)
 const devices = ref({ video: [], audio: [], screens: [] })
 const liveError = ref('')
@@ -284,9 +287,9 @@ const DH_ICON = {
   mic: ['M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z', 'M5 11a7 7 0 0 0 14 0', 'M12 18v3'],
 }
 // Tryb prosty: dźwięk otwiera FFmpeg — zmiana w trakcie to restart nadawania na 1–2 s.
-async function switchSimpleAudio(e) {
-  const v = e.target.value
-  if (live.value.running && !confirm('W trybie prostym zmiana dźwięku przerywa nadawanie na 1–2 sekundy. Zmienić?')) { e.target.value = settings.streamAudio; return }
+async function switchSimpleAudio(e: Event) {
+  const pick = e.target as HTMLSelectElement, v = pick.value
+  if (live.value.running && !confirm('W trybie prostym zmiana dźwięku przerywa nadawanie na 1–2 sekundy. Zmienić?')) { pick.value = settings.streamAudio; return }
   settings.streamAudio = v
   if (liveOn.value) await api.streamAudio?.(v)
 }
@@ -369,7 +372,7 @@ let goLiveTimer = 0
 function watchGoLive() {
   clearInterval(goLiveTimer)
   let tries = 0
-  goLiveTimer = setInterval(async () => {
+  goLiveTimer = window.setInterval(async () => {
     if (!liveOn.value || ++tries > 40) { clearInterval(goLiveTimer); return }
     await loadYt()
     const b = upcoming.value.find(x => x.id === liveBroadcast.value?.id)
@@ -440,7 +443,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <!-- dźwięk: poziom, stan i wybór źródła (zmiana także w trakcie transmisji) -->
               <span v-if="c.id === 'audio'" class="dh-txt">
                 <small>Dźwięk · <em>{{ c.value }}</em></small>
-                <select v-if="engine === 'studio'" :value="settings.studioAudio" aria-label="Źródło dźwięku" title="Źródło dźwięku — zmiana w trakcie bez przerwy" @change="chooseAudio($event.target.value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select>
+                <select v-if="engine === 'studio'" :value="settings.studioAudio" aria-label="Źródło dźwięku" title="Źródło dźwięku — zmiana w trakcie bez przerwy" @change="chooseAudio(($event.target as HTMLInputElement).value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select>
                 <select v-else :value="settings.streamAudio" aria-label="Źródło dźwięku" title="Źródło dźwięku — zmiana w trakcie przerywa nadawanie na 1–2 s" @change="switchSimpleAudio($event)"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select>
                 <i v-if="engine === 'studio'" class="dh-meter" aria-hidden="true"><i :style="{ width: Math.max(0, Math.min(100, (studio.audioDb + 60) / 60 * 100)) + '%' }"></i></i>
               </span>
@@ -472,7 +475,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             <button class="desk-take-btn" :class="{ ready: pending }" :disabled="studio.direct || !pending" title="Podgląd przechodzi na wizję (płynnie)" @click="take">Na wizję ▸</button>
             <small class="muted">{{ studio.direct ? 'Zmiany idą od razu na wizję' : pending ? 'Podgląd różni się od wizji — sprawdź i kliknij „Na wizję”' : 'Podgląd = wizja' }}</small>
             <span class="spacer"></span>
-            <label class="check" title="Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube"><input :checked="studio.direct" type="checkbox" @change="direct($event.target.checked)"> Od razu na wizję</label>
+            <label class="check" title="Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube"><input :checked="studio.direct" type="checkbox" @change="direct(($event.target as HTMLInputElement).checked)"> Od razu na wizję</label>
           </div>
           <div class="desk-scenes" role="group" aria-label="Sceny transmisji">
             <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.preview.scene === id, live: studio.program.scene === id }" :aria-pressed="studio.preview.scene === id" :title="studio.program.scene === id ? 'Na wizji' : ''" @click="setScene(id)">{{ name }}</button>
@@ -531,7 +534,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <!-- Kamera: okienko z materiałem z Mediów (zdjęcie, film, prezentacja, napis) -->
               <div v-if="studio.preview.scene === 'camera'" class="desk-opt-group" role="group" aria-label="Okienko z materiałem">
                 <small class="muted">Okienko</small>
-                <select :value="studio.preview.ovl === 'corner' ? studio.preview.omedia : ''" aria-label="Materiał w okienku" @change="$event.target.value ? (showMediaOverlay($event.target.value), setOverlayMode('corner')) : setOverlayMode('off')">
+                <select :value="studio.preview.ovl === 'corner' ? studio.preview.omedia : ''" aria-label="Materiał w okienku" @change="($event.target as HTMLInputElement).value ? (showMediaOverlay(($event.target as HTMLInputElement).value), setOverlayMode('corner')) : setOverlayMode('off')">
                   <option value="">— bez okienka —</option>
                   <option v-for="it in mediaList" :key="it.id" :value="it.id">{{ label(it) }} ({{ mediaKind(it).toLowerCase() }})</option>
                 </select>
@@ -565,8 +568,8 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
                     <button :class="{ on: pvOver?.id === it.id }" title="Nakładka na kamerze/rzutniku" @click="showMediaOverlay(it.id)">Nakładka</button>
                   </span>
                   <label v-if="it.type === 'scene'" class="desk-media-auto" title="Slajdy zmieniają się same, gdy prezentacja jest na wizji">
-                    <input type="checkbox" :checked="!!it.mAuto" @change="it.mAuto = $event.target.checked"> same co
-                    <select :value="it.mSec || 8" @change="it.mSec = +$event.target.value"><option v-for="v in [4, 6, 8, 10, 15, 20, 30]" :key="v" :value="v">{{ v }} s</option></select>
+                    <input type="checkbox" :checked="!!it.mAuto" @change="it.mAuto = ($event.target as HTMLInputElement).checked"> same co
+                    <select :value="it.mSec || 8" @change="it.mSec = +($event.target as HTMLInputElement).value"><option v-for="v in [4, 6, 8, 10, 15, 20, 30]" :key="v" :value="v">{{ v }} s</option></select>
                   </label>
                   <em v-if="onAirIds.includes(it.id)">NA WIZJI</em><em v-else-if="pvFull?.id === it.id || pvOver?.id === it.id" class="pv">PODGLĄD</em>
                 </div>
@@ -602,16 +605,16 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <button class="small" title="Poprzedni slajd" @click="mediaCtl('slide', { id: c.item.id, d: -1 })">◀</button>
               <span>slajd {{ c.slide.slideNo }} z {{ c.slide.slideCount }}</span>
               <button class="small" title="Następny slajd" @click="mediaCtl('slide', { id: c.item.id, d: 1 })">▶</button>
-              <label class="check" title="Slajdy zmieniają się same"><input type="checkbox" :checked="!!c.item.mAuto" @change="c.item.mAuto = $event.target.checked"> same co
-                <select :value="c.item.mSec || 8" @change="c.item.mSec = +$event.target.value"><option v-for="v in [4, 6, 8, 10, 15, 20, 30]" :key="v" :value="v">{{ v }} s</option></select></label>
+              <label class="check" title="Slajdy zmieniają się same"><input type="checkbox" :checked="!!c.item.mAuto" @change="c.item.mAuto = ($event.target as HTMLInputElement).checked"> same co
+                <select :value="c.item.mSec || 8" @change="c.item.mSec = +($event.target as HTMLInputElement).value"><option v-for="v in [4, 6, 8, 10, 15, 20, 30]" :key="v" :value="v">{{ v }} s</option></select></label>
             </template>
             <template v-if="c.slide.type === 'video'">
               <button class="small" @click="mediaCtl('play')"><Icon :name="studio.mplay.playing ? 'pause' : 'play'" />{{ studio.mplay.playing ? 'Pauza' : 'Graj' }}</button>
               <button class="small" title="Od początku" @click="mediaCtl('restart')"><Icon name="undo" /></button>
-              <input class="desk-media-seek" type="range" min="0" :max="studio.mplay.duration || 1" step="0.5" :value="studio.mplay.time" aria-label="Pozycja filmu" @change="mediaCtl('seek', +$event.target.value)">
+              <input class="desk-media-seek" type="range" min="0" :max="studio.mplay.duration || 1" step="0.5" :value="studio.mplay.time" aria-label="Pozycja filmu" @change="mediaCtl('seek', +($event.target as HTMLInputElement).value)">
               <small class="muted">{{ mmss(studio.mplay.time) }} / {{ mmss(studio.mplay.duration) }}</small>
               <label class="check"><input type="checkbox" :checked="studio.mplay.loop" @change="mediaCtl('loop')"> pętla</label>
-              <label class="desk-media-vol" title="Głośność filmu w transmisji"><Icon name="volume" /><input type="range" min="0" max="1" step="0.05" :value="studio.mplay.volume" @input="mediaCtl('volume', $event.target.value)"></label>
+              <label class="desk-media-vol" title="Głośność filmu w transmisji"><Icon name="volume" /><input type="range" min="0" max="1" step="0.05" :value="studio.mplay.volume" @input="mediaCtl('volume', ($event.target as HTMLInputElement).value)"></label>
             </template>
           </div>
         </template>
@@ -785,8 +788,8 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
             </div>
             <div class="st-grid2">
               <template v-if="engine === 'studio'">
-                <label>Kamera<select :value="settings.studioCamera" :disabled="liveOn" @change="chooseCamera($event.target.value)"><option v-if="!studioDevices.video.length" value="">— brak —</option><option v-for="d in studioDevices.video" :key="d.deviceId" :value="d.label">{{ d.label || 'Kamera' }}</option></select></label>
-                <label>Dźwięk<select :value="settings.studioAudio" :disabled="liveOn" @change="chooseAudio($event.target.value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select></label>
+                <label>Kamera<select :value="settings.studioCamera" :disabled="liveOn" @change="chooseCamera(($event.target as HTMLInputElement).value)"><option v-if="!studioDevices.video.length" value="">— brak —</option><option v-for="d in studioDevices.video" :key="d.deviceId" :value="d.label">{{ d.label || 'Kamera' }}</option></select></label>
+                <label>Dźwięk<select :value="settings.studioAudio" :disabled="liveOn" @change="chooseAudio(($event.target as HTMLInputElement).value)"><option value="">bez dźwięku</option><option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option></select></label>
               </template>
               <template v-else>
                 <label>Obraz<select v-model="settings.streamVideo" :disabled="liveOn"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
@@ -812,7 +815,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
               <div class="st-stack">
                 <span class="st-lbl">Laptop z rzutnikiem</span>
                 <div class="st-copy">
-                  <select :value="otherProjectors.some(p => p.id === settings.streamProjector) ? settings.streamProjector : ''" aria-label="Laptop z rzutnikiem" style="flex:1;min-width:0" @change="$event.target.value ? pickProjector($event.target.value) : (manualKey = true)">
+                  <select :value="pickedProjector" aria-label="Laptop z rzutnikiem" style="flex:1;min-width:0" @change="($event.target as HTMLInputElement).value ? pickProjector(($event.target as HTMLInputElement).value) : (manualKey = true)">
                     <option v-if="!otherProjectors.length" value="">— nie widzę rzutnika —</option>
                     <option v-for="p in otherProjectors" :key="p.id" :value="p.id">{{ p.name }}{{ p.id === settings.deviceId ? ' (ten komputer)' : '' }} · {{ p.screen ? 'obraz i napisy' : 'napisy' }} · {{ ago(p.updated) }}</option>
                     <option value="">Wklej adres ręcznie…</option>

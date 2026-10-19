@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 defineProps({ name: String })
 
 // Proste ikony kreskowe 24×24 — każda to lista ścieżek SVG.

@@ -94,7 +94,7 @@ export function startReceive(key, onStream) {
     } catch (e) { remote.error = 'Obraz z rzutnika: ' + (e?.message || e) }
   })
   rxWant()
-  rx.timer = setInterval(rxWant, 4000) // dopóki nie ma obrazu — co 4 s prośba (rzutnik mógł się włączyć później)
+  rx.timer = window.setInterval(rxWant, 4000) // dopóki nie ma obrazu — co 4 s prośba (rzutnik mógł się włączyć później)
 }
 export function stopReceive() {
   if (!rx) return

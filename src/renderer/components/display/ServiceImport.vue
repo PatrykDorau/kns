@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import SyncButton from '@/components/common/SyncButton.vue'
@@ -19,7 +19,7 @@ const month = d => asDate(d).toLocaleDateString('pl', { month: 'short' }).replac
 const weekday = d => asDate(d).toLocaleDateString('pl', { weekday: 'long' })
 const wd = d => asDate(d).toLocaleDateString('pl', { weekday: 'short' }).replace('.', '')
 
-async function load(svc, parts) {
+async function load(svc, parts?) {
   busyId.value = svc.id
   try { await applyService(svc, parts) } finally { busyId.value = null }
 }

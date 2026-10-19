@@ -1,8 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { api, flush, output, overlayUrl, remoteUrl, settings, uid } from '@/stores'
 import { share } from '@/services/screenShare'
+import { focusEl } from '@/utils/dom'
 
 const emit = defineEmits(['close'])
 const message = ref('')
@@ -13,7 +14,7 @@ const tab = ref('stream')
 const lyricsQuery = () => {
   const q = new URLSearchParams()
   if (settings.lyricsPos && settings.lyricsPos !== 'dol') q.set('pozycja', settings.lyricsPos)
-  if (settings.lyricsSize && settings.lyricsSize !== 6) q.set('rozmiar', settings.lyricsSize)
+  if (settings.lyricsSize && settings.lyricsSize !== 6) q.set('rozmiar', String(settings.lyricsSize))
   if (settings.lyricsBar) q.set('pasek', '1')
   return q
 }
@@ -30,11 +31,11 @@ const lyricsLink = computed(() => {
   if (!overlayUrl.value) return ''
   const q = new URLSearchParams()
   if (settings.lyricsPos && settings.lyricsPos !== 'dol') q.set('pozycja', settings.lyricsPos)
-  if (settings.lyricsSize && settings.lyricsSize !== 6) q.set('rozmiar', settings.lyricsSize)
+  if (settings.lyricsSize && settings.lyricsSize !== 6) q.set('rozmiar', String(settings.lyricsSize))
   if (settings.lyricsBar) q.set('pasek', '1')
   return overlayUrl.value + (q.toString() ? '?' + q : '')
 })
-const copied = ref(false)
+const copied = ref<string | false>(false)
 async function copyLyrics(text) { await navigator.clipboard.writeText(text); copied.value = text; setTimeout(() => { if (copied.value === text) copied.value = false }, 1500) }
 
 async function exportBackup() {
@@ -56,7 +57,7 @@ async function importBackup() {
     <div class="modal st-modal" role="dialog" aria-modal="true" aria-label="Ustawienia aplikacji">
       <div class="modal-head">
         <h3>Ustawienia aplikacji</h3>
-        <button class="iconbtn" aria-label="Zamknij" :ref="el => el?.focus()" @click="emit('close')"><Icon name="x" /></button>
+        <button class="iconbtn" aria-label="Zamknij" :ref="focusEl" @click="emit('close')"><Icon name="x" /></button>
       </div>
       <div class="st-body">
         <nav class="st-nav" aria-label="Części ustawień">
@@ -82,7 +83,7 @@ async function importBackup() {
               </div>
               <div v-if="settings.lyricsOnline || settings.screenShare" class="st-stack">
                 <span class="st-lbl">Adres tego rzutnika (dla OBS albo do wklejenia ręcznie)</span>
-                <div class="st-copy"><input :value="onlineLink" readonly aria-label="Adres napisów" @focus="$event.target.select()"><button class="small" @click="copyLyrics(onlineLink)"><Icon :name="copied === onlineLink ? 'check' : 'copy'" />{{ copied === onlineLink ? 'Skopiowano' : 'Kopiuj' }}</button><button class="small" title="Nowy adres — stary przestanie działać (Stream przejdzie na nowy sam)" @click="newLyricsKey">Nowy klucz</button></div>
+                <div class="st-copy"><input :value="onlineLink" readonly aria-label="Adres napisów" @focus="($event.target as HTMLInputElement).select()"><button class="small" @click="copyLyrics(onlineLink)"><Icon :name="copied === onlineLink ? 'check' : 'copy'" />{{ copied === onlineLink ? 'Skopiowano' : 'Kopiuj' }}</button><button class="small" title="Nowy adres — stary przestanie działać (Stream przejdzie na nowy sam)" @click="newLyricsKey">Nowy klucz</button></div>
                 <span class="st-hint">Kto zna adres, widzi napisy (a z udostępnianiem — także obraz rzutnika). Nie publikuj go.</span>
               </div>
             </div>
@@ -94,7 +95,7 @@ async function importBackup() {
                 <input v-model="settings.lyrics" class="sw" type="checkbox" aria-label="Napisy w tej samej sieci">
               </div>
               <div v-if="settings.lyrics && overlayUrl" class="st-stack">
-                <div class="st-copy"><input :value="lyricsLink" readonly aria-label="Adres napisów w sieci lokalnej" @focus="$event.target.select()"><button class="small" @click="copyLyrics(lyricsLink)"><Icon :name="copied === lyricsLink ? 'check' : 'copy'" />{{ copied === lyricsLink ? 'Skopiowano' : 'Kopiuj' }}</button></div>
+                <div class="st-copy"><input :value="lyricsLink" readonly aria-label="Adres napisów w sieci lokalnej" @focus="($event.target as HTMLInputElement).select()"><button class="small" @click="copyLyrics(lyricsLink)"><Icon :name="copied === lyricsLink ? 'check' : 'copy'" />{{ copied === lyricsLink ? 'Skopiowano' : 'Kopiuj' }}</button></div>
               </div>
               <template v-if="settings.lyricsOnline || (settings.lyrics && overlayUrl)">
                 <div class="st-grid2">
@@ -120,7 +121,7 @@ async function importBackup() {
             <div class="st-card">
               <div class="st-row">
                 <span class="st-txt"><b>Płynne przenikanie</b><small>Przy zmianie obrazu. Pętle mają własne ustawienie przejścia.</small></span>
-                <input class="sw" type="checkbox" :checked="settings.fadeMs > 0" aria-label="Płynne przenikanie" @change="settings.fadeMs = $event.target.checked ? 350 : 0">
+                <input class="sw" type="checkbox" :checked="settings.fadeMs > 0" aria-label="Płynne przenikanie" @change="settings.fadeMs = ($event.target as HTMLInputElement).checked ? 350 : 0">
               </div>
               <div v-if="settings.fadeMs > 0" class="st-stack">
                 <label for="gFade">Czas przejścia: {{ (settings.fadeMs / 1000).toLocaleString('pl') }} s</label>
@@ -144,7 +145,7 @@ async function importBackup() {
               </div>
               <div v-if="remoteUrl" class="st-stack">
                 <span class="st-lbl">Otwórz w telefonie</span>
-                <div class="st-copy"><input :value="remoteUrl" readonly aria-label="Adres pilota" @focus="$event.target.select()"><button class="small" @click="copyLyrics(remoteUrl)"><Icon :name="copied === remoteUrl ? 'check' : 'copy'" />{{ copied === remoteUrl ? 'Skopiowano' : 'Kopiuj' }}</button></div>
+                <div class="st-copy"><input :value="remoteUrl" readonly aria-label="Adres pilota" @focus="($event.target as HTMLInputElement).select()"><button class="small" @click="copyLyrics(remoteUrl)"><Icon :name="copied === remoteUrl ? 'check' : 'copy'" />{{ copied === remoteUrl ? 'Skopiowano' : 'Kopiuj' }}</button></div>
               </div>
             </div>
           </template>

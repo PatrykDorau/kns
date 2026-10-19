@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 // Scena — ten sam komponent rysuje podgląd i obraz na rzutniku.
@@ -38,7 +38,7 @@ watch([() => current.value?.id, step, () => current.value?.seconds, () => slides
   clearTimeout(timer)
   if (!slides.value || slides.value.length < 2 || props.followStep != null || props.frozen || props.item.auto === false) return
   if (!current.value || current.value.type === 'video') return
-  timer = setTimeout(() => ownStep.value++, Math.max(1, +current.value.seconds || 5) * 1000)
+  timer = window.setTimeout(() => ownStep.value++, Math.max(1, +current.value.seconds || 5) * 1000)
 }, { immediate: true })
 
 // Czas przejścia zapamiętujemy, żeby ukrycie obrazu też wygasało płynnie.
@@ -49,7 +49,7 @@ watch(() => props.item?.id, (id, old) => {
   if (!props.instant || old === undefined || id === old) return
   fadeMs.value = 0
   clearTimeout(switching)
-  switching = setTimeout(() => { switching = null; fadeMs.value = props.item?.fadeMs ?? 0 }, 60)
+  switching = window.setTimeout(() => { switching = null; fadeMs.value = props.item?.fadeMs ?? 0 }, 60)
 })
 
 const mediaUrl = p => (/^https:\/\//.test(p) ? p : 'media://local/' + encodeURIComponent(p)) // grafiki ogłoszeń są w internecie
@@ -95,7 +95,7 @@ const VALIGN = { top: 'flex-start', center: 'center', bottom: 'flex-end' }
 // Odliczanie: {odliczanie} w tekście to pozostały czas; po zerze — tekst końcowy (gdy jest).
 const TOKEN = '{odliczanie}'
 const tick = ref(Date.now())
-const ticker = setInterval(() => { if (current.value?.text?.includes(TOKEN)) tick.value = Date.now() }, 250)
+const ticker = window.setInterval(() => { if (current.value?.text?.includes(TOKEN)) tick.value = Date.now() }, 250)
 onBeforeUnmount(() => clearInterval(ticker))
 const two = n => String(n).padStart(2, '0')
 function left(ms) {

@@ -56,7 +56,7 @@ export function tally(values) {
 
 // „3 tyg. temu”, „2 mies. temu” — do list pieśni.
 export function ago(date, today) {
-  const days = Math.round((new Date(today + 'T12:00') - new Date(date + 'T12:00')) / 86400000)
+  const days = Math.round((+new Date(today + 'T12:00') - +new Date(date + 'T12:00')) / 86400000)
   if (days <= 0) return 'dziś'
   if (days < 14) return days === 1 ? 'wczoraj' : `${days} dni temu`
   if (days < 60) return `${Math.round(days / 7)} tyg. temu`

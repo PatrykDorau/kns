@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import SyncButton from '@/components/common/SyncButton.vue'
@@ -23,7 +23,7 @@ const LAYOUTS = [['grid', 'grid', 'Siatka'], ['big', 'layoutBig', 'Duża + małe
 const mainId = computed(() => (cams.value.some(c => c.id === focusId.value) ? focusId.value : cams.value[0]?.id))
 const shown = computed(() => {
   if (settings.camLayout === 'one') return cams.value.filter(c => c.id === mainId.value)
-  if (settings.camLayout === 'big') return [...cams.value].sort((a, b) => (b.id === mainId.value) - (a.id === mainId.value))
+  if (settings.camLayout === 'big') return [...cams.value].sort((a, b) => Number(b.id === mainId.value) - Number(a.id === mainId.value))
   return cams.value
 })
 const cols = computed(() => Math.ceil(Math.sqrt(shown.value.length || 1)))
@@ -116,7 +116,7 @@ async function refresh() {
   cams.value = next
   // Zajęta kamera: co 10 s kolejna próba — gdy drugi program ją zwolni, obraz pojawi się sam.
   clearTimeout(retryTimer)
-  if (next.some(c => c.busy)) retryTimer = setTimeout(refresh, 10000)
+  if (next.some(c => c.busy)) retryTimer = window.setTimeout(refresh, 10000)
   status.value = next.length ? '' : 'Nie znaleziono żadnej kamery. Podłącz kamerę — pojawi się tu sama.'
 }
 
@@ -146,7 +146,7 @@ const program = computed(() => {
   const list = [...s.program].sort((a, b) => a.offset - b.offset).map(p => {
     const time = addMinutes(s.time || DEFAULT_TIME, p.offset)
     const sermon = p.category === 'kazanie' ? [p.title || s.sermonTitle, s.passage].filter(Boolean).join(', ') : p.title
-    return { key: p.key, time, name: categoryName(p), detail: [sermon, p.person || (p.category === 'kazanie' ? s.speaker : '')].filter(Boolean).join(' — ') }
+    return { key: p.key, time, now: false, done: false, name: categoryName(p), detail: [sermon, p.person || (p.category === 'kazanie' ? s.speaker : '')].filter(Boolean).join(' — ') }
   })
   if (s.date === today()) {
     const t = new Date(now.value).toTimeString().slice(0, 5)

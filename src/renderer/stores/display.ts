@@ -54,7 +54,7 @@ export let flashTimer = null
 export function flash(message) {
   notice.value = message
   clearTimeout(flashTimer)
-  flashTimer = setTimeout(() => { if (notice.value === message) notice.value = '' }, 3500)
+  flashTimer = window.setTimeout(() => { if (notice.value === message) notice.value = '' }, 3500)
 }
 export function toggleFrozen() {
   const it = selected.value

@@ -1,6 +1,7 @@
 // Biblioteka materiałów: pliki, prezentacje, Biblia, odliczanie, ogłoszenia, pętle, usuwanie i nazwy.
 import { computed, ref, shallowRef } from 'vue'
 import { parseBibleXml, parseRef, passage, refLabel, toSlides } from '@/services/bible'
+import type { LibraryItem } from '@/types'
 import { flash, hide } from './display'
 import { visibleItems, visibleSongs } from './lists'
 import { itemById, label, verses } from './live'
@@ -44,7 +45,7 @@ export async function addFiles(paths, intoLoop = null) {
       }
     }
 
-    const item = (f, hidden) => ({ id: uid(), type: f.type, name: f.name, path: f.path, fit: 'contain', loop: false, ...(hidden ? { hidden: true } : {}) })
+    const item = (f, hidden): LibraryItem => ({ id: uid(), type: f.type, name: f.name, path: f.path, fit: 'contain', loop: false, ...(hidden ? { hidden: true } : {}) })
     const entry = it => ({ key: uid(), ref: it.id, seconds: null })
     let last = null
     for (const part of parts) {
@@ -56,7 +57,7 @@ export async function addFiles(paths, intoLoop = null) {
         last = added.at(-1) || last
       } else if (part.deck && part.files.length > 1) {
         const slides = part.files.map(f => item(f, true))
-        const deck = { id: uid(), type: 'scene', name: part.name, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false, entries: slides.map(entry) }
+        const deck: LibraryItem = { id: uid(), type: 'scene', name: part.name, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false, entries: slides.map(entry) }
         items.value.push(...slides, deck)
         last = deck
       } else {
@@ -94,7 +95,7 @@ export function setBackground(style, p) {
 
 /* ---------- biblioteka ---------- */
 export function addText() {
-  const it = { id: uid(), type: 'text', name: '', text: '', ...TEXT_STYLE }
+  const it: LibraryItem = { id: uid(), type: 'text', name: '', text: '', ...TEXT_STYLE }
   items.value.push(it)
   selectedId.value = it.id
 }
@@ -125,8 +126,8 @@ export function addPassage(ref, perSlide = 2, source = null) {
   if (!r) return { error: 'Nie rozpoznaję odnośnika — wpisz np. J 3,16–21.' }
   const verses = passage(bible.value, r)
   if (!verses.length) return { error: 'W tej Biblii nie ma takiego fragmentu.' }
-  const slides = toSlides(r.book, verses, perSlide).map(s => ({ ...TEXT_STYLE, id: uid(), type: 'text', name: refLabel(r.book, s.verses), text: s.text, fs: 9, hidden: true }))
-  const deck = { id: uid(), type: 'scene', name: refLabel(r.book, verses), seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false,
+  const slides = toSlides(r.book, verses, perSlide).map((s): LibraryItem => ({ ...TEXT_STYLE, id: uid(), type: 'text', name: refLabel(r.book, s.verses), text: s.text, fs: 9, hidden: true }))
+  const deck: LibraryItem = { id: uid(), type: 'scene', name: refLabel(r.book, verses), seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false,
     entries: slides.map(it => ({ key: uid(), ref: it.id, seconds: null })), ...(source ? { source } : {}) }
   items.value.push(...slides, deck)
   // Dodany ręcznie — od razu zaznaczony; dodany przy wczytywaniu nabożeństwa — tylko czeka w materiałach.
@@ -138,7 +139,7 @@ export function addPassage(ref, perSlide = 2, source = null) {
 // Cel: najbliższe nabożeństwo albo „za N minut” od kliknięcia Start.
 export const COUNTDOWN = '{odliczanie}'
 export function addCountdown() {
-  const it = { ...TEXT_STYLE, id: uid(), type: 'text', name: 'Odliczanie', fs: 14,
+  const it: LibraryItem = { ...TEXT_STYLE, id: uid(), type: 'text', name: 'Odliczanie', fs: 14,
     text: 'Nabożeństwo rozpocznie się za\n' + COUNTDOWN, endText: 'Zaraz zaczynamy!', countMode: 'service', minutes: 5, target: 0 }
   items.value.push(it)
   selectedId.value = it.id
@@ -161,8 +162,8 @@ export function addAnnouncements() {
   const graphics = projectorGraphics.value
   if (graphics.length) {
     graphics.forEach(g => { const img = new Image(); img.src = g.image })
-    const slides = graphics.map(g => ({ id: uid(), type: 'image', name: g.name, path: g.image, fit: 'contain', loop: false, hidden: true }))
-    const deck = { id: uid(), type: 'scene', name: 'Ogłoszenia — grafiki', seconds: 10, volume: 0.25, transition: 'fade', fadeMs: 600, auto: true,
+    const slides = graphics.map((g): LibraryItem => ({ id: uid(), type: 'image', name: g.name, path: g.image, fit: 'contain', loop: false, hidden: true }))
+    const deck: LibraryItem = { id: uid(), type: 'scene', name: 'Ogłoszenia — grafiki', seconds: 10, volume: 0.25, transition: 'fade', fadeMs: 600, auto: true,
       entries: slides.map(it => ({ key: uid(), ref: it.id, seconds: null })) }
     items.value.push(...slides, deck)
     tab.value = 'materials'
@@ -175,7 +176,7 @@ export function addAnnouncements() {
 
 export function addLoop() {
   const n = items.value.filter(i => i.type === 'scene').length + 1
-  const it = { id: uid(), type: 'scene', name: 'Pętla ' + n, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, entries: [] }
+  const it: LibraryItem = { id: uid(), type: 'scene', name: 'Pętla ' + n, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, entries: [] }
   items.value.push(it)
   selectedId.value = it.id
 }

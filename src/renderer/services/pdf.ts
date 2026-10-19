@@ -16,7 +16,7 @@ export async function pdfToImages(data, onPage) {
     // intent 'print': rysowanie bez czekania na klatki ekranu — inaczej w zasłoniętym lub
     // zminimalizowanym oknie każda strona trwałaby sekundy.
     await page.render({ canvas, canvasContext: canvas.getContext('2d'), viewport, intent: 'print' }).promise
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    const blob = await new Promise<Blob>(resolve => canvas.toBlob(resolve, 'image/png'))
     await onPage(n, doc.numPages, new Uint8Array(await blob.arrayBuffer()))
   }
 }

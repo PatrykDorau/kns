@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 
@@ -22,7 +22,7 @@ function remove(i) { lines.value.splice(i, 1); push() }
   <div ref="box" class="thoughts-ed">
     <div v-for="(t, i) in lines" :key="i" class="th-line">
       <span class="th-n">{{ i + 1 }}</span>
-      <input :value="t" type="text" placeholder="Myśl z kazania" @input="set(i, $event.target.value)" @keydown.enter.prevent="add(i + 1)">
+      <input :value="t" type="text" placeholder="Myśl z kazania" @input="set(i, ($event.target as HTMLInputElement).value)" @keydown.enter.prevent="add(i + 1)">
       <button class="iconbtn danger" title="Usuń myśl" aria-label="Usuń myśl" @click="remove(i)"><Icon name="x" /></button>
     </div>
     <div class="btnrow">

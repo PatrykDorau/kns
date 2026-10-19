@@ -8,6 +8,7 @@
 // Działa niezależnie od otwartego widoku (moduł), żeby wyjście z ekranu Stream nie przerwało transmisji.
 import { reactive } from 'vue'
 import qrcode from 'qrcode-generator'
+import type { Look, MediaSlide, StudioSlide, StudioState } from '@/types'
 import { api, currentAnnouncements, itemById, nearestService, projectorGraphics, serviceTime, servicePlace, sortedServices } from '@/stores'
 
 export const SCENES = [
@@ -20,8 +21,8 @@ export const SCENES = [
 ]
 // media — materiał na cały ekran (scena „Media”); omedia — materiał jako nakładka na kamerze/rzutniku,
 // ovl: 'off', 'full' (cały kadr — PNG z przezroczystym tłem, napis bez tła), 'corner' (okienko w rogu, mpos)
-const look = () => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small', on: false }, lowerAt: 0, lowerOff: 0, media: '', omedia: '', ovl: 'off', mpos: { corner: 'tr', size: 'small' } })
-export const studio = reactive({
+const look = (): Look => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small', on: false }, lowerAt: 0, lowerOff: 0, media: '', omedia: '', ovl: 'off', mpos: { corner: 'tr', size: 'small' } })
+export const studio = reactive<StudioState>({
   program: look(), // to, co idzie na YouTube
   preview: look(), // to, co przygotowujemy
   direct: false, // „Od razu na wizję” — zmiany od razu na wizji (bez podglądu)
@@ -97,7 +98,7 @@ function logo(x, y, h) { const im = img('./znak.png'); if (im) g.drawImage(im, x
 const svcWhen = svc => (svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + serviceTime(svc) : '')
 // Slajdy ogłoszeń (zaznaczone „Pokaż na nabożeństwie”, tylko „dla wszystkich” — transmisja jest publiczna):
 // najpierw grafiki, potem ogłoszenia bez grafiki jako karty z tekstem, na końcu (jeśli włączona) karta nabożeństwa.
-export function slideCandidates() {
+export function slideCandidates(): StudioSlide[] {
   const pub = currentAnnouncements.value.filter(a => a.projector && (a.audience || 'public') === 'public')
   return [
     ...pub.filter(a => a.image).map(a => ({ id: 'a' + a.id, title: a.title, image: a.image })),
@@ -487,7 +488,7 @@ function projectorFrame(t) {
 const mediaUrl = p => (/^https?:\/\//.test(p) ? p : 'media://local/' + encodeURIComponent(p))
 const videos = new Map() // id materiału → <video> (dźwięk filmu idzie do transmisji)
 // Materiał do narysowania: dla prezentacji/pętli — jej bieżący slajd.
-export function mediaSlide(id) {
+export function mediaSlide(id: string): MediaSlide | null {
   const it = id && itemById(id)
   if (!it || it.missing) return null
   if (it.type !== 'scene') return it
@@ -675,13 +676,13 @@ export function studioCanvas() {
     canvas.className = 'studio-canvas'
     g = canvas.getContext('2d', { alpha: false })
   }
-  if (!timer) timer = setInterval(frame, 1000 / studio.fps)
+  if (!timer) timer = window.setInterval(frame, 1000 / studio.fps)
   return canvas
 }
 export function pauseIdle() { if (!studio.live && timer) { clearInterval(timer); timer = 0 } }
 export function setFps(fps) {
   studio.fps = [25, 30, 50, 60].includes(+fps) ? +fps : 30
-  if (timer) { clearInterval(timer); timer = setInterval(frame, 1000 / studio.fps) }
+  if (timer) { clearInterval(timer); timer = window.setInterval(frame, 1000 / studio.fps) }
 }
 
 /* ---------- kamera (ATEM po USB) ---------- */
@@ -771,7 +772,7 @@ export async function setAudio(deviceId) {
 }
 
 /* ---------- kodowanie ---------- */
-const config = (hw) => ({ codec: 'avc1.640028', width: W, height: H, bitrate: studio.bitrate, framerate: studio.fps, hardwareAcceleration: hw, latencyMode: 'realtime', bitrateMode: 'constant', avc: { format: 'annexb' } })
+const config = (hw: HardwareAcceleration): VideoEncoderConfig => ({ codec: 'avc1.640028', width: W, height: H, bitrate: studio.bitrate, framerate: studio.fps, hardwareAcceleration: hw, latencyMode: 'realtime', bitrateMode: 'constant', avc: { format: 'annexb' } })
 // Czy karta graficzna zakoduje H.264 1080p (WebCodecs) — od tego zależy studio; bez tego zostaje tryb prosty.
 export async function checkHardware() {
   if (typeof VideoEncoder === 'undefined') return (studio.hardware = false)

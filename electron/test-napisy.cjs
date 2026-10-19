@@ -4,7 +4,7 @@ const assert = require('node:assert/strict')
 const wait = ms => new Promise(r => setTimeout(r, ms))
 ;(async () => {
   const { createClient } = await import('@supabase/supabase-js')
-  const { createCloud, CLOUD } = await import('../src/renderer/services/cloud.js')
+  const { createCloud, CLOUD } = await import('../src/renderer/services/cloud.ts')
   const client = () => createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: false } })
   const sbA = client(), sbB = client()
   const A = createCloud({}, sbA), B = createCloud({}, sbB)

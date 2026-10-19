@@ -57,7 +57,7 @@ function fromXml(fileTitle, content) {
   if (verses.length) {
     // OpenLyrics: <verse><lines>linia<br/>linia</lines></verse>
     const text = verses.map(verse => [...verse.getElementsByTagName('*')].filter(el => el.localName === 'lines').map(lines => {
-      const copy = lines.cloneNode(true)
+      const copy = lines.cloneNode(true) as Element
       for (const el of [...copy.getElementsByTagName('*')]) {
         if (el.localName === 'br') el.replaceWith('\n')
         else if (el.localName === 'chord' || el.localName === 'comment') el.remove()

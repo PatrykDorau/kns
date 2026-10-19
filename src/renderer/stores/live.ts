@@ -1,11 +1,12 @@
 // Co widać: element biblioteki → to, co rysuje rzutnik; zaznaczenie, „na żywo”, pętle.
 import { computed, ref } from 'vue'
+import type { Shown } from '@/types'
 import { COUNTDOWN } from './library'
 import { nextServiceStart } from './services'
 import { KIND, api, clamp, hidden, items, liveFrozen, liveId, previewIndex, selectedId, settings, songIndex, songs, video } from './state'
 
 export const itemById = id => items.value.find(i => i.id === id)
-export const find = id => (id == null ? null : itemById(id) || songs.value.find(s => s.id === id) || null)
+export const find = (id: string | null): Shown | null => (id == null ? null : (itemById(id) || songs.value.find(s => s.id === id) || null) as Shown | null)
 export const selected = computed(() => find(selectedId.value))
 export const liveItem = computed(() => find(liveId.value))
 
@@ -24,7 +25,7 @@ export function parseSong(song) {
   }
   return cached.list
 }
-export const verses = song => parseSong(song).map(v => v.text)
+export const verses = (song): string[] => parseSong(song).map(v => v.text)
 // Początek tekstu — pomaga upewnić się, że to ta pieśń, a nie inna o podobnym tytule.
 export const firstLine = song => (parseSong(song)[0]?.text.split('\n').slice(0, 2).join(' / ') || '')
 // To, co widać przy slajdzie na liście: jego skrót albo kolejny numer.

@@ -2,20 +2,21 @@
 import { reactive, ref } from 'vue'
 import { mergeTypes } from '@web/church.js'
 import { BAZA, createCloud } from '@/services/cloud'
+import type { KnsApi, LibraryItem, OutputState, Role, Service, Settings, Song, TextStyle } from '@/types'
 
 // Baza danych (Supabase) — „folder wspólny” o nazwie BAZA; inne foldery (dysk, Dysk Google) idą przez IPC.
 export { BAZA }
 
 // Wspólny stan panelu sterowania: biblioteka, pieśni, to co jest na żywo.
-export const api = window.api
+export const api: KnsApi = window.api
 // Pętla ma w danych typ „scene” — tak zapisują ją istniejące biblioteki.
 export const KIND = { image: 'Zdjęcie', video: 'Film', text: 'Tekst', scene: 'Pętla', song: 'Pieśń' }
-export const TEXT_STYLE = { fs: 12, color: '#ffffff', bg: '#000000', bgImage: null, dim: 0.45, align: 'center', valign: 'center', shadow: false }
+export const TEXT_STYLE: TextStyle = { fs: 12, color: '#ffffff', bg: '#000000', bgImage: null, dim: 0.45, align: 'center', valign: 'center', shadow: false }
 export const SONG_LIMIT = 300
 
-export const items = ref([])
-export const songs = ref([])
-export const settings = reactive({
+export const items = ref<LibraryItem[]>([])
+export const songs = ref<Song[]>([])
+export const settings = reactive<Settings>({
   fadeMs: 350, // 0 = bez przejścia
   copyFiles: true,
   remote: false,
@@ -38,9 +39,9 @@ export const settings = reactive({
   songStyle: { ...TEXT_STYLE, fs: 14, shadow: true, valign: 'top' }, // pieśni domyślnie od góry ekranu
 })
 // Aktualizacja aplikacji: { current, version?, ready?, url? } — z procesu głównego.
-export const appUpdate = ref({ current: '' })
-export const role = ref(null) // wybrana służba: 'display' | 'stream' | 'planner'
-export const services = ref([]) // zaplanowane nabożeństwa
+export const appUpdate = ref<{ current: string; version?: string; ready?: boolean; url?: string }>({ current: '' })
+export const role = ref<Role | null>(null) // wybrana służba: 'display' | 'stream' | 'planner'
+export const services = ref<Service[]>([]) // zaplanowane nabożeństwa
 export const cloud = typeof window !== 'undefined' && window.api ? createCloud(window.api) : null
 export const shared = dir => (dir === BAZA ? cloud : api)
 // Życie kościoła z Dysku Google (zapisywane na telefonie): rodzaje wydarzeń z szablonami i wydarzenia.
@@ -61,7 +62,7 @@ export const songIndex = ref(0) // zwrotka pieśni na rzutniku
 export const previewIndex = ref(0) // zwrotka w podglądzie, gdy pieśń nie jest na żywo
 export const displays = ref([])
 export const displayId = ref(null)
-export const output = ref({ open: false, fullscreen: false, waiting: false })
+export const output = ref<OutputState>({ open: false, fullscreen: false, waiting: false })
 export const video = ref({ time: 0, duration: 0, paused: true, step: 0 })
 export const volume = ref(0.25)
 export const notice = ref('')

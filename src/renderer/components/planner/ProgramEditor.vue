@@ -1,17 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { CATEGORIES, addMinutes, categoryName, offsetOf, setCategory } from '@web/church.js'
 import { uid } from '@/stores'
+import type { ProgramItem } from '@/types'
 
 // Program nabożeństwa (ten sam zapis co na telefonie): punkty trzymają przesunięcie w minutach
 // od początku, więc po zmianie godziny nabożeństwa cały program przesuwa się razem z nią.
-const props = defineProps({
-  items: { type: Array, required: true },
-  start: { type: String, default: '00:00' },
-  sermon: { type: Object, default: null },
-  template: { type: Array, default: () => [] },
-})
+const props = withDefaults(defineProps<{
+  items: ProgramItem[]
+  start?: string
+  sermon?: { title?: string; passage?: string; speaker?: string } | null
+  template?: unknown[]
+}>(), { start: '00:00', sermon: null, template: () => [] })
+defineSlots<{ item(props: { item: ProgramItem }): unknown }>()
 const emit = defineEmits(['fill'])
 
 const timeOf = p => addMinutes(props.start || '00:00', p.offset)
@@ -33,8 +35,8 @@ const sermonLine = computed(() => [props.sermon?.title, props.sermon?.passage, p
     <datalist id="pg-cats"><option v-for="c in CATEGORIES" :key="c.id" :value="c.name"></option></datalist>
     <template v-for="(p, i) in items" :key="p.key">
     <div class="pg-line">
-      <input class="pg-time" type="time" :value="timeOf(p)" aria-label="Godzina punktu" @change="setTime(p, $event.target.value)">
-      <input class="pg-cat" :value="categoryName(p)" list="pg-cats" type="text" placeholder="Rodzaj — wybierz albo wpisz" aria-label="Rodzaj punktu" @change="setCategory(p, $event.target.value)" @focus="$event.target.select()">
+      <input class="pg-time" type="time" :value="timeOf(p)" aria-label="Godzina punktu" @change="setTime(p, ($event.target as HTMLInputElement).value)">
+      <input class="pg-cat" :value="categoryName(p)" list="pg-cats" type="text" placeholder="Rodzaj — wybierz albo wpisz" aria-label="Rodzaj punktu" @change="setCategory(p, ($event.target as HTMLInputElement).value)" @focus="($event.target as HTMLInputElement).select()">
       <input v-model="p.title" type="text" :placeholder="p.category === 'kazanie' ? (sermonLine || 'Tytuł kazania') : 'Opis, np. Pieśń / kolekta'" aria-label="Opis punktu">
       <input v-model="p.person" class="pg-person" type="text" placeholder="Kto" aria-label="Kto prowadzi ten punkt">
       <button class="iconbtn danger" title="Usuń punkt" aria-label="Usuń punkt" @click="items.splice(i, 1)"><Icon name="x" /></button>

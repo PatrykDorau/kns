@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { loadListen, loadPublicPreview, DEFAULT_TIME, DEFAULT_PLACE } from '@/stores'
@@ -7,7 +7,7 @@ import { loadListen, loadPublicPreview, DEFAULT_TIME, DEFAULT_PLACE } from '@/st
 // i „Posłuchaj — odkryj nas” (najnowsze kazanie z YouTube i podcast na Spotify). Style: mobile/home.css.
 // Filmy i podcast otwierają się w przeglądarce (odtwarzacze w ramce nie działają w aplikacji z pliku).
 const pub = ref(null)
-const listen = ref({})
+const listen = ref<{ youtube?: string; spotify?: string }>({})
 const latest = ref(null) // najnowszy film z kanału (funkcja na stronie czyta kanał RSS YouTube)
 onMounted(async () => {
   const r = await loadPublicPreview(); if (!r.error) pub.value = r
@@ -18,7 +18,7 @@ onMounted(async () => {
 })
 const openUrl = url => window.open(url, '_blank')
 const now = ref(Date.now())
-const timer = setInterval(() => { now.value = Date.now() }, 1000)
+const timer = window.setInterval(() => { now.value = Date.now() }, 1000)
 onUnmounted(() => clearInterval(timer))
 
 const asDate = d => new Date(d + 'T12:00')
