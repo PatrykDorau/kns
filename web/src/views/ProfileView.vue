@@ -66,6 +66,14 @@ export default defineComponent({ setup: () => useApp() })
     <div class="pc-text"><b>Newsletter e-mail</b><p>Co czwartek: kalendarz na dwa tygodnie i ogłoszenia — na {{ me.email }}.</p></div>
     <button class="switch" :class="{ on: me.newsletter }" role="switch" :aria-checked="!!me.newsletter" aria-label="Newsletter e-mail" :disabled="newsBusy" @click="toggleNewsletter"></button>
   </div>
+  <!-- e-maile według rodzaju: osobna zgoda na każdy -->
+  <div v-if="api.enabled && me?.status === 'active'" class="mail-kinds">
+    <p class="mk-head"><b>Powiadomienia e-mailem</b><small>Wybierz, co ma przychodzić także na {{ me.email }}. W aplikacji (dzwonek) i na telefonie przychodzi wszystko.</small></p>
+    <div v-for="[id, name, hint] in MAIL_KINDS" :key="id" class="mk-row">
+      <span><b>{{ name }}</b><small>{{ hint }}</small></span>
+      <button class="switch" :class="{ on: !!me.mailPrefs?.[id] }" role="switch" :aria-checked="!!me.mailPrefs?.[id]" :aria-label="'E-mail: ' + name" :disabled="mailBusy === id" @click="toggleMail(id)"></button>
+    </div>
+  </div>
   <div v-if="api.enabled && me?.status === 'active'" class="pc-actions mail-test">
     <button :disabled="mailTest.busy" title="Wysyła newsletter na Twój adres, żeby zobaczyć, jak wygląda" @click="testNewsletter">{{ mailTest.busy ? 'Wysyłam…' : 'Wyślij próbny e-mail' }}</button>
     <small v-if="mailTest.text" :class="{ 'pc-error': mailTest.bad }">{{ mailTest.text }}</small>

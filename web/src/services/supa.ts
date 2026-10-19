@@ -7,7 +7,7 @@ import { createDrive } from './drive.ts'
 
 // Rangi z bazy → kształt używany w aplikacji (jak w serwer.gs).
 const rank = r => ({ id: r.id, name: r.name, edit: r.can_edit, council: r.council, protocols: r.protocols, manage: r.manage, approve: !!r.approve })
-const view = p => ({ email: p.email, name: p.name || '', grupa: p.grupa || '', status: p.status, roles: p.roles || [], requested: p.requested ? new Date(p.requested).getTime() : 0, newsletter: !!p.newsletter })
+const view = p => ({ email: p.email, name: p.name || '', grupa: p.grupa || '', status: p.status, roles: p.roles || [], requested: p.requested ? new Date(p.requested).getTime() : 0, newsletter: !!p.newsletter, mailPrefs: p.mail_prefs || {} })
 const day = d => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : null)
 
 // Klient bazy z npm; w teście z udawaną bazą (vite --mode baza) skrypt udawana-baza.js podstawia window.supabase.
@@ -204,6 +204,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'ministryPeople') return { people: check(await sb.rpc('ministry_people')) || [] }
       if (action === 'memberNames') return { people: check(await sb.rpc('member_names')) || [] }
       if (action === 'calendarToken') return { token: check(await sb.rpc('my_calendar_token', { renew: !!data.renew })) }
+      if (action === 'setMailPrefs') return { person: view(check(await sb.rpc('set_mail_prefs', { prefs: data.prefs || {} }))) }
       if (action === 'setNewsletter') return { person: view(check(await sb.rpc('set_newsletter', { enabled: !!data.on }))) }
       throw new Error('Nieznane polecenie.')
     },

@@ -65,7 +65,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.92 · 19.10.2026'
+const VERSION = '2.93 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1351,6 +1351,23 @@ export default defineComponent({
         mailTest.bad = true
       } catch (e) { mailTest.text = e.message; mailTest.bad = true } finally { mailTest.busy = false }
     }
+    // E-maile według rodzaju powiadomienia (osobne zgody; domyślnie wyłączone)
+    const MAIL_KINDS = [
+      ['wiadomosci', 'Wiadomości', 'od pastora, rady i liderów'],
+      ['wydarzenia', 'Wydarzenia i zapisy', 'zaproszenia, miejsca, potwierdzenia zapisów'],
+      ['glosowania', 'Głosowania i wybory', 'otwarcie głosowania, wyniki'],
+      ['sluzby', 'Służby', 'zgłoszenia i decyzje liderów'],
+      ['asb', 'ASB', 'przypomnienia o prowadzeniu spotkań'],
+      ['cele', 'Cele wsparcia', 'przypomnienia o potwierdzeniu'],
+      ['ogloszenia', 'Ogłoszenia do zatwierdzenia', 'dla osób, które je zatwierdzają'],
+    ]
+    const mailBusy = ref('')
+    async function toggleMail(kind) {
+      const prefs = { ...(me.value?.mailPrefs || {}) }
+      prefs[kind] = !prefs[kind]
+      mailBusy.value = kind
+      try { me.value = (await api.call('setMailPrefs', { prefs })).person } catch (e) { error.value = e.message } finally { mailBusy.value = '' }
+    }
     async function toggleNewsletter() {
       newsBusy.value = true; error.value = ''
       try { me.value = (await api.call('setNewsletter', { on: !me.value?.newsletter })).person } catch (e) { error.value = e.message } finally { newsBusy.value = false }
@@ -1979,7 +1996,8 @@ export default defineComponent({
           }
         }
         await drive.savePush(pushId, pushRecord(sub))
-        push.on = true
+        push.on = true; pushAsk.value = false
+        try { localStorage.setItem('kns-push', 'on') } catch { /* tryb prywatny */ }
         reg.showNotification('Powiadomienia włączone', { body: 'Dam znać, jeśli na niedzielę czegoś brakuje. Termin przypomnienia zmienisz w aplikacji.', icon: 'icon-192.png', badge: 'badge.png' })
       } catch (e) {
         // Brave (i niektóre przeglądarki) domyślnie wyłącza usługę powiadomień — wtedy zapis kończy się tym błędem.
@@ -2032,9 +2050,25 @@ export default defineComponent({
         await (await reg.pushManager.getSubscription())?.unsubscribe()
         await drive.removePush(pushId)
         push.on = false
+        try { localStorage.setItem('kns-push', 'off') } catch { /* tryb prywatny */ } // wyłączone świadomie — bez ponownego pytania
       } catch (e) { push.error = e.message || String(e) } finally { push.busy = false }
     }
     checkPush().catch(() => {})
+    // Powiadomienia domyślnie włączone: po zalogowaniu telefon zapisuje się sam (gdy pozwolenie już jest) albo
+    // pokazuje kartę „Włącz powiadomienia” (pozwolenie wymaga dotknięcia). Wyłączone w profilu — nie pyta więcej;
+    // „Nie teraz” — zapyta znowu za tydzień.
+    const pushAsk = ref(false)
+    async function autoPush() {
+      let pref = '', later = 0
+      try { pref = localStorage.getItem('kns-push') || ''; later = +(localStorage.getItem('kns-push-later') || 0) } catch { /* tryb prywatny */ }
+      if (!push.supported || push.needsInstall || push.otherBrowser || push.denied || pref === 'off') return
+      await checkPush()
+      if (push.on) return
+      if (Notification.permission === 'granted') { await enablePush(); return }
+      if (Date.now() - later > 7 * 864e5) pushAsk.value = true
+    }
+    function pushLater() { pushAsk.value = false; try { localStorage.setItem('kns-push-later', String(Date.now())) } catch { /* tryb prywatny */ } }
+    watch(ready, r => { if (r) setTimeout(() => autoPush().catch(() => {}), 1500) }, { immediate: true })
 
     // Zamknięcie karty z niezapisanymi zmianami wymaga potwierdzenia.
     addEventListener('beforeunload', e => { if (dirty.value || (eventDirty.value && eventSavedOnce.value) || tplDirty.value || (protoDirty.value && protoSavedOnce.value) || (annDirty.value && annSavedOnce.value)) e.preventDefault() })
@@ -2207,7 +2241,7 @@ export default defineComponent({
       inviteEvent, moreView, openMore, nextService, nextSundayDate, planSunday, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, peopleUi, rankName, ranksShown, openRanks, cancelRanks, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
-      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
+      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushLater, MAIL_KINDS, mailBusy, toggleMail, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,
@@ -2251,6 +2285,13 @@ export default defineComponent({
   </div>
   <p v-if="desktopMode" class="desktop-mode">Telefon wyświetla tę stronę jako „wersję na komputer” — dlatego wszystko jest drobne. W Chrome: menu ⋮ → odznacz „Wersja na komputer”.</p>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
+  <!-- powiadomienia na telefonie: domyślnie włączone — jedno dotknięcie (telefon wymaga zgody) -->
+  <div v-if="ready && pushAsk && !push.on" class="push-ask" role="region" aria-label="Powiadomienia">
+    <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
+    <span class="pa-text"><b>Włącz powiadomienia na tym telefonie</b><small>Wiadomości, głosowania, zapisy i przypomnienia. Wyłączysz je w Mój profil.</small></span>
+    <span class="pa-btns"><button class="ghost" @click="pushLater">Nie teraz</button><button class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button></span>
+    <small v-if="push.error" class="pa-err">{{ push.error }}</small>
+  </div>
   <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
   <p v-if="error" class="error" role="alert">{{ error }}
     <button v-if="/konta|konto/.test(error) && !drive.demo" class="ghost link" :disabled="busy" @click="otherAccount">Zaloguj innym kontem</button></p>
