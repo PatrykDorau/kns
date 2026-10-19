@@ -100,6 +100,13 @@ export function addText() {
   selectedId.value = it.id
 }
 
+// Strona internetowa na rzutniku (adres wpisuje się po prawej).
+export function addWeb() {
+  const it: LibraryItem = { id: uid(), type: 'web', name: '', url: '', zoom: 1.5, scroll: 0, bg: '#000000' }
+  items.value.push(it)
+  selectedId.value = it.id
+}
+
 /* ---------- Biblia ---------- */
 // Plik Biblii jest wczytywany raz (zapamiętany w danych aplikacji), a fragment staje się pętlą
 // slajdów tekstowych przełączanych ręcznie — tak jak prezentacja.

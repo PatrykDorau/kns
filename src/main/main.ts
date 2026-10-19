@@ -819,15 +819,28 @@ const webPreferences = { preload: path.join(__dirname, '..', 'preload', 'preload
 const WEB_URL = (process.env.KNS_WEB_URL || (process.env.RZUTNIK_HIDDEN ? '' : 'https://kns-nabo.netlify.app')).replace(/\/+$/, '')
 const WEB_ORIGIN = WEB_URL ? new URL(WEB_URL).origin : ''
 const isWeb = url => { try { return !!WEB_ORIGIN && new URL(url).origin === WEB_ORIGIN } catch { return false } }
+// Strona internetowa jako materiał Rzutnika (webview w podglądzie i na rzutniku): osobna sesja, bez preloadu.
+const PAGE_PARTITION = 'rzutnik-strona'
 // Wbudowana strona: tylko adres kns-nabo, bez dostępu do Node, z małym preloadem (logowanie, Rzutnik/Stream);
 // linki na zewnątrz otwierają się w przeglądarce.
 app.on('web-contents-created', (_e, contents) => {
   contents.on('will-attach-webview', (e, prefs, params) => {
     delete (prefs as any).preloadURL
+    if (params.partition === PAGE_PARTITION) {
+      delete (prefs as any).preload
+      Object.assign(prefs, { nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true })
+      if (!/^https?:\/\//i.test(params.src || '')) e.preventDefault()
+      return
+    }
     Object.assign(prefs, { preload: path.join(__dirname, '..', 'preload', 'web-preload.js'), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true })
     if (!isWeb(params.src)) e.preventDefault()
   })
   if (contents.getType() !== 'webview') return
+  if (contents.session === session.fromPartition(PAGE_PARTITION)) {
+    contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    contents.on('will-navigate', (e, url) => { if (!/^https?:\/\//i.test(url)) e.preventDefault() })
+    return
+  }
   contents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' } })
   contents.on('will-navigate', (e, url) => { if (!isWeb(url)) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url) } })
 })

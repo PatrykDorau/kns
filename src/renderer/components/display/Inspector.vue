@@ -27,6 +27,18 @@ function moveEntry(from, to) {
   const list = selected.value.entries
   list.splice(to, 0, ...list.splice(from, 1))
 }
+// Strona internetowa: adres (bez „https://” dopisuje się sam), przewijanie ekranami.
+function setUrl(e: Event) {
+  let u = (e.target as HTMLInputElement).value.trim()
+  if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u
+  if (u === selected.value.url) return
+  selected.value.url = u; selected.value.scroll = 0; selected.value.webMax = undefined
+  if (!selected.value.name) try { selected.value.name = new URL(u).hostname.replace(/^www\./, '') } catch { /* zły adres */ }
+}
+function scrollWeb(d: number) {
+  const it = selected.value, max = it.webMax ?? Infinity
+  it.scroll = Math.max(0, Math.min(max, (it.scroll || 0) + d))
+}
 // Układanie slajdów przeciąganiem.
 const dragFrom = ref(null)
 const dragTo = ref(null)
@@ -137,6 +149,24 @@ function dropEntry(i) {
         <option v-for="c in loopCandidates" :key="c.id" :value="c.id" :disabled="c.missing">{{ KIND[c.type] }}: {{ label(c) }}</option>
       </select>
     </template>
+  </template>
+
+  <!-- strona internetowa -->
+  <template v-else-if="selected.type === 'web'">
+    <label for="wUrl">Adres strony</label>
+    <input id="wUrl" style="width:100%" :value="selected.url" type="text" inputmode="url" placeholder="np. https://www.biblia.info.pl" spellcheck="false" @change="setUrl($event)" @keydown.enter="setUrl($event)">
+    <p class="note">Strona otwiera się w osobnym, zamkniętym oknie (bez dostępu do komputera). Na rzutniku i w podglądzie wygląda tak samo; przewija się przyciskami poniżej. Niektóre strony wymagają logowania albo pokazują zgodę na pliki cookie — wtedy lepiej zrzut ekranu.</p>
+    <label>Przewijanie</label>
+    <div class="row2 web-scroll">
+      <button title="Na samą górę" @click="scrollWeb(-Infinity)">Na górę</button>
+      <button title="Ekran w górę" @click="scrollWeb(-800)"><Icon name="up" />Wyżej</button>
+      <button title="Ekran w dół" @click="scrollWeb(800)"><Icon name="down" />Niżej</button>
+    </div>
+    <input type="range" min="0" :max="Math.max(selected.webMax || 0, selected.scroll || 0)" step="10" :value="selected.scroll || 0" aria-label="Przewinięcie strony" @input="selected.scroll = +($event.target as HTMLInputElement).value">
+    <label for="wZoom">Powiększenie</label>
+    <select id="wZoom" v-model.number="selected.zoom">
+      <option v-for="z in [0.75, 1, 1.25, 1.5, 1.75, 2]" :key="z" :value="z">{{ Math.round(z * 100) }}%</option>
+    </select>
   </template>
 
   <!-- zdjęcie / film -->

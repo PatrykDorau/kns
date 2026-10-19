@@ -4,7 +4,7 @@ import { focusEl } from '@/utils/dom'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import {
-  bibleOpen, addLoop, addCountdown, addText, addAnnouncements, currentAnnouncements, projectorGraphics, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
+  bibleOpen, addLoop, addCountdown, addText, addWeb, addAnnouncements, currentAnnouncements, projectorGraphics, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
   renameValue, renamingId, search, selectedId, startRename, visibleItems,
 } from '@/stores'
 
@@ -44,6 +44,7 @@ function drop(it) {
     <button @click="addText"><Icon name="text" />Tekst</button>
     <button title="Odliczanie do nabożeństwa albo przez podaną liczbę minut" @click="addCountdown"><Icon name="timer" />Odliczanie</button>
     <button title="Fragment Biblii jako slajdy, np. J 3,16–21" @click="bibleOpen = true"><Icon name="book" />Biblia</button>
+    <button title="Strona internetowa na rzutniku — adres, powiększenie, przewijanie" @click="addWeb"><Icon name="link" />Strona</button>
     <button @click="addLoop"><Icon name="loop" />Pętla</button>
     <button :disabled="!projectorGraphics.length" :title="projectorGraphics.length ? 'Grafiki ogłoszeń i wydarzeń zaznaczonych „Pokaż na nabożeństwie” (' + projectorGraphics.length + ') jako pętla — przed i po nabożeństwie' : 'Brak grafik do pokazania — w ogłoszeniu (telefon albo strona) dodaj grafikę i zaznacz „Pokaż na nabożeństwie”'" @click="addAnnouncements"><Icon name="info" />Ogłoszenia<span v-if="projectorGraphics.length" class="pill">{{ projectorGraphics.length }}</span></button>
   </div>

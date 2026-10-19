@@ -10,7 +10,7 @@ export { BAZA }
 // Wspólny stan panelu sterowania: biblioteka, pieśni, to co jest na żywo.
 export const api: KnsApi = window.api
 // Pętla ma w danych typ „scene” — tak zapisują ją istniejące biblioteki.
-export const KIND = { image: 'Zdjęcie', video: 'Film', text: 'Tekst', scene: 'Pętla', song: 'Pieśń' }
+export const KIND = { image: 'Zdjęcie', video: 'Film', text: 'Tekst', scene: 'Pętla', song: 'Pieśń', web: 'Strona internetowa' }
 export const TEXT_STYLE: TextStyle = { fs: 12, color: '#ffffff', bg: '#000000', bgImage: null, dim: 0.45, align: 'center', valign: 'center', shadow: false }
 export const SONG_LIMIT = 300
 

@@ -12,7 +12,7 @@ import { SYNC_EVERY, markSynced, mergeTwinSongs, pushSoon, sharedAccount, songsC
 // Przez IPC przechodzą tylko zwykłe obiekty, nie reaktywne — stąd kopia przez JSON.
 export const plainCopy = data => JSON.parse(JSON.stringify(data))
 export const savers = {
-  library: () => api.saveStore('library', plainCopy(items.value.map(({ missing, ...rest }) => rest))),
+  library: () => api.saveStore('library', plainCopy(items.value.map(({ missing, webMax, ...rest }) => rest))),
   songs: () => api.saveStore('songs', plainCopy(songs.value)),
   settings: () => api.saveStore('settings', plainCopy(settings)),
   services: () => api.saveStore('services', plainCopy(services.value)),

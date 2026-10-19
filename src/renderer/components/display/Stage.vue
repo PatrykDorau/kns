@@ -7,7 +7,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // frozen: wszystko staje w miejscu — film pauzuje, pętla nie przechodzi dalej.
 // instant: zmiana na inny materiał bez przenikania (podgląd w panelu) — przejścia między slajdami pętli zostają.
 const props = defineProps({ item: Object, live: Boolean, mirror: Boolean, frozen: Boolean, instant: Boolean, followStep: { type: Number, default: null } })
-const emit = defineEmits(['video', 'step'])
+const emit = defineEmits(['video', 'step', 'webmax'])
 const root = ref(null)
 const video = ref(null)
 // setStep: ręczne przejście do wskazanego slajdu pętli.
@@ -85,8 +85,26 @@ function fit() {
     }
   }
 }
-const resize = new ResizeObserver(fit)
-onMounted(() => { resize.observe(root.value); fit() })
+// Strona internetowa: osobna, zamknięta sesja (partition „rzutnik-strona” — bez preloadu, bez Node), stały
+// rozmiar 1920×1080 przeskalowany do sceny, żeby przewinięcie i powiększenie wyglądały tak samo w podglądzie i na rzutniku.
+const WEB_W = 1920
+const webScale = ref(1)
+const webEl = ref(null)
+const webReady = ref(false)
+function webApply() {
+  const el = webEl.value, c = current.value
+  if (!el || !webReady.value || c?.type !== 'web') return
+  try {
+    el.setZoomFactor(+c.zoom || 1)
+    el.setAudioMuted(!props.live)
+    el.executeJavaScript(`window.scrollTo({ top: ${+c.scroll || 0}, behavior: 'smooth' }); Math.max(0, document.documentElement.scrollHeight - innerHeight)`).then(m => emit('webmax', m)).catch(() => {})
+  } catch { /* strona jeszcze się ładuje */ }
+}
+function webRef(el) { if (el !== webEl.value) { webEl.value = el; webReady.value = false } }
+function onWebReady() { webReady.value = true; webApply(); setTimeout(webApply, 1500) } // drugi raz — po doczytaniu obrazków
+watch(() => [current.value?.scroll, current.value?.zoom, props.live], webApply)
+const resize = new ResizeObserver(() => { fit(); if (root.value) webScale.value = root.value.clientWidth / WEB_W })
+onMounted(() => { resize.observe(root.value); fit(); webScale.value = root.value.clientWidth / WEB_W })
 watch(() => [layerKey.value, current.value?.text, current.value?.fs], () => nextTick(fit), { flush: 'post' })
 onBeforeUnmount(() => { clearTimeout(timer); resize.disconnect() })
 
@@ -147,6 +165,9 @@ function onEnded(e) {
           @loadstart="onVideo" @loadedmetadata="onVideo" @timeupdate="onVideo"
           @play="onVideo" @pause="onVideo" @ended="onEnded"
         />
+        <div v-else-if="current.type === 'web'" class="webbox">
+          <webview :ref="webRef" :src="current.url" partition="rzutnik-strona" class="webpage" :style="{ transform: 'scale(' + webScale + ')' }" @dom-ready="onWebReady"></webview>
+        </div>
         <div v-else class="txt" :class="{ shadow: current.shadow }" :data-fs="current.fs" :style="{ color: current.color, textShadow: textShadow(current), alignItems: VALIGN[current.valign] || 'center' }">
           <div :style="{ textAlign: current.align }">{{ shown }}</div>
         </div>

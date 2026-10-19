@@ -1,6 +1,6 @@
 // Biblioteka materiałów, pieśni i nabożeństwa — tak, jak są zapisane na dysku i w bazie.
 
-export type ItemType = 'image' | 'video' | 'text' | 'scene' | 'song'
+export type ItemType = 'image' | 'video' | 'text' | 'scene' | 'song' | 'web'
 
 // Wygląd tekstu (materiał „Tekst”, pieśni, Biblia, odliczanie).
 export interface TextStyle {
@@ -38,6 +38,11 @@ export interface LibraryItem extends Partial<TextStyle> {
   countMode?: 'service' | 'minutes' | string // odliczanie: do nabożeństwa albo o kilka minut
   minutes?: number
   target?: number
+  // strona internetowa: adres, powiększenie, przewinięcie (px strony przy oknie 1920×1080)
+  url?: string
+  zoom?: number
+  scroll?: number
+  webMax?: number // ile da się przewinąć (z podglądu; nie trzeba zapisywać)
   // pętla / prezentacja
   seconds?: number
   volume?: number

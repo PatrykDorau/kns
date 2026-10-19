@@ -138,5 +138,6 @@ export const canGo = computed(() => {
   if (!it || it.missing) return false
   if (it.type === 'scene') return view(it).slides.length > 0
   if (it.type === 'song') return verses(it).length > 0
+  if (it.type === 'web') return /^https?:\/\/\S+\.\S+/.test(it.url || '')
   return true
 })

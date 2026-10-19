@@ -27,6 +27,7 @@ const shown = computed(() => {
     <img v-else-if="shown.type === 'image'" :src="url(shown)" alt="" draggable="false">
     <!-- #t=0.1 każe przeglądarce narysować pierwszą klatkę bez odtwarzania -->
     <video v-else-if="shown.type === 'video'" :src="url(shown) + '#t=0.1'" preload="metadata" muted tabindex="-1"></video>
+    <Icon v-else-if="shown.type === 'web'" name="link" />
     <span v-else-if="shown.type === 'text'" class="thumb-text" :style="{ background: shown.bg, color: shown.color }">Aa</span>
     <span v-if="isLoop && shown" class="thumb-play loopmark"><Icon name="loop" /></span>
     <span v-else-if="shown?.type === 'video' && !shown.missing" class="thumb-play"><Icon name="play" /></span>
