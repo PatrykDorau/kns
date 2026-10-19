@@ -1,11 +1,11 @@
-// Test wysyłki w trybie studia (electron/streamer.cjs → startStudio): gotowy H.264 (jak z WebCodecs) przez stdin,
-// dźwięk PCM 48 kHz przez gniazdo, lokalny serwer RTMP zamiast YouTube. node electron/test-studio-stream.cjs
+// Test wysyłki w trybie studia (src/main/streamer.ts → startStudio): gotowy H.264 (jak z WebCodecs) przez stdin,
+// dźwięk PCM 48 kHz przez gniazdo, lokalny serwer RTMP zamiast YouTube. node tests/electron/test-studio-stream.cjs
 const assert = require('node:assert/strict')
 const { spawn, execFile } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { Streamer, ffmpegPath } = require('./streamer.cjs')
+const { Streamer, ffmpegPath } = require('../../dist-electron/main/streamer.js')
 const wait = ms => new Promise(r => setTimeout(r, ms))
 
 ;(async () => {
@@ -38,7 +38,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms))
 
 // Zatkany internet: zaległość > 48 MB → pomijanie klatek do najbliższej kluczowej, potem znów normalnie.
 ;(() => {
-  const { isKeyFrame } = require('./streamer.cjs')
+  const { isKeyFrame } = require('../../dist-electron/main/streamer.js')
   const key = Buffer.from([0, 0, 0, 1, 0x67, 1, 2, 0, 0, 0, 1, 0x65, 9])
   const delta = Buffer.from([0, 0, 0, 1, 0x41, 1, 2, 3])
   assert.equal(isKeyFrame(key), true); assert.equal(isKeyFrame(delta), false)

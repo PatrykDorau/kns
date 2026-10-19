@@ -1,0 +1,21 @@
+{
+  // Proces główny Electrona (src/main) i skrypty okien (src/preload) → dist-electron (CommonJS).
+  // Budowanie: npm run build:main (skrypty/build-main.mjs: tsc + sekret Google obok kodu)
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "rootDir": "src",
+    "outDir": "dist-electron",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "sourceMap": false,
+    // na start łagodnie; zaostrzać stopniowo
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": ["src/main/**/*.ts", "src/preload/**/*.ts"]
+}

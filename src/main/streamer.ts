@@ -2,12 +2,12 @@
 // „Blackmagic Design” w Windows), nakłada napisy pieśni (tekst z pliku, odświeżany co klatkę, z miękkim cieniem),
 // koduje kartą graficzną NVIDIA (NVENC; bez niej — procesorem w 720p) i wysyła po RTMP. Do tego mały podgląd MJPEG
 // (http://127.0.0.1:<port>/podglad) i statystyki (kl./s, przepływność, zgubione klatki). Zerwane łącze → wznowienie.
-const { spawn, execFile } = require('node:child_process')
-const { EventEmitter } = require('node:events')
-const http = require('node:http')
-const net = require('node:net')
-const fs = require('node:fs')
-const path = require('node:path')
+import { spawn, execFile } from 'node:child_process'
+import { EventEmitter } from 'node:events'
+import http from 'node:http'
+import net from 'node:net'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // FFmpeg z paczki ffmpeg-static (w instalatorze rozpakowany obok app.asar).
 function ffmpegPath() {
@@ -55,6 +55,9 @@ function isKeyFrame(b) {
   return false
 }
 class Streamer extends EventEmitter {
+  // proces FFmpeg, podgląd, napisy i stan nadawania
+  dir: () => string; proc: any; want: any; state: any; preview: any; audio: any
+  lastText: string; lastStats: number; statsTimer: any; skipped: number; choked: boolean; switching: any
   constructor({ dir }) {
     super()
     this.dir = dir
@@ -213,7 +216,7 @@ class Streamer extends EventEmitter {
   async launchStudio() {
     const o = this.want
     if (!o) return
-    const port = await new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)) }) })
+    const port = await new Promise<number>(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = (s.address() as any).port; s.close(() => r(p)) }) })
     let log = ''
     const fps = [25, 30, 50, 60].includes(+o.fps) ? +o.fps : 30
     const proc = spawn(ffmpegPath(), ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1',
@@ -298,4 +301,4 @@ class Streamer extends EventEmitter {
   }
 }
 
-module.exports = { Streamer, listDevices, ffmpegPath, lyricsFilter, isKeyFrame }
+export { Streamer, listDevices, ffmpegPath, lyricsFilter, isKeyFrame }

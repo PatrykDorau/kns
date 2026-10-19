@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webUtils } = require('electron')
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 const on = channel => handler => {
   const listener = (e, data) => handler(data)

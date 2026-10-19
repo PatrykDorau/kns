@@ -1,13 +1,13 @@
-// Test nadawania (electron/streamer.cjs): obraz testowy zamiast ATEM, lokalny serwer RTMP (sam FFmpeg) zamiast YouTube.
+// Test nadawania (src/main/streamer.ts): obraz testowy zamiast ATEM, lokalny serwer RTMP (sam FFmpeg) zamiast YouTube.
 // Sprawdza: start, statystyki, podgląd MJPEG, napisy w pliku, zatrzymanie; nagranie z „YouTube” ma obraz H.264 i dźwięk AAC.
-// node electron/test-stream.cjs (koder procesorem — test działa także bez karty NVIDIA)
+// node tests/electron/test-stream.cjs (koder procesorem — test działa także bez karty NVIDIA)
 const assert = require('node:assert/strict')
 const { spawn, execFile } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const http = require('node:http')
-const { Streamer, ffmpegPath } = require('./streamer.cjs')
+const { Streamer, ffmpegPath } = require('../../dist-electron/main/streamer.js')
 const wait = ms => new Promise(r => setTimeout(r, ms))
 
 ;(async () => {

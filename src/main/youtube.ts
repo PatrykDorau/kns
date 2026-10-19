@@ -3,11 +3,11 @@
 // raz), transmisje (tworzenie z tytułem i opisem z nabożeństwa, zmiana, zakończenie) i stan sygnału.
 // Interfejs: YouTube Data API v3 (w Google Cloud musi być włączony dla projektu klienta z google-config.cjs).
 // Zależności z zewnątrz (dir, open, encrypt/decrypt), żeby test działał bez Electrona; KNS_YT_BASE — podstawiony serwer.
-const http = require('node:http')
-const crypto = require('node:crypto')
-const fs = require('node:fs')
-const path = require('node:path')
-const CONFIG = require('./google-config.cjs')
+import http from 'node:http'
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import CONFIG from './google-config'
 
 const TEST_BASE = process.env.KNS_YT_BASE || ''
 const API = (TEST_BASE || 'https://www.googleapis.com') + '/youtube/v3'
@@ -32,7 +32,7 @@ function explain(status, data) {
   return msg || `YouTube odpowiedział błędem ${status}.`
 }
 
-module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(s), decrypt = b => b.toString() }) {
+export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s), decrypt = b => b.toString() }) {
   const file = () => path.join(dir(), 'youtube-auth.bin')
   let auth = null // { refresh, access, expires, channel, channelId, streamId }
   try { auth = JSON.parse(decrypt(fs.readFileSync(file()))) } catch { auth = null }
@@ -68,7 +68,7 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
     return auth.access
   }
   // Zapytanie do YouTube: 401 → nowy token; błąd po stronie Google (5xx) → do dwóch powtórek.
-  async function call(method, pathAndQuery, body, attempt = 0) {
+  async function call(method, pathAndQuery, body?, attempt = 0) {
     const token = await accessToken()
     const res = await fetch(API + pathAndQuery, { method, headers: { Authorization: 'Bearer ' + token, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined })
     if (res.status === 401 && attempt === 0) { auth.access = ''; return call(method, pathAndQuery, body, 1) }
@@ -102,7 +102,7 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
       verifier = b64(crypto.randomBytes(32))
       const challenge = b64(crypto.createHash('sha256').update(verifier).digest())
       const state = b64(crypto.randomBytes(16))
-      ;({ code, redirect } = await new Promise((resolve, reject) => {
+      ;({ code, redirect } = await new Promise<any>((resolve, reject) => {
         let port = 0, done = false
         const server = http.createServer((req, res) => {
           const url = new URL(req.url, 'http://127.0.0.1')
@@ -119,7 +119,7 @@ module.exports = function createYouTube({ dir, open, encrypt = s => Buffer.from(
         })
         const timer = setTimeout(() => { server.close(); reject(new Error('Logowanie nie zostało dokończone w ciągu 5 minut.')) }, 5 * 60000)
         server.listen(0, '127.0.0.1', () => {
-          port = server.address().port
+          port = (server.address() as any).port
           open('https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
             client_id: CONFIG.clientId, redirect_uri: `http://127.0.0.1:${port}`, response_type: 'code', scope: SCOPE,
             code_challenge: challenge, code_challenge_method: 'S256', access_type: 'offline', prompt: 'consent select_account', state,

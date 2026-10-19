@@ -1,11 +1,11 @@
-// Test zmiany źródła dźwięku w trakcie transmisji w trybie prostym (electron/streamer.cjs → switchAudio):
-// nadawanie wraca samo po krótkim restarcie, bez liczenia jako „wznowienie” po awarii. node electron/test-stream-audio.cjs
+// Test zmiany źródła dźwięku w trakcie transmisji w trybie prostym (src/main/streamer.ts → switchAudio):
+// nadawanie wraca samo po krótkim restarcie, bez liczenia jako „wznowienie” po awarii. node tests/electron/test-stream-audio.cjs
 const assert = require('node:assert/strict')
 const { spawn } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { Streamer, ffmpegPath } = require('./streamer.cjs')
+const { Streamer, ffmpegPath } = require('../../dist-electron/main/streamer.js')
 const wait = ms => new Promise(r => setTimeout(r, ms))
 
 ;(async () => {

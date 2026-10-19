@@ -1,14 +1,15 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker, shell, safeStorage, session, desktopCapturer } = require('electron')
-const path = require('node:path')
-const fs = require('node:fs')
-const os = require('node:os')
-const http = require('node:http')
-const { Readable } = require('node:stream')
-const { execFile } = require('node:child_process')
-const createGoogleDrive = require('./gdrive.cjs')
-const { Atem } = require('./atem.cjs')
-const createYouTube = require('./youtube.cjs')
-const { Streamer, listDevices } = require('./streamer.cjs')
+import { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker, shell, safeStorage, session, desktopCapturer } from 'electron'
+import path from 'node:path'
+import fs from 'node:fs'
+import os from 'node:os'
+import http from 'node:http'
+import { Readable } from 'node:stream'
+import { execFile } from 'node:child_process'
+import createGoogleDrive from './gdrive'
+import { Atem } from './atem'
+import createYouTube from './youtube'
+import { Streamer, listDevices } from './streamer'
+import CONFIG from './google-config'
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL
 // Dane zostają w dotychczasowym folderze niezależnie od nazwy programu — zmiana nazwy
@@ -66,7 +67,7 @@ async function serveMedia(request) {
   // (media:// działa tylko w oknach aplikacji — strona kościoła w środku ma osobną sesję bez tego protokołu)
   const headers = { 'Content-Type': type, 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes', 'Access-Control-Allow-Origin': '*' }
   if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${size}`
-  return new Response(Readable.toWeb(fs.createReadStream(file, { start, end })), { status, headers })
+  return new Response(Readable.toWeb(fs.createReadStream(file, { start, end })) as any, { status, headers })
 }
 
 async function uniquePath(dir, name) {
@@ -117,9 +118,9 @@ async function saveImage(name, bytes) {
 let pptxJob = null
 function convertPptx(file) {
   if (pptxJob) return Promise.resolve({ error: 'Inna prezentacja jest właśnie przetwarzana.' })
-  return new Promise(resolve => {
+  return new Promise<any>(resolve => {
     const win = new BrowserWindow({ show: false, width: 960, height: 540, webPreferences: { ...webPreferences, offscreen: true } })
-    const job = pptxJob = { file, name: path.parse(file).name, win, slides: [] }
+    const job: any = pptxJob = { file, name: path.parse(file).name, win, slides: [] }
     const timer = setTimeout(() => job.finish('Przetwarzanie prezentacji trwało zbyt długo.'), 300000)
     job.finish = error => {
       if (pptxJob !== job) return
@@ -536,7 +537,7 @@ async function googleDriveEmails() {
   return emails
 }
 
-const regQuery = key => new Promise(resolve => execFile('reg', ['query', key], { windowsHide: true }, (err, out) => resolve(err ? '' : out)))
+const regQuery = key => new Promise<string>(resolve => execFile('reg', ['query', key], { windowsHide: true }, (err, out) => resolve(err ? '' : out)))
 async function oneDriveAccount(dir) {
   for (const kind of ['Personal', 'Business1', 'Business2']) {
     const out = await regQuery('HKCU\\Software\\Microsoft\\OneDrive\\Accounts\\' + kind)
@@ -573,7 +574,7 @@ const cueNotify = () => toControl('cue:clients', cue ? cue.clients.size : 0)
 // Ten sam sygnał idzie też przez internet (ntfy.sh) do ekranu „Kamera” w aplikacji na telefon —
 // działa w każdej sieci. Telefon potwierdza odebrany sygnał na temacie „…-ok”, więc widać, ile telefonów go ma.
 // KNS_CUE_BASE: tylko do testów automatycznych (podstawiony serwer zamiast ntfy.sh).
-const CUE_TOPIC = require('./google-config.cjs').cueTopic || ''
+const CUE_TOPIC = CONFIG.cueTopic || ''
 const CUE_RELAY = (process.env.KNS_CUE_BASE || 'https://ntfy.sh') + '/' + CUE_TOPIC
 let relay = null // { ctrl, last: id ostatniego sygnału, phones: Map telefon → id ostatnio potwierdzonego sygnału }
 // phones — telefony z otwartym ekranem „Kamera”, got — ile z nich potwierdziło ostatni sygnał.
@@ -634,7 +635,7 @@ function watchRelay(on) {
       try {
         const res = await fetch(CUE_RELAY + '-ok/json', { signal: ctrl.signal })
         let buf = ''
-        for await (const chunk of res.body) {
+        for await (const chunk of res.body as any) {
           buf += Buffer.from(chunk).toString()
           let at
           while ((at = buf.indexOf('\n')) >= 0) { take(buf.slice(0, at)); buf = buf.slice(at + 1) }
@@ -685,7 +686,7 @@ function setCue(on, token) {
     if (!on || typeof token !== 'string' || !token) return resolve({})
     const server = http.createServer(cueHandler)
     // Bez lokalnej strony (zajęty port) sygnały i tak idą przez internet.
-    server.once('error', e => resolve({ error: e.code === 'EADDRINUSE' ? `Strona w sieci lokalnej nie działa: port ${CUE_PORT} jest zajęty przez inny program.` : e.message }))
+    server.once('error', (e: any) => resolve({ error: e.code === 'EADDRINUSE' ? `Strona w sieci lokalnej nie działa: port ${CUE_PORT} jest zajęty przez inny program.` : e.message }))
     server.listen(CUE_PORT, () => {
       // Co kilkanaście sekund pusty znak, żeby sieć nie uznała połączenia za martwe.
       const beat = setInterval(() => { for (const res of cue?.clients || []) res.write(': \n\n') }, 15000)
@@ -736,7 +737,7 @@ function setRemote(on, token) {
     if (remote) { remote.server.close(); remote = null }
     if (!on || typeof token !== 'string' || !token) return resolve({})
     const server = http.createServer(remoteHandler)
-    server.once('error', e => resolve({ error: e.code === 'EADDRINUSE' ? `Port ${REMOTE_PORT} jest zajęty przez inny program.` : e.message }))
+    server.once('error', (e: any) => resolve({ error: e.code === 'EADDRINUSE' ? `Port ${REMOTE_PORT} jest zajęty przez inny program.` : e.message }))
     server.listen(REMOTE_PORT, () => {
       remote = { server, token }
       resolve({ url: `http://${lanAddress()}:${REMOTE_PORT}/${token}` })
@@ -796,7 +797,7 @@ function setLyrics(on) {
     if (lyrics) { clearInterval(lyrics.beat); for (const r of lyrics.clients) r.end(); lyrics.server.close(); lyrics.server.closeAllConnections?.(); lyrics = null }
     if (!on) return resolve({})
     const server = http.createServer(lyricsHandler)
-    server.once('error', e => resolve({ error: e.code === 'EADDRINUSE' ? `port ${LYRICS_PORT} jest zajęty przez inny program.` : e.message }))
+    server.once('error', (e: any) => resolve({ error: e.code === 'EADDRINUSE' ? `port ${LYRICS_PORT} jest zajęty przez inny program.` : e.message }))
     server.listen(LYRICS_PORT, () => {
       const beat = setInterval(() => { for (const r of lyrics?.clients || []) r.write(': \n\n') }, 15000)
       lyrics = { server, clients: new Set(), beat }
@@ -806,14 +807,14 @@ function setLyrics(on) {
 }
 
 /* ---------- okna ---------- */
-function load(win, hash) {
+function load(win, hash?) {
   if (DEV_URL) win.loadURL(DEV_URL + (hash ? '#' + hash : ''))
-  else win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), hash ? { hash } : undefined)
+  else win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'), hash ? { hash } : undefined)
 }
 
 // backgroundThrottling: false — okno zasłonięte lub zminimalizowane ma pracować normalnie
 // (pętla na rzutniku nie może zwalniać, a import prezentacji trwać minutami).
-const webPreferences = { preload: path.join(__dirname, 'preload.cjs'), backgroundThrottling: false, webviewTag: true }
+const webPreferences = { preload: path.join(__dirname, '..', 'preload', 'preload.js'), backgroundThrottling: false, webviewTag: true }
 // Strona kns-nabo wbudowana jako ekran startowy (to samo co w przeglądarce). W testach bez okna — tylko gdy podano adres.
 const WEB_URL = (process.env.KNS_WEB_URL || (process.env.RZUTNIK_HIDDEN ? '' : 'https://kns-nabo.netlify.app')).replace(/\/+$/, '')
 const WEB_ORIGIN = WEB_URL ? new URL(WEB_URL).origin : ''
@@ -822,17 +823,17 @@ const isWeb = url => { try { return !!WEB_ORIGIN && new URL(url).origin === WEB_
 // linki na zewnątrz otwierają się w przeglądarce.
 app.on('web-contents-created', (_e, contents) => {
   contents.on('will-attach-webview', (e, prefs, params) => {
-    delete prefs.preloadURL
-    Object.assign(prefs, { preload: path.join(__dirname, 'web-preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true })
+    delete (prefs as any).preloadURL
+    Object.assign(prefs, { preload: path.join(__dirname, '..', 'preload', 'web-preload.js'), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true })
     if (!isWeb(params.src)) e.preventDefault()
   })
   if (contents.getType() !== 'webview') return
   contents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' } })
   contents.on('will-navigate', (e, url) => { if (!isWeb(url)) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url) } })
 })
-const iconFile = path.join(__dirname, '..', 'build', 'icon.png')
+const iconFile = path.join(__dirname, '..', '..', 'build', 'icon.png')
 const icon = fs.existsSync(iconFile) ? { icon: iconFile } : {}
-const toControl = (channel, data) => { if (control && !control.isDestroyed()) control.webContents.send(channel, data) }
+const toControl = (channel, data?) => { if (control && !control.isDestroyed()) control.webContents.send(channel, data) }
 const toOutput = (channel, data) => { if (output && !output.isDestroyed()) output.webContents.send(channel, data) }
 
 function createControl() {
@@ -914,7 +915,7 @@ function openOutput(displayId) {
     webPreferences: hidden ? { ...webPreferences, offscreen: true } : webPreferences, show: !hidden,
   })
   output = win
-  win.displayId = fullscreen ? displayId : null
+  ;(win as any).displayId = fullscreen ? displayId : null
   if (fullscreen) {
     win.setBounds(target.bounds)
     win.setAlwaysOnTop(true, 'screen-saver')
@@ -1077,7 +1078,7 @@ app.whenReady().then(() => {
   streamer.on('state', st => toControl('stream:state', st))
   // Urządzenia: ATEM i inne kamery (DirectShow) + ekrany (próba bez ATEM) w pikselach fizycznych.
   ipcMain.handle('stream:devices', async () => {
-    const d = await listDevices()
+    const d: any = await listDevices()
     d.screens = screen.getAllDisplays().map((s, i) => {
       const r = screen.dipToScreenRect(null, s.bounds)
       return { value: `screen:${r.x},${r.y},${r.width},${r.height}`, label: `Ekran ${i + 1}${s.id === screen.getPrimaryDisplay().id ? ' (główny)' : ''} — ${r.width}×${r.height}` }

@@ -1,4 +1,4 @@
-// Test YouTube (electron/youtube.cjs) z podstawionym serwerem Google: node electron/test-youtube.cjs
+// Test YouTube (src/main/youtube.ts) z podstawionym serwerem Google: node tests/electron/test-youtube.cjs
 const assert = require('node:assert/strict')
 const http = require('node:http')
 const fs = require('node:fs')
@@ -45,7 +45,7 @@ server.listen(0, '127.0.0.1', async () => {
   try {
     process.env.KNS_YT_BASE = 'http://127.0.0.1:' + server.address().port
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-'))
-    const createYouTube = require('./youtube.cjs')
+    const createYouTube = require('../../dist-electron/main/youtube.js').default
     const yt = createYouTube({ dir: () => dir, open: () => {} })
     assert.deepEqual(yt.status(), { loggedIn: false, channel: '', channelId: '' })
     await assert.rejects(yt.broadcasts(), /Połącz aplikację z kanałem YouTube/)

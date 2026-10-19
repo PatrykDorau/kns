@@ -1,7 +1,7 @@
-// Test sterowania ATEM (electron/atem.cjs) z udawanym mikserem (electron/fake-atem.cjs): node electron/test-atem.cjs
+// Test sterowania ATEM (src/main/atem.ts) z udawanym mikserem (tests/electron/fake-atem.cjs): node tests/electron/test-atem.cjs
 // Format ramek sprawdzono też krzyżowo z biblioteką atem-connection (te same bajty komend, ten sam odczytany stan).
 const assert = require('node:assert/strict')
-const { Atem } = require('./atem.cjs')
+const { Atem } = require('../../dist-electron/main/atem.js')
 const { startFakeAtem } = require('./fake-atem.cjs')
 const wait = ms => new Promise(r => setTimeout(r, ms))
 

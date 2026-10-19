@@ -3,14 +3,14 @@
 //   <folder aplikacji>/nabozenstwa/<data> <tytuł> (<id>)/nabozenstwo.json + pliki/
 //   <folder aplikacji>/piesni/baza-piesni.json
 // Funkcje zwracają to samo co ich odpowiedniki dla folderu na dysku, więc reszta aplikacji się nie zmienia.
-const { app, shell, safeStorage } = require('electron')
-const http = require('node:http')
-const crypto = require('node:crypto')
-const fs = require('node:fs')
-const path = require('node:path')
-const { Readable } = require('node:stream')
-const { pipeline } = require('node:stream/promises')
-const CONFIG = require('./google-config.cjs')
+import { app, shell, safeStorage } from 'electron'
+import http from 'node:http'
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
+import CONFIG from './google-config'
 
 // KNS_DRIVE_BASE: tylko do testów automatycznych (podstawiony serwer zamiast Google).
 const TEST_BASE = process.env.KNS_DRIVE_BASE || ''
@@ -20,7 +20,7 @@ const TOKEN = TEST_BASE ? TEST_BASE + '/token' : 'https://oauth2.googleapis.com/
 const FOLDER = 'application/vnd.google-apps.folder'
 const SIMPLE_LIMIT = 5 * 1024 * 1024 // większe pliki idą „wznawialnym” wysyłaniem
 
-module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
+export default function createGoogleDrive({ serviceFolderName, safeId }) {
   const authFile = () => path.join(app.getPath('userData'), 'google-auth.bin')
   const cacheDir = () => path.join(app.getPath('userData'), 'dysk-google')
   const q = s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"
@@ -80,7 +80,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
     return { idToken: auth.id, email: auth.email }
   }
 
-  async function call(url, options = {}, retry = true) {
+  async function call(url, options: any = {}, retry = true) {
     const token = await accessToken()
     const res = await fetch(url, { ...options, headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } })
     if (res.status === 401 && retry) { auth.access = ''; return call(url, options, false) }
@@ -100,7 +100,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
       verifier = b64(crypto.randomBytes(32))
       const challenge = b64(crypto.createHash('sha256').update(verifier).digest())
       const state = b64(crypto.randomBytes(16))
-      ;({ code, redirect } = await new Promise((resolve, reject) => {
+      ;({ code, redirect } = await new Promise<any>((resolve, reject) => {
         let port = 0
         let done = false
         const server = http.createServer((req, res) => {
@@ -119,7 +119,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
         })
         const timer = setTimeout(() => { server.close(); reject(new Error('Logowanie nie zostało dokończone w ciągu 5 minut.')) }, 5 * 60000)
         server.listen(0, '127.0.0.1', () => {
-          port = server.address().port
+          port = (server.address() as any).port
           const params = new URLSearchParams({
             client_id: CONFIG.clientId, redirect_uri: `http://127.0.0.1:${port}`, response_type: 'code',
             scope: 'openid email profile https://www.googleapis.com/auth/drive', code_challenge: challenge, code_challenge_method: 'S256',
@@ -177,7 +177,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
   async function download(id, dest) {
     const res = await call(`${API}/files/${id}?alt=media&supportsAllDrives=true`)
     await fs.promises.mkdir(path.dirname(dest), { recursive: true })
-    await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(dest + '.part'))
+    await pipeline(Readable.fromWeb(res.body as any), fs.createWriteStream(dest + '.part'))
     await fs.promises.rename(dest + '.part', dest)
   }
 
@@ -362,7 +362,7 @@ module.exports = function createGoogleDrive({ serviceFolderName, safeId }) {
   /* ---------- import pieśni z folderu na Dysku (np. pieśni z OpenSong) ---------- */
   // Wszystkie zwykłe pliki z folderu i jego podfolderów: [{ name, data: Buffer }]. Pliki Google (Dokumenty itp.)
   // i duże pliki są pomijane. progress(done, total) — do paska postępu.
-  async function folderFiles(folderId, progress = () => {}) {
+  async function folderFiles(folderId, progress: (done: number, total: number) => void = () => {}) {
     const found = []
     const queue = [folderId]
     const seen = new Set()

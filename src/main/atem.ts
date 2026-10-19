@@ -3,8 +3,8 @@
 //   stan: model, wejścia (nazwy), program, podgląd, transmisja i nagrywanie w ATEM,
 //   komendy: program, podgląd, Cut, Auto, usługa transmisji (adres i klucz), start/stop transmisji.
 // Format ramek i komend jak w bibliotece atem-connection (MIT) — zgodność sprawdza test electron/test-atem.mjs.
-const dgram = require('node:dgram')
-const { EventEmitter } = require('node:events')
+import dgram from 'node:dgram'
+import { EventEmitter } from 'node:events'
 
 const PORT = 9910
 const HELLO = Buffer.from([0x10, 0x14, 0x53, 0xab, 0, 0, 0, 0, 0, 0x3a, 0, 0, 0x01, 0, 0, 0, 0, 0, 0, 0])
@@ -43,6 +43,9 @@ const COMMANDS = {
 }
 
 class Atem extends EventEmitter {
+  // stan połączenia (UDP) i miksera
+  port: number; address: string; socket: any; session: number; nextId: number; inFlight: Map<number, any> | any
+  timer: any; ready: boolean; lastHeard: number; lastRemoteId: number; state: any
   constructor(port = PORT) {
     super()
     this.port = port
@@ -170,4 +173,4 @@ class Atem extends EventEmitter {
   }
 }
 
-module.exports = { Atem, COMMANDS, PORT, STREAM, RECORD }
+export { Atem, COMMANDS, PORT, STREAM, RECORD }
