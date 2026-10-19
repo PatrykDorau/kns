@@ -45,7 +45,7 @@ export default defineComponent({ setup: () => useApp() })
       <h3 class="view-h">Głosowania</h3>
       <div class="ev-votes">
         <div v-for="e in eventVotes" :key="e.id" class="ev-vote" :class="e.status">
-          <span class="vote-status" :class="e.status">{{ VOTE_STATUS[e.status === 'nominations' && e.kind === 'options' ? 'ready' : e.status] }}</span>
+          <span class="vote-status" :class="e.status">{{ VOTE_STATUS[e.status] }}</span>
           <b>{{ e.title }}</b>
           <template v-if="votes.canRun">
             <button v-if="e.status === 'nominations' || e.status === 'paused'" class="small primary" :disabled="busy || !e.candidates.some(c => c.accepted)" :title="e.candidates.some(c => c.accepted) ? '' : 'Najpierw zatwierdź kandydatów'" @click="setElectionStatus(e, 'voting')">{{ e.status === 'paused' ? 'Wznów' : 'Aktywuj' }}</button>

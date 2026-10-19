@@ -7,8 +7,8 @@
 //
 // Instalacja (raz): „+” → Skrypt → nazwa „baza” → wklej ten plik; Ustawienia projektu → Właściwości skryptu →
 // Dodaj: SUPABASE_SECRET = klucz secret; potem uruchom „ustawNewsletterBazy” (newsletter co czwartek o 18:00
-// i co 5 minut próbne e-maile, o które ktoś poprosił w aplikacji: Mój profil → „Wyślij próbny e-mail”, oraz
-// powiadomienia z aplikacji e-mailem — według zgód w Mój profil → „Powiadomienia e-mailem”).
+// i co 15 minut próbne e-maile, o które ktoś poprosił w aplikacji: Mój profil → „Wyślij próbny e-mail”).
+// Powiadomienia z aplikacji idą tylko w aplikacji (dzwonek) i jako powiadomienia na telefon — nie e-mailem.
 
 const BAZA = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', folderId: '1pI2FlyMq8XUQHbJlELd1OuxsCIz-RRnG', folder: 'Aplikacja KNS Nabo' }
 
@@ -71,12 +71,11 @@ function bazaUdostepnij() {
 function ustawNewsletterBazy() {
   ScriptApp.getProjectTriggers().filter(t => ['newsletter', 'newsletterBazy', 'probneMaile'].indexOf(t.getHandlerFunction()) >= 0).forEach(t => ScriptApp.deleteTrigger(t))
   ScriptApp.newTrigger('newsletterBazy').timeBased().onWeekDay(ScriptApp.WeekDay.THURSDAY).atHour(18).inTimezone('Europe/Warsaw').create()
-  ScriptApp.newTrigger('probneMaile').timeBased().everyMinutes(5).create()
+  ScriptApp.newTrigger('probneMaile').timeBased().everyMinutes(15).create()
 }
 // Próbne newslettery z kolejki (mail_requests): ten sam e-mail co w czwartek, tylko do osoby, która poprosiła.
 function probneMaile() {
   if (!bazaWlaczona()) return
-  try { mailePowiadomien() } catch (e) { Logger.log('Powiadomienia e-mail: ' + e.message) }
   const queue = baza('mail_requests?select=id,person&sent=is.null&kind=eq.newsletter_test&order=id&limit=20')
   if (!queue.length) return
   const ids = queue.map(r => r.person).join(',')
@@ -87,28 +86,6 @@ function probneMaile() {
     if (p) MailApp.sendEmail({ to: p.email, subject: '[Próba] Kościół Na Skale — najbliższe dwa tygodnie', htmlBody: html, name: 'Kościół Na Skale' })
     baza('mail_requests?id=eq.' + r.id, 'patch', { sent: new Date().toISOString() })
   }
-}
-// Powiadomienia z aplikacji (dzwonek) e-mailem — tylko rodzaje, na które osoba się zgodziła (Mój profil →
-// „Powiadomienia e-mailem”). Kolejka w bazie (mail_queue, zgody.sql) oddaje każde powiadomienie raz.
-// Uruchamiane co 5 minut razem z próbnymi newsletterami (probneMaile).
-function mailePowiadomien() {
-  const rows = baza('rpc/mail_queue', 'post', {}) || []
-  if (!rows.length) return
-  const site = 'https://kns-nabo.netlify.app/'
-  const esc = t => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const byMail = {}
-  for (const r of rows) (byMail[r.email] = byMail[r.email] || []).push(r)
-  for (const email in byMail) {
-    const list = byMail[email]
-    const items = list.map(r => '<div style="margin:0 0 14px;padding:12px 14px;border-radius:12px;background:#f6f1ea">' +
-      '<b style="font-size:16px;color:#2a2119">' + esc(r.title) + '</b>' + (r.body ? '<p style="margin:6px 0 0;color:#5b4c3f">' + esc(r.body) + '</p>' : '') +
-      '<p style="margin:8px 0 0"><a href="' + site + String(r.url || './').replace(/^\.\//, '') + '" style="color:#b8641c;font-weight:600">Otwórz w aplikacji</a></p></div>').join('')
-    const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px">' + items +
-      '<p style="color:#8a7a6a;font-size:12px">Te e-maile wyłączysz w aplikacji: Mój profil → Powiadomienia e-mailem.</p></div>'
-    const subject = list.length === 1 ? list[0].title : 'Kościół Na Skale — ' + list.length + ' powiadomienia'
-    MailApp.sendEmail({ to: email, subject: subject.slice(0, 200), htmlBody: html, name: 'Kościół Na Skale' })
-  }
-  Logger.log('Powiadomienia e-mail: ' + rows.length)
 }
 function newsletterBazy() {
   const people = baza('people?select=email&status=eq.active&newsletter=is.true')
@@ -151,12 +128,12 @@ function htmlNewslettera(services, events, anns, types, tz) {
 // Folder ze zdjęciami (lata → MM_RR → DD_MM, np. 2026 / 10_26 / 18_10). Skrypt bierze najnowszy folder, w którym są
 // zdjęcia, wgrywa do bazy (prywatny kubełek „zdjecia”, widzą tylko zatwierdzeni członkowie) do 8 pomniejszonych
 // zdjęć wybranych równo z całego folderu i zapisuje ich listę. Gdy nic się nie zmieniło — nic nie robi.
-// Instalacja (raz): uruchom „ustawZdjecia” (co godzinę; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
+// Instalacja (raz): uruchom „ustawZdjecia” (raz dziennie, ok. 3:00 w nocy; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
 const ZDJECIA = { folderId: '1JDHuBFv_l6QZpKc5oPcO_vBY1V60vbKs', max: 8, size: 1600 }
 
 function ustawZdjecia() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'zdjeciaNabozenstw').forEach(t => ScriptApp.deleteTrigger(t))
-  ScriptApp.newTrigger('zdjeciaNabozenstw').timeBased().everyHours(1).create()
+  ScriptApp.newTrigger('zdjeciaNabozenstw').timeBased().everyDays(1).atHour(3).inTimezone('Europe/Warsaw').create()
   zdjeciaNabozenstw()
 }
 // Najnowszy folder ze zdjęciami. Nazwy z datą: „2026”, „10_26” (miesiąc_rok), „18_10” (dzień_miesiąc) —

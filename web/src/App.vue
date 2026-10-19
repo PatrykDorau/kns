@@ -67,7 +67,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '2.97 · 19.10.2026'
+const VERSION = '2.98 · 19.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1352,15 +1352,15 @@ export default defineComponent({
 
     /* ---------- newsletter ---------- */
     const newsBusy = ref(false)
-    // Próbny newsletter: prośba w bazie, wysyła skrypt Google (co 5 minut); sprawdzamy, kiedy wyszedł.
+    // Próbny newsletter: prośba w bazie, wysyła skrypt Google (co 15 minut); sprawdzamy, kiedy wyszedł.
     const mailTest = reactive({ busy: false, text: '', bad: false })
     async function testNewsletter() {
       mailTest.busy = true; mailTest.text = ''; mailTest.bad = false
       try {
         const { id } = await api.call('testNewsletter')
-        mailTest.text = 'Wysłano prośbę — e-mail przyjdzie na ' + me.value.email + ' w ciągu kilku minut (najwyżej 5).'
-        for (let i = 0; i < 36; i++) {
-          await new Promise(r => setTimeout(r, 10000))
+        mailTest.text = 'Wysłano prośbę — e-mail przyjdzie na ' + me.value.email + ' w ciągu kwadransa.'
+        for (let i = 0; i < 54; i++) {
+          await new Promise(r => setTimeout(r, 20000))
           const st = await api.call('mailStatus', { id }).catch(() => null)
           if (st?.sent) { mailTest.text = 'E-mail wysłany na ' + me.value.email + ' — sprawdź skrzynkę (także Spam).'; return }
         }
@@ -1368,23 +1368,6 @@ export default defineComponent({
           : 'E-mail jeszcze nie wyszedł — skrypt wysyłający (Google) nie jest jeszcze ustawiony. Daj znać administratorowi.'
         mailTest.bad = true
       } catch (e) { mailTest.text = e.message; mailTest.bad = true } finally { mailTest.busy = false }
-    }
-    // E-maile według rodzaju powiadomienia (osobne zgody; domyślnie wyłączone)
-    const MAIL_KINDS = [
-      ['wiadomosci', 'Wiadomości', 'od pastora, rady i liderów'],
-      ['wydarzenia', 'Wydarzenia i zapisy', 'zaproszenia, miejsca, potwierdzenia zapisów'],
-      ['glosowania', 'Głosowania i wybory', 'otwarcie głosowania, wyniki'],
-      ['sluzby', 'Służby', 'zgłoszenia i decyzje liderów'],
-      ['asb', 'ASB', 'przypomnienia o prowadzeniu spotkań'],
-      ['cele', 'Cele wsparcia', 'przypomnienia o potwierdzeniu'],
-      ['ogloszenia', 'Ogłoszenia do zatwierdzenia', 'dla osób, które je zatwierdzają'],
-    ]
-    const mailBusy = ref('')
-    async function toggleMail(kind) {
-      const prefs = { ...(me.value?.mailPrefs || {}) }
-      prefs[kind] = !prefs[kind]
-      mailBusy.value = kind
-      try { me.value = (await api.call('setMailPrefs', { prefs })).person } catch (e) { error.value = e.message } finally { mailBusy.value = '' }
     }
     async function toggleNewsletter() {
       newsBusy.value = true; error.value = ''
@@ -1749,9 +1732,9 @@ export default defineComponent({
     async function updateBug(b, patch) {
       try { await api.call('bugUpdate', { id: b.id, ...patch }); api.call('pushInbox').catch(() => {}); await loadBugs() } catch (e) { error.value = e.message }
     }
-    const votes = reactive({ list: [], canRun: false, busy: false, error: '', edit: null, people: [], pick: {}, ballot: {}, open: '' })
+    const votes = reactive({ list: [], canRun: false, busy: false, error: '', edit: null, people: [], propose: {}, ballot: {}, open: '' })
     const votesOpen = computed(() => votes.list.filter(e => e.status === 'voting' && !e.voted).length)
-    const VOTE_STATUS = { nominations: 'Zgłaszanie kandydatów', ready: 'Przygotowane', voting: 'Głosowanie trwa', paused: 'Wstrzymane', closed: 'Zakończone' }
+    const VOTE_STATUS = { nominations: 'Zgłoszenia', ready: 'Przygotowane', voting: 'Głosowanie trwa', paused: 'Wstrzymane', closed: 'Zakończone' }
     const eventOf = e => (e.event_id ? events.value.find(x => x.id === e.event_id) || null : null)
     // spotkania do podpięcia: od tygodnia wstecz, najpierw członkowskie i rady
     const voteEvents = computed(() => events.value.filter(ev => ev.date >= localDate(new Date(Date.now() - 7 * 864e5)))
@@ -1800,37 +1783,87 @@ export default defineComponent({
     async function loadVotes() {
       if (!api.enabled || !ready.value) return
       votes.busy = true; votes.error = ''
-      try { const [list, can] = await Promise.all([api.call('elections'), api.call('canElections')]); votes.list = list || []; votes.canRun = !!can }
+      try {
+        await api.call('electionsTick').catch(() => {}) // otwarcie / zakończenie w terminie (z powiadomieniem) — przy pierwszym wejściu po czasie
+        const [list, can] = await Promise.all([api.call('elections'), api.call('canElections')]); votes.list = list || []; votes.canRun = !!can
+      }
       catch (e) { votes.error = e.message || String(e) } finally { votes.busy = false }
     }
     async function loadElectionPeople() { if (!votes.people.length) try { votes.people = (await api.call('electionPeople')) || [] } catch (e) { votes.error = e.message } }
     function openVotes() {
       resetViews(); votesView.value = true; votes.edit = null; scrollTo(0, 0)
-      return loadVotes().then(() => { if (votes.list.some(e => e.status === 'nominations' && e.kind === 'people')) loadElectionPeople() })
+      return loadVotes().then(() => { if (votes.canRun || votes.list.some(e => e.status === 'nominations')) loadElectionPeople() })
     }
-    // odpowiedzi w głosowaniu „na odpowiedzi”: każda w osobnym polu, w kolejności na karcie
-    const optionsOf = e => (e.opts || []).map(x => String(x).trim()).filter(Boolean)
-    function addOption(at = votes.edit.opts.length) { votes.edit.opts.splice(at, 0, ''); nextTick(() => (document.querySelectorAll('.vote-opts input')[at] as HTMLInputElement)?.focus()) }
+    // Głosowanie: jedna lista do wyboru — osoby (z listy członków) i dowolne odpowiedzi (np. Za / Przeciw);
+    // opcjonalnie zgłoszenia od członków do terminu; głosowanie otwierane ręcznie albo w terminie od–do.
+    const pad2 = n => String(n).padStart(2, '0')
+    const toLocalInput = iso => { if (!iso) return ''; const d = new Date(iso); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) }
+    const fromLocalInput = v => (v ? new Date(v).toISOString() : null)
+    const voteWhen = iso => new Date(iso).toLocaleString('pl', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    // terminy na karcie: „Zgłoszenia do …”, „Głosowanie od … do …”
+    function voteSchedule(e) {
+      const out = []
+      if (e.allow_nominations && e.status === 'nominations') out.push(e.nominations_until ? 'Zgłoszenia do ' + voteWhen(e.nominations_until) : 'Zgłoszenia do otwarcia głosowania')
+      if (e.status === 'closed') { if (e.closed) out.push('Zakończone ' + voteWhen(e.closed)) }
+      else if (e.vote_start && e.status !== 'voting' && e.status !== 'paused') out.push('Głosowanie od ' + voteWhen(e.vote_start) + (e.vote_end ? ' do ' + voteWhen(e.vote_end) : ''))
+      else if (e.vote_end) out.push('Głosowanie do ' + voteWhen(e.vote_end))
+      else if (e.status !== 'voting' && e.status !== 'paused') out.push('Głosowanie otworzy prowadzący')
+      return out.join(' · ')
+    }
+    const optionsOf = e => (e.opts || []).filter(o => o.person || String(o.label || '').trim())
+    function addOption(at = votes.edit.opts.length) { votes.edit.opts.splice(at, 0, { label: '' }); nextTick(() => (document.querySelectorAll('.vote-item input')[at] as HTMLInputElement)?.focus()) }
+    function addPersonOption(p) { if (!votes.edit.opts.some(o => o.person === p.id)) votes.edit.opts.push({ person: p.id, label: p.name }) }
+    function addYesNo() { for (const l of ['Za', 'Przeciw', 'Wstrzymuję się']) if (!votes.edit.opts.some(o => !o.person && o.label === l)) votes.edit.opts.push({ label: l }) }
     function moveOption(i, d) { const o = votes.edit.opts, j = i + d; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]] }
-    function newElection(eventId = '') { votes.edit = { _new: true, id: '', title: '', description: '', kind: 'people', max_choices: 1, results_public: true, opts: ['Za', 'Przeciw', 'Wstrzymuję się'], status: 'nominations', event_id: typeof eventId === 'string' ? eventId : '' }; scrollTo(0, 0) }
-    function editElection(e) { votes.edit = { id: e.id, title: e.title, description: e.description, kind: e.kind, max_choices: e.max_choices, results_public: e.results_public, status: e.status, event_id: e.event_id || '', opts: e.kind === 'options' ? e.candidates.map(c => c.label) : ['', ''] }; scrollTo(0, 0) }
-    const saveElection = () => guard(async () => {
+    function newElection(eventId = '') {
+      votes.edit = { _new: true, id: '', title: '', description: '', max_choices: 1, results_public: true, opts: [], status: 'ready', event_id: typeof eventId === 'string' ? eventId : '',
+        allow_nominations: false, nominations_until: '', timed: false, vote_start: '', vote_end: '', has_votes: false, pending: 0 }
+      loadElectionPeople(); scrollTo(0, 0)
+    }
+    function editElection(e) {
+      const running = e.status === 'voting' || e.status === 'paused'
+      votes.edit = { id: e.id, title: e.title, description: e.description, max_choices: e.max_choices, results_public: e.results_public, status: e.status, event_id: e.event_id || '',
+        opts: e.candidates.filter(c => c.accepted === true).map(c => (c.person ? { person: c.person, label: c.label } : { label: c.label })),
+        allow_nominations: !!e.allow_nominations, nominations_until: toLocalInput(e.nominations_until), timed: running ? !!e.vote_end : !!(e.vote_start || e.vote_end),
+        vote_start: toLocalInput(e.vote_start), vote_end: toLocalInput(e.vote_end), has_votes: !!e.has_votes, pending: e.candidates.filter(c => c.accepted == null).length }
+      loadElectionPeople(); scrollTo(0, 0)
+    }
+    // co jest nie tak w formularzu (przycisk Zapisz nieaktywny, z podpowiedzią)
+    const voteFormProblem = computed(() => {
       const e = votes.edit
-      await api.call('electionSave', { e: { id: e.id || undefined, title: e.title.trim(), description: e.description || '', kind: e.kind, max_choices: Math.max(1, +e.max_choices || 1), results_public: !!e.results_public, event_id: e.event_id || '', ...(e.kind === 'options' ? { options: optionsOf(e) } : {}) } })
+      if (!e) return ''
+      if (!e.title.trim()) return 'Wpisz tytuł.'
+      if (!e.has_votes && !e.allow_nominations && optionsOf(e).length < 1) return 'Dodaj co najmniej jedną osobę albo odpowiedź — albo pozwól członkom zgłaszać.'
+      if (e.timed && !e.vote_start && !e.vote_end) return 'Podaj początek albo koniec głosowania.'
+      if (e.timed && e.vote_start && e.vote_end && e.vote_end <= e.vote_start) return 'Koniec głosowania musi być po początku.'
+      if (e.allow_nominations && e.nominations_until && e.timed && e.vote_start && e.nominations_until > e.vote_start) return 'Zgłoszenia muszą się skończyć przed początkiem głosowania.'
+      return ''
+    })
+    const saveElection = () => guard(async () => {
+      const e = votes.edit, running = !e._new && (e.status === 'voting' || e.status === 'paused')
+      await api.call('electionSave', { e: {
+        id: e.id || undefined, title: e.title.trim(), description: e.description || '', max_choices: Math.max(1, +e.max_choices || 1), results_public: !!e.results_public, event_id: e.event_id || '',
+        allow_nominations: !!e.allow_nominations, nominations_until: e.allow_nominations ? fromLocalInput(e.nominations_until) : null,
+        // trwające głosowanie zachowuje swój początek; w terminie — daty z formularza
+        vote_start: running ? votes.list.find(x => x.id === e.id)?.vote_start || null : e.timed ? fromLocalInput(e.vote_start) : null,
+        vote_end: e.timed ? fromLocalInput(e.vote_end) : null,
+        ...(e.has_votes ? {} : { options: optionsOf(e).map(o => (o.person ? { person: o.person } : { label: o.label.trim() })) }),
+      } })
       votes.edit = null
       await loadVotes()
       showToast('Zapisano głosowanie.')
     })
     const removeElection = e => { if (confirm('Usunąć „' + e.title + '” razem ze zgłoszeniami i głosami? Tego nie da się cofnąć.')) guard(async () => { await api.call('electionRemove', { e: e.id }); votes.edit = null; await loadVotes() }) }
-    const nominate = (e, who = votes.pick[e.id], withdraw = false) => guard(async () => {
-      await api.call('electionNominate', { e: e.id, who, withdraw })
-      votes.pick[e.id] = ''
+    // zgłoszenie osoby albo propozycji tekstem (i wycofanie własnego)
+    const nominate = (e, { who = null, label = null } = {}, withdraw = false) => guard(async () => {
+      await api.call('electionNominate', { e: e.id, who, label, withdraw })
+      if (label && !withdraw) votes.propose[e.id] = ''
       await loadVotes()
-      showToast(withdraw ? 'Wycofano zgłoszenie.' : 'Zgłoszono kandydata — rada zdecyduje, kto bierze udział.')
+      showToast(withdraw ? 'Wycofano zgłoszenie.' : 'Zgłoszono — rada zdecyduje, co trafi na listę.')
     })
     const reviewCand = (c, ok) => guard(async () => { await api.call('electionReview', { c: c.id, ok }); await loadVotes() })
     const setElectionStatus = (e, s) => {
-      const ask = s === 'voting' && e.status === 'nominations' ? 'Rozpocząć głosowanie? Lista kandydatów zostanie zamknięta, a członkowie dostaną powiadomienie.' : s === 'closed' ? 'Zakończyć głosowanie? Potem nie da się już oddać głosu.' : ''
+      const ask = s === 'voting' && ['nominations', 'ready'].includes(e.status) ? 'Otworzyć głosowanie teraz? ' + (e.status === 'nominations' ? 'Zgłoszenia zostaną zamknięte, a c' : 'C') + 'złonkowie dostaną powiadomienie.' : s === 'closed' ? 'Zakończyć głosowanie? Potem nie da się już oddać głosu.' : ''
       if (!ask || confirm(ask)) guard(async () => { await api.call('electionStatus', { e: e.id, s }); await loadVotes(); if (s !== 'closed') showToast(s === 'paused' ? 'Głosowanie wstrzymane.' : 'Głosowanie aktywne.') })
     }
     function toggleBallot(e, c) {
@@ -2293,7 +2326,7 @@ export default defineComponent({
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return provideApp({
-      bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, moveOption, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photosLabel, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
@@ -2321,7 +2354,7 @@ export default defineComponent({
       inviteEvent, moreView, openMore, nextService, nextSundayDate, planSunday, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, peopleUi, rankName, ranksShown, openRanks, cancelRanks, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
-      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushLater, MAIL_KINDS, mailBusy, toggleMail, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
+      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushLater, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,

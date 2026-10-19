@@ -171,7 +171,8 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'canElections') return !!check(await sb.rpc('can_run_elections'))
       if (action === 'electionPeople') return check(await sb.rpc('election_people')) || []
       if (action === 'electionSave') return check(await sb.rpc('election_save', { e: data.e }))
-      if (action === 'electionNominate') return check(await sb.rpc('election_nominate', { e: data.e, who: data.who, withdraw: !!data.withdraw }))
+      if (action === 'electionsTick') return check(await sb.rpc('elections_tick'))
+      if (action === 'electionNominate') return check(await sb.rpc('election_nominate', { e: data.e, who: data.who || null, withdraw: !!data.withdraw, label: data.label || null }))
       if (action === 'electionReview') return check(await sb.rpc('election_review', { c: data.c, ok: data.ok }))
       if (action === 'electionStatus') return check(await sb.rpc('election_status', { e: data.e, s: data.s }))
       if (action === 'bugReport') return check(await sb.rpc('bug_report', { t: data.title, b: data.body || '', pg: data.page || '', dev: data.device || '' }))
