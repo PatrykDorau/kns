@@ -7,4 +7,6 @@ import './styles/app.css'
 import './styles/home.css'
 import './styles/ui.css'
 
+import { startMarquee } from './utils/marquee'
 createApp(App).component('program-editor', ProgramEditor).component('thoughts-editor', ThoughtsEditor).mount('#app')
+startMarquee() // długie tytuły przesuwają się zamiast „…”
