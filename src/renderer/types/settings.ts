@@ -58,6 +58,9 @@ export interface Settings {
   donateTitle: string
   streamLyrics: 'local' | 'online' | 'none' | string
   streamLyricsKey: string
+  musicList: { id: string; name: string; path: string }[] // podkład muzyczny na transmisji
+  musicVolume: number // 0–1
+  musicLoop: boolean // po utworze następny (w kółko)
   streamLines: number // napisy dla streamu: najwyżej tyle linijek naraz (0 — cała zwrotka)
   streamPartMode: 'keys' | 'auto'
   streamLineSec: number

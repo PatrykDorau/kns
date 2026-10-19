@@ -21,6 +21,8 @@ const MEDIA = {
   '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
   '.mkv': 'video/x-matroska', '.ogv': 'video/ogg',
 }
+// podkład muzyczny na transmisji — tylko odtwarzanie (nie trafiają do Biblioteki)
+const AUDIO = { '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.oga': 'audio/ogg', '.flac': 'audio/flac', '.opus': 'audio/ogg' }
 const STORES = ['library', 'songs', 'settings', 'services', 'bible']
 const SONG_EXT = new Set(['', '.txt', '.xml', '.json', '.pro', '.cho', '.chopro', '.crd'])
 const REMOTE_PORT = 8765
@@ -45,7 +47,7 @@ const inMediaDir = p => typeof p === 'string' && path.resolve(p).startsWith(medi
 // Obsługujemy nagłówek Range ręcznie — bez tego nie działa przewijanie filmów.
 async function serveMedia(request) {
   const file = decodeURIComponent(new URL(request.url).pathname.slice(1))
-  const type = MEDIA[path.extname(file).toLowerCase()]
+  const type = MEDIA[path.extname(file).toLowerCase()] || AUDIO[path.extname(file).toLowerCase()]
   if (!type) return new Response(null, { status: 403 })
   let size
   try { size = (await fs.promises.stat(file)).size } catch { return new Response(null, { status: 404 }) }
@@ -1014,6 +1016,18 @@ app.whenReady().then(() => {
     return res.canceled ? [] : res.filePaths
   })
   ipcMain.handle('files:import', (e, paths, copy) => importFiles(paths, copy))
+  // podkład muzyczny: wybór plików (MP3, M4A, WAV… albo MP4 — sam dźwięk), kopia do folderu aplikacji
+  ipcMain.handle('files:music', async () => {
+    const res = await dialog.showOpenDialog(control, { title: 'Dodaj muzykę na transmisję', properties: ['openFile', 'multiSelections'], filters: [{ name: 'Muzyka (MP3, M4A, WAV, MP4…)', extensions: [...Object.keys(AUDIO).map(x => x.slice(1)), 'mp4', 'm4v', 'webm'] }] })
+    if (res.canceled) return []
+    const out = []
+    for (const p of res.filePaths) {
+      const file = await uniquePath(path.join(mediaDir(), 'muzyka'), path.basename(p))
+      await fs.promises.copyFile(p, file)
+      out.push({ path: file, name: path.parse(p).name })
+    }
+    return out
+  })
   ipcMain.handle('files:readPdf', (e, p) => (typeof p === 'string' && p.toLowerCase().endsWith('.pdf') ? fs.promises.readFile(p) : null))
   ipcMain.handle('files:saveImage', (e, name, bytes) => saveImage(name, bytes))
   ipcMain.handle('files:fetch', (e, url, name) => fetchToMedia(url, name))

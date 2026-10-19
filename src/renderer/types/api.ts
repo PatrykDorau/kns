@@ -41,6 +41,7 @@ export interface KnsApi {
   pptxSlide: Invoke
   pptxDone: (error?: string) => void
   removeFile: Invoke
+  pickMusic: Invoke
   pathForFile: (file: File) => string
   loadStore: Invoke
   saveStore: Invoke

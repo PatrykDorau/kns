@@ -34,6 +34,7 @@ export const settings = reactive<Settings>({
   // napisy dla streamu w częściach (rzutnik pokazuje całą zwrotkę): najwyżej N linijek naraz (0 — cała zwrotka);
   // następna część strzałką ('keys' — pierwsze naciśnięcie zmienia tylko napisy) albo sama ('auto' — po N s na linijkę)
   streamLines: 0, streamPartMode: 'keys', streamLineSec: 4,
+  musicList: [], musicVolume: 0.35, musicLoop: true, // podkład muzyczny na transmisji (Stream → Media)
   camLayout: 'grid', // układ kamer w stream: 'grid' | 'big' | 'row' | 'column' | 'one'
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu

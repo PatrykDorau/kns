@@ -45,6 +45,13 @@ export async function audioGraph() {
 export function connectMedia(el) {
   audioGraph().then(() => { if (mediaSources.has(el)) return; mediaSources.add(el); ac.createMediaElementSource(el).connect(mix) })
 }
+// podkład muzyczny (music.ts): element <audio> → własna głośność → miks transmisji
+export async function musicNode(el: HTMLMediaElement) {
+  await audioGraph()
+  const gain = ac.createGain(); gain.gain.value = 0
+  ac.createMediaElementSource(el).connect(gain); gain.connect(mix)
+  return { gain, ctx: ac }
+}
 export async function setAudio(deviceId) {
   studio.audio = deviceId || ''
   await audioGraph()

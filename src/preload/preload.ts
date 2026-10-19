@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // pliki i dane
   pickFiles: invoke('files:pick'),
+  pickMusic: invoke('files:music'),
   importFiles: invoke('files:import'),
   readPdf: invoke('files:readPdf'),
   saveImage: invoke('files:saveImage'),

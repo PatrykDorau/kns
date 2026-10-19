@@ -2,6 +2,7 @@
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import ChurchMaterials from '@/components/display/ChurchMaterials.vue'
+import MusicPanel from './MusicPanel.vue'
 import { ref } from 'vue'
 import { busy, label } from '@/stores'
 import { showMediaFull, showMediaOverlay } from '@/services/studio'
@@ -40,4 +41,5 @@ async function addFiles() { if (await addMediaFiles()) deskTab.value = 'media' }
   </div>
   <p v-else class="note">Biblioteka jest pusta — dodaj pliki albo napis. To ta sama Biblioteka, co w Rzutniku.</p>
   <textarea v-if="(pvOver || pvFull)?.type === 'text'" v-model="(pvOver || pvFull).text" class="desk-media-edit" rows="2" aria-label="Treść napisu" title="Zmiany widać od razu (także na wizji)"></textarea>
+  <MusicPanel />
 </template>
