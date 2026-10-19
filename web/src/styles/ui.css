@@ -64,7 +64,8 @@ header button.back { color: var(--accent); }
 @media (max-width: 1023px) {
   header { position: sticky; top: 0; z-index: 15; margin: 0 -16px 6px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
     background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: saturate(1.4) blur(16px); -webkit-backdrop-filter: saturate(1.4) blur(16px);
-    border-bottom: 1px solid transparent; }
+    border-bottom: 1px solid transparent; transition: transform .28s var(--ease, ease); }
+  body.hdr-hide header { transform: translateY(-100%); } /* utils/autoHideHeader.ts */
   body { padding-top: 0; }
   header:has(.back:not(.wide-only)) > img { display: none; }
   header > .back { order: -1; padding: 6px 10px 6px 4px; min-height: 40px; font-weight: 600; }

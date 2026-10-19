@@ -8,5 +8,7 @@ import './styles/home.css'
 import './styles/ui.css'
 
 import { startMarquee } from './utils/marquee'
+import { startAutoHideHeader } from './utils/autoHideHeader'
 createApp(App).component('program-editor', ProgramEditor).component('thoughts-editor', ThoughtsEditor).mount('#app')
 startMarquee() // długie tytuły przesuwają się zamiast „…”
+startAutoHideHeader() // telefon: pasek u góry chowa się przy przewijaniu w dół
