@@ -113,7 +113,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       }
       // Świeże powiadomienia w aplikacji, które właśnie wywołałem — także na telefony odbiorców (jeśli włączyli).
       if (action === 'pushInbox') return pushInbox()
-      // Próbny newsletter e-mail (wysyła skrypt Google w ciągu minuty) i jego stan.
+      // Próbny newsletter e-mail (wysyła skrypt Google w ciągu 5 minut) i jego stan.
       if (action === 'testNewsletter') return { id: check(await sb.rpc('request_test_newsletter')) }
       if (action === 'mailStatus') return (check(await sb.from('mail_requests').select('id,sent').eq('id', data.id)) || [])[0] || null
       // Powiadomienia w aplikacji (dzwonek): moje wpisy, oznaczanie jako przeczytane.
@@ -314,6 +314,14 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       const { error } = await sb.storage.from('asb').upload(path, file, { contentType: file.type || 'application/octet-stream' })
       if (error) throw new Error('Nie udało się wysłać pliku: ' + error.message)
       return path
+    },
+    // zdjęcia z ostatniego nabożeństwa (lista ze skryptu Google) — linki ważne godzinę, tylko dla członków
+    async servicePhotos() {
+      const v = (check(await sb.from('site_settings').select('value').eq('key', 'zdjecia')) || [])[0]?.value
+      if (!v?.files?.length) return null
+      const { data, error } = await sb.storage.from('zdjecia').createSignedUrls(v.files, 3600)
+      if (error) return null
+      return { ...v, urls: (data || []).map(x => x.signedUrl).filter(Boolean) }
     },
     async asbFileUrl(path) {
       const { data, error } = await sb.storage.from('asb').createSignedUrl(path, 3600)

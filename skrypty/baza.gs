@@ -7,7 +7,7 @@
 //
 // Instalacja (raz): „+” → Skrypt → nazwa „baza” → wklej ten plik; Ustawienia projektu → Właściwości skryptu →
 // Dodaj: SUPABASE_SECRET = klucz secret; potem uruchom „ustawNewsletterBazy” (newsletter co czwartek o 18:00
-// i co minutę próbne e-maile, o które ktoś poprosił w aplikacji: Mój profil → „Wyślij próbny e-mail”, oraz
+// i co 5 minut próbne e-maile, o które ktoś poprosił w aplikacji: Mój profil → „Wyślij próbny e-mail”, oraz
 // powiadomienia z aplikacji e-mailem — według zgód w Mój profil → „Powiadomienia e-mailem”).
 
 const BAZA = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', folderId: '1pI2FlyMq8XUQHbJlELd1OuxsCIz-RRnG', folder: 'Aplikacja KNS Nabo' }
@@ -71,7 +71,7 @@ function bazaUdostepnij() {
 function ustawNewsletterBazy() {
   ScriptApp.getProjectTriggers().filter(t => ['newsletter', 'newsletterBazy', 'probneMaile'].indexOf(t.getHandlerFunction()) >= 0).forEach(t => ScriptApp.deleteTrigger(t))
   ScriptApp.newTrigger('newsletterBazy').timeBased().onWeekDay(ScriptApp.WeekDay.THURSDAY).atHour(18).inTimezone('Europe/Warsaw').create()
-  ScriptApp.newTrigger('probneMaile').timeBased().everyMinutes(1).create()
+  ScriptApp.newTrigger('probneMaile').timeBased().everyMinutes(5).create()
 }
 // Próbne newslettery z kolejki (mail_requests): ten sam e-mail co w czwartek, tylko do osoby, która poprosiła.
 function probneMaile() {
@@ -90,7 +90,7 @@ function probneMaile() {
 }
 // Powiadomienia z aplikacji (dzwonek) e-mailem — tylko rodzaje, na które osoba się zgodziła (Mój profil →
 // „Powiadomienia e-mailem”). Kolejka w bazie (mail_queue, zgody.sql) oddaje każde powiadomienie raz.
-// Uruchamiane co minutę razem z próbnymi newsletterami (probneMaile).
+// Uruchamiane co 5 minut razem z próbnymi newsletterami (probneMaile).
 function mailePowiadomien() {
   const rows = baza('rpc/mail_queue', 'post', {}) || []
   if (!rows.length) return
@@ -145,4 +145,88 @@ function htmlNewslettera(services, events, anns, types, tz) {
   if (anns.length) html += block('Ogłoszenia', anns.map(a => (/^https:\/\//.test(a.image || '') ? '<img src="' + esc(a.image) + '" alt="" style="display:block;width:100%;max-width:560px;border-radius:8px;margin:0 0 6px">' : '') + '<p style="margin:0 0 10px">' + (a.important ? '<b style="color:#c0392b">Komunikat rady zboru: </b>' : '') + '<b>' + esc(a.title) + '</b><br>' + esc(a.text).replace(/\n/g, '<br>') + (/^https?:\/\//.test(a.link || '') ? '<br><a href="' + esc(a.link) + '" style="color:#c77d14">' + esc(a.linkText || a.link) + '</a>' : '') + '</p>').join(''))
   if (items.length) html += block('Kalendarz', '<table style="border-collapse:collapse;width:100%">' + items.map(it => '<tr><td style="padding:6px 10px 6px 0;vertical-align:top;white-space:nowrap;color:#555">' + day(it.date) + (it.time ? ' ' + esc(it.time) : '') + '</td><td style="padding:6px 0"><b>' + esc(it.title) + '</b>' + (it.sub ? '<br><span style="color:#777">' + esc(it.sub) + '</span>' : '') + '</td></tr>').join('') + '</table>')
   return html + '<p style="margin-top:26px;color:#999;font-size:12px">Wysłane z aplikacji KNS Nabo. Wypisać się można w aplikacji: Start → Newsletter.</p></div>'
+}
+
+/* ---------- zdjęcia z nabożeństw: Dysk → karta najbliższego nabożeństwa na stronie startowej ---------- */
+// Folder ze zdjęciami (lata → MM_RR → DD_MM, np. 2026 / 10_26 / 18_10). Skrypt bierze najnowszy folder, w którym są
+// zdjęcia, wgrywa do bazy (prywatny kubełek „zdjecia”, widzą tylko zatwierdzeni członkowie) do 8 pomniejszonych
+// zdjęć wybranych równo z całego folderu i zapisuje ich listę. Gdy nic się nie zmieniło — nic nie robi.
+// Instalacja (raz): uruchom „ustawZdjecia” (co godzinę; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
+const ZDJECIA = { folderId: '1JDHuBFv_l6QZpKc5oPcO_vBY1V60vbKs', max: 8, size: 1600 }
+
+function ustawZdjecia() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'zdjeciaNabozenstw').forEach(t => ScriptApp.deleteTrigger(t))
+  ScriptApp.newTrigger('zdjeciaNabozenstw').timeBased().everyHours(1).create()
+  zdjeciaNabozenstw()
+}
+// Najnowszy folder ze zdjęciami. Nazwy z datą: „2026”, „10_26” (miesiąc_rok), „18_10” (dzień_miesiąc) —
+// w obu dwuczłonowych druga liczba jest „starsza”, więc klucz sortowania = druga * 100 + pierwsza.
+function najnowszyFolderZdjec(folder, path) {
+  const kids = []
+  const it = folder.getFolders()
+  while (it.hasNext()) {
+    const f = it.next(), n = f.getName().trim()
+    let key = null
+    if (/^\d{4}$/.test(n)) key = +n * 10000
+    else { const m = /^(\d{1,2})[_.\-](\d{1,2})$/.exec(n); if (m) key = +m[2] * 100 + +m[1] }
+    if (key != null) kids.push({ f, key, n })
+  }
+  kids.sort((a, b) => b.key - a.key)
+  for (const k of kids) { const r = najnowszyFolderZdjec(k.f, path.concat(k.n)); if (r) return r }
+  const imgs = []
+  const fi = folder.getFiles()
+  while (fi.hasNext()) { const x = fi.next(); if (/^image\//.test(x.getMimeType())) imgs.push(x) }
+  return imgs.length ? { folder, imgs, path } : null
+}
+// Data z nazw folderów (rok i DD_MM), np. ['2026', '10_26', '18_10'] → 2026-10-18
+function dataZdjec(path) {
+  const year = path.filter(n => /^\d{4}$/.test(n))[0]
+  const day = /^(\d{1,2})[_.\-](\d{1,2})$/.exec(path[path.length - 1] || '')
+  return year && day ? year + '-' + ('0' + day[2]).slice(-2) + '-' + ('0' + day[1]).slice(-2) : ''
+}
+function bazaNaglowki(extra) {
+  const key = bazaKlucz(), h = { apikey: key }
+  if (!/^sb_/.test(key)) h.Authorization = 'Bearer ' + key
+  for (const k in extra || {}) h[k] = extra[k]
+  return h
+}
+function zdjeciaNabozenstw() {
+  if (!bazaWlaczona()) return
+  const found = najnowszyFolderZdjec(DriveApp.getFolderById(ZDJECIA.folderId), [])
+  if (!found) return
+  const props = PropertiesService.getScriptProperties()
+  const id = found.folder.getId()
+  const all = found.imgs.sort((a, b) => a.getName().localeCompare(b.getName()))
+  const stamp = id + ':' + all.length
+  if (props.getProperty('ZDJECIA_STAN') === stamp) return // ten sam folder, tyle samo zdjęć
+  // równo z całego folderu (np. 8 ze 120), żeby było widać różne momenty nabożeństwa
+  const pick = all.length <= ZDJECIA.max ? all : Array.from({ length: ZDJECIA.max }, (_, i) => all[Math.floor(i * all.length / ZDJECIA.max)])
+  const token = ScriptApp.getOAuthToken(), auth = { Authorization: 'Bearer ' + token }
+  const files = []
+  pick.forEach((f, i) => {
+    try {
+      const meta = JSON.parse(UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.getId() + '?fields=thumbnailLink&supportsAllDrives=true', { headers: auth }).getContentText())
+      if (!meta.thumbnailLink) return
+      const img = UrlFetchApp.fetch(meta.thumbnailLink.replace(/=s\d+(-[a-z0-9-]+)?$/i, '') + '=s' + ZDJECIA.size, { headers: auth }).getBlob()
+      const path = id + '/' + i + '.jpg'
+      const res = UrlFetchApp.fetch(BAZA.url + '/storage/v1/object/zdjecia/' + path, {
+        method: 'post', headers: bazaNaglowki({ 'x-upsert': 'true' }), contentType: img.getContentType() || 'image/jpeg', payload: img.getBytes(), muteHttpExceptions: true,
+      })
+      if (res.getResponseCode() < 300) files.push(path)
+      else Logger.log('Zdjęcie ' + f.getName() + ': ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200))
+    } catch (e) { Logger.log('Zdjęcie ' + f.getName() + ': ' + e.message) }
+  })
+  if (!files.length) return
+  // lista dla strony; poprzednie zdjęcia (inny folder) usuwane z bazy
+  const value = { files, date: dataZdjec(found.path), folder: found.path.join(' / '), count: all.length, updated: new Date().toISOString() }
+  const res = UrlFetchApp.fetch(BAZA.url + '/rest/v1/site_settings?on_conflict=key', {
+    method: 'post', headers: bazaNaglowki({ Prefer: 'resolution=merge-duplicates' }), contentType: 'application/json',
+    payload: JSON.stringify({ key: 'zdjecia', value }), muteHttpExceptions: true,
+  })
+  if (res.getResponseCode() >= 300) throw new Error('Zdjęcia — zapis listy: ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200))
+  const old = JSON.parse(props.getProperty('ZDJECIA_PLIKI') || '[]').filter(p => files.indexOf(p) < 0)
+  if (old.length) UrlFetchApp.fetch(BAZA.url + '/storage/v1/object/zdjecia', { method: 'delete', headers: bazaNaglowki(), contentType: 'application/json', payload: JSON.stringify({ prefixes: old }), muteHttpExceptions: true })
+  props.setProperty('ZDJECIA_STAN', stamp)
+  props.setProperty('ZDJECIA_PLIKI', JSON.stringify(files))
+  Logger.log('Zdjęcia: ' + files.length + ' z ' + value.folder)
 }

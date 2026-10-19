@@ -33,10 +33,11 @@ export default defineComponent({ components: { LiveEvent }, setup: () => useApp(
     <!-- najbliższe nabożeństwo: duża karta (data po lewej, szczegóły i przycisk po prawej) -->
     <article class="hw-feature">
       <div class="hw-visual">
-        <span v-for="(a, i) in HERO_ART" :key="a" class="hw-art" :class="{ on: i === heroArt }" :style="{ backgroundImage: 'url(' + a + ')' }" aria-hidden="true"></span>
+        <span v-for="(a, i) in HERO_ART" :key="a" class="hw-art" :class="{ on: i === heroArt, photo: heroIsPhoto }" :style="{ backgroundImage: heroIsPhoto ? 'linear-gradient(180deg, rgba(10,8,6,.45) 0%, rgba(10,8,6,.15) 35%, rgba(10,8,6,.75) 100%), url(' + a + ')' : 'url(' + a + ')' }" aria-hidden="true"></span>
         <!-- przewijanie obrazów (strzałki i kropki) -->
         <span class="hw-nav">
           <button type="button" class="hw-arrow" aria-label="Poprzedni obraz" @click.stop="heroStep(-1)"><svg class="i"><use href="#back"/></svg></button>
+          <small v-if="heroIsPhoto" class="hw-photo-cap">{{ photosLabel }}</small>
           <span class="hw-dots" aria-hidden="true"><i v-for="(a, i) in HERO_ART" :key="a" :class="{ on: i === heroArt }"></i></span>
           <button type="button" class="hw-arrow" aria-label="Następny obraz" @click.stop="heroStep(1)"><svg class="i"><use href="#chev"/></svg></button>
         </span>

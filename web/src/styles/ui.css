@@ -376,6 +376,9 @@ a.fact:not([href]) { pointer-events: none; }
 .hw-arrow:hover { opacity: 1; }
 .hw-arrow svg.i { width: 16px; height: 16px; }
 .hw-dots { display: flex; gap: 4px; }
+.hw-photo-cap { color: rgba(255,255,255,.85); font-size: 12px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.6); margin-right: 4px; }
+.hw-art.photo { background-size: cover !important; background-position: center !important; }
+@media (max-width: 600px) { .hw-photo-cap { display: none; } }
 .hw-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.45); transition: width .2s, background .2s; }
 .hw-dots i.on { width: 14px; border-radius: 3px; background: #fff; }
 /* bez „podskakiwania” przy najechaniu — tylko obramowanie i cień (bez przesunięcia układu) */
