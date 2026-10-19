@@ -371,18 +371,16 @@ a.fact:not([href]) { pointer-events: none; }
 .notice .notice-text { opacity: 1; }
 .hw-banner-ic { color: var(--p-accent) !important; background: rgba(184, 100, 28, .12) !important; box-shadow: inset 0 0 0 1px rgba(184, 100, 28, .25) !important; }
 /* strzałki obrazów w karcie najbliższego nabożeństwa */
-.hw-nav { position: absolute; right: 14px; top: 14px; z-index: 3; display: flex; align-items: center; gap: 6px; }
+.hw-nav { position: absolute; right: 24px; top: 24px; z-index: 3; display: flex; align-items: center; gap: 6px; }
 .hw-arrow { display: grid; place-items: center; width: 30px; height: 30px; min-height: 0 !important; padding: 0 !important; border-radius: 50% !important; border: 1px solid rgba(255,255,255,.25) !important; background: rgba(0,0,0,.35) !important; color: #fff !important; backdrop-filter: blur(6px); opacity: .8; }
 .hw-arrow:hover { opacity: 1; }
 .hw-arrow svg.i { width: 16px; height: 16px; }
 .hw-dots { display: flex; gap: 4px; }
-.hw-photo-cap { color: rgba(255,255,255,.85); font-size: 12px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.6); margin-right: 4px; }
 /* zdjęcie z nabożeństwa: całe (contain), tło — to samo zdjęcie rozmyte; przyciemnienie pod napisy */
-.hw-art.photo { overflow: hidden; background: none; }
+.hw-art.photo { overflow: hidden; background: none; transform: none; transition: opacity 1.2s ease-in-out; } /* zdjęcia: łagodne przenikanie */
 .hw-art.photo::before, .hw-art.photo::after { content: ''; position: absolute; inset: 0; }
 .hw-art.photo::before { inset: -30px; background: var(--img) center / cover no-repeat; filter: blur(22px) brightness(.55); }
 .hw-art.photo::after { background: linear-gradient(180deg, rgba(10,8,6,.45) 0%, rgba(10,8,6,.1) 35%, rgba(10,8,6,.7) 100%), var(--img) center / contain no-repeat; }
-@media (max-width: 600px) { .hw-photo-cap { display: none; } }
 .hw-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.45); transition: width .2s, background .2s; }
 .hw-dots i.on { width: 14px; border-radius: 3px; background: #fff; }
 /* bez „podskakiwania” przy najechaniu — tylko obramowanie i cień (bez przesunięcia układu) */

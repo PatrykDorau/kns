@@ -37,7 +37,6 @@ export default defineComponent({ components: { LiveEvent }, setup: () => useApp(
         <!-- przewijanie obrazów (strzałki i kropki) -->
         <span class="hw-nav">
           <button type="button" class="hw-arrow" aria-label="Poprzedni obraz" @click.stop="heroStep(-1)"><svg class="i"><use href="#back"/></svg></button>
-          <small v-if="heroIsPhoto" class="hw-photo-cap">{{ photosLabel }}</small>
           <span class="hw-dots" aria-hidden="true"><i v-for="(a, i) in HERO_ART" :key="a" :class="{ on: i === heroArt }"></i></span>
           <button type="button" class="hw-arrow" aria-label="Następny obraz" @click.stop="heroStep(1)"><svg class="i"><use href="#chev"/></svg></button>
         </span>
