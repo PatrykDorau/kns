@@ -377,7 +377,11 @@ a.fact:not([href]) { pointer-events: none; }
 .hw-arrow svg.i { width: 16px; height: 16px; }
 .hw-dots { display: flex; gap: 4px; }
 .hw-photo-cap { color: rgba(255,255,255,.85); font-size: 12px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.6); margin-right: 4px; }
-.hw-art.photo { background-size: cover !important; background-position: center !important; }
+/* zdjęcie z nabożeństwa: całe (contain), tło — to samo zdjęcie rozmyte; przyciemnienie pod napisy */
+.hw-art.photo { overflow: hidden; background: none; }
+.hw-art.photo::before, .hw-art.photo::after { content: ''; position: absolute; inset: 0; }
+.hw-art.photo::before { inset: -30px; background: var(--img) center / cover no-repeat; filter: blur(22px) brightness(.55); }
+.hw-art.photo::after { background: linear-gradient(180deg, rgba(10,8,6,.45) 0%, rgba(10,8,6,.1) 35%, rgba(10,8,6,.7) 100%), var(--img) center / contain no-repeat; }
 @media (max-width: 600px) { .hw-photo-cap { display: none; } }
 .hw-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.45); transition: width .2s, background .2s; }
 .hw-dots i.on { width: 14px; border-radius: 3px; background: #fff; }

@@ -6,7 +6,7 @@
 //
 // Instalacja (raz):
 //   1. script.google.com → Nowy projekt → wklej cały ten plik (zastąp zawartość Code.gs).
-//   2. Uzupełnij poniżej adresy w „recipients” i hasło „pushSecret” (to samo co PUSH_SECRET w Netlify).
+//   2. Uzupełnij poniżej hasło „pushSecret” (to samo co PUSH_SECRET w Netlify); adresy w „recipients” — opcjonalnie.
 //   3. Ustawienia projektu (ikona zębatki) → Strefa czasowa: (GMT+01:00) Warszawa.
 //   4. Wybierz funkcję „setup” na górze i kliknij „Uruchom” → zezwól na dostęp (Dysk, Gmail, połączenia).
 //   (baza danych) Gdy w projekcie jest też baza.gs z kluczem SUPABASE_SECRET — nabożeństwa i telefony są czytane z bazy.
@@ -16,7 +16,7 @@ const CONFIG = {
   folderName: 'Aplikacja KNS Nabo', // folder aplikacji (ten sam co w aplikacji)
   servicesFolder: 'nabozenstwa',
   pushFolder: 'powiadomienia', // tu aplikacja zapisuje telefony z włączonymi powiadomieniami
-  recipients: ['wpisz.adres@gmail.com'], // kto dostaje maila — można kilka adresów
+  recipients: [], // mail z podsumowaniem (opcjonalnie), np. ['pastor@…', 'organizator@…']; pusto — tylko powiadomienia na telefony
   mailDay: 5, // dzień maila: 0 niedziela, 1 poniedziałek … 5 piątek, 6 sobota
   mailHour: 19,
   pushUrl: 'https://kns-nabo.netlify.app/api/push', // funkcja wysyłająca powiadomienia na telefony
@@ -76,6 +76,7 @@ function checkSunday(now, tz) {
 }
 
 function sendMail(check) {
+  if (!CONFIG.recipients.length) return // bez adresów — tylko telefony
   const { service, missing, pretty } = check
   const title = missing.length ? `Nabożeństwo ${pretty} — brakuje: ${missing.join(', ')}` : `Nabożeństwo ${pretty} jest gotowe`
   const lines = service ? [
