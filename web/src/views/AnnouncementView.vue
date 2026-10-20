@@ -55,6 +55,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
         <button v-if="currentAnn.image" type="button" :disabled="imgBusy" @click="currentAnn.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
       </div>
       <input ref="annImg" type="file" accept="image/*" hidden @change="pickAnnImage">
+      <ImageLinkInput v-if="annEditable" @pick="u => { const first = !currentAnn.image; currentAnn.image = u; if (first && !annSavedOnce) currentAnn.projector = true }" />
       <label v-if="currentAnn.image" class="check"><input v-model="currentAnn.projector" type="checkbox">Pokaż na nabożeństwie — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
       <p v-if="currentAnn.image" class="note">Na rzutniku pokazują się tylko grafiki — umieść na niej wszystkie ważne informacje (co, kiedy, gdzie).</p>
     </template>

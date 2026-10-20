@@ -67,6 +67,12 @@ export function driveInfo(url) {
   if (m) return { id: m[1], kind: 'folder', link: u, preview: '' }
   return null
 }
+// Grafika z linku: Dysk Google → adres samego obrazka (plik udostępniony „Każda osoba mająca link”), inny adres https — bez zmian
+export function imageFromLink(url) {
+  const u = String(url || '').trim(), d = driveInfo(u)
+  if (d) return d.kind === 'file' ? 'https://drive.google.com/thumbnail?id=' + d.id + '&sz=w1920' : null
+  return /^https:\/\/\S+$/i.test(u) ? u : null
+}
 // link do pliku: Dysk Google albo inny adres https
 export const isFileLink = url => !!driveInfo(url) || /^https:\/\/[^\s]+\.[^\s]+/.test(String(url || '').trim())
 

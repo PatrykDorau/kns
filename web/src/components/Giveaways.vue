@@ -71,6 +71,7 @@ export default defineComponent({
       <button v-if="gv.edit.image" type="button" @click="gv.edit.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń zdjęcie</button>
     </div>
     <input ref="giftImg" type="file" accept="image/*" hidden @change="pickImage">
+    <ImageLinkInput @pick="u => gv.edit.image = u" />
     <p v-if="gv.error" class="error">{{ gv.error }}</p>
     <div class="bar">
       <button class="primary" :disabled="gv.busy || !gv.edit.title.trim() || !(gv.edit.qty >= 1)" @click="save">{{ gv.edit._new ? 'Dodaj do wydawki' : 'Zapisz' }}</button>

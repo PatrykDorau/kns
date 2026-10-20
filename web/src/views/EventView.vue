@@ -139,6 +139,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
         <button v-if="currentEvent.image" type="button" :disabled="imgBusy" @click="currentEvent.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
       </div>
       <input ref="evImg" type="file" accept="image/*" hidden @change="pickEventImage">
+      <ImageLinkInput @pick="u => currentEvent.image = u" />
       <label v-if="currentEvent.image" class="check"><input v-model="currentEvent.projector" type="checkbox">Pokaż na nabożeństwie — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
     </template>
     <MinistryPicker v-if="api.enabled" :model-value="currentEvent.ministries || []" @update:model-value="v => { currentEvent.ministries = v; if (v.length) currentEvent.public = false }" />

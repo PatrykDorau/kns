@@ -74,6 +74,7 @@ export default defineComponent({
       <button v-if="goals.edit.image" type="button" @click="goals.edit.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
     </div>
     <input ref="goalImg" type="file" accept="image/*" hidden @change="pickGoalImage">
+    <ImageLinkInput @pick="u => goals.edit.image = u" />
     <label class="check"><input v-model="goals.edit.open" type="checkbox">Bez terminu — zbieramy, dopóki cel nie zostanie zakończony</label>
     <label>Rodzaj</label>
     <div class="vote-seg" role="radiogroup" aria-label="Rodzaj celu">
