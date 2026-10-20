@@ -40,9 +40,9 @@ export default defineComponent({ setup: () => useApp() })
     <div v-if="push.on && canEdit" class="pc-when">
       <span class="pc-label">Przypomnienie o brakach — kiedy</span>
       <div class="pc-row">
-        <select v-model.number="push.day" aria-label="Dzień przypomnienia" :disabled="push.busy" @change="saveSchedule"><option v-for="(name, i) in DAYS" :key="i" :value="i">{{ name }}</option></select>
+        <UiSelect v-model="push.day" compact label="Dzień przypomnienia" :disabled="push.busy" :options="DAYS.map((name, i) => ({ value: i, label: name }))" @change="saveSchedule" />
         <span>o</span>
-        <select v-model.number="push.hour" aria-label="Godzina przypomnienia" :disabled="push.busy" @change="saveSchedule"><option v-for="h in HOURS" :key="h" :value="h">{{ h }}:00</option></select>
+        <UiSelect v-model="push.hour" compact label="Godzina przypomnienia" :disabled="push.busy" :options="HOURS.map(h => ({ value: h, label: h + ':00' }))" @change="saveSchedule" />
       </div>
       <small v-if="push.saved" class="pc-saved">Zapisano ✓</small>
     </div>

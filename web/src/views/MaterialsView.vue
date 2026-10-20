@@ -19,7 +19,7 @@ export default defineComponent({ setup: () => useApp() })
   <p v-else-if="!protocols.length" class="note">{{ protoKind === 'all' ? 'W materiałach nie ma jeszcze nic.' : 'Nic tu jeszcze nie ma.' }}</p>
   <button v-for="p in protocols" :key="p.id" class="ev" :style="{ '--c': MAT_COLOR[matType(p)] }" @click="openProto(p)">
     <span class="when"><small>{{ wd(p.date) }}</small><b>{{ day(p.date) }}</b><small>{{ month(p.date) }}</small></span>
-    <span class="body"><b>{{ p.title }}</b><small>{{ MAT_TYPES[matType(p)] }} · {{ VISIBILITY[p.kind] }}<template v-if="p.eventId && eventTitle(p.eventId)"> · {{ eventTitle(p.eventId) }}</template></small></span>
+    <span class="body"><b>{{ p.title }}</b><small>{{ MAT_TYPES[matType(p)] }} · {{ (p.ministries || []).length ? 'Tylko: ' + ministryNames(p.ministries) : VISIBILITY[p.kind] }}<template v-if="p.eventId && eventTitle(p.eventId)"> · {{ eventTitle(p.eventId) }}</template></small></span>
     <svg class="i chev"><use href="#chev"/></svg>
   </button>
 </template>

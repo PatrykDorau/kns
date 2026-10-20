@@ -11,10 +11,7 @@ export default defineComponent({ setup: () => useApp() })
   <!-- wyszukiwanie osób i filtr rangi -->
   <div class="people-tools">
     <div class="ann-search"><svg class="i"><use href="#search"/></svg><input v-model="peopleUi.query" type="search" placeholder="Szukaj osoby: imię, nazwisko, e-mail…" aria-label="Szukaj osoby" autocomplete="off"></div>
-    <select v-model="peopleUi.rank" aria-label="Filtr rangi">
-      <option value="">Wszystkie rangi</option>
-      <option v-for="r in ranks" :key="r.id" :value="r.id">{{ r.name }}</option>
-    </select>
+    <UiSelect v-model="peopleUi.rank" compact label="Filtr rangi" :options="[{ value: '', label: 'Wszystkie rangi' }, ...ranks.map(r => ({ value: r.id, label: r.name }))]" />
   </div>
   <div v-if="peopleBusy && !people.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 6" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="people.length && !peopleGroups.length" class="note">Nikt nie pasuje do wyszukiwania.</p>

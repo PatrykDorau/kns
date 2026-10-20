@@ -141,6 +141,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'groups') return { groups: check(await sb.rpc('group_names')) || [] }
       // Służby: tablica, zgłoszenia, akceptacja (lider/administrator), edycja.
       if (action === 'ministries') return check(await sb.rpc('ministry_board')) || []
+      if (action === 'ministryInternal') return check(await sb.rpc('ministry_set_internal', { mid: data.id, txt: data.text || '' }))
       // Dyspozycyjność w służbach (niedziele): moje odpowiedzi, tabela dla lidera, przypomnienie.
       if (action === 'availability') return check(await sb.rpc('availability_board')) || []
       if (action === 'availabilitySet') return check(await sb.rpc('availability_set', { mid: data.id, d: data.day, st: data.state || null }))
@@ -299,7 +300,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
     },
     // Biblioteka protokołów: wszystkie, które ta osoba może zobaczyć (członkowskie; rady — tylko rada).
     async loadProtocols() {
-      return (await all(() => sb.from('protocols').select('data,kind,event_id,updated').order('id'))).map(r => ({ ...r.data, kind: r.kind, eventId: r.event_id || '', updated: Math.max(r.data?.updated || 0, r.updated || 0) }))
+      return (await all(() => sb.from('protocols').select('data,kind,event_id,ministries,updated').order('id'))).map(r => ({ ...r.data, kind: r.kind, ministries: r.ministries || [], eventId: r.event_id || '', updated: Math.max(r.data?.updated || 0, r.updated || 0) }))
     },
     // Plik protokołu: prywatny kosz „protokoly”; link ważny godzinę.
     async uploadProtocolFile(file) {
@@ -339,7 +340,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
     async removeProtocolFile(path) { await sb.storage.from('protokoly').remove([path]).catch(() => {}) },
     async saveProtocol(p, base = 0, force = false) {
       await guardNewer('protocols', p.id, base, force, 'ten protokół')
-      check(await sb.from('protocols').upsert({ id: p.id, kind: p.kind, event_id: p.eventId || null, date: day(p.date), status: p.status || 'szkic', data: p, updated: p.updated || Date.now(), updated_by: p.updatedBy || who() }))
+      check(await sb.from('protocols').upsert({ id: p.id, kind: p.kind, ministries: p.kind === 'rada' ? [] : p.ministries || [], event_id: p.eventId || null, date: day(p.date), status: p.status || 'szkic', data: p, updated: p.updated || Date.now(), updated_by: p.updatedBy || who() }))
     },
     async removeProtocol(id) { check(await sb.from('protocols').delete().eq('id', id)) },
     async saveAnnouncement(item, base = 0, force = false) {

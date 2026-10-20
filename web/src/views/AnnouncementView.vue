@@ -76,11 +76,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     <input id="anLink" v-model.trim="currentAnn.link" placeholder="np. formularz zapisów, strona wydarzenia" autocomplete="off" inputmode="url">
     <input v-if="currentAnn.link" v-model="currentAnn.linkText" placeholder="Tekst przycisku, np. „Zapisz się”" autocomplete="off" style="margin-top:8px">
     <label for="anAud">Kto widzi</label>
-    <select id="anAud" v-model="currentAnn.audience" class="field">
-      <option value="public">Wszyscy — także goście bez konta</option>
-      <option value="members">Członkowie (zatwierdzeni)</option>
-      <option v-if="hasCouncil || currentAnn.audience === 'council'" value="council">Tylko rada zboru</option>
-    </select>
+    <UiSelect id="anAud" v-model="currentAnn.audience" label="Kto widzi" :options="[{ value: 'public', label: 'Wszyscy — także goście bez konta', disabled: (currentAnn.ministries || []).length > 0 }, { value: 'members', label: 'Członkowie (zatwierdzeni)' }, ...(hasCouncil || currentAnn.audience === 'council' ? [{ value: 'council', label: 'Tylko rada zboru' }] : [])]" />
     <MinistryPicker v-if="api.enabled && currentAnn.audience !== 'council'" :model-value="currentAnn.ministries || []" @update:model-value="v => { currentAnn.ministries = v; if (v.length && currentAnn.audience === 'public') currentAnn.audience = 'members' }" />
     <label v-if="hasCouncil && currentAnn.audience !== 'council'" class="check"><input v-model="currentAnn.important" type="checkbox">Komunikat rady zboru — na górze strony głównej</label>
     <label v-if="canEdit || canReview" class="check"><input v-model="currentAnn.pinned" type="checkbox">Przypnij — zawsze nad innymi ogłoszeniami</label>

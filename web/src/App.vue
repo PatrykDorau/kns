@@ -939,7 +939,14 @@ export default defineComponent({
     let protoSaved = '', protoBase = 0
     const protoDirty = computed(() => !!currentProto.value && (JSON.stringify(currentProto.value) !== protoSaved || !!protoFile.value))
     const protoSavedOnce = computed(() => !!currentProto.value && protocolsRaw.value.some(p => p.id === currentProto.value.id))
-    const protoEditable = computed(() => !!currentProto.value && canWriteProto(currentProto.value.kind))
+    // lider służby: materiały tylko dla swoich służb
+    const myLeadIds = computed(() => serve.list.filter(m => m.lead).map(m => m.id))
+    const leadsAll = ids => (ids || []).length > 0 && ids.every(id => myLeadIds.value.includes(id))
+    const protoEditable = computed(() => !!currentProto.value && (canWriteProto(currentProto.value.kind) || (currentProto.value.kind === 'material' && leadsAll(currentProto.value.ministries))))
+    // plik dla służby (z „Moja służba”): nowy materiał widoczny tylko dla tej służby
+    function newMinistryFile(m) { loadProtocols(); openProto({ id: uid(), kind: 'material', type: 'plik', ministries: [m.id], eventId: '', title: '', date: today() }); protoSaved = ''; protoEditing.value = true }
+    const ministryFiles = id => protocolsRaw.value.filter(p => (p.ministries || []).includes(id)).sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    const saveMinistryInternal = (m, text) => guard(async () => { await api.call('ministryInternal', { id: m.id, text }); await loadServe(); showToast('Zapisano informacje służby.') })
     function openProto(p) {
       currentProto.value = { title: '', date: today(), kind: 'czlonkowskie', eventId: '', note: '', file: '', fileName: '', ...JSON.parse(JSON.stringify(p)) }
       currentProto.value.type = matType(currentProto.value)
@@ -2394,7 +2401,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,

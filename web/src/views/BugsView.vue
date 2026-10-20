@@ -31,8 +31,8 @@ export default defineComponent({ setup: () => useApp() })
       <p v-if="b.note && !bugs.backlog" class="bug-note">{{ b.note }}</p>
       <template v-if="bugs.backlog">
         <div class="bug-ctl">
-          <label>Stan<select :value="b.status" @change="updateBug(b, { status: ($event.target as HTMLSelectElement).value })"><option v-for="(name, id) in BUG_STATUS" :key="id" :value="id">{{ name }}</option></select></label>
-          <label>Kto się zajmuje<select :value="b.assignee || ''" @change="($event.target as HTMLSelectElement).value ? updateBug(b, { assignee: ($event.target as HTMLSelectElement).value }) : updateBug(b, { unassign: true })"><option value="">— nikt —</option><option v-for="p in bugs.people" :key="p.id" :value="p.id">{{ p.name }}</option></select></label>
+          <label>Stan<UiSelect :model-value="b.status" label="Stan" :options="Object.entries(BUG_STATUS).map(([value, label]) => ({ value, label }))" @update:model-value="v => updateBug(b, { status: v })" /></label>
+          <label>Kto się zajmuje<UiSelect :model-value="b.assignee || ''" label="Kto się zajmuje" :options="[{ value: '', label: '— nikt —' }, ...bugs.people.map(p => ({ value: p.id, label: p.name }))]" @update:model-value="v => v ? updateBug(b, { assignee: v }) : updateBug(b, { unassign: true })" /></label>
         </div>
         <label :for="'bn' + b.id">Notatka (widzi ją zgłaszający przy zakończeniu)</label>
         <textarea :id="'bn' + b.id" :value="b.note" rows="2" @change="updateBug(b, { note: ($event.target as HTMLTextAreaElement).value })"></textarea>

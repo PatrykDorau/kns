@@ -14,7 +14,7 @@ export default defineComponent({ setup: () => useApp() })
   <button v-if="current" class="ghost back" @click="back"><svg class="i"><use href="#back"/></svg>{{ svcEditing && services.some(x => x.id === current.id) ? 'Podgląd' : cameFromCal() ? 'Kalendarz' : 'Lista' }}</button>
   <button v-else-if="currentAnn" class="ghost back" @click="closeAnn"><svg class="i"><use href="#back"/></svg>{{ annView ? 'Ogłoszenia' : 'Wstecz' }}</button>
   <button v-else-if="annView" class="ghost back to-start" @click="annView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>
-  <button v-else-if="currentProto" class="ghost back" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : 'Materiały' }}</button>
+  <button v-else-if="currentProto" class="ghost back" @click="closeProto"><svg class="i"><use href="#back"/></svg>{{ currentEvent ? 'Wydarzenie' : protoView ? 'Materiały' : 'Wstecz' }}</button>
   <button v-else-if="currentEvent" class="ghost back" @click="closeEvent"><svg class="i"><use href="#back"/></svg>{{ eventEditing && eventSavedOnce ? 'Podgląd' : 'Kalendarz' }}</button>
   <button v-else-if="tplType" class="ghost back" @click="closeType"><svg class="i"><use href="#back"/></svg>Szablony</button>
   <button v-else-if="tplView" class="ghost back to-start" @click="tplView = false"><svg class="i"><use href="#back"/></svg>Wstecz</button>

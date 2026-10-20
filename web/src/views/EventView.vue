@@ -111,9 +111,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
   <template v-else>
   <fieldset class="plain" :disabled="!eventEditable">
     <label for="evType">Rodzaj</label>
-    <select id="evType" v-model="currentEvent.type" class="field" @change="typeChanged">
-      <option v-for="t in eventTypesFor" :key="t.id" :value="t.id">{{ t.name }}</option>
-    </select>
+    <UiSelect id="evType" v-model="currentEvent.type" label="Rodzaj" :options="eventTypesFor.map(t => ({ value: t.id, label: t.name }))" @change="typeChanged" />
     <p v-if="!eventSavedOnce && canEdit" class="note" style="margin-top:4px">Nabożeństwo dodajesz w <button type="button" class="linkbtn" @click="newEvent('nabozenstwo')">Nabożeństwa → nowe nabożeństwo</button>.</p>
     <label for="evTitle">Nazwa <span class="req">*</span></label>
     <input id="evTitle" v-model="currentEvent.title" :class="{ invalid: !currentEvent.title.trim() }" autocomplete="off">

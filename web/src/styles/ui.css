@@ -508,3 +508,23 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 .update-ready { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; padding: 10px 12px 10px 14px; border-radius: 14px; border: 1px solid rgba(242, 165, 60, .45); background: var(--accent-soft); font-size: 14px; }
 .update-ready span { flex: 1; }
 .update-ready .i { width: 18px; height: 18px; color: var(--accent); }
+/* lista wyboru w stylu aplikacji (components/UiSelect.vue) */
+.uisel { position: relative; width: 100%; }
+.uisel.compact { width: auto; display: inline-block; }
+.uisel-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 46px; padding: 10px 12px 10px 14px; border: 1px solid var(--edge, var(--line)); border-radius: 12px; background: var(--field, var(--panel)); color: var(--text); font: inherit; text-align: left; box-shadow: none; }
+.uisel.compact .uisel-btn { min-height: 38px; padding: 6px 10px; }
+.uisel-btn span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uisel-btn .ph { color: var(--muted); }
+.uisel-chev { flex: none; width: 16px; height: 16px; color: var(--muted); transition: transform .15s; }
+.uisel.open .uisel-chev { transform: rotate(180deg); }
+.uisel.open .uisel-btn, .uisel-btn:focus-visible { border-color: rgba(242, 165, 60, .75); box-shadow: var(--ring); outline: none; }
+@media (hover: hover) { .uisel-btn:hover { border-color: var(--edge-hi); } }
+.uisel-list { position: absolute; z-index: 80; left: 0; right: 0; top: calc(100% + 4px); max-height: 280px; overflow: auto; margin: 0; padding: 4px; list-style: none; border: 1px solid var(--edge-hi, var(--line)); border-radius: 12px; background: var(--panel); box-shadow: 0 16px 40px -12px rgba(0, 0, 0, .6); }
+.uisel.compact .uisel-list { min-width: 180px; right: auto; }
+.uisel-list.up { top: auto; bottom: calc(100% + 4px); }
+.uisel-list li { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 10px; border-radius: 9px; cursor: pointer; }
+.uisel-list li span { flex: 1; }
+.uisel-list li .i { width: 16px; height: 16px; color: var(--accent); }
+.uisel-list li.act { background: var(--panel2); }
+.uisel-list li.on { color: var(--accent); font-weight: 600; }
+.uisel-list li.dis { opacity: .45; cursor: default; }

@@ -3,11 +3,12 @@
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
 import AvailabilityPanel from '@/components/AvailabilityPanel.vue'
+import MyMinistries from '@/components/MyMinistries.vue'
 import { useSwipe } from '@/utils/swipe'
 
 // Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) Zaangażuj się: służby szukające chętnych, zgłoszenia, akceptacja przez lidera
 export default defineComponent({
-  components: { AvailabilityPanel },
+  components: { AvailabilityPanel, MyMinistries },
   setup() {
     const app = useApp()
     // przesunięcie palcem: w lewo — „Moja służba”, w prawo — „Wszystkie służby” (gdy jest zakładka „Moja służba”)
@@ -25,10 +26,7 @@ export default defineComponent({
     <button role="tab" :aria-selected="serveTab === 'mine'" @click="serveTab = 'mine'"><svg class="i"><use href="#users"/></svg>Moja służba</button>
   </div>
   <template v-if="serveTab === 'mine'">
-  <article v-if="canAsb" class="ministry asb-ministry">
-    <div class="mn-head"><span class="pc-icon"><svg class="i"><use href="#users"/></svg></span><span class="asb-m-text"><b>ASB — Akademickie Spotkania Biblijne</b><small>Masz rangę ASB: grafik spotkań, prowadzący, pomysły i przypomnienia.</small></span></div>
-    <button class="primary" @click="openAsb">Grafik spotkań<svg class="i"><use href="#chev"/></svg></button>
-  </article>
+  <MyMinistries />
   <AvailabilityPanel />
   </template>
   <template v-else>
@@ -37,10 +35,6 @@ export default defineComponent({
   <div v-if="serve.busy && !serve.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="serve.error" class="error">{{ serve.error }}</p>
   <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canCreateMinistry ? ' — dodaj pierwszą.' : '.' }}</p>
-  <article v-if="api.enabled" class="ministry asb-ministry">
-    <div class="mn-head"><span class="pc-icon"><svg class="i"><use href="#users"/></svg></span><span class="asb-m-text"><b>ASB — Akademickie Spotkania Biblijne</b><small>Spotkania studenckie — terminarz{{ canAsb ? ', grafik i pomysły' : '' }}.</small></span></div>
-    <button class="primary" @click="openAsb">{{ canAsb ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i"><use href="#chev"/></svg></button>
-  </article>
   <template v-for="sec in serveSections" :key="sec.id">
   <h2 class="mn-sec">{{ sec.title }}</h2>
   <div class="mn-grid">
@@ -55,6 +49,7 @@ export default defineComponent({
     </div>
     <p v-if="m.description" class="mn-desc">{{ m.description }}</p>
     <p v-if="m.leaders.length" class="mn-meta">Lider: {{ m.leaders.map(l => l.name).join(', ') }}</p>
+    <button v-if="m.id === 'asb'" class="small mn-asb" @click="openAsb"><svg class="i"><use href="#calendar"/></svg>{{ canAsb ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i chev"><use href="#chev"/></svg></button>
     <!-- kto służy — zwinięte; lider po rozwinięciu dodaje i usuwa osoby -->
     <details class="mn-who">
       <summary><svg class="i"><use href="#users"/></svg><span>{{ (m.lead ? m.people.length : m.members.length) ? 'Kto służy · ' + (m.lead ? m.people.length : m.members.length) : 'Nikt jeszcze nie służy' }}</span><svg class="i mn-chev"><use href="#down"/></svg></summary>

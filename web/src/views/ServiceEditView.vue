@@ -144,11 +144,7 @@ export default defineComponent({ setup: () => useApp() })
   <div class="band">
     <div v-for="(b, i) in current.bandList" :key="b.key" class="band-row">
       <b>{{ b.name }}</b>
-      <select v-model="b.instrument" class="field" :class="{ empty: !b.instrument }" :aria-label="'Instrument — ' + b.name" :data-band="b.key">
-        <option value="">Wybierz instrument…</option>
-        <option v-for="x in INSTRUMENTS" :key="x" :value="x">{{ x }}</option>
-        <option v-if="b.instrument && !INSTRUMENTS.includes(b.instrument)" :value="b.instrument">{{ b.instrument }}</option>
-      </select>
+      <UiSelect v-model="b.instrument" :label="'Instrument — ' + b.name" placeholder="Wybierz instrument…" :data-band="b.key" :options="[...INSTRUMENTS.map(x => ({ value: x, label: x })), ...(b.instrument && !INSTRUMENTS.includes(b.instrument) ? [{ value: b.instrument, label: b.instrument }] : [])]" />
       <button type="button" class="icon" :aria-label="'Usuń ' + b.name + ' ze składu'" title="Usuń ze składu" @click="current.bandList.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
     </div>
     <button type="button" class="songsbtn" @click="openBandPick"><svg class="i"><use href="#plus"/></svg>Dodaj osobę<svg class="i chev"><use href="#chev"/></svg></button>

@@ -1108,3 +1108,4 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .asb-m-text small { color: var(--muted); font-size: 13px; }
 .asb-ministry > button { align-self: flex-start; }
 .serve-view { min-height: calc(100dvh - 150px); }
+.mn-asb { align-self: flex-start; margin: 2px 0 6px; }
