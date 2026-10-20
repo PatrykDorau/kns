@@ -281,7 +281,8 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       }
       return songsList()
     },
-    async savePush(id, data) { check(await sb.from('push_devices').upsert({ id, data, updated: new Date().toISOString() })) },
+    // telefon przechodzi na zalogowane konto (także po zmianie konta na tym samym telefonie) — push_claim
+    async savePush(id, data) { check(await sb.rpc('push_claim', { did: id, d: data })) },
     async removePush(id) { check(await sb.from('push_devices').delete().eq('id', id)) },
 
     async saveEvent(ev, base = 0, force = false) {

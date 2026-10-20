@@ -310,7 +310,9 @@ export default defineComponent({
     // Logowanie przez bazę (Supabase) działa też pod innymi dozwolonymi adresami — ostrzeżenie tylko dla logowania wprost przez Google.
     const wrongOrigin = !demo && !useSupa && origin !== new URL(appUrl).origin
     const reload = () => guard(fetchAll)
-    function logout() {
+    async function logout() {
+      // telefon przestaje dostawać powiadomienia dla tego konta (po zalogowaniu na inne — przejdzie na nie)
+      if (push.on && api.enabled && drive.removePush) await Promise.race([drive.removePush(pushId).catch(() => {}), new Promise(r => setTimeout(r, 1500))])
       drive.signOut()
       ready.value = false; services.value = []; current.value = null
       gate.value = ''; me.value = null; people.value = []; try { localStorage.removeItem('kns-photos') } catch { /* bez pamięci */ } peopleView.value = false; annView.value = false; currentAnn.value = null
@@ -2115,7 +2117,10 @@ export default defineComponent({
     async function checkPush() {
       if (!push.supported || push.needsInstall) return
       const reg = await navigator.serviceWorker.ready
-      push.on = !!(await reg.pushManager.getSubscription()) && Notification.permission === 'granted'
+      const sub = await reg.pushManager.getSubscription()
+      push.on = !!sub && Notification.permission === 'granted'
+      // telefon przypisany do zalogowanego konta (po zmianie konta powiadomienia idą do nowego)
+      if (push.on && api.enabled && ready.value && drive.savePush) drive.savePush(pushId, pushRecord(sub)).catch(() => {})
     }
     async function enablePush() {
       push.busy = true; push.error = ''; push.slow = ''
@@ -2208,10 +2213,10 @@ export default defineComponent({
     async function autoPush() {
       let pref = '', later = 0
       try { pref = localStorage.getItem('kns-push') || ''; later = +(localStorage.getItem('kns-push-later') || 0) } catch { /* tryb prywatny */ }
-      if (!push.supported || push.denied || pref === 'off' || Date.now() - later < 2 * 864e5) return
+      if (!push.supported || push.denied || pref === 'off') return
+      if (!push.needsInstall && !push.otherBrowser) { await checkPush(); if (push.on) return } // włączone — telefon przypisany do tego konta
+      if (Date.now() - later < 2 * 864e5) return
       if (push.needsInstall || push.otherBrowser) { pushAskMode.value = push.needsInstall ? 'install' : 'browser'; pushAsk.value = true; return }
-      await checkPush()
-      if (push.on) return
       if (Notification.permission === 'granted') { await enablePush(); return }
       pushAskMode.value = 'enable'; pushAsk.value = true
     }
