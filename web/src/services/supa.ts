@@ -188,6 +188,15 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'attendance') return check(await sb.rpc('event_attendance_info', { eid: data.id }))
       if (action === 'electionVote') return check(await sb.rpc('election_vote', { e: data.e, choices: data.choices }))
       if (action === 'electionRemove') return check(await sb.rpc('election_remove', { e: data.e }))
+      // Miejsce na dane (miejsce.sql): rozmiar bazy i pliki; usuwanie i pobieranie przez Storage API (reguły koszy)
+      if (action === 'storageUsage') return check(await sb.rpc('storage_usage'))
+      if (action === 'storageRemove') { const { data: gone, error } = await sb.storage.from(data.bucket).remove(data.names); if (error) throw new Error(error.message); return (gone || []).length }
+      if (action === 'storageUrl') {
+        if (data.bucket === 'ogloszenia') return sb.storage.from(data.bucket).getPublicUrl(data.name).data.publicUrl
+        const { data: s, error } = await sb.storage.from(data.bucket).createSignedUrl(data.name, 600, { download: true })
+        if (error) throw new Error(error.message)
+        return s.signedUrl
+      }
       // Wydawka (wydawka.sql)
       if (action === 'giveaways') return check(await sb.rpc('giveaway_board')) || []
       if (action === 'giveawaySave') return check(await sb.rpc('giveaway_save', { gid: data.id, new_title: data.title || '', new_description: data.description || '', new_image: data.image || '', new_place: data.place || '', new_qty: +data.qty || 1, new_closed: !!data.closed }))

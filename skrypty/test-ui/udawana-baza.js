@@ -11,7 +11,7 @@
     await db.waitReady
     const has = (await db.query(`select to_regclass('public.people') as t`)).rows[0].t
     if (!has) await fake.setupDb(db, await (await fetch('schema.sql')).text(), ['admin@kns.pl'])
-    for (const f of ['kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql', 'wybory.sql', 'wybory2.sql', 'zgody.sql', 'obecnosc.sql', 'zgloszenia.sql', 'dyspozycyjnosc.sql', 'widocznosc.sql', 'cele2.sql', 'sluzby2.sql', 'wydawka.sql']) await db.exec(await (await fetch(f)).text()) // dodatki (można uruchamiać wielokrotnie)
+    for (const f of ['kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql', 'wybory.sql', 'wybory2.sql', 'zgody.sql', 'obecnosc.sql', 'zgloszenia.sql', 'dyspozycyjnosc.sql', 'widocznosc.sql', 'cele2.sql', 'sluzby2.sql', 'wydawka.sql', 'miejsce.sql']) await db.exec(await (await fetch(f)).text()) // dodatki (można uruchamiać wielokrotnie)
     return { db, fake }
   })()
   window.__db = dbP

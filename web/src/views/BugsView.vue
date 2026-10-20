@@ -1,13 +1,21 @@
 <script lang="ts">
 // @ts-nocheck — stan i działania wspólne (useApp)
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
 import { useApp } from '@/composables/useApp'
+import StoragePanel from '@/components/StoragePanel.vue'
 
 // Zgłoszenia: administrator i deweloperzy — backlog (status, kto się zajmuje, notatka); pozostali — swoje zgłoszenia.
-export default defineComponent({ setup: () => useApp() })
+// druga zakładka (backlog): miejsce na dane — baza i pliki, sprzątanie nieużywanych
+export default defineComponent({ components: { StoragePanel }, setup: () => ({ ...useApp(), bugTab: ref('bugs') }) })
 </script>
 
 <template>
+  <div v-if="bugs.backlog" class="serve-tabs" role="tablist">
+    <button role="tab" :aria-selected="bugTab === 'bugs'" @click="bugTab = 'bugs'"><svg class="i"><use href="#alert"/></svg>Zgłoszenia</button>
+    <button role="tab" :aria-selected="bugTab === 'space'" @click="bugTab = 'space'"><svg class="i"><use href="#list"/></svg>Miejsce na dane</button>
+  </div>
+  <StoragePanel v-if="bugs.backlog && bugTab === 'space'" />
+  <template v-else>
   <p class="note" style="margin-top:0">{{ bugs.backlog ? 'Błędy i pomysły zgłoszone w aplikacji — ustaw, kto się zajmuje i jaki jest stan. Zgłaszający dostaje powiadomienie, gdy zgłoszenie jest zrobione albo odrzucone.' : 'Twoje zgłoszenia i ich stan.' }}</p>
   <button class="primary" style="width:100%;margin-bottom:12px" @click="reportBug"><svg class="i"><use href="#plus"/></svg>Zgłoś błąd albo pomysł</button>
   <div class="chips bug-filter" role="group" aria-label="Filtr zgłoszeń">
@@ -39,4 +47,5 @@ export default defineComponent({ setup: () => useApp() })
       </template>
     </div>
   </article>
+  </template>
 </template>
