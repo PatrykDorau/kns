@@ -1136,3 +1136,9 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .goal-detail .goal-h { flex-wrap: wrap; justify-content: flex-start; }
 .goal-detail .goal-h b { font-size: 20px; flex: 1 1 100%; }
 .goal-detail .goal-desc { margin-top: 10px; font-size: 15px; line-height: 1.5; }
+/* dyspozycyjność w karcie służby („Moja służba”) */
+.mm-sec.avail { margin-bottom: 0; }
+.mm-sec.avail .avail-h { margin-bottom: 0; justify-content: space-between; }
+.mm-sec.avail .avail-hint { margin: 0; font-size: 12.5px; }
+.mm-sec.avail .avail-table-wrap { margin-top: 4px; }
+.mm-sec.avail .mm-lbl { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }

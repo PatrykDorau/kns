@@ -2,10 +2,12 @@
 // @ts-nocheck — stan i działania wspólne (useApp)
 import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
+import AvailabilityPanel from '@/components/AvailabilityPanel.vue'
 
 // „Moja służba”: służby, w których służę albo którymi kieruję — informacje wewnętrzne (zmienia lider),
-// pliki tylko dla tej służby (z „Materiałów”), wiadomość do całej służby (lider), ASB — terminarz i grafik.
+// dyspozycyjność na niedziele, pliki tylko dla tej służby (z „Materiałów”), wiadomość do całej służby (lider), ASB — terminarz i grafik.
 export default defineComponent({
+  components: { AvailabilityPanel },
   setup() {
     const app = useApp()
     const mine = computed(() => app.serve.list.filter(m => m.mine === 'active' || m.leader || (m.id === 'asb' && app.canAsb.value)))
@@ -34,6 +36,9 @@ export default defineComponent({
         <button v-if="m.lead" class="ghost small" @click="edit[m.id] = m.internal || ''"><svg class="i"><use href="#pencil"/></svg>{{ m.internal ? 'Zmień' : 'Dodaj informacje' }}</button>
       </template>
     </div>
+
+    <!-- dyspozycyjność na najbliższe niedziele -->
+    <AvailabilityPanel :ministry="m.id" />
 
     <!-- pliki tylko dla tej służby -->
     <div class="mm-sec">

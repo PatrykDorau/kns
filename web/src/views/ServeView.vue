@@ -2,13 +2,12 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
-import AvailabilityPanel from '@/components/AvailabilityPanel.vue'
 import MyMinistries from '@/components/MyMinistries.vue'
 import { useSwipe } from '@/utils/swipe'
 
 // Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) Zaangażuj się: służby szukające chętnych, zgłoszenia, akceptacja przez lidera
 export default defineComponent({
-  components: { AvailabilityPanel, MyMinistries },
+  components: { MyMinistries },
   setup() {
     const app = useApp()
     // przesunięcie palcem: w lewo — „Moja służba”, w prawo — „Wszystkie służby” (gdy jest zakładka „Moja służba”)
@@ -27,7 +26,6 @@ export default defineComponent({
   </div>
   <template v-if="serveTab === 'mine'">
   <MyMinistries />
-  <AvailabilityPanel />
   </template>
   <template v-else>
   <p class="note" style="margin-top:0">Wybierz służbę i zgłoś się — lider służby potwierdzi zgłoszenie.</p>
