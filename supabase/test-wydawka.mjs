@@ -1,4 +1,4 @@
-// Test wydawki (supabase/wydawka.sql): node supabase/test-wydawka.mjs
+// Test wydawki z wieloma przedmiotami (supabase/wydawka.sql): node supabase/test-wydawka.mjs
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
@@ -13,50 +13,63 @@ await db.query(`update people set status = 'active', roles = array['czlonek'] wh
 const O = createFakeClient(db, o), B = createFakeClient(db, b), C = createFakeClient(db, c), D = createFakeClient(db, d), G = createFakeClient(db, g)
 const ok = r => { assert.equal(r.error, null, r.error?.message); return r.data }
 const err = (r, re) => assert.match(r.error?.message || '', re)
-const box = async (X) => ok(await X.from('inbox').select('*').order('id')).map(x => x.title + ' | ' + x.body)
-const item = async (X, id = 'w1') => ok(await X.rpc('giveaway_board')).find(x => x.id === id)
-const save = (X, extra = {}) => X.rpc('giveaway_save', { gid: 'w1', new_title: 'Wózek dziecięcy', new_description: 'Mało używany', new_image: '', new_place: 'Wrzeszcz', new_qty: 1, new_closed: false, ...extra })
+const box = async X => ok(await X.from('inbox').select('*').order('id')).map(x => x.title + ' | ' + x.body)
+const post = async (X, id = 'w1') => ok(await X.rpc('giveaway_board')).find(x => x.id === id)
+const item = async (X, iid, id = 'w1') => (await post(X, id)).items.find(i => i.id === iid)
+const items = [{ id: 'w1-a', title: 'Wózek', image: 'https://x/ogloszenia/a.jpg', qty: 1 }, { id: 'w1-b', title: '', image: '', qty: 2 }]
+const save = (X, extra = {}) => X.rpc('giveaway_save', { gid: 'w1', new_title: 'Rzeczy dla dzieci', new_description: 'Po przeprowadzce', new_place: 'Wrzeszcz', new_items: items, new_closed: false, ...extra })
+const TURN = 'Wydawka: teraz Twoja kolej'
 
 // bez zatwierdzenia — nic; tabele tylko przez funkcje
 err(await G.rpc('giveaway_board'), /zatwierdzonych/)
 err(await save(G), /zatwierdzonych/)
-err(await B.from('giveaways').select('*'), /permission denied/)
-// dodaje Ola
-err(await save(O, { new_title: '  ' }), /Podaj/)
+err(await B.from('giveaway_items').select('*'), /permission denied/)
+// dodaje Ola: dwa przedmioty (drugi bez nazwy — nazwa wydawki)
+err(await save(O, { new_title: ' ' }), /Podaj/)
+err(await save(O, { new_items: [] }), /co najmniej jeden/)
 ok(await save(O))
-assert.equal((await item(B)).owner, 'Ola')
-assert.equal((await item(B)).claims, null) // kto się zapisał — tylko oddający
-err(await save(B, { new_title: 'Mój' }), /oddający/)
-err(await O.rpc('giveaway_claim', { gid: 'w1', new_note: '' }), /Twoja/)
-// Bartek bierze, Celina i Darek na rezerwie; Ola dostaje powiadomienia
-assert.equal(ok(await B.rpc('giveaway_claim', { gid: 'w1', new_note: 'Mogę jutro' })), 1)
-assert.equal(ok(await C.rpc('giveaway_claim', { gid: 'w1', new_note: '' })), 2)
-assert.equal(ok(await D.rpc('giveaway_claim', { gid: 'w1', new_note: '' })), 3)
-assert.deepEqual(await box(O), ['Wydawka: Wózek dziecięcy | Bartek chce to wziąć.', 'Wydawka: Wózek dziecięcy | Celina zapisał(a) się na listę rezerwową (1.).', 'Wydawka: Wózek dziecięcy | Darek zapisał(a) się na listę rezerwową (2.).'])
-assert.equal((await item(C)).myPos, 2)
-assert.deepEqual((await item(O)).claims.map(x => x.name), ['Bartek', 'Celina', 'Darek'])
-// Bartek rezygnuje → Celina dostaje „teraz Twoja kolej”
-ok(await B.rpc('giveaway_unclaim', { gid: 'w1' }))
-assert.deepEqual(await box(C), ['Wydawka: teraz Twoja kolej | „Wózek dziecięcy” — możesz odebrać. Umów się z oddającym.'])
-assert.equal((await box(D)).length, 0)
-// Ola skreśla Celinę → Celina dostaje informację, Darek — że teraz jego kolej
-err(await B.rpc('giveaway_drop', { gid: 'w1', who: c.id }), /oddający/)
-ok(await O.rpc('giveaway_drop', { gid: 'w1', who: c.id }))
-assert.equal((await box(C)).length, 2)
-assert.deepEqual(await box(D), ['Wydawka: teraz Twoja kolej | „Wózek dziecięcy” — możesz odebrać. Umów się z oddającym.'])
-// więcej sztuk → kolejni z rezerwy też
-ok(await B.rpc('giveaway_claim', { gid: 'w1', new_note: '' }))
-ok(await save(O, { new_qty: 2 }))
-assert.equal((await box(B)).at(-1), 'Wydawka: teraz Twoja kolej | „Wózek dziecięcy” — możesz odebrać. Umów się z oddającym.')
-// wydane wszystkie sztuki → zamknięte; nowych zapisów nie ma
-ok(await O.rpc('giveaway_given', { gid: 'w1', who: d.id, val: true }))
-assert.equal((await item(O)).closed, false)
-ok(await O.rpc('giveaway_given', { gid: 'w1', who: b.id, val: true }))
-assert.equal((await item(O)).closed, true)
-assert.equal((await item(D)).myGiven, true)
-err(await C.rpc('giveaway_claim', { gid: 'w1', new_note: '' }), /zamknięta/)
+const p = await post(B)
+assert.equal(p.owner, 'Ola')
+assert.deepEqual(p.items.map(i => [i.title, i.qty]), [['Wózek', 1], ['Rzeczy dla dzieci', 2]])
+assert.equal(p.items[0].claims, null) // kto się zapisał — tylko oddający
+err(await save(B, { new_title: 'Moje' }), /oddający/)
+err(await O.rpc('giveaway_claim', { iid: 'w1-a', new_note: '' }), /Twoja/)
+// wózek: Bartek bierze, Celina i Darek na rezerwie — kolejka osobna dla każdego przedmiotu
+assert.equal(ok(await B.rpc('giveaway_claim', { iid: 'w1-a', new_note: 'Mogę jutro' })), 1)
+assert.equal(ok(await C.rpc('giveaway_claim', { iid: 'w1-a', new_note: '' })), 2)
+assert.equal(ok(await D.rpc('giveaway_claim', { iid: 'w1-a', new_note: '' })), 3)
+assert.equal(ok(await C.rpc('giveaway_claim', { iid: 'w1-b', new_note: '' })), 1)
+assert.equal((await box(O)).length, 4)
+assert.match((await box(O))[1], /Celina zapisał\(a\) się na listę rezerwową \(1\.\)/)
+assert.equal((await item(C, 'w1-a')).myPos, 2)
+assert.equal((await item(C, 'w1-b')).myPos, 1)
+assert.deepEqual((await item(O, 'w1-a')).claims.map(x => x.name), ['Bartek', 'Celina', 'Darek'])
+// Bartek rezygnuje z wózka → Celina: teraz Twoja kolej
+ok(await B.rpc('giveaway_unclaim', { iid: 'w1-a' }))
+assert.equal((await box(C)).at(-1).split(' | ')[0], TURN)
+// Ola skreśla Celinę → Darek dostaje kolej
+err(await B.rpc('giveaway_drop', { iid: 'w1-a', who: c.id }), /oddający/)
+ok(await O.rpc('giveaway_drop', { iid: 'w1-a', who: c.id }))
+assert.equal((await box(D)).at(-1).split(' | ')[0], TURN)
+// więcej sztuk wózka → kolejny z rezerwy
+ok(await B.rpc('giveaway_claim', { iid: 'w1-a', new_note: '' }))
+ok(await save(O, { new_items: [{ ...items[0], qty: 2 }, items[1]] }))
+assert.equal((await box(B)).at(-1).split(' | ')[0], TURN)
+// wydane wszystko (wózek 2 szt., rzeczy 2 szt.) → zamknięte
+ok(await O.rpc('giveaway_given', { iid: 'w1-a', who: d.id, val: true }))
+ok(await O.rpc('giveaway_given', { iid: 'w1-a', who: b.id, val: true }))
+ok(await O.rpc('giveaway_given', { iid: 'w1-b', who: c.id, val: true }))
+assert.equal((await post(O)).closed, false) // „rzeczy” — 1 z 2
+ok(await save(O, { new_items: [{ ...items[0], qty: 2 }, { ...items[1], qty: 1 }] }))
+ok(await O.rpc('giveaway_given', { iid: 'w1-b', who: c.id, val: true }))
+assert.equal((await post(O)).closed, true)
+assert.equal((await item(D, 'w1-a')).myGiven, true)
+err(await C.rpc('giveaway_claim', { iid: 'w1-a', new_note: '' }), /zamknięta/)
+// usunięty z listy przedmiot znika razem z zapisami
+ok(await save(O, { new_items: [{ ...items[0], qty: 2 }], new_closed: true }))
+assert.deepEqual((await post(O)).items.map(i => i.id), ['w1-a'])
 // usuwa oddający
 err(await B.rpc('giveaway_delete', { gid: 'w1' }), /oddający/)
 ok(await O.rpc('giveaway_delete', { gid: 'w1' }))
-assert.equal(await item(O), undefined)
+assert.equal(await post(O), undefined)
 console.log('wydawka: wszystkie testy OK')

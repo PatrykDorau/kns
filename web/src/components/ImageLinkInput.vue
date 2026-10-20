@@ -6,6 +6,7 @@ import { driveInfo, imageFromLink } from '@/services/church'
 // Grafika z linku (np. z Dysku Google) zamiast wgrywania — plik zostaje na Dysku, u nas tylko adres.
 // Przed wstawieniem sprawdza, czy obrazek się wczytuje (plik na Dysku musi być udostępniony „Każda osoba mająca link”).
 export default defineComponent({
+  props: { compact: Boolean }, // compact — przycisk „Wstaw” jako sama ikonka (wąskie miejsca)
   emits: ['pick'],
   setup(_, { emit }) {
     const url = ref(''), busy = ref(false), err = ref('')
@@ -27,8 +28,8 @@ export default defineComponent({
 <template>
   <div class="img-link">
     <div class="row">
-      <input v-model.trim="url" placeholder="albo wklej link do grafiki (Google Dysk)" inputmode="url" autocomplete="off" aria-label="Link do grafiki" @keydown.enter.prevent="apply">
-      <button type="button" :disabled="!url || busy" @click="apply"><svg class="i"><use href="#link"/></svg>{{ busy ? 'Sprawdzam…' : 'Wstaw' }}</button>
+      <input v-model.trim="url" :placeholder="compact ? 'albo link z Dysku Google' : 'albo wklej link do grafiki (Google Dysk)'" inputmode="url" autocomplete="off" aria-label="Link do grafiki" @keydown.enter.prevent="apply">
+      <button type="button" :disabled="!url || busy" :aria-label="compact ? 'Wstaw grafikę z linku' : null" :title="compact ? 'Wstaw grafikę z linku' : null" @click="apply"><svg class="i"><use href="#link"/></svg><template v-if="!compact">{{ busy ? 'Sprawdzam…' : 'Wstaw' }}</template></button>
     </div>
     <p v-if="err" class="error" style="margin:6px 0 0">{{ err }}</p>
   </div>

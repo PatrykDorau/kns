@@ -109,72 +109,88 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     </template>
   </article>
   <template v-else>
+  <!-- formularz w sekcjach: co i kiedy, grafika, kto widzi, osoby i zapisy, program, powiadomienia -->
   <fieldset class="plain" :disabled="!eventEditable">
-    <label for="evType">Rodzaj</label>
-    <UiSelect id="evType" v-model="currentEvent.type" label="Rodzaj" :options="eventTypesFor.map(t => ({ value: t.id, label: t.name }))" @change="typeChanged" />
-    <p v-if="!eventSavedOnce && canEdit" class="note" style="margin-top:4px">Nabożeństwo dodajesz w <button type="button" class="linkbtn" @click="newEvent('nabozenstwo')">Nabożeństwa → nowe nabożeństwo</button>.</p>
-    <label for="evTitle">Nazwa <span class="req">*</span></label>
-    <input id="evTitle" v-model="currentEvent.title" :class="{ invalid: !currentEvent.title.trim() }" autocomplete="off">
-    <div class="row">
-      <div><label for="evDate">Data <span class="req">*</span></label><input id="evDate" v-model="currentEvent.date" type="date" :class="{ invalid: !currentEvent.date }"></div>
-      <div><label for="evTime">Godzina</label><input id="evTime" v-model="currentEvent.time" type="time"></div>
-    </div>
-    <label for="evPlace">Miejsce</label>
-    <input id="evPlace" v-model="currentEvent.place" autocomplete="off">
-    <label for="evDesc">Opis</label>
-    <textarea id="evDesc" v-model="currentEvent.description" placeholder="Co, dla kogo, co przygotować…"></textarea>
-    <template v-if="canNotify">
-      <label>Osoby biorące udział (opcjonalnie)</label>
-      <div v-if="(currentEvent.people || []).length" class="ev-people edit">
-        <span v-for="p in currentEvent.people" :key="p.id" class="ev-person">{{ p.name }}<button type="button" :aria-label="'Usuń ' + p.name" @click="currentEvent.people = currentEvent.people.filter(x => x.id !== p.id)"><svg class="i"><use href="#x"/></svg></button></span>
+    <section class="form-sec">
+      <h3><span class="fs-n">1</span>Co i kiedy</h3>
+      <label for="evType">Rodzaj</label>
+      <UiSelect id="evType" v-model="currentEvent.type" label="Rodzaj" :options="eventTypesFor.map(t => ({ value: t.id, label: t.name }))" @change="typeChanged" />
+      <p v-if="!eventSavedOnce && canEdit" class="note" style="margin-top:4px">Nabożeństwo dodajesz w <button type="button" class="linkbtn" @click="newEvent('nabozenstwo')">Nabożeństwa → nowe nabożeństwo</button>.</p>
+      <label for="evTitle">Nazwa <span class="req">*</span></label>
+      <input id="evTitle" v-model="currentEvent.title" :class="{ invalid: !currentEvent.title.trim() }" autocomplete="off">
+      <div class="row">
+        <div><label for="evDate">Data <span class="req">*</span></label><input id="evDate" v-model="currentEvent.date" type="date" :class="{ invalid: !currentEvent.date }"></div>
+        <div><label for="evTime">Godzina</label><input id="evTime" v-model="currentEvent.time" type="time"></div>
       </div>
-      <button type="button" class="songsbtn" :disabled="busy" @click="openNotify('people')"><svg class="i"><use href="#users"/></svg>{{ (currentEvent.people || []).length ? 'Zmień osoby (' + currentEvent.people.length + ')' : 'Dodaj osoby' }}<svg class="i chev"><use href="#chev"/></svg></button>
-      <p class="note" style="margin:6px 0 0">Nowo dodane osoby po zapisaniu dostaną powiadomienie (dzwonek i telefon), a w wydarzeniu widać, kto bierze udział.</p>
-    </template>
-    <template v-if="drive.uploadImage || currentEvent.image">
-      <label>Grafika (opcjonalnie)</label>
+      <label for="evPlace">Miejsce</label>
+      <input id="evPlace" v-model="currentEvent.place" autocomplete="off">
+      <label for="evDesc">Opis</label>
+      <textarea id="evDesc" v-model="currentEvent.description" placeholder="Co, dla kogo, co przygotować…"></textarea>
+    </section>
+
+    <section v-if="drive.uploadImage || currentEvent.image || eventEditable" class="form-sec">
+      <h3><span class="fs-n">2</span>Grafika <small>opcjonalnie</small></h3>
+      <p class="form-hint"><svg class="i"><use href="#info"/></svg><span>Wgraj grafikę z telefonu albo komputera — albo wklej link z <b>Dysku Google</b> (plik udostępniony „Każda osoba mająca link”).</span></p>
       <img v-if="currentEvent.image" class="ann-img edit" :src="currentEvent.image" alt="">
       <div v-if="drive.uploadImage" class="row">
-        <button type="button" :disabled="imgBusy" @click="$refs.evImg.click()"><svg class="i"><use href="#plus"/></svg>{{ imgBusy ? 'Wysyłam…' : currentEvent.image ? 'Zmień grafikę' : 'Dodaj grafikę' }}</button>
+        <button type="button" :disabled="imgBusy" @click="$refs.evImg.click()"><svg class="i"><use href="#image"/></svg>{{ imgBusy ? 'Wysyłam…' : currentEvent.image ? 'Zmień grafikę' : 'Wgraj grafikę' }}</button>
         <button v-if="currentEvent.image" type="button" :disabled="imgBusy" @click="currentEvent.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
       </div>
       <input ref="evImg" type="file" accept="image/*" hidden @change="pickEventImage">
-      <ImageLinkInput @pick="u => currentEvent.image = u" />
-      <label v-if="currentEvent.image" class="check"><input v-model="currentEvent.projector" type="checkbox">Pokaż na nabożeństwie — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
-    </template>
-    <MinistryPicker v-if="api.enabled" :model-value="currentEvent.ministries || []" @update:model-value="v => { currentEvent.ministries = v; if (v.length) currentEvent.public = false }" />
-    <label v-if="api.enabled && !(currentEvent.ministries || []).length" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
-    <!-- Zapisy: limit miejsc (dorośli + dzieci), dzieci, zatwierdzanie przez twórcę, termin; brak miejsc → lista rezerwowa -->
-    <template v-if="api.enabled">
-      <label class="check"><input type="checkbox" :checked="!!currentEvent.signup?.enabled" @change="toggleSignup($event.target.checked)">Zapisy na to wydarzenie</label>
-      <div v-if="currentEvent.signup?.enabled" class="signup-set">
-        <div class="row">
-          <div><label for="suMax">Limit miejsc</label><input id="suMax" v-model.number="currentEvent.signup.max" type="number" min="1" inputmode="numeric" placeholder="bez limitu"></div>
-          <div><label for="suUntil">Zapisy do</label><input id="suUntil" v-model="currentEvent.signup.until" type="date" :max="currentEvent.date"></div>
+      <ImageLinkInput v-if="!currentEvent.image" @pick="u => currentEvent.image = u" />
+      <label v-if="currentEvent.image" class="check"><input v-model="currentEvent.projector" type="checkbox">Pokaż na nabożeństwie w ogłoszeniach — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
+    </section>
+
+    <section v-if="api.enabled" class="form-sec">
+      <h3><span class="fs-n">3</span>Kto widzi</h3>
+      <MinistryPicker v-if="api.enabled" :model-value="currentEvent.ministries || []" @update:model-value="v => { currentEvent.ministries = v; if (v.length) currentEvent.public = false }" />
+      <label v-if="api.enabled && !(currentEvent.ministries || []).length" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
+    </section>
+
+    <section v-if="canNotify || api.enabled" class="form-sec">
+      <h3><span class="fs-n">4</span>Osoby i zapisy <small>opcjonalnie</small></h3>
+      <template v-if="canNotify">
+        <label>Osoby biorące udział (opcjonalnie)</label>
+        <div v-if="(currentEvent.people || []).length" class="ev-people edit">
+          <span v-for="p in currentEvent.people" :key="p.id" class="ev-person">{{ p.name }}<button type="button" :aria-label="'Usuń ' + p.name" @click="currentEvent.people = currentEvent.people.filter(x => x.id !== p.id)"><svg class="i"><use href="#x"/></svg></button></span>
         </div>
-        <label class="check"><input v-model="currentEvent.signup.kids" type="checkbox">Można zapisać dzieci (liczą się do limitu)</label>
-        <label class="check"><input v-model="currentEvent.signup.approval" type="checkbox">Zapisy zatwierdza twórca wydarzenia</label>
-        <p class="note" style="margin:4px 0 0">{{ currentEvent.signup.approval ? 'Każdy zapis czeka na Twoje potwierdzenie (dostaniesz powiadomienie). Gdy brak miejsc — potwierdzony trafia na listę rezerwową.' : 'Zapis od razu na listę; gdy brak miejsc — na listę rezerwową, a po zwolnieniu miejsca wchodzi sam.' }}<template v-if="!currentEvent.signup.until"> Bez daty — zapisy do dnia wydarzenia.</template></p>
-      </div>
-    </template>
+        <button type="button" class="songsbtn" :disabled="busy" @click="openNotify('people')"><svg class="i"><use href="#users"/></svg>{{ (currentEvent.people || []).length ? 'Zmień osoby (' + currentEvent.people.length + ')' : 'Dodaj osoby' }}<svg class="i chev"><use href="#chev"/></svg></button>
+        <p class="note" style="margin:6px 0 0">Nowo dodane osoby po zapisaniu dostaną powiadomienie (dzwonek i telefon), a w wydarzeniu widać, kto bierze udział.</p>
+      </template>
+      <!-- Zapisy: limit miejsc (dorośli + dzieci), dzieci, zatwierdzanie przez twórcę, termin; brak miejsc → lista rezerwowa -->
+      <template v-if="api.enabled">
+        <label class="check"><input type="checkbox" :checked="!!currentEvent.signup?.enabled" @change="toggleSignup($event.target.checked)">Zapisy na to wydarzenie</label>
+        <div v-if="currentEvent.signup?.enabled" class="signup-set">
+          <div class="row">
+            <div><label for="suMax">Limit miejsc</label><input id="suMax" v-model.number="currentEvent.signup.max" type="number" min="1" inputmode="numeric" placeholder="bez limitu"></div>
+            <div><label for="suUntil">Zapisy do</label><input id="suUntil" v-model="currentEvent.signup.until" type="date" :max="currentEvent.date"></div>
+          </div>
+          <label class="check"><input v-model="currentEvent.signup.kids" type="checkbox">Można zapisać dzieci (liczą się do limitu)</label>
+          <label class="check"><input v-model="currentEvent.signup.approval" type="checkbox">Zapisy zatwierdza twórca wydarzenia</label>
+          <p class="note" style="margin:4px 0 0">{{ currentEvent.signup.approval ? 'Każdy zapis czeka na Twoje potwierdzenie (dostaniesz powiadomienie). Gdy brak miejsc — potwierdzony trafia na listę rezerwową.' : 'Zapis od razu na listę; gdy brak miejsc — na listę rezerwową, a po zwolnieniu miejsca wchodzi sam.' }}<template v-if="!currentEvent.signup.until"> Bez daty — zapisy do dnia wydarzenia.</template></p>
+        </div>
+      </template>
+    </section>
   </fieldset>
-  <label>Program</label>
-  <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!eventEditable" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
-  <template v-if="['czlonkowskie', 'rada'].includes(currentEvent.type) && eventSavedOnce">
-    <label>Protokoły</label>
-    <button v-for="p in eventProtocols" :key="p.id" class="songsbtn" @click="openProto(p)"><svg class="i"><use href="#list"/></svg>{{ p.title }}<svg class="i chev"><use href="#chev"/></svg></button>
-    <p v-if="!eventProtocols.length" class="note" style="margin:0 0 8px">Do tego spotkania nie dołączono jeszcze protokołu.</p>
-    <button v-if="canWriteProto(currentEvent.type === 'rada' ? 'rada' : 'czlonkowskie')" class="songsbtn" @click="protoForEvent(currentEvent)"><svg class="i"><use href="#plus"/></svg>Dołącz protokół<svg class="i chev"><use href="#chev"/></svg></button>
-  </template>
+  <section class="form-sec">
+    <h3><span class="fs-n">5</span>Program</h3>
+    <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!eventEditable" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
+    <template v-if="['czlonkowskie', 'rada'].includes(currentEvent.type) && eventSavedOnce">
+      <label>Protokoły</label>
+      <button v-for="p in eventProtocols" :key="p.id" class="songsbtn" @click="openProto(p)"><svg class="i"><use href="#list"/></svg>{{ p.title }}<svg class="i chev"><use href="#chev"/></svg></button>
+      <p v-if="!eventProtocols.length" class="note" style="margin:0 0 8px">Do tego spotkania nie dołączono jeszcze protokołu.</p>
+      <button v-if="canWriteProto(currentEvent.type === 'rada' ? 'rada' : 'czlonkowskie')" class="songsbtn" @click="protoForEvent(currentEvent)"><svg class="i"><use href="#plus"/></svg>Dołącz protokół<svg class="i chev"><use href="#chev"/></svg></button>
+    </template>
+  </section>
   <p v-if="currentEvent.createdBy || currentEvent.updatedBy" class="note who">
     <template v-if="currentEvent.createdBy">Utworzył(a): {{ currentEvent.createdBy }}</template>
     <template v-if="currentEvent.updatedBy"><br>Ostatnia zmiana: {{ currentEvent.updatedBy }}<template v-if="currentEvent.updated">, {{ new Date(currentEvent.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
   </p>
-  <div v-if="canNotify" class="notify-box">
-    <label>Powiadom osoby (opcjonalnie)</label>
+  <section v-if="canNotify" class="form-sec notify-box">
+    <h3><span class="fs-n">6</span>Powiadomienia <small>opcjonalnie</small></h3>
     <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
     <p class="note" style="margin:6px 0 0">Po zapisaniu powiadomienie pojawi się w aplikacji (dzwonek), a dodatkowo na telefonach osób, które je włączyły.</p>
-  </div>
+  </section>
   <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
   <div v-if="canReview && currentEvent.status === 'pending'" class="approve-row">
     <button :disabled="busy" @click="rejectEvent"><svg class="i"><use href="#x"/></svg>Odrzuć</button>

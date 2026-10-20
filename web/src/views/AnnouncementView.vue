@@ -37,60 +37,72 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
   </article>
   <template v-else>
   <p v-if="!annSavedOnce && !canEdit && !canReview" class="pending-note"><svg class="i"><use href="#bell"/></svg>Ogłoszenie pojawi się po zatwierdzeniu przez lidera newslettera, radę zboru albo administratora.</p>
+  <!-- formularz w sekcjach: treść, grafika i film, przycisk z linkiem, kto widzi, powiadomienia -->
   <fieldset class="plain" :disabled="!annEditable">
-    <div v-if="!currentAnn.image && drive.uploadImage" class="ann-tip">
-      <svg class="i"><use href="#monitor"/></svg>
-      <span><b>Ma się wyświetlać na nabożeństwie?</b><small>Na rzutniku i na transmisji pokazują się tylko grafiki — najpierw dodaj grafikę z ogłoszeniem (co, kiedy, gdzie), potem tytuł i treść.</small></span>
-      <button type="button" class="small" :disabled="imgBusy" @click="$refs.annImg.click()"><svg class="i"><use href="#image"/></svg>{{ imgBusy ? 'Wysyłam…' : 'Dodaj grafikę' }}</button>
-    </div>
-    <label for="anTitle">Tytuł <span class="req">*</span></label>
-    <input id="anTitle" v-model="currentAnn.title" :class="{ invalid: !currentAnn.title.trim() }" autocomplete="off">
-    <label for="anText">Treść</label>
-    <textarea id="anText" v-model="currentAnn.text" class="ann-text"></textarea>
-    <template v-if="drive.uploadImage || currentAnn.image">
-      <label>Grafika (opcjonalnie)</label>
+    <section class="form-sec">
+      <h3><span class="fs-n">1</span>Treść</h3>
+      <label for="anTitle">Tytuł <span class="req">*</span></label>
+      <input id="anTitle" v-model="currentAnn.title" :class="{ invalid: !currentAnn.title.trim() }" placeholder="np. Chrzest wodny — zapisy do 1 listopada" autocomplete="off">
+      <label for="anText">Treść</label>
+      <textarea id="anText" v-model="currentAnn.text" class="ann-text" placeholder="Co, kiedy, gdzie, dla kogo"></textarea>
+    </section>
+
+    <section v-if="drive.uploadImage || currentAnn.image || annEditable" class="form-sec">
+      <h3><span class="fs-n">2</span>Grafika i film <small>opcjonalnie</small></h3>
+      <p class="form-hint"><svg class="i"><use href="#info"/></svg><span>Grafikę wgrasz z telefonu albo komputera — albo wkleisz link z <b>Dysku Google</b> (plik udostępniony „Każda osoba mająca link”).</span></p>
+      <label>Grafika</label>
       <img v-if="currentAnn.image" class="ann-img edit" :src="currentAnn.image" alt="">
       <div v-if="drive.uploadImage && annEditable" class="row">
-        <button type="button" :disabled="imgBusy" @click="$refs.annImg.click()"><svg class="i"><use href="#plus"/></svg>{{ imgBusy ? 'Wysyłam…' : currentAnn.image ? 'Zmień grafikę' : 'Dodaj grafikę' }}</button>
+        <button type="button" :disabled="imgBusy" @click="$refs.annImg.click()"><svg class="i"><use href="#image"/></svg>{{ imgBusy ? 'Wysyłam…' : currentAnn.image ? 'Zmień grafikę' : 'Wgraj grafikę' }}</button>
         <button v-if="currentAnn.image" type="button" :disabled="imgBusy" @click="currentAnn.image = ''"><svg class="i"><use href="#trash"/></svg>Usuń grafikę</button>
       </div>
       <input ref="annImg" type="file" accept="image/*" hidden @change="pickAnnImage">
-      <ImageLinkInput v-if="annEditable" @pick="u => { const first = !currentAnn.image; currentAnn.image = u; if (first && !annSavedOnce) currentAnn.projector = true }" />
-      <label v-if="currentAnn.image" class="check"><input v-model="currentAnn.projector" type="checkbox">Pokaż na nabożeństwie — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
-      <p v-if="currentAnn.image" class="note">Na rzutniku pokazują się tylko grafiki — umieść na niej wszystkie ważne informacje (co, kiedy, gdzie).</p>
-    </template>
-    <label for="anVideo">Film (opcjonalnie)</label>
-    <div v-if="videoInfo(currentAnn.video)" class="ann-video">
+      <ImageLinkInput v-if="annEditable && !currentAnn.image" @pick="u => { const first = !currentAnn.image; currentAnn.image = u; if (first && !annSavedOnce) currentAnn.projector = true }" />
+      <label v-if="currentAnn.image" class="check"><input v-model="currentAnn.projector" type="checkbox">Pokaż na nabożeństwie w ogłoszeniach — ta grafika w pętli ogłoszeń na rzutniku (przed i po)</label>
+      <p v-if="currentAnn.image && currentAnn.projector" class="note" style="margin:4px 0 0">Na rzutniku widać tylko grafikę — umieść na niej to, co najważniejsze: co, kiedy, gdzie.</p>
+      <label for="anVideo" class="fs-gap">Film</label>
+      <div v-if="videoInfo(currentAnn.video)" class="ann-video">
         <video v-if="videoInfo(currentAnn.video).kind === 'file'" :src="videoInfo(currentAnn.video).src" controls playsinline preload="metadata"></video>
         <iframe v-else :src="videoInfo(currentAnn.video).embed" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>
       </div>
-    <template v-if="annEditable">
-      <input v-if="!/\/ogloszenia\//.test(currentAnn.video || '')" id="anVideo" v-model.trim="currentAnn.video" placeholder="Link do YouTube, Vimeo albo Google Dysku" autocomplete="off" inputmode="url">
-      <p v-if="currentAnn.video && !videoInfo(currentAnn.video)" class="error" style="margin:6px 0 0">To nie wygląda na link do filmu (YouTube, Vimeo, Google Dysk).</p>
-      <div class="row" style="margin-top:8px">
-        <button v-if="drive.uploadFile" type="button" :disabled="vidBusy" @click="$refs.annVid.click()"><svg class="i"><use href="#plus"/></svg>{{ vidBusy ? 'Wysyłam film…' : 'Wgraj film (do 30 MB)' }}</button>
-        <button v-if="currentAnn.video" type="button" :disabled="vidBusy" @click="currentAnn.video = ''"><svg class="i"><use href="#trash"/></svg>Usuń film</button>
-      </div>
-      <input ref="annVid" type="file" accept="video/mp4,video/webm,video/quicktime" hidden @change="pickAnnVideo">
-    </template>
-    <label for="anLink">Link (opcjonalnie)</label>
-    <input id="anLink" v-model.trim="currentAnn.link" placeholder="np. formularz zapisów, strona wydarzenia" autocomplete="off" inputmode="url">
-    <input v-if="currentAnn.link" v-model="currentAnn.linkText" placeholder="Tekst przycisku, np. „Zapisz się”" autocomplete="off" style="margin-top:8px">
-    <label for="anAud">Kto widzi</label>
-    <UiSelect id="anAud" v-model="currentAnn.audience" label="Kto widzi" :options="[{ value: 'public', label: 'Wszyscy — także goście bez konta', disabled: (currentAnn.ministries || []).length > 0 }, { value: 'members', label: 'Członkowie (zatwierdzeni)' }, ...(hasCouncil || currentAnn.audience === 'council' ? [{ value: 'council', label: 'Tylko rada zboru' }] : [])]" />
-    <MinistryPicker v-if="api.enabled && currentAnn.audience !== 'council'" :model-value="currentAnn.ministries || []" @update:model-value="v => { currentAnn.ministries = v; if (v.length && currentAnn.audience === 'public') currentAnn.audience = 'members' }" />
-    <label v-if="hasCouncil && currentAnn.audience !== 'council'" class="check"><input v-model="currentAnn.important" type="checkbox">Komunikat rady zboru — na górze strony głównej</label>
-    <label v-if="canEdit || canReview" class="check"><input v-model="currentAnn.pinned" type="checkbox">Przypnij — zawsze nad innymi ogłoszeniami</label>
-    <label for="anUntil">Ważne do (opcjonalnie)</label>
-    <input id="anUntil" v-model="currentAnn.until" type="date">
-    <p class="note" style="margin-top:4px">Po tej dacie ogłoszenie znika ze strony głównej (zostaje w archiwum).</p>
+      <template v-if="annEditable">
+        <input v-if="!/\/ogloszenia\//.test(currentAnn.video || '')" id="anVideo" v-model.trim="currentAnn.video" placeholder="Link do YouTube, Vimeo albo Google Dysku" autocomplete="off" inputmode="url">
+        <p v-if="currentAnn.video && !videoInfo(currentAnn.video)" class="error" style="margin:6px 0 0">To nie wygląda na link do filmu (YouTube, Vimeo, Google Dysk).</p>
+        <div class="row" style="margin-top:8px">
+          <button v-if="drive.uploadFile" type="button" :disabled="vidBusy" @click="$refs.annVid.click()"><svg class="i"><use href="#plus"/></svg>{{ vidBusy ? 'Wysyłam film…' : 'Wgraj film (do 30 MB)' }}</button>
+          <button v-if="currentAnn.video" type="button" :disabled="vidBusy" @click="currentAnn.video = ''"><svg class="i"><use href="#trash"/></svg>Usuń film</button>
+        </div>
+        <input ref="annVid" type="file" accept="video/mp4,video/webm,video/quicktime" hidden @change="pickAnnVideo">
+      </template>
+    </section>
+
+    <section class="form-sec">
+      <h3><span class="fs-n">3</span>Przycisk z linkiem <small>opcjonalnie</small></h3>
+      <label for="anLink">Adres</label>
+      <input id="anLink" v-model.trim="currentAnn.link" placeholder="np. formularz zapisów, strona wydarzenia" autocomplete="off" inputmode="url">
+      <template v-if="currentAnn.link">
+        <label for="anLinkText">Napis na przycisku</label>
+        <input id="anLinkText" v-model="currentAnn.linkText" placeholder="np. „Zapisz się”" autocomplete="off">
+      </template>
+    </section>
+
+    <section class="form-sec">
+      <h3><span class="fs-n">4</span>Kto widzi i jak długo</h3>
+      <label for="anAud">Kto widzi</label>
+      <UiSelect id="anAud" v-model="currentAnn.audience" label="Kto widzi" :options="[{ value: 'public', label: 'Wszyscy — także goście bez konta', disabled: (currentAnn.ministries || []).length > 0 }, { value: 'members', label: 'Członkowie (zatwierdzeni)' }, ...(hasCouncil || currentAnn.audience === 'council' ? [{ value: 'council', label: 'Tylko rada zboru' }] : [])]" />
+      <MinistryPicker v-if="api.enabled && currentAnn.audience !== 'council'" :model-value="currentAnn.ministries || []" @update:model-value="v => { currentAnn.ministries = v; if (v.length && currentAnn.audience === 'public') currentAnn.audience = 'members' }" />
+      <label for="anUntil">Ważne do <small class="muted">(opcjonalnie — potem znika ze strony głównej, zostaje w archiwum)</small></label>
+      <input id="anUntil" v-model="currentAnn.until" type="date">
+      <label v-if="hasCouncil && currentAnn.audience !== 'council'" class="check"><input v-model="currentAnn.important" type="checkbox">Komunikat rady zboru — na górze strony głównej</label>
+      <label v-if="canEdit || canReview" class="check"><input v-model="currentAnn.pinned" type="checkbox">Przypnij — zawsze nad innymi ogłoszeniami</label>
+    </section>
   </fieldset>
   <p v-if="currentAnn.author" class="note who">Autor: {{ currentAnn.author }}<template v-if="currentAnn.updated > 1">, {{ dateTime(currentAnn.updated) }}</template></p>
-  <div v-if="canNotify && annEditable" class="notify-box">
-    <label>Powiadom osoby (opcjonalnie)</label>
+  <section v-if="canNotify && annEditable" class="form-sec notify-box">
+    <h3><span class="fs-n">5</span>Powiadomienia <small>opcjonalnie</small></h3>
     <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
     <p class="note" style="margin:6px 0 0">Po zapisaniu powiadomienie pojawi się w aplikacji (dzwonek), a dodatkowo na telefonach osób, które je włączyły.</p>
-  </div>
+  </section>
   <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
   <div v-if="annEditable" class="bar">
     <template v-if="annSavedOnce">

@@ -19,7 +19,7 @@ begin
             (select 'ogłoszenie: ' || coalesce(a.data ->> 'title', '') from announcements a where a.data::text like '%' || o.name || '%' limit 1),
             (select 'wydarzenie: ' || coalesce(e.data ->> 'title', '') from events e where e.data::text like '%' || o.name || '%' limit 1),
             (select 'cel: ' || g.title from goals g where g.image like '%' || o.name || '%' limit 1),
-            (select 'wydawka: ' || w.title from giveaways w where w.image like '%' || o.name || '%' limit 1))
+            (select 'wydawka: ' || w.title from giveaway_items w where w.image like '%' || o.name || '%' limit 1))
           when o.bucket_id = 'protokoly' then (select 'materiał: ' || coalesce(p.data ->> 'title', '') from protocols p where p.data ->> 'file' = o.name limit 1)
           when o.bucket_id = 'asb' then (select 'ASB: ' || coalesce(nullif(m.topic, ''), m.month) from asb_meetings m where m.files::text like '%' || o.name || '%' limit 1)
           else 'zdjęcia na stronę główną (odświeżane same)' end as what
