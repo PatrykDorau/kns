@@ -1,3 +1,4 @@
+import { ask } from '@/utils/ask'
 // Nadawanie z aplikacji (bez OBS) na YouTube: start (wybrana albo nowa transmisja, przepięcie na stały klucz),
 // ręczne „na żywo”, gdy YouTube zobaczy obraz, koniec; zmiana dźwięku w trakcie.
 import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
@@ -73,7 +74,7 @@ export function useBroadcast(service: Ref<Service | null>, youtube: YouTube, dev
     }, 6000)
   }
   async function stopLive() {
-    if (!confirm('Zakończyć transmisję? Na YouTube zakończy się sama po chwili od zatrzymania obrazu.')) return
+    if (!(await ask('Zakończyć transmisję? Na YouTube zakończy się sama po chwili od zatrzymania obrazu.'))) return
     stopEncoding()
     live.value = await api.streamStop()
     cameraLock.value = false
@@ -82,7 +83,7 @@ export function useBroadcast(service: Ref<Service | null>, youtube: YouTube, dev
   // Tryb prosty: dźwięk otwiera FFmpeg — zmiana w trakcie to restart nadawania na 1–2 s.
   async function switchSimpleAudio(e: Event) {
     const pick = e.target as HTMLSelectElement, v = pick.value
-    if (live.value.running && !confirm('W trybie prostym zmiana dźwięku przerywa nadawanie na 1–2 sekundy. Zmienić?')) { pick.value = settings.streamAudio; return }
+    if (live.value.running && !(await ask('W trybie prostym zmiana dźwięku przerywa nadawanie na 1–2 sekundy. Zmienić?'))) { pick.value = settings.streamAudio; return }
     settings.streamAudio = v
     if (liveOn.value) await api.streamAudio?.(v)
   }

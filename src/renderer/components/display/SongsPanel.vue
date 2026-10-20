@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/utils/ask'
 import { ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import NewSongDialog from '@/components/display/NewSongDialog.vue'
@@ -22,15 +23,15 @@ function togglePick(key) {
 const allPicked = () => serviceList.value.length > 0 && serviceList.value.every(e => picked.value.has(e.key))
 function pickAll() { picked.value = allPicked() ? new Set() : new Set(serviceList.value.map(e => e.key)) }
 function stopPicking() { picking.value = false; picked.value = new Set() }
-function removePicked() {
+async function removePicked() {
   const n = serviceList.value.filter(e => picked.value.has(e.key)).length
-  if (!n || !confirm(n === 1 ? 'Zdjąć zaznaczoną pieśń z listy na to nabożeństwo? (Zostaje w bazie pieśni.)' : `Zdjąć zaznaczone pieśni (${n}) z listy na to nabożeństwo? (Zostają w bazie pieśni.)`)) return
+  if (!n || !(await ask(n === 1 ? 'Zdjąć zaznaczoną pieśń z listy na to nabożeństwo? (Zostaje w bazie pieśni.)' : `Zdjąć zaznaczone pieśni (${n}) z listy na to nabożeństwo? (Zostają w bazie pieśni.)`))) return
   // od końca, żeby numery pozostałych pozycji się nie przesuwały
   for (let i = serviceList.value.length - 1; i >= 0; i--) if (picked.value.has(serviceList.value[i].key)) removeFromService(i)
   stopPicking()
 }
-function removeOne(i, entry) {
-  if (confirm('Zdjąć „' + (entry.song?.title || 'tę pieśń') + '” z listy na to nabożeństwo? (Zostaje w bazie pieśni.)')) removeFromService(i)
+async function removeOne(i, entry) {
+  if ((await ask('Zdjąć „' + (entry.song?.title || 'tę pieśń') + '” z listy na to nabożeństwo? (Zostaje w bazie pieśni.)'))) removeFromService(i)
 }
 const dragFrom = ref(null)
 const dragTo = ref(null)

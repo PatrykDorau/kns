@@ -1,3 +1,4 @@
+import { ask } from '@/utils/ask'
 // YouTube: kanał, stały klucz transmisji ze stanem sygnału, zaplanowane transmisje z tytułem i opisem z nabożeństwa.
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
 import { api, prettyDate, servicePlace, serviceTime, settings } from '@/stores'
@@ -50,7 +51,7 @@ export function useYouTube(service: Ref<Service | null>) {
     } finally { ytBusy.value = false }
   }
   const ytLogin = () => ytDo(() => api.ytLogin())
-  const ytLogout = () => { if (confirm('Odłączyć aplikację od kanału YouTube?')) ytDo(() => api.ytLogout()) }
+  const ytLogout = async () => { if ((await ask('Odłączyć aplikację od kanału YouTube?'))) ytDo(() => api.ytLogout()) }
   async function copy(name: string, text: string) { await navigator.clipboard.writeText(text); copied.value = name; setTimeout(() => { if (copied.value === name) copied.value = '' }, 1500) }
 
   // Transmisja na wybrane nabożeństwo: ta, która startuje tego dnia. YouTube planuje tylko przyszłe transmisje.
@@ -67,7 +68,7 @@ export function useYouTube(service: Ref<Service | null>) {
     const svc = service.value
     if (svc) await ytDo(() => api.ytUpdate({ id: b.id, title: ytTitle(svc), description: ytDescription(svc), start: ytStart(svc), privacy: b.privacy }))
   }
-  async function endBroadcast(b: YtBroadcast) { if (confirm('Zakończyć transmisję „' + b.title + '”? Widzowie zobaczą jej koniec.')) await ytDo(() => api.ytEnd(b.id)) }
+  async function endBroadcast(b: YtBroadcast) { if ((await ask('Zakończyć transmisję „' + b.title + '”? Widzowie zobaczą jej koniec.'))) await ytDo(() => api.ytEnd(b.id)) }
 
   // Którą transmisję wystartować: zaplanowaną (też z YouTube Studio) albo nową z wybranego nabożeństwa.
   const upcoming = computed(() => (yt.value.broadcasts || []).filter(b => ['created', 'ready', 'testStarting', 'testing', 'liveStarting', 'live'].includes(b.status)))

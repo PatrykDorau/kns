@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/utils/ask'
 import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { api, flush, output, overlayUrl, remoteUrl, settings, uid } from '@/stores'
@@ -24,8 +25,8 @@ const onlineLink = computed(() => {
   q.set('k', settings.lyricsKey)
   return 'https://kns-nabo.netlify.app/napisy?' + q
 })
-function newLyricsKey() {
-  if (confirm('Nowy klucz — stary adres w OBS przestanie działać i trzeba będzie wkleić nowy. Kontynuować?')) settings.lyricsKey = uid() + uid() + uid()
+async function newLyricsKey() {
+  if ((await ask('Nowy klucz — stary adres w OBS przestanie działać i trzeba będzie wkleić nowy. Kontynuować?'))) settings.lyricsKey = uid() + uid() + uid()
 }
 const lyricsLink = computed(() => {
   if (!overlayUrl.value) return ''

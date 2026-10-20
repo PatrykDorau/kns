@@ -1,3 +1,4 @@
+import { ask } from '@/utils/ask'
 // ATEM przez sieć: która kamera na wizji i w podglądzie, CUT/AUTO, transmisja prosto z miksera.
 // Mikser zostaje sprzętowy — aplikacja tylko nim steruje (kabel sieciowy, opcjonalnie).
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -26,7 +27,7 @@ export function useAtem() {
   }
   // Kliknięcie kamery: od razu na wizję (Cut) albo do podglądu (zielony), potem CUT/AUTO.
   function pick(input: AtemInput) { run(settings.atemDirect ? 'program' : 'preview', input.id) }
-  function stopAtemStream() { if (confirm('Zatrzymać transmisję z ATEM?')) run('streaming', false) }
+  async function stopAtemStream() { if ((await ask('Zatrzymać transmisję z ATEM?'))) run('streaming', false) }
 
   let off: (() => void) | null = null
   onMounted(async () => {

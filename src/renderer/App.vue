@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Brand from '@/components/common/Brand.vue'
+import AskDialog from '@/components/common/AskDialog.vue'
 import Control from '@/components/display/Control.vue'
 import PlannerPanel from '@/components/planner/PlannerPanel.vue'
 import StreamPanel from '@/components/stream/StreamPanel.vue'
@@ -135,6 +136,7 @@ const TILES = [
 
   <!-- Komunikat o trwającej pracy (np. import prezentacji) — widoczny w każdej służbie. -->
   <div v-if="busy" class="toast" role="status"><span class="spinner" aria-hidden="true"></span>{{ busy }}</div>
+  <AskDialog />
 </template>
 
 <style scoped>

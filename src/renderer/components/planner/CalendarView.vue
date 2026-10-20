@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/utils/ask'
 import { computed, onMounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Brand from '@/components/common/Brand.vue'
@@ -53,10 +54,10 @@ const notifyIds = ref([]) // odbiorcy powiadomienia po zapisaniu
 const busy = ref(false)
 const dirty = computed(() => !!draft.value && (isNew.value || JSON.stringify(draft.value) !== saved))
 const pickedService = computed(() => picked.value?.kind === 'service' ? services.value.find(s => s.id === picked.value.id) : null)
-const leaveOk = () => !dirty.value || confirm('Masz niezapisane zmiany w wydarzeniu. Porzucić je?')
+const leaveOk = async () => !dirty.value || (await ask('Masz niezapisane zmiany w wydarzeniu. Porzucić je?'))
 
-function pick(it) {
-  if (!leaveOk()) return
+async function pick(it) {
+  if (!(await leaveOk())) return
   message.value = ''
   picked.value = { kind: it.kind, id: it.id }
   day.value = it.date; month.value = it.date.slice(0, 7)
@@ -68,18 +69,18 @@ function pick(it) {
   editing.value = false
 }
 // Z edycji z powrotem do podglądu (niezapisane zmiany przepadają).
-function cancelEdit() {
-  if (!leaveOk()) return
+async function cancelEdit() {
+  if (!(await leaveOk())) return
   draft.value = JSON.parse(saved); editing.value = false; message.value = ''
 }
-function newEvent() {
-  if (!leaveOk()) return
+async function newEvent() {
+  if (!(await leaveOk())) return
   const t = eventTypes.value[0] || typeOf('inne')
   draft.value = { id: uid(), type: t.id, title: t.name, date: day.value || today(), time: t.time || '', place: t.place || '', description: '', program: programFrom(t, uid), createdBy: me() }
   saved = ''; isNew.value = true; editing.value = true; picked.value = { kind: 'event', id: draft.value.id }; message.value = ''
 }
-function newService() {
-  if (!leaveOk()) return
+async function newService() {
+  if (!(await leaveOk())) return
   plannerRequest.value = { date: day.value && day.value >= today() ? day.value : null }
   role.value = 'planner'
 }
@@ -93,8 +94,8 @@ function typeChanged() {
   if (!ev.program.length) ev.program = programFrom(t, uid)
   lastType = ev.type
 }
-function fillProgram() {
-  if (draft.value.program.length && !confirm('Zastąpić obecny program programem z szablonu?')) return
+async function fillProgram() {
+  if (draft.value.program.length && !(await ask('Zastąpić obecny program programem z szablonu?'))) return
   draft.value.program = programFrom(typeOf(draft.value.type), uid)
 }
 const isPublic = computed({
@@ -122,7 +123,7 @@ async function save() {
 const copied = ref('')
 async function share(kind, id) { if (await copyLink(kind, id)) { copied.value = id; setTimeout(() => { if (copied.value === id) copied.value = '' }, 2500) } }
 async function remove() {
-  if (!confirm('Usunąć to wydarzenie z kalendarza?')) return
+  if (!(await ask('Usunąć to wydarzenie z kalendarza?'))) return
   busy.value = true
   try {
     const res = await removeChurchEvent(draft.value.id)
@@ -130,7 +131,7 @@ async function remove() {
     draft.value = null; picked.value = null; isNew.value = false
   } finally { busy.value = false }
 }
-function back() { if (leaveOk()) role.value = null }
+async function back() { if (await leaveOk()) role.value = null }
 const programLine = (svc, p) => addMinutes(svc.time || DEFAULT_TIME, p.offset) + ' ' + categoryName(p) + (p.title ? ' — ' + p.title : '')
 
 onMounted(() => {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/utils/ask'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { focusEl } from '@/utils/dom'
 import Icon from '@/components/common/Icon.vue'
@@ -75,9 +76,9 @@ function bandAdd(name) {
 }
 
 // Zmiana nabożeństwa albo wyjście z niezapisanymi zmianami wymaga potwierdzenia.
-const leaveOk = () => !dirty.value || confirm('Masz niezapisane zmiany w tym nabożeństwie. Porzucić je?')
-function select(svc) { if (svc.id !== currentId.value && leaveOk()) load(svc) }
-function back() { if (leaveOk()) role.value = null }
+const leaveOk = async () => !dirty.value || (await ask('Masz niezapisane zmiany w tym nabożeństwie. Porzucić je?'))
+async function select(svc) { if (svc.id !== currentId.value && (await leaveOk())) load(svc) }
+async function back() { if (await leaveOk()) role.value = null }
 // Gdy nikt tu niczego nie zmienia, kopia robocza nadąża za zmianami z innych komputerów.
 watch(original, svc => {
   if (!svc && current.value && !isNew.value) { load(sortedServices.value[0]); return }
@@ -106,8 +107,8 @@ const songTitle = s => (s.number ? s.number + '. ' : '') + s.title
 const clash = computed(() => current.value && services.value.some(s => s.id !== current.value.id && s.date === current.value.date))
 const when = t => (t ? new Date(t).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '')
 
-function create(date) {
-  if (!leaveOk()) return
+async function create(date) {
+  if (!(await leaveOk())) return
   const day = typeof date === 'string' ? date : today()
   const existing = services.value.find(s => s.date === day)
   if (existing) { load(existing); message.value = 'Na ten dzień jest już nabożeństwo — otwarto je.'; return }
@@ -116,8 +117,8 @@ function create(date) {
   load(svc, true)
 }
 // Program nabożeństwa z szablonu (szablony zmienia się na telefonie: Kalendarz → Szablony).
-function fillProgram() {
-  if (current.value.program.length && !confirm('Zastąpić obecny program programem z szablonu?')) return
+async function fillProgram() {
+  if (current.value.program.length && !(await ask('Zastąpić obecny program programem z szablonu?'))) return
   current.value.program = programFrom(serviceType.value, uid)
 }
 // Alarm prowadzi prosto do rzeczy: tworzy brakujące nabożeństwo albo otwiera to niekompletne.
@@ -155,7 +156,7 @@ function remove() {
   if (original.value) removeService(original.value)
   load(sortedServices.value[0])
 }
-function discard() { if (confirm('Porzucić zmiany i wrócić do zapisanej wersji?')) load(isNew.value ? sortedServices.value[0] : original.value) }
+async function discard() { if ((await ask('Porzucić zmiany i wrócić do zapisanej wersji?'))) load(isNew.value ? sortedServices.value[0] : original.value) }
 
 /* ---------- zapis z wykrywaniem zmian innych osób ---------- */
 // Porównanie: co ktoś zmienił od otwarcia (jego wersja), a co jest u mnie — pokazywane przed nadpisaniem.
@@ -175,7 +176,7 @@ function compare(theirs) {
   return rows
 }
 async function save() {
-  if (clash.value && !confirm('Na ten dzień jest już inne nabożeństwo. Zapisać mimo to? Zostaną połączone w jedno.')) return
+  if (clash.value && !(await ask('Na ten dzień jest już inne nabożeństwo. Zapisać mimo to? Zostaną połączone w jedno.'))) return
   saving.value = true
   try {
     // Najpierw świeży stan z folderu wspólnego — żeby zobaczyć zmiany zrobione w międzyczasie.
@@ -212,7 +213,7 @@ async function exportIt() {
   if (res.dir) message.value = 'Zapisano folder: ' + res.dir
 }
 async function importIt() {
-  if (!leaveOk()) return
+  if (!(await leaveOk())) return
   const res = await importService()
   if (res.error) message.value = res.error
   else if (res.service) { load(res.service); message.value = 'Wczytano nabożeństwo z folderu.' }

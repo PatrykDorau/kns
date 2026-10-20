@@ -1,3 +1,4 @@
+import { ask } from '@/utils/ask'
 // Dostęp do służb (konto i rangi z bazy), logowanie Google, wybór folderu wspólnego.
 import { reactive } from 'vue'
 import { BAZA, api, busy, cloud, role, settings } from './state'
@@ -92,7 +93,7 @@ export async function pickSharedDir() {
   if (!dir || dir === settings.sharedDir) return
   // Łatwo kliknąć o jeden folder za wysoko (np. „Mój dysk”) — wtedy pytamy, zanim cokolwiek tam powstanie.
   const check = await api.sharedCheck(dir)
-  if (!check.hasData && !confirm(`W folderze „${check.name}” nie ma jeszcze danych aplikacji (podfolderów „nabozenstwa” i „piesni”).\n\nUtworzyć je tutaj? Wybierz „Anuluj”, jeśli chodziło o folder „Aplikacja KNS Nabo”.`)) return
+  if (!check.hasData && !(await ask(`W folderze „${check.name}” nie ma jeszcze danych aplikacji (podfolderów „nabozenstwa” i „piesni”).\n\nUtworzyć je tutaj? Wybierz „Anuluj”, jeśli chodziło o folder „Aplikacja KNS Nabo”.`))) return
   connectSharedDir(dir)
 }
 export function leaveSharedDir() {
