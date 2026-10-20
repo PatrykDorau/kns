@@ -73,7 +73,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.25 · 20.10.2026'
+const VERSION = '3.26 · 20.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1037,7 +1037,9 @@ export default defineComponent({
     const annSavedOnce = computed(() => !!currentAnn.value && [...announcements.value, ...pendingAnns.value].some(x => x.id === currentAnn.value.id))
     // Zwykłe ogłoszenia — osoby z prawem edycji; komunikaty rady i ogłoszenia dla rady — rada i pastor.
     const annEditable = computed(() => !!currentAnn.value && mayChange(currentAnn.value, annSavedOnce.value) && (hasCouncil.value || (!currentAnn.value.important && currentAnn.value.audience !== 'council' && annAudience !== 'council')))
-    function openAnns() { annView.value = true; annQuery.value = ''; scrollTo(0, 0) }
+    // Ogłoszenia: zakładki „Ogłoszenia” i „Wydawka” (rzeczy za darmo); giftOpen — otwarta rzecz z wydawki
+    const annTab = ref('ann'), giftOpen = ref('')
+    function openAnns() { annView.value = true; annQuery.value = ''; annTab.value = 'ann'; giftOpen.value = ''; scrollTo(0, 0) }
     // Wyszukiwanie w ogłoszeniach (tytuł, treść, autor — bez polskich znaków i wielkości liter) z podpowiedziami.
     const annQuery = ref(''), annHintsOpen = ref(false)
     const annMatch = a => { const q = plain(annQuery.value.trim()); return !q || plain([a.title, a.text, a.author].join(' ')).includes(q) }
@@ -2262,7 +2264,7 @@ export default defineComponent({
       if (currentProto.value) return protoSavedOnce.value ? '/material/' + currentProto.value.id : '/material/nowy'
       if (song.value) return song.value.isNew ? '/piesn/nowa' : '/piesn/' + song.value.id
       if (tplType.value || tplView.value) return '/szablony'
-      if (annView.value) return '/ogloszenia'
+      if (annView.value) return annTab.value === 'gift' ? (giftOpen.value ? '/wydawka/' + encodeURIComponent(giftOpen.value) : '/wydawka') : '/ogloszenia'
       if (protoView.value) return '/materialy'
       if (songView.value) return '/piesni'
       if (peopleView.value) return '/osoby'
@@ -2285,6 +2287,7 @@ export default defineComponent({
       for (const k of Object.keys(ROUTE_ITEM)) if (q.get(k)) return '/' + k + '/' + encodeURIComponent(q.get(k))
       if (q.get('sluzba')) return '/zaangazuj-sie?sluzba=' + encodeURIComponent(q.get('sluzba'))
       if (q.get('sluzby')) return '/zaangazuj-sie'
+      if (q.get('wydawka')) return '/wydawka/' + encodeURIComponent(q.get('wydawka'))
       if (q.get('asb')) return '/asb/' + encodeURIComponent(q.get('asb'))
       return loc.pathname.replace(/\/+$/, '') || '/'
     }
@@ -2309,6 +2312,7 @@ export default defineComponent({
           const sv = services.value.find(x => x.id === id)
           if (sv) { open(sv); if (edit && canEdit.value) svcEditing.value = true }
         } else if (view === 'ogloszenia') openAnns()
+        else if (view === 'wydawka') { openAnns(); annTab.value = 'gift'; giftOpen.value = id }
         else if (view === 'ogloszenie') {
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
@@ -2401,7 +2405,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, annTab, giftOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,

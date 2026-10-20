@@ -2,12 +2,19 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import Giveaways from '@/components/Giveaways.vue'
 
-// wszystkie ogłoszenia
-export default defineComponent({ setup: () => useApp() })
+// wszystkie ogłoszenia; druga zakładka — wydawka (rzeczy za darmo)
+export default defineComponent({ components: { Giveaways }, setup: () => useApp() })
 </script>
 
 <template>
+  <div v-if="api.enabled" class="serve-tabs" role="tablist">
+    <button role="tab" :aria-selected="annTab === 'ann'" @click="annTab = 'ann'; giftOpen = ''"><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia</button>
+    <button role="tab" :aria-selected="annTab === 'gift'" @click="annTab = 'gift'"><svg class="i"><use href="#gift"/></svg>Wydawka</button>
+  </div>
+  <Giveaways v-if="annTab === 'gift'" />
+  <template v-else>
   <div v-if="canAnnounce" class="ann-new-row">
     <button class="primary" @click="newAnn"><svg class="i"><use href="#plus"/></svg>Nowe ogłoszenie</button>
     <button v-if="canEdit && drive.uploadImage" :disabled="bulk.busy" title="Wybierz grafikę — otworzy się nowe ogłoszenie z nią (do uzupełnienia i zapisania)" @click="$refs.annBulk.click()"><svg class="i"><use href="#image"/></svg>{{ bulk.busy ? 'Wgrywam grafikę…' : 'Z grafiki' }}</button>
@@ -38,5 +45,6 @@ export default defineComponent({ setup: () => useApp() })
       <span class="ann-tags"><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span class="ann-tag">do {{ shortDate(a.until) }}</span></span>
       <b>{{ a.title }}</b>
     </button>
+  </template>
   </template>
 </template>

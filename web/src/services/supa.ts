@@ -188,6 +188,14 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'attendance') return check(await sb.rpc('event_attendance_info', { eid: data.id }))
       if (action === 'electionVote') return check(await sb.rpc('election_vote', { e: data.e, choices: data.choices }))
       if (action === 'electionRemove') return check(await sb.rpc('election_remove', { e: data.e }))
+      // Wydawka (wydawka.sql)
+      if (action === 'giveaways') return check(await sb.rpc('giveaway_board')) || []
+      if (action === 'giveawaySave') return check(await sb.rpc('giveaway_save', { gid: data.id, new_title: data.title || '', new_description: data.description || '', new_image: data.image || '', new_place: data.place || '', new_qty: +data.qty || 1, new_closed: !!data.closed }))
+      if (action === 'giveawayDelete') return check(await sb.rpc('giveaway_delete', { gid: data.id }))
+      if (action === 'giveawayClaim') return check(await sb.rpc('giveaway_claim', { gid: data.id, new_note: data.note || '' }))
+      if (action === 'giveawayUnclaim') return check(await sb.rpc('giveaway_unclaim', { gid: data.id }))
+      if (action === 'giveawayDrop') return check(await sb.rpc('giveaway_drop', { gid: data.id, who: data.who }))
+      if (action === 'giveawayGiven') return check(await sb.rpc('giveaway_given', { gid: data.id, who: data.who, val: !!data.val }))
       if (action === 'goals') return check(await sb.rpc('goals_overview')) || []
       if (action === 'pledgeStatus') return check(await sb.rpc('my_pledge_status')) || {}
       if (action === 'canGoals') return !!check(await sb.rpc('can_manage_goals'))
