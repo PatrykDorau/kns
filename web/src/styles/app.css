@@ -396,6 +396,9 @@ button.ann, .ann { display: flex; flex-direction: column; align-items: stretch; 
 .mn-foot { gap: 10px; }
 .mn-foot .primary { flex: 1; }
 .mn-mine { display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; margin-bottom: 6px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+.mn-mine { width: 100%; align-items: center; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mn-mine b { flex: 1; }
+.mn-mine .chev { flex: none; width: 16px; height: 16px; color: var(--muted); }
 .mn-mine span { color: #cbb8ff; font-size: 13px; }
 .mn-mine span.ok { color: var(--ok); }
 .view-h { margin: 14px 0 2px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

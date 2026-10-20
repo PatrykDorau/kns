@@ -63,7 +63,7 @@ create trigger events_inbox after insert or update on public.events for each row
 drop trigger if exists announcements_inbox on public.announcements;
 create trigger announcements_inbox after insert or update on public.announcements for each row execute function public.inbox_review();
 
--- Zgłoszenie do służby → liderzy tej służby (bez liderów — administratorzy); decyzja → zgłaszający.
+-- Zgłoszenie do służby i rezygnacja → liderzy tej służby (bez liderów — administratorzy); decyzja → zgłaszający.
 create or replace function public.inbox_ministry() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare m ministries; who text;
@@ -79,6 +79,12 @@ begin
     perform inbox_add(array[new.person], 'Dodano Cię do służby: ' || m.name, 'Lider dodał Cię do tej służby.', './?sluzby=1');
   elsif tg_op = 'UPDATE' and old.status = 'pending' and new.status = 'active' then
     perform inbox_add(array[new.person], 'Przyjęto Cię do służby: ' || m.name, 'Lider zaakceptował Twoje zgłoszenie.', './?sluzby=1');
+  elsif tg_op = 'DELETE' and old.person = auth.uid() and old.status = 'active' then
+    -- rezygnacja ze służby → liderzy (bez liderów — administratorzy)
+    select coalesce(nullif(p.name, ''), split_part(p.email, '@', 1)) into who from people p where p.id = old.person;
+    perform inbox_add(array(select x from unnest(case when cardinality(m.leader_ids) > 0 then m.leader_ids
+                      else array(select distinct p.id from people p join ranks r on r.id = any (p.roles) where p.status = 'active' and r.manage) end) x where x <> old.person),
+      'Rezygnacja ze służby: ' || m.name, who || ' nie służy już w tej służbie.', './?sluzby=moja');
   elsif tg_op = 'DELETE' and old.person is distinct from auth.uid() then
     perform inbox_add(array[old.person], 'Służba: ' || m.name, case when old.status = 'pending' then 'Lider nie przyjął zgłoszenia tym razem.' else 'Lider usunął Cię z tej służby.' end, './?sluzby=1');
   end if;

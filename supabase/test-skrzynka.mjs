@@ -59,6 +59,10 @@ ok(await L.rpc('ministry_add', { mid: 'tech', who: n.id }))
 assert.equal((await box(N)).at(-1).title, 'Dodano Cię do służby: Technika')
 ok(await L.rpc('ministry_decide', { mid: 'tech', who: n.id, accept: false }))
 assert.match((await box(N)).at(-1).body, /usunął/)
+// rezygnacja (Marek służy w technice) → lider dostaje informację
+ok(await M.rpc('ministry_leave', { mid: 'tech' }))
+assert.equal((await box(L)).at(-1).title, 'Rezygnacja ze służby: Technika')
+assert.match((await box(L)).at(-1).body, /Marek/)
 // usuwanie swoich wpisów
 ok(await M.from('inbox').delete().eq('id', mine.id))
 assert.equal((await box(M)).length, before - 1)

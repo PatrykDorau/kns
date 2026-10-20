@@ -20,7 +20,7 @@ export default defineComponent({ setup: () => useApp() })
   <p class="note" style="margin-top:6px">Wybierz z listy albo wpisz nazwę. Dzięki grupce lider może wysłać powiadomienie całej grupce.</p>
   <label>Moje służby</label>
   <div class="mn-mine-list">
-    <div v-for="m in serve.list.filter(m => m.mine || m.leader)" :key="m.id" class="mn-mine"><b>{{ m.name }}</b><span :class="{ ok: m.leader || m.mine === 'active' }">{{ m.leader ? 'jesteś liderem' : m.mine === 'active' ? 'służysz' : 'czeka na akceptację lidera' }}</span></div>
+    <button v-for="m in serve.list.filter(m => m.mine || m.leader)" :key="m.id" type="button" class="mn-mine" :title="'Moja służba: ' + m.name" @click="m.mine === 'pending' ? openMinistry(m) : openServe('mine')"><b>{{ m.name }}</b><span :class="{ ok: m.leader || m.mine === 'active' }">{{ m.leader ? 'jesteś liderem' : m.mine === 'active' ? 'służysz' : 'czeka na akceptację lidera' }}</span><svg class="i chev"><use href="#chev"/></svg></button>
     <p v-if="!serve.busy && !serve.list.some(m => m.mine || m.leader)" class="note">Nie należysz jeszcze do żadnej służby.</p>
   </div>
   <button class="songsbtn" @click="openServe"><svg class="i"><use href="#serve"/></svg>Zgłoś się do służby<svg class="i chev"><use href="#chev"/></svg></button>
