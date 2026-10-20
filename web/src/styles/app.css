@@ -1084,3 +1084,12 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .serve-tabs button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 0; background: transparent; box-shadow: none; color: var(--muted); font-weight: 600; }
 .serve-tabs button[aria-selected=true] { background: var(--accent-soft); color: var(--accent); }
 .hw-more-seek { margin-top: 2px; }
+/* lista nabożeństw */
+.svc-row.next { border-color: rgba(242, 165, 60, .55); }
+.svc-row.past { opacity: .7; }
+.svc-row .tag.svc-miss { color: var(--accent); }
+.svc-row .tag.svc-ok { color: var(--ok); }
+.svc-free { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.svc-other .row { display: flex; gap: 8px; }
+.svc-other .row input { flex: 1; min-width: 0; }
+.svc-other .row button { flex: none; }

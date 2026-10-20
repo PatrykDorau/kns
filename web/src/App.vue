@@ -25,6 +25,7 @@ import ServeView from '@/views/ServeView.vue'
 import AsbPublicView from '@/views/AsbPublicView.vue'
 import AsbView from '@/views/AsbView.vue'
 import VotesView from '@/views/VotesView.vue'
+import ServicesView from '@/views/ServicesView.vue'
 import AsbPreviewDialog from '@/components/dialogs/AsbPreviewDialog.vue'
 import LiveEvent from '@/components/LiveEvent.vue'
 import GoalsView from '@/views/GoalsView.vue'
@@ -161,12 +162,13 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
     const booting = ref(!demo && !!clientId && !!memberEmail())
     const services = ref([]), songs = ref([])
+    const svcListView = ref(false) // lista nabożeństw (zaplanowane, wolne niedziele, minione)
     const current = ref(null), saved = ref(''), query = ref(''), picking = ref(false), confirmDelete = ref(false)
     const showPast = ref(false), offline = ref(!navigator.onLine)
     const cam = createCamera()
@@ -217,7 +219,7 @@ export default defineComponent({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
-    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value)
+    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value && !svcListView.value)
     const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
@@ -309,7 +311,7 @@ export default defineComponent({
     function logout() {
       drive.signOut()
       ready.value = false; services.value = []; current.value = null
-      gate.value = ''; me.value = null; people.value = []; peopleView.value = false; annView.value = false; currentAnn.value = null
+      gate.value = ''; me.value = null; people.value = []; try { localStorage.removeItem('kns-photos') } catch { /* bez pamięci */ } peopleView.value = false; annView.value = false; currentAnn.value = null
       currentProto.value = null; protoView.value = false; currentEvent.value = null; tplView.value = false; tplType.value = null; calView.value = false
     }
     /* ---------- przeniesienie danych z Dysku do bazy (administrator, jednorazowo) ---------- */
@@ -426,12 +428,23 @@ export default defineComponent({
     // Ilustracje w karcie najbliższego nabożeństwa — zmieniają się co 9 s (płynnie).
     // Karta najbliższego nabożeństwa: zdjęcia z ostatniego nabożeństwa (z Dysku, przez skrypt Google), a bez nich — ilustracje.
     const ILLUSTRATIONS = ['swit.svg', 'pole.svg', 'jezioro.svg', 'noc.svg']
-    const photos = ref(null) // { urls, date, count }
-    const HERO_ART = computed(() => (photos.value?.urls?.length ? photos.value.urls : ILLUSTRATIONS))
+    // Lista zdjęć z linkami (ważne godzinę) zapamiętana na 50 minut — po odświeżeniu zdjęcia są od razu, bez mignięcia
+    // ilustracji; bez zapamiętanej listy karta czeka chwilę na zdjęcia (najwyżej 3 s), zanim pokaże ilustracje.
+    const PHOTOS_KEY = 'kns-photos'
+    const cachedPhotos = (() => { try { const c = JSON.parse(localStorage.getItem(PHOTOS_KEY) || 'null'); return c && Date.now() - c.at < 50 * 60e3 ? c.data : null } catch { return null } })()
+    const photos = ref(cachedPhotos) // { urls, date, count }
+    const photosPending = ref(!cachedPhotos)
+    setTimeout(() => { photosPending.value = false }, 3000)
+    const HERO_ART = computed(() => (photos.value?.urls?.length ? photos.value.urls : photosPending.value ? [] : ILLUSTRATIONS))
     const heroIsPhoto = computed(() => !!photos.value?.urls?.length)
     async function loadPhotos() {
-      if (!api.enabled || !drive.servicePhotos) return
-      try { photos.value = await drive.servicePhotos(); heroArt.value = 0 } catch { /* zostają ilustracje */ }
+      if (!api.enabled || !drive.servicePhotos) { photosPending.value = false; return }
+      try {
+        const p = await drive.servicePhotos()
+        const same = JSON.stringify(p?.files || null) === JSON.stringify(photos.value?.files || null)
+        if (!same || !photos.value) { photos.value = p; heroArt.value = 0 } else photos.value = p
+        try { localStorage.setItem(PHOTOS_KEY, JSON.stringify({ at: Date.now(), data: p })) } catch { /* bez zapamiętania */ }
+      } catch { /* zostają ilustracje */ } finally { photosPending.value = false }
     }
     watch(ready, r => { if (r) loadPhotos() })
     setInterval(() => { if (ready.value) loadPhotos() }, 50 * 60e3) // linki ważne godzinę
@@ -471,9 +484,9 @@ export default defineComponent({
     })
     function navOn(id) {
       const editor = current.value || currentEvent.value || currentAnn.value || currentProto.value || song.value || tplType.value
-      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || moreView.value
+      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || svcListView.value || moreView.value
       return {
-        home: !editor && !other, cal: !!currentEvent.value || calView.value || gcalView.value, svc: !!current.value, anns: annView.value || !!currentAnn.value,
+        home: !editor && !other, cal: !!currentEvent.value || calView.value || gcalView.value, svc: !!current.value || svcListView.value, anns: annView.value || !!currentAnn.value,
         serve: serveView.value && serveTab.value === 'all', myserve: serveView.value && serveTab.value === 'mine', goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
@@ -486,7 +499,7 @@ export default defineComponent({
       if (!closeAll()) return
       resetViews()
       if (id === 'cal') openCalendar()
-      else if (id === 'svc') nextService.value ? open(nextService.value) : create(planSunday.value)
+      else if (id === 'svc') openServices()
       else if (id === 'anns') openAnns()
       else if (id === 'serve') openServe()
       else if (id === 'myserve') openServe('mine')
@@ -502,7 +515,7 @@ export default defineComponent({
       else showServices()
       scrollTo(0, 0)
     }
-    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
+    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -717,7 +730,7 @@ export default defineComponent({
       return (near.length >= 5 ? near : next.slice(0, 5)).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -1264,7 +1277,9 @@ export default defineComponent({
       try { serve.list = (await api.call('ministries')) || [] } catch (e) { serve.error = e.message } finally { serve.busy = false }
       if (!serve.list.length && !serve.error && !retriedServe) { retriedServe = true; setTimeout(loadServe, 2000) } // pierwsze wczytanie tuż po zalogowaniu bywa puste
     }
+    function openServices() { if (!closeAll()) return; resetViews(); svcListView.value = true; scrollTo(0, 0) }
     function openServe(tab = 'all') {
+      svcListView.value = false
       serveTab.value = tab === 'mine' ? 'mine' : 'all'
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false
@@ -1314,7 +1329,7 @@ export default defineComponent({
       profile.name = me.value.name || ''; profile.grupa = me.value.grupa || ''; status.value = ''
       current.value = null; currentEvent.value = null; currentAnn.value = null; currentProto.value = null
       songView.value = false; peopleView.value = false; calView.value = false; gcalView.value = false; annView.value = false; protoView.value = false; tplView.value = false
-      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
+      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
       api.call('groups').then(r => { groupNames.value = r.groups || [] }, () => {})
     }
     const saveProfile = () => guard(async () => {
@@ -1667,7 +1682,7 @@ export default defineComponent({
     function openGoals(id = '') {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false; asbView.value = false
-      goalsView.value = true; goals.open = id; goals.edit = null; goals.reduce = null; scrollTo(0, 0)
+      svcListView.value = false; goalsView.value = true; goals.open = id; goals.edit = null; goals.reduce = null; scrollTo(0, 0)
       loadSupport()
       return loadGoals().then(() => {
         if (id && goals.canManage) loadGoalPeople(id)
@@ -1918,7 +1933,7 @@ export default defineComponent({
     }
     function openListen() {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
-      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false
+      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false
       listenView.value = true; scrollTo(0, 0); loadListen()
     }
     const saveListen = () => guard(async () => { await api.call('setListen', { ...listenEdit }); await loadListen(); status.value = 'Zapisano linki.' })
@@ -1952,7 +1967,7 @@ export default defineComponent({
     function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { loadMsgOpts(); openMoreView() }
-    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -2241,6 +2256,7 @@ export default defineComponent({
       if (votesView.value) return '/glosowania'
       if (bugsView.value) return '/zgloszenia'
       if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
+      if (svcListView.value) return '/nabozenstwa'
       if (calView.value) return '/kalendarz'
       if (moreView.value) return '/wiecej'
       return '/'
@@ -2257,7 +2273,7 @@ export default defineComponent({
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; votesView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false
     }
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
     async function applyRoute(path) {
@@ -2282,6 +2298,7 @@ export default defineComponent({
         } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(query.includes('sluzba=') ? query : 'sluzby=1'))
         else if (view === 'posluchaj') openListen()
         else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : 'plan'; await openAsb(); if (id && id !== 'pomysly') asbOpenId(id) }
+        else if (view === 'nabozenstwa') openServices()
         else if (view === 'cele' || view === 'cel') openGoals(view === 'cel' ? id : '')
         else if (view === 'glosowania') openVotes()
         else if (view === 'zgloszenia') openBugs()
@@ -2340,7 +2357,7 @@ export default defineComponent({
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
       el.classList.toggle('has-side', ready.value)
-      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || annView.value || protoView.value || tplView.value || songView.value))
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || svcListView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return provideApp({
       bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
@@ -2358,7 +2375,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, ministryNames, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
@@ -2541,6 +2558,7 @@ export default defineComponent({
   <!-- Cele wsparcia: deklaracje z dziesięciny, potwierdzanie miesięcy, pasek postępu; rada — cele i kto ile -->
   <!-- Wybory i głosowania: zgłoszenia → rada zatwierdza → tajne głosowanie (można kilka) → wyniki -->
   <VotesView v-else-if="votesView && !current" />
+  <ServicesView v-else-if="svcListView && !current" />
   <BugsView v-else-if="bugsView && !current" />
 
   <GoalsView v-else-if="goalsView && !current" />
