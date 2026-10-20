@@ -29,7 +29,7 @@ export default defineComponent({ setup: () => useApp() })
     <div class="pc-head">
       <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
       <div class="pc-text">
-        <b>Powiadomienia na telefon {{ push.on ? '— włączone' : '' }}</b>
+        <b>Powiadomienia na tym urządzeniu {{ push.on ? '— włączone' : '' }}</b>
         <p v-if="push.on">Na ten telefon przychodzi wszystko z dzwonka: wiadomości od liderów, zgłoszenia, decyzje w służbach<template v-if="canEdit">, a także przypomnienie, gdy na niedzielę czegoś brakuje</template>.</p>
         <p v-else-if="push.otherBrowser">Ta przeglądarka ({{ push.otherBrowser }}) nie obsługuje powiadomień. Otwórz stronę w <b>Chrome</b> i zainstaluj aplikację stamtąd (menu ⋮ → „Zainstaluj aplikację”).</p>
         <p v-else-if="push.needsInstall">Na iPhonie najpierw zainstaluj aplikację (przycisk „Pobierz” wyżej) i otwórz ją z ekranu głównego.</p>

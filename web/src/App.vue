@@ -2094,8 +2094,8 @@ export default defineComponent({
     // Zgoda → subskrypcja w przeglądarce → zapis w folderze aplikacji na Dysku; resztę robi skrypt przypomnienia.
     const pushUrl = CONFIG.pushUrl || ''
     const push = reactive({
-      // Tylko telefony i tablety — na komputerze przypomnienia przychodzą mailem.
-      supported: !!pushUrl && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) && ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window || ios),
+      // Telefony, tablety i przeglądarka na komputerze (nie aplikacja na komputer — tam nie ma usługi powiadomień).
+      supported: !!pushUrl && !window.knsDesktop && ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window || ios),
       needsInstall: ios && !installed.value,
       // Android: aplikacja Google, przeglądarka Xiaomi, Samsung Internet i przeglądarki wbudowane w aplikacje nie obsługują powiadomień.
       otherBrowser: !/android/i.test(navigator.userAgent) ? '' : /GSA\//.test(navigator.userAgent) ? 'wyszukiwarka Google' : /MiuiBrowser|XiaoMi/i.test(navigator.userAgent) ? 'przeglądarka Xiaomi'
@@ -2203,14 +2203,16 @@ export default defineComponent({
     // pokazuje kartę „Włącz powiadomienia” (pozwolenie wymaga dotknięcia). Wyłączone w profilu — nie pyta więcej;
     // „Nie teraz” — zapyta znowu za tydzień.
     const pushAsk = ref(false)
+    const pushAskMode = ref('enable') // 'enable' — przycisk „Włącz”; 'install' — iPhone bez instalacji; 'browser' — przeglądarka bez powiadomień
     async function autoPush() {
       let pref = '', later = 0
       try { pref = localStorage.getItem('kns-push') || ''; later = +(localStorage.getItem('kns-push-later') || 0) } catch { /* tryb prywatny */ }
-      if (!push.supported || push.needsInstall || push.otherBrowser || push.denied || pref === 'off') return
+      if (!push.supported || push.denied || pref === 'off' || Date.now() - later < 2 * 864e5) return
+      if (push.needsInstall || push.otherBrowser) { pushAskMode.value = push.needsInstall ? 'install' : 'browser'; pushAsk.value = true; return }
       await checkPush()
       if (push.on) return
       if (Notification.permission === 'granted') { await enablePush(); return }
-      if (Date.now() - later > 7 * 864e5) pushAsk.value = true
+      pushAskMode.value = 'enable'; pushAsk.value = true
     }
     function pushLater() { pushAsk.value = false; try { localStorage.setItem('kns-push-later', String(Date.now())) } catch { /* tryb prywatny */ } }
     watch(ready, r => { if (r) setTimeout(() => autoPush().catch(() => {}), 1500) }, { immediate: true })
@@ -2390,7 +2392,7 @@ export default defineComponent({
       inviteEvent, moreView, openMore, nextService, nextSundayDate, planSunday, untilText, weekItems, dayLabel, desktopMode,
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, peopleUi, rankName, ranksShown, openRanks, cancelRanks, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
-      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushLater, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
+      showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushAskMode, pushLater, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,
@@ -2439,8 +2441,10 @@ export default defineComponent({
   <!-- powiadomienia na telefonie: domyślnie włączone — jedno dotknięcie (telefon wymaga zgody) -->
   <div v-if="ready && pushAsk && !push.on" class="push-ask" role="region" aria-label="Powiadomienia">
     <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
-    <span class="pa-text"><b>Włącz powiadomienia na tym telefonie</b><small>Wiadomości, głosowania, zapisy i przypomnienia. Wyłączysz je w Mój profil.</small></span>
-    <span class="pa-btns"><button class="ghost" @click="pushLater">Nie teraz</button><button class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button></span>
+    <span v-if="pushAskMode === 'install'" class="pa-text"><b>Powiadomienia na iPhonie</b><small>Najpierw dodaj aplikację do ekranu: w Safari <b>Udostępnij</b> → <b>Do ekranu początkowego</b>, otwórz ją z ekranu i włącz powiadomienia.</small></span>
+    <span v-else-if="pushAskMode === 'browser'" class="pa-text"><b>Powiadomienia</b><small>Ta przeglądarka ({{ push.otherBrowser }}) ich nie obsługuje — otwórz stronę w Chrome.</small></span>
+    <span v-else class="pa-text"><b>Włącz powiadomienia na tym urządzeniu</b><small>Wiadomości od liderów, głosowania, zapisy i przypomnienia — od razu, także gdy aplikacja jest zamknięta. Wyłączysz je w Mój profil.</small></span>
+    <span class="pa-btns"><button class="ghost" @click="pushLater">Nie teraz</button><a v-if="pushAskMode === 'browser'" class="button primary" :href="chromeLink">Otwórz w Chrome</a><button v-else-if="pushAskMode === 'enable'" class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button></span>
     <small v-if="push.error" class="pa-err">{{ push.error }}</small>
   </div>
   <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
