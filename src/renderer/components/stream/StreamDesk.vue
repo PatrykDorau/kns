@@ -53,17 +53,19 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
       <!-- Prawa kolumna: YouTube, ustawienia nadawania i (ze Stream) sygnały dla kamerzysty — sekcje zwijane -->
       <div class="desk-right" :class="{ rail: settings.railFolded }">
       <!-- zwinięta kolumna: same ikonki (transmisja, sygnały, nabożeństwo) — podgląd i wizja na całą szerokość -->
-      <nav v-if="settings.railFolded" class="desk-rail" aria-label="Zwinięta kolumna">
-        <button class="rail-btn rail-toggle" title="Rozwiń kolumnę" aria-label="Rozwiń kolumnę" @click="settings.railFolded = false"><Icon name="left" /></button>
-        <button class="rail-btn" :class="{ live: liveOn }" :title="liveOn ? 'YouTube — NA ŻYWO' : 'YouTube'" aria-label="YouTube" @click="unrail('yt')"><Icon name="play" /><i v-if="liveOn" class="rail-dot"></i></button>
+      <!-- zwinięta: przycisk rozwinięcia (z kropką „na żywo”) i tylko sygnały 1 2 3; zwijanie i rozwijanie z animacją -->
+      <Transition name="rail-swap" mode="out-in">
+      <nav v-if="settings.railFolded" key="rail" class="desk-rail" aria-label="Zwinięta kolumna">
+        <button class="rail-btn rail-toggle" :class="{ live: liveOn }" :title="liveOn ? 'Rozwiń kolumnę — transmisja NA ŻYWO' : 'Rozwiń kolumnę'" aria-label="Rozwiń kolumnę" @click="settings.railFolded = false"><Icon name="left" /><i v-if="liveOn" class="rail-dot"></i></button>
         <slot name="rail" :open="unrail" />
       </nav>
-      <template v-else>
-      <button class="rail-fold" title="Zwiń kolumnę do ikonek — więcej miejsca na podgląd i wizję" @click="settings.railFolded = true"><Icon name="right" />Zwiń kolumnę</button>
+      <div v-else key="full" class="desk-right-full">
+      <button class="rail-fold" title="Zwiń kolumnę — więcej miejsca na podgląd i wizję" aria-label="Zwiń kolumnę" @click="settings.railFolded = true"><Icon name="right" /></button>
       <DeskYouTube />
       <DeskSettings />
       <slot name="side" />
-      </template>
+      </div>
+      </Transition>
       </div>
     </div>
 

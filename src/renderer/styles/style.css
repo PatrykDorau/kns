@@ -1224,3 +1224,13 @@ main.stream > section:first-child { overflow-y: auto; }
 /* zwrotka na żywo: część napisów, która idzie teraz na stream */
 .vpart { margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: rgba(169, 139, 255, .18); color: #cbb8ff; font-size: 11px; font-style: normal; font-weight: 700; white-space: nowrap; }
 .desk-mats { max-height: 320px; overflow: auto; margin: 8px 0; padding: 8px; border: 1px solid var(--line); border-radius: 12px; }
+/* prawa kolumna Stream: zwijanie z animacją, przycisk jako ikonka na środku */
+.desk-main { transition: grid-template-columns .32s ease; }
+.desk-right-full { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rail-fold { align-self: flex-end; justify-content: center; width: 34px; height: 34px; padding: 0 !important; border-radius: 10px; }
+.rail-fold svg { width: 16px; height: 16px; }
+.desk-rail .rail-toggle { color: var(--muted); }
+.desk-rail .rail-toggle:hover { color: var(--text); }
+.rail-swap-enter-active, .rail-swap-leave-active { transition: opacity .18s ease, transform .18s ease; }
+.rail-swap-enter-from { opacity: 0; transform: translateX(10px); }
+.rail-swap-leave-to { opacity: 0; transform: translateX(10px); }

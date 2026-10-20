@@ -224,9 +224,7 @@ onBeforeUnmount(() => {
             </div>
           </template>
           <template #rail="{ open }">
-            <button class="rail-btn" :class="{ on: settings.cue }" title="Sygnały dla kamerzysty" aria-label="Sygnały dla kamerzysty" @click="open('cue')"><Icon name="volume" /></button>
             <button v-for="[state, text, key] in settings.cue ? CUES : []" :key="state" class="rail-cue" :class="[state, { current: cueState === state }]" :title="text + ' (klawisz ' + key + ')'" :aria-label="text" :aria-pressed="cueState === state" @click="sendCue(state)">{{ key }}</button>
-            <button class="rail-btn" title="Nabożeństwo" aria-label="Nabożeństwo" @click="open('svc')"><Icon name="calendar" /></button>
           </template>
           <template #side>
           <div class="cue" :class="{ folded: settings.cueFolded }">
