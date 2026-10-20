@@ -9,6 +9,8 @@ import './styles/ui.css'
 
 import { startMarquee } from './utils/marquee'
 import { startAutoHideHeader } from './utils/autoHideHeader'
+import { startViewportFix } from './utils/viewportFix'
 createApp(App).component('program-editor', ProgramEditor).component('thoughts-editor', ThoughtsEditor).mount('#app')
 startMarquee() // długie tytuły przesuwają się zamiast „…”
 startAutoHideHeader() // telefon: pasek u góry chowa się przy przewijaniu w dół
+startViewportFix() // telefon: szeroki widok po powrocie z logowania
