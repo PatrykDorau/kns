@@ -73,7 +73,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.01 · 19.10.2026'
+const VERSION = '3.23 · 20.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1734,7 +1734,7 @@ export default defineComponent({
       await loadGoals()
       showToast('Zapisano cel.')
     })
-    const removeGoal = async g => { if ((await ask('Usunąć cel „' + g.title + '” razem z deklaracjami i potwierdzeniami? Tego nie da się cofnąć.'))) guard(async () => { await api.call('removeGoal', { id: g.id }); goals.edit = null; await loadGoals() }) }
+    const removeGoal = async g => { if ((await ask('Usunąć cel „' + g.title + '” razem z deklaracjami i potwierdzeniami? Tego nie da się cofnąć.'))) guard(async () => { await api.call('removeGoal', { id: g.id }); goals.edit = null; goals.open = ''; await loadGoals() }) }
     async function loadGoalPeople(id) { try { goals.people[id] = (await api.call('goalPeople', { g: id })) || [] } catch (e) { goals.error = e.message || String(e) } }
     function toggleGoalPeople(g) { if (goals.people[g.id]) delete goals.people[g.id]; else loadGoalPeople(g.id) }
     function pickGoalImage(e) {

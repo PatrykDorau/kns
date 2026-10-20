@@ -1,16 +1,27 @@
 <script lang="ts">
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
-import { defineComponent } from 'vue'
+import { computed, defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
 
-// GoalsView
-export default defineComponent({ setup: () => useApp() })
+// Cele wsparcia: prosta lista (nazwa, pasek, ile zebrano, moja deklaracja) → szczegóły celu po kliknięciu
+// (opis, liczby, deklaracja, dla rady — kto deklaruje). Potwierdzanie miesięcy — tylko na liście.
+export default defineComponent({
+  setup() {
+    const app = useApp()
+    const cur = computed(() => app.goals.list.find(g => g.id === app.goals.open))
+    const openGoal = g => { app.goals.open = g.id; app.goals.edit = null; scrollTo(0, 0) }
+    const closeGoal = () => { app.goals.open = ''; scrollTo(0, 0) }
+    const peopleWord = n => n === 1 ? 'osoba' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'osoby' : 'osób'
+    return { ...app, cur, openGoal, closeGoal, peopleWord }
+  },
+})
 </script>
 
 <template>
-  <p class="goals-intro">Część swojej dziesięciny możesz przeznaczyć na wybrany cel. Deklarujesz kwotę <b>miesięcznie</b>, a po każdym miesiącu potwierdzasz, że Twoja dziesięcina wyniosła co najmniej sumę deklaracji — jeśli nie, zmniejszasz je. Twoje kwoty widzisz Ty i rada zboru, pozostali — tylko pasek postępu.</p>
+  <details v-if="!goals.open && !goals.edit" class="goals-how"><summary><svg class="i"><use href="#info"/></svg>Jak to działa?<svg class="i mn-chev"><use href="#down"/></svg></summary><p class="goals-intro">Część swojej dziesięciny możesz przeznaczyć na wybrany cel. Deklarujesz kwotę <b>miesięcznie</b>, a po każdym miesiącu potwierdzasz, że Twoja dziesięcina wyniosła co najmniej sumę deklaracji — jeśli nie, zmniejszasz je. Twoje kwoty widzisz Ty i rada zboru, pozostali — tylko pasek postępu.</p></details>
   <p v-if="goals.error" class="error">{{ goals.error }}</p>
 
+  <template v-if="!goals.open && !goals.edit">
   <section v-for="m in shownMonths" :key="m.month" class="goal-confirm" :class="{ done: m.confirmed, due: !m.confirmed && m.month < thisMonth, later: !m.confirmed && m.month >= thisMonth && goals.expand !== m.month }">
     <div class="gc-h"><svg class="i"><use :href="m.confirmed ? '#check' : '#heart'"/></svg><b>{{ monthName(m.month) }}</b><span class="ann-tag">{{ m.confirmed ? 'potwierdzone · ' + zl(m.total) : m.month < thisMonth ? 'do potwierdzenia' : 'bieżący miesiąc' }}</span></div>
     <!-- bieżący miesiąc: potwierdza się razem z przelewem — do tego czasu krótka informacja -->
@@ -43,6 +54,7 @@ export default defineComponent({ setup: () => useApp() })
       </div>
     </template>
   </section>
+  </template>
 
   <!-- formularz celu (rada zboru, pastor, administrator) -->
   <section v-if="goals.edit" class="goal-form">
@@ -77,11 +89,80 @@ export default defineComponent({ setup: () => useApp() })
     </div>
   </section>
 
+  <!-- szczegóły celu -->
+  <template v-else-if="goals.open">
+    <button class="ghost small goal-back" @click="closeGoal"><svg class="i"><use href="#back"/></svg>Wszystkie cele</button>
+    <div v-if="!cur && goals.busy" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div class="skel skel-row"></div></div>
+    <p v-else-if="!cur" class="note">Nie ma takiego celu — mógł zostać usunięty.</p>
+    <template v-else v-for="g in [cur]" :key="g.id">
+      <article class="goal goal-detail" :class="{ closed: g.closed }">
+        <img v-if="g.image" class="goal-img" :src="g.image" alt="" loading="lazy">
+        <div class="goal-h"><b>{{ g.title }}</b><span v-if="g.kind === 'once'" class="ann-tag">jednorazowy</span><span class="ann-tag">{{ g.closed ? 'zakończony' : g.ends ? 'do ' + shortDate(g.ends) : 'bez terminu' }}</span></div>
+        <p v-if="g.description" class="goal-desc">{{ g.description }}</p>
+        <div class="goal-bar" role="progressbar" :aria-valuenow="goalPct(g)" aria-valuemin="0" aria-valuemax="100" :title="'Zebrano ' + goalPct(g) + '% · z deklaracjami do terminu ' + goalProj(g) + '%'">
+          <i class="proj" :style="{ width: goalProj(g) + '%' }"></i><i class="done" :style="{ width: goalPct(g) + '%' }"></i>
+        </div>
+        <div class="goal-nums"><span><b>{{ zl(g.confirmed) }}</b> z {{ zl(g.target) }} · {{ goalPct(g) }}%</span><span>{{ g.people }} {{ peopleWord(g.people) }} · {{ g.kind === 'once' ? 'zadeklarowano ' + zl(g.monthly) : zl(g.monthly) + ' / mies.' }}</span></div>
+        <small v-if="!g.closed && (g.kind === 'once' || g.months_left != null)" class="goal-legend"><i class="lg-done"></i>potwierdzone <i class="lg-proj"></i>{{ g.kind === 'once' ? 'z deklaracjami' : 'z deklaracjami do terminu' }}: {{ zl(goalProjAmount(g)) }}</small>
+        <template v-if="g.kind === 'once'">
+          <p v-if="g.mine_done != null" class="note goal-locked"><svg class="i"><use href="#check"/></svg><span>Twoja wpłata: <b>{{ zl(g.mine_done) }}</b> — potwierdzona. Dziękujemy!</span></p>
+          <div v-else class="goal-mine">
+            <label :for="'gm' + g.id">{{ g.mine ? 'Twoja deklaracja' : 'Ile z dziesięciny jednorazowo?' }} <small>(zł)</small></label>
+            <div class="row">
+              <input :id="'gm' + g.id" v-model.number="goals.amount[g.id]" type="number" min="0" step="10" inputmode="numeric" :disabled="g.closed && !g.mine" placeholder="np. 200">
+              <button class="primary" :disabled="busy || !(+goals.amount[g.id] >= 0) || +goals.amount[g.id] === g.mine || (!g.mine && !+goals.amount[g.id]) || (g.closed && +goals.amount[g.id] > g.mine)" @click="savePledge(g)">{{ g.mine ? 'Zmień' : 'Deklaruję' }}</button>
+              <button v-if="g.mine" :disabled="busy" @click="withdraw(g)">Wycofaj</button>
+            </div>
+            <button v-if="g.mine" class="primary goal-once-done" :disabled="busy" @click="confirmOnce(g)"><svg class="i"><use href="#check"/></svg>Wpłaciłem(-am) {{ zl(g.mine) }} — potwierdzam</button>
+          </div>
+        </template>
+        <p v-else-if="monthLocked && g.mine" class="note goal-locked"><svg class="i"><use href="#check"/></svg><span>Twoja deklaracja: <b>{{ zl(g.mine) }}</b> miesięcznie. Dziesięcina w tym miesiącu już potwierdzona — zmienisz ją od {{ nextMonthStart }}.</span></p>
+        <div v-else-if="goalDue && g.mine" class="goal-mine"><p class="note goal-locked"><svg class="i"><use href="#heart"/></svg><span>Twoja deklaracja: <b>{{ zl(g.mine) }}</b> miesięcznie. Najpierw potwierdź {{ monthName(goalDue.month).split(' ')[0] }} — potem ją zmienisz.</span></p>
+        <button class="primary small" @click="closeGoal"><svg class="i"><use href="#heart"/></svg>Potwierdź {{ monthName(goalDue.month).split(' ')[0] }}</button></div>
+        <div v-else class="goal-mine">
+          <p v-if="monthLocked && !g.mine" class="note">W tym miesiącu dziesięcina jest już potwierdzona — nowa deklaracja będzie liczona od {{ nextMonthStart }}.</p>
+          <label :for="'gm' + g.id">{{ g.mine ? 'Twoja deklaracja' : 'Ile z dziesięciny co miesiąc?' }} <small>(zł miesięcznie)</small></label>
+          <div class="row">
+            <input :id="'gm' + g.id" v-model.number="goals.amount[g.id]" type="number" min="0" step="10" inputmode="numeric" :disabled="g.closed && !g.mine" placeholder="np. 100">
+            <button class="primary" :disabled="busy || !(+goals.amount[g.id] >= 0) || +goals.amount[g.id] === g.mine || (!g.mine && !+goals.amount[g.id]) || (g.closed && +goals.amount[g.id] > g.mine)" @click="savePledge(g)">{{ g.mine ? 'Zmień' : 'Deklaruję' }}</button>
+            <button v-if="g.mine" :disabled="busy" @click="withdraw(g)">Wycofaj</button>
+          </div>
+        </div>
+        <div v-if="goals.canManage" class="goal-admin">
+          <button class="small" @click="editGoal(g)"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
+          <button class="small" @click="toggleGoalPeople(g)"><svg class="i"><use href="#users"/></svg>{{ goals.people[g.id] ? 'Ukryj osoby' : 'Kto deklaruje' }}</button>
+        </div>
+        <table v-if="goals.people[g.id]" class="goal-people">
+          <thead><tr><th>Osoba</th><th>/ mies.</th><th>razem</th><th>{{ monthShort(prevMonth) }}</th><th>{{ monthShort(thisMonth) }}</th></tr></thead>
+          <tbody>
+            <tr v-for="p in goals.people[g.id]" :key="p.name"><td>{{ p.name }}</td><td>{{ zl(p.amount) }}</td><td>{{ zl(p.given) }}</td><td :class="{ miss: p.prev == null && p.since < thisMonth }">{{ p.prev == null ? (p.since < thisMonth ? 'brak' : '—') : '✓ ' + zl(p.prev) }}</td><td>{{ p.now == null ? '—' : '✓ ' + zl(p.now) }}</td></tr>
+            <tr v-if="!goals.people[g.id].length"><td colspan="5" class="muted">Nikt jeszcze nie zadeklarował.</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </template>
+  </template>
+
+  <!-- lista celów: tylko to, co najważniejsze -->
   <template v-else>
     <div class="section"><h2>Cele</h2><button v-if="goals.canManage" class="small" @click="newGoal"><svg class="i"><use href="#plus"/></svg>Nowy cel</button></div>
     <p v-if="goals.status.monthly" class="note">Razem deklarujesz <b>{{ zl(goals.status.monthly) }}</b> miesięcznie ze swojej dziesięciny.</p>
     <div v-if="goals.busy && !goals.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 3" :key="n" class="skel skel-row"></div></div>
     <p v-else-if="!goals.list.length" class="note">Nie ma jeszcze celów.{{ goals.canManage ? ' Dodaj pierwszy — „Nowy cel”.' : ' Ogłasza je rada zboru.' }}</p>
+    <div class="goal-list">
+      <button v-for="g in goals.list" :key="g.id" class="goal-card" :class="{ closed: g.closed }" @click="openGoal(g)">
+        <img v-if="g.image" class="gcard-img" :src="g.image" alt="" loading="lazy">
+        <span v-else class="gcard-img gcard-ic"><svg class="i"><use href="#money"/></svg></span>
+        <span class="gcard-body">
+          <span class="gcard-h"><b>{{ g.title }}</b><small>{{ g.closed ? 'zakończony' : g.ends ? 'do ' + shortDate(g.ends) : 'bez terminu' }}{{ g.kind === 'once' ? ' · jednorazowy' : '' }}</small></span>
+          <span class="goal-bar thin" role="progressbar" :aria-valuenow="goalPct(g)" aria-valuemin="0" aria-valuemax="100"><i class="proj" :style="{ width: goalProj(g) + '%' }"></i><i class="done" :style="{ width: goalPct(g) + '%' }"></i></span>
+          <span class="gcard-nums"><span><b>{{ zl(g.confirmed) }}</b> z {{ zl(g.target) }}</span><b>{{ goalPct(g) }}%</b></span>
+          <span v-if="g.mine_done != null" class="ann-tag pin"><svg class="i"><use href="#check"/></svg>Wpłacono {{ zl(g.mine_done) }}</span>
+          <span v-else-if="g.mine" class="ann-tag pin">Twoja deklaracja: {{ zl(g.mine) }}{{ g.kind === 'once' ? '' : ' / mies.' }}</span>
+        </span>
+        <svg class="i chev"><use href="#chev"/></svg>
+      </button>
+    </div>
     <details v-if="canManage" class="goal-support">
       <summary>Dane do przelewu dziesięciny (widzą je członkowie przy potwierdzaniu)</summary>
       <label for="spAcc">Numer konta</label><input id="spAcc" v-model="supportEdit.account" inputmode="numeric" placeholder="np. 12 1020 …" autocomplete="off">
@@ -90,49 +171,5 @@ export default defineComponent({ setup: () => useApp() })
       <label for="spBlik">Telefon do BLIK</label><input id="spBlik" v-model="supportEdit.blik" inputmode="tel" placeholder="np. 789 571 542" autocomplete="off">
       <div class="row"><button class="primary" :disabled="busy" @click="saveSupport">Zapisz dane</button></div>
     </details>
-    <article v-for="g in goals.list" :key="g.id" class="goal" :class="{ closed: g.closed, focus: goals.open === g.id }">
-      <img v-if="g.image" class="goal-img" :src="g.image" alt="" loading="lazy">
-      <div class="goal-h"><b>{{ g.title }}</b><span v-if="g.kind === 'once'" class="ann-tag">jednorazowy</span><span class="ann-tag">{{ g.closed ? 'zakończony' : g.ends ? 'do ' + shortDate(g.ends) : 'bez terminu' }}</span></div>
-      <p v-if="g.description" class="goal-desc">{{ g.description }}</p>
-      <div class="goal-bar" role="progressbar" :aria-valuenow="goalPct(g)" aria-valuemin="0" aria-valuemax="100" :title="'Zebrano ' + goalPct(g) + '% · z deklaracjami do terminu ' + goalProj(g) + '%'">
-        <i class="proj" :style="{ width: goalProj(g) + '%' }"></i><i class="done" :style="{ width: goalPct(g) + '%' }"></i>
-      </div>
-      <div class="goal-nums"><span><b>{{ zl(g.confirmed) }}</b> z {{ zl(g.target) }} · {{ goalPct(g) }}%</span><span>{{ g.people }} {{ g.people === 1 ? 'osoba' : g.people % 10 >= 2 && g.people % 10 <= 4 && (g.people % 100 < 10 || g.people % 100 >= 20) ? 'osoby' : 'osób' }} · {{ g.kind === 'once' ? 'zadeklarowano ' + zl(g.monthly) : zl(g.monthly) + ' / mies.' }}</span></div>
-      <small v-if="!g.closed && (g.kind === 'once' || g.months_left != null)" class="goal-legend"><i class="lg-done"></i>potwierdzone <i class="lg-proj"></i>{{ g.kind === 'once' ? 'z deklaracjami' : 'z deklaracjami do terminu' }}: {{ zl(goalProjAmount(g)) }}</small>
-      <template v-if="g.kind === 'once'">
-        <p v-if="g.mine_done != null" class="note goal-locked"><svg class="i"><use href="#check"/></svg><span>Twoja wpłata: <b>{{ zl(g.mine_done) }}</b> — potwierdzona. Dziękujemy!</span></p>
-        <div v-else class="goal-mine">
-          <label :for="'gm' + g.id">{{ g.mine ? 'Twoja deklaracja' : 'Ile z dziesięciny jednorazowo?' }} <small>(zł)</small></label>
-          <div class="row">
-            <input :id="'gm' + g.id" v-model.number="goals.amount[g.id]" type="number" min="0" step="10" inputmode="numeric" :disabled="g.closed && !g.mine" placeholder="np. 200">
-            <button class="primary" :disabled="busy || !(+goals.amount[g.id] >= 0) || +goals.amount[g.id] === g.mine || (!g.mine && !+goals.amount[g.id]) || (g.closed && +goals.amount[g.id] > g.mine)" @click="savePledge(g)">{{ g.mine ? 'Zmień' : 'Deklaruję' }}</button>
-            <button v-if="g.mine" :disabled="busy" @click="withdraw(g)">Wycofaj</button>
-          </div>
-          <button v-if="g.mine" class="primary goal-once-done" :disabled="busy" @click="confirmOnce(g)"><svg class="i"><use href="#check"/></svg>Wpłaciłem(-am) {{ zl(g.mine) }} — potwierdzam</button>
-        </div>
-      </template>
-      <p v-else-if="monthLocked && g.mine" class="note goal-locked"><svg class="i"><use href="#check"/></svg><span>Twoja deklaracja: <b>{{ zl(g.mine) }}</b> miesięcznie. Dziesięcina w tym miesiącu już potwierdzona — zmienisz ją od {{ nextMonthStart }}.</span></p>
-      <p v-else-if="goalDue && g.mine" class="note goal-locked"><svg class="i"><use href="#heart"/></svg><span>Twoja deklaracja: <b>{{ zl(g.mine) }}</b> miesięcznie. Najpierw potwierdź {{ monthName(goalDue.month).split(' ')[0] }} (u góry) — potem ją zmienisz.</span></p>
-      <div v-else class="goal-mine">
-        <p v-if="monthLocked && !g.mine" class="note">W tym miesiącu dziesięcina jest już potwierdzona — nowa deklaracja będzie liczona od {{ nextMonthStart }}.</p>
-        <label :for="'gm' + g.id">{{ g.mine ? 'Twoja deklaracja' : 'Ile z dziesięciny co miesiąc?' }} <small>(zł miesięcznie)</small></label>
-        <div class="row">
-          <input :id="'gm' + g.id" v-model.number="goals.amount[g.id]" type="number" min="0" step="10" inputmode="numeric" :disabled="g.closed && !g.mine" placeholder="np. 100">
-          <button class="primary" :disabled="busy || !(+goals.amount[g.id] >= 0) || +goals.amount[g.id] === g.mine || (!g.mine && !+goals.amount[g.id]) || (g.closed && +goals.amount[g.id] > g.mine)" @click="savePledge(g)">{{ g.mine ? 'Zmień' : 'Deklaruję' }}</button>
-          <button v-if="g.mine" :disabled="busy" @click="withdraw(g)">Wycofaj</button>
-        </div>
-      </div>
-      <div v-if="goals.canManage" class="goal-admin">
-        <button class="small" @click="editGoal(g)"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
-        <button class="small" @click="toggleGoalPeople(g)"><svg class="i"><use href="#users"/></svg>{{ goals.people[g.id] ? 'Ukryj osoby' : 'Kto deklaruje' }}</button>
-      </div>
-      <table v-if="goals.people[g.id]" class="goal-people">
-        <thead><tr><th>Osoba</th><th>/ mies.</th><th>razem</th><th>{{ monthShort(prevMonth) }}</th><th>{{ monthShort(thisMonth) }}</th></tr></thead>
-        <tbody>
-          <tr v-for="p in goals.people[g.id]" :key="p.name"><td>{{ p.name }}</td><td>{{ zl(p.amount) }}</td><td>{{ zl(p.given) }}</td><td :class="{ miss: p.prev == null && p.since < thisMonth }">{{ p.prev == null ? (p.since < thisMonth ? 'brak' : '—') : '✓ ' + zl(p.prev) }}</td><td>{{ p.now == null ? '—' : '✓ ' + zl(p.now) }}</td></tr>
-          <tr v-if="!goals.people[g.id].length"><td colspan="5" class="muted">Nikt jeszcze nie zadeklarował.</td></tr>
-        </tbody>
-      </table>
-    </article>
   </template>
 </template>
