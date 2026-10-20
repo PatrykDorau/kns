@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
 
 const db = new PGlite()
-const files = ['schema.sql', 'zatwierdzanie.sql', 'sluzby.sql', 'skrzynka.sql', 'cele.sql', 'cele.sql']
+const files = ['schema.sql', 'zatwierdzanie.sql', 'sluzby.sql', 'skrzynka.sql', 'cele.sql', 'cele.sql', 'cele2.sql', 'cele2.sql']
 await setupDb(db, files.map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join('\n'), ['admin@kns.pl'])
 const user = async (email, name, roles) => {
   const u = await addUser(db, email, name)
@@ -98,4 +98,22 @@ assert.equal(String((await db.query(`select since from pledges where goal_id = '
 // zamknięty cel: zwiększyć nie można
 ok(await R.from('goals').update({ closed: true }).eq('id', 'dach'))
 err(await K.rpc('pledge_set', { g: 'dach', amt: 300 }), /zamknięty|zmienisz od/)
+// cel bez terminu: deklaracje jak zwykle, bez liczby miesięcy
+ok(await R.from('goals').upsert({ id: 'misja', title: 'Misja', target: 50000, ends: null }))
+let ov2 = ok(await M.rpc('goals_overview')).find(g => g.id === 'misja')
+assert.equal(ov2.closed, false); assert.equal(ov2.months_left, null); assert.equal(ov2.kind, 'monthly')
+// cel jednorazowy: deklaracja, zmiana, potwierdzenie wpłaty (raz), poza miesięcznym potwierdzaniem
+ok(await R.from('goals').upsert({ id: 'auto', title: 'Busik', target: 8000, ends, kind: 'once' }))
+const [, J] = await user('jan@kns.pl', 'Jan', ['czlonek'])
+ok(await J.rpc('pledge_set', { g: 'auto', amt: 500 }))
+ok(await J.rpc('pledge_set', { g: 'auto', amt: 400 }))
+err(await J.rpc('pledge_once_done', { g: 'auto', amt: 600 }), /do zadeklarowanej/)
+assert.equal(ok(await J.rpc('pledge_once_done', { g: 'auto' })), 400)
+err(await J.rpc('pledge_once_done', { g: 'auto' }), /już potwierdzona/)
+err(await J.rpc('pledge_set', { g: 'auto', amt: 100 }), /już potwierdzona/)
+ov2 = ok(await J.rpc('goals_overview')).find(g => g.id === 'auto')
+assert.equal(ov2.confirmed, 400); assert.equal(ov2.mine_done, 400); assert.equal(ov2.kind, 'once')
+const st2 = ok(await J.rpc('my_pledge_status'))
+assert.equal(st2.monthly, 0); assert.equal(st2.months.length, 0) // jednorazowy nie trafia do miesięcznego potwierdzania
+err(await J.rpc('pledge_once_done', { g: 'dach' }), /jednorazowy/)
 console.log('cele: wszystkie testy OK')

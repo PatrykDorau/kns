@@ -1093,3 +1093,4 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .svc-other .row { display: flex; gap: 8px; }
 .svc-other .row input { flex: 1; min-width: 0; }
 .svc-other .row button { flex: none; }
+.goal-once-done { width: 100%; margin-top: 8px; }

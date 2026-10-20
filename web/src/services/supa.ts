@@ -191,11 +191,12 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'pledgeStatus') return check(await sb.rpc('my_pledge_status')) || {}
       if (action === 'canGoals') return !!check(await sb.rpc('can_manage_goals'))
       if (action === 'pledgeSet') return check(await sb.rpc('pledge_set', { g: data.g, amt: data.amt }))
+      if (action === 'pledgeOnceDone') return check(await sb.rpc('pledge_once_done', { g: data.g }))
       if (action === 'confirmMonth') return check(await sb.rpc('confirm_month', { m: data.m, amounts: data.amounts || {} }))
       if (action === 'goalPeople') return check(await sb.rpc('goal_people', { g: data.g })) || []
       if (action === 'saveGoal') {
         const g = data.goal
-        return check(await sb.from('goals').upsert({ id: g.id, title: g.title, description: g.description || '', target: g.target, ends: g.ends, image: g.image || '', closed: !!g.closed }))
+        return check(await sb.from('goals').upsert({ id: g.id, title: g.title, description: g.description || '', target: g.target, ends: g.ends || null, kind: g.kind || 'monthly', image: g.image || '', closed: !!g.closed }))
       }
       if (action === 'removeGoal') return check(await sb.from('goals').delete().eq('id', data.id))
       // Przeczytane ogłoszenia — na koncie, więc „Nowe” znika na każdym urządzeniu.

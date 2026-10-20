@@ -1668,7 +1668,7 @@ export default defineComponent({
     const shownMonths = computed(() => (goals.status.months || []).filter(m => m.confirmed || !goalDue.value || String(m.month).slice(0, 10) < thisMonth.value))
     const nextMonthStart = computed(() => { const d = new Date(thisMonth.value + 'T12:00'); d.setMonth(d.getMonth() + 1); return d.toLocaleDateString('pl', { day: 'numeric', month: 'long' }) })
     const goalPct = g => Math.min(100, Math.round((g.confirmed / g.target) * 100) || 0)
-    const goalProjAmount = g => g.confirmed + Math.max(0, g.monthly * g.months_left - g.confirmed_now)
+    const goalProjAmount = g => (g.kind === 'once' ? Math.max(g.confirmed, g.monthly) : g.months_left == null ? g.confirmed : g.confirmed + Math.max(0, g.monthly * g.months_left - g.confirmed_now))
     const goalProj = g => Math.min(100, Math.round((goalProjAmount(g) / g.target) * 100) || 0)
     async function loadGoals() {
       if (!api.enabled || !ready.value) return
@@ -1695,6 +1695,8 @@ export default defineComponent({
       await loadGoals()
       showToast(amt ? 'Deklaracja: ' + zl(amt) + ' miesięcznie na „' + g.title + '”' : 'Wycofano deklarację')
     })
+    // cel jednorazowy: potwierdzenie wpłaty (raz, ostatecznie)
+    const confirmOnce = g => { if (confirm('Potwierdzić wpłatę ' + zl(g.mine) + ' na „' + g.title + '”? Tego nie da się zmienić.')) guard(async () => { await api.call('pledgeOnceDone', { g: g.id }); await loadGoals(); showToast('Dziękujemy — wpłata potwierdzona.') }) }
     function withdraw(g) { if (confirm('Wycofać deklarację na „' + g.title + '”? To, co już potwierdziłeś, zostaje w zebranej kwocie.')) { goals.amount[g.id] = 0; savePledge(g) } }
     function startReduce(m) { goals.confirming = null; goals.reduce = { month: m.month, items: (m.items || []).map(it => ({ ...it, value: it.amount })) } }
     // Dwa kroki: „Tak” (albo mniejsze kwoty) → przelew i ostateczne potwierdzenie (bez zmian do nowego miesiąca).
@@ -1711,12 +1713,12 @@ export default defineComponent({
       await loadGoals()
       showToast('Potwierdzono ' + monthName(m.month) + ': ' + zl(total))
     })
-    function newGoal() { goals.edit = { id: uid(), title: '', description: '', target: '', ends: '', image: '', closed: false, _new: true }; scrollTo(0, 0) }
-    function editGoal(g) { goals.edit = { id: g.id, title: g.title, description: g.description, target: g.target, ends: String(g.ends).slice(0, 10), image: g.image, closed: !!g.closed }; scrollTo(0, 0) }
+    function newGoal() { goals.edit = { id: uid(), title: '', description: '', target: '', ends: '', open: false, kind: 'monthly', image: '', closed: false, _new: true }; scrollTo(0, 0) }
+    function editGoal(g) { goals.edit = { id: g.id, title: g.title, description: g.description, target: g.target, ends: g.ends ? String(g.ends).slice(0, 10) : '', open: !g.ends, kind: g.kind || 'monthly', image: g.image, closed: !!g.closed, people: g.people }; scrollTo(0, 0) }
     const saveGoal = () => guard(async () => {
       const e = goals.edit
-      if (e._new && e.ends < todayStr.value) throw new Error('Termin nie może być w przeszłości.')
-      await api.call('saveGoal', { goal: { ...e, title: e.title.trim(), target: Math.round(+e.target) } })
+      if (e._new && !e.open && e.ends < todayStr.value) throw new Error('Termin nie może być w przeszłości.')
+      await api.call('saveGoal', { goal: { ...e, title: e.title.trim(), target: Math.round(+e.target), ends: e.open ? null : e.ends } })
       goals.edit = null
       await loadGoals()
       showToast('Zapisano cel.')
@@ -2373,7 +2375,7 @@ export default defineComponent({
       bulk, annFromImages,
       MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
-      startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
+      startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, showToast, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
