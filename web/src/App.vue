@@ -28,6 +28,7 @@ import VotesView from '@/views/VotesView.vue'
 import AskDialog from '@/components/dialogs/AskDialog.vue'
 import { ask } from '@/utils/ask'
 import { startUpdateCheck, updateReady } from '@/utils/updateCheck'
+import { startTabSwipe } from '@/utils/tabSwipe'
 import ServicesView from '@/views/ServicesView.vue'
 import AsbPreviewDialog from '@/components/dialogs/AsbPreviewDialog.vue'
 import LiveEvent from '@/components/LiveEvent.vue'
@@ -495,6 +496,9 @@ export default defineComponent({
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
     }
+    // telefon: przesunięcie palcem między zakładkami dolnego menu (Start, Kalendarz, Zaangażuj się, Więcej)
+    startTabSwipe(() => calView.value ? 1 : serveView.value ? 2 : moreView.value ? 3 : homeWide.value ? 0 : -1,
+      i => [showServices, openCalendar, () => openServe(), openMore][i]())
     async function navTo(id) {
       if (id === 'display' || id === 'stream') { window.knsDesktop?.open(id); return }
       if (id === 'msg') { openMsg(); return }
@@ -2441,7 +2445,8 @@ export default defineComponent({
   <aside v-else-if="booting" class="side side-skel" aria-hidden="true"><div class="side-top"><img src="znak.png" alt=""><span class="skel skel-line" style="width:60%"></span></div><span v-for="n in 9" :key="n" class="skel skel-line side-skel-it"></span></aside>
   <!-- Szeroki ekran: pasek konta na górze każdego widoku (jak w aplikacji na komputer). -->
   <AccountBar v-if="ready" />
-  <AppHeader v-if="ready || !booting" />
+  <!-- ekran logowania bez paska nagłówka (logo jest na środku); publiczne „Posłuchaj” — z nagłówkiem -->
+  <AppHeader v-if="ready || (!booting && !embedded && (listenYt || listenSp || isChannelLink(listen.youtube)))" />
   <div v-if="toast" class="toast" role="status">{{ toast }}</div>
 
   <!-- Kamera: sygnały od operatora streamu (przez internet), z dźwiękiem w słuchawce i wibracją. -->

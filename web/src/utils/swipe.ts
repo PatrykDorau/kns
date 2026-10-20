@@ -5,6 +5,8 @@
 // skip: elementy przewijane w poziomie (np. lista niedziel) — tam przesunięcie przewija, nie przełącza
 import { nextTick } from 'vue'
 
+// czas ostatniego przełączenia przesunięciem wewnątrz widoku — przesunięcie między zakładkami menu (utils/tabSwipe.ts) wtedy czeka
+export const swipeState = { last: 0 }
 type Opts = { skip?: string, target?: string, canLeft?: () => boolean, canRight?: () => boolean }
 const still = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 const frame = () => new Promise(r => requestAnimationFrame(() => r(0)))
@@ -48,7 +50,7 @@ export function useSwipe(onLeft: () => void, onRight: () => void, opts: Opts | s
     swipeEnd(e: TouchEvent) {
       const t = e.changedTouches[0], dx = t.clientX - x, dy = t.clientY - y
       const go = !off && Math.abs(dx) >= 50 && Math.abs(dx) >= Math.abs(dy) * 1.5 && can(dx)
-      if (go) { slide(dx < 0 ? -1 : 1, dx < 0 ? onLeft : onRight); return }
+      if (go) { swipeState.last = Date.now(); slide(dx < 0 ? -1 : 1, dx < 0 ? onLeft : onRight); return }
       if (drag) { set('', '', 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .2s'); setTimeout(() => { if (!busy) set('') }, 240) }
       drag = false
     },

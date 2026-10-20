@@ -561,3 +561,8 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 .gift-admin { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .gift-form-row { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
 .gift-form-row > span { display: flex; flex-direction: column; }
+/* przejście między zakładkami dolnego menu przesunięciem palca (utils/tabSwipe.ts) */
+@keyframes tab-in-l { from { opacity: .4; transform: translateX(36px); } }
+@keyframes tab-in-r { from { opacity: .4; transform: translateX(-36px); } }
+#app.tab-in-l > :not(.tabbar):not(.side):not(.toast) { animation: tab-in-l .3s cubic-bezier(.2,.8,.2,1) both; }
+#app.tab-in-r > :not(.tabbar):not(.side):not(.toast) { animation: tab-in-r .3s cubic-bezier(.2,.8,.2,1) both; }
