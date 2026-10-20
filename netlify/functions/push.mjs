@@ -124,7 +124,7 @@ async function inboxPush(data, keys) {
   const gone = []
   await Promise.all(rows.map(async r => {
     try {
-      const status = await sendPush(r.subscription, { title: String(r.title || 'KNS Nabo').slice(0, 120), body: String(r.body || '').slice(0, 300), url: String(r.url || './').slice(0, 300) }, keys)
+      const status = await sendPush(r.subscription, { title: String(r.title || 'Kościół Na Skale').slice(0, 120), body: String(r.body || '').slice(0, 300), url: String(r.url || './').slice(0, 300) }, keys)
       if (status === 404 || status === 410) gone.push(r.id)
       else if (status < 300) sent++
     } catch { /* jeden telefon nie psuje reszty */ }
@@ -149,7 +149,7 @@ async function notify(data, keys) {
     ? { title: 'Nowe zgłoszenie do zatwierdzenia', body: String(data.title || '').slice(0, 100), url: './' }
     : data.ministry
     ? { title: 'Zgłoszenie do służby: ' + (devices[0]?.ministry || ''), body: (devices[0]?.who || 'Ktoś') + ' chce się zaangażować — zaakceptuj albo odrzuć.', url: './?sluzby=1' }
-    : { title: String(data.title || 'KNS Nabo').slice(0, 120), body: String(data.body || '').slice(0, 300), url: String(data.url || './').slice(0, 300) }
+    : { title: String(data.title || 'Kościół Na Skale').slice(0, 120), body: String(data.body || '').slice(0, 300), url: String(data.url || './').slice(0, 300) }
   let sent = 0
   const gone = []
   await Promise.all(devices.map(async ({ id, subscription }) => {

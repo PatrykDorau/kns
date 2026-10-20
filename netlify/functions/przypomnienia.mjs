@@ -25,7 +25,7 @@ export default async function handler() {
     const rows = await rpc('inbox_push_due')
     await Promise.all(rows.map(async r => {
       try {
-        const status = await sendPush(r.subscription, { title: String(r.title || 'KNS Nabo').slice(0, 120), body: String(r.body || '').slice(0, 300), url: String(r.url || './').slice(0, 300) }, keys)
+        const status = await sendPush(r.subscription, { title: String(r.title || 'Kościół Na Skale').slice(0, 120), body: String(r.body || '').slice(0, 300), url: String(r.url || './').slice(0, 300) }, keys)
         if (status < 300) sent++
       } catch { /* jeden telefon nie psuje reszty */ }
     }))

@@ -1250,7 +1250,7 @@ export default defineComponent({
     // Udostępnienie: na telefonie systemowe „Udostępnij”, na komputerze — kopia do schowka.
     async function shareLink(kind, id, title) {
       const url = shareUrl(kind, id)
-      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) { try { await navigator.share({ title: title || 'KNS Nabo', url }); return } catch (e) { if (e.name === 'AbortError') return } }
+      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) { try { await navigator.share({ title: title || 'Kościół Na Skale', url }); return } catch (e) { if (e.name === 'AbortError') return } }
       try { await navigator.clipboard.writeText(url); showToast('Skopiowano link — wklej go w wiadomości') } catch { prompt('Skopiuj link:', url) }
     }
     const shareTarget = computed(() => {

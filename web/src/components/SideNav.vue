@@ -10,7 +10,7 @@ export default defineComponent({ setup: () => useApp() })
 <template>
 <aside class="side" aria-label="Nawigacja">
   <div class="side-top">
-    <button class="side-brand" title="Strona startowa" @click="navTo('home')"><img src="znak.png" alt=""><span><b>Kościół Na Skale</b><small>KNS Nabo</small></span></button>
+    <button class="side-brand" title="Strona startowa" @click="navTo('home')"><img src="znak.png" alt=""><span><b>Kościół Na Skale</b></span></button>
     <button v-if="api.enabled" class="side-ib" :class="{ on: inboxOpen }" title="Powiadomienia" aria-label="Powiadomienia" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="side-dot">{{ unread }}</span></button>
     <button class="side-ib" :class="{ spin: busy }" :disabled="busy" title="Odśwież" aria-label="Odśwież" @click="reload()"><svg class="i"><use href="#refresh"/></svg></button>
   </div>
