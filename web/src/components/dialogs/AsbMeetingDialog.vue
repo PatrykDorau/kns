@@ -40,13 +40,14 @@ export default defineComponent({ setup: () => useApp() })
       <textarea id="asStudy" v-model="asbForm.study" placeholder="Fragment Biblii, myśli, pytania do dyskusji…"></textarea>
       <label>Załączniki <small class="muted">(rozważanie, materiały, prezentacja — widzą je wszyscy z ASB)</small></label>
       <div class="asb-files">
-        <div v-for="f in asbForm.files" :key="f.path" class="mn-person">
-          <span><b>{{ f.name }}</b></span>
+        <div v-for="f in asbForm.files" :key="f.path || f.url" class="mn-person">
+          <span><b>{{ f.name }}</b><small v-if="f.url">link</small></span>
           <button :disabled="busy" @click="asbOpenFile(f)">Otwórz</button>
           <button class="icon" :disabled="busy" :aria-label="'Usuń załącznik ' + f.name" title="Usuń załącznik" @click="asbRemoveFile(f)"><svg class="i"><use href="#x"/></svg></button>
         </div>
         <input ref="asbFileInput" type="file" multiple hidden @change="asbAddFile">
-        <button type="button" :disabled="busy" @click="$refs.asbFileInput.click()"><svg class="i"><use href="#clip"/></svg>{{ busy ? 'Wgrywam…' : 'Dodaj załącznik' }}</button>
+        <button type="button" :disabled="busy" @click="$refs.asbFileInput.click()"><svg class="i"><use href="#clip"/></svg>{{ busy ? 'Wgrywam…' : 'Dodaj załącznik (do 10 MB)' }}</button>
+        <div class="row asb-link"><input id="asLink" v-model="asbForm._link" placeholder="albo wklej link z Dysku Google" inputmode="url" autocomplete="off" @keydown.enter.prevent="asbAddLink"><button type="button" :disabled="!asbForm._link" @click="asbAddLink"><svg class="i"><use href="#link"/></svg>Dodaj link</button></div>
       </div>
       <template v-if="asbForm.kind === 'cykliczne'">
         <label for="asConcept">Koncepcja okresu — co i po co robimy</label>

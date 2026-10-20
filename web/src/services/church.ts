@@ -55,7 +55,22 @@ export const DEFAULT_TYPES = [
 export const isCommunity = (types, id) => !!(types || DEFAULT_TYPES).find(t => t.id === id)?.community || DEFAULT_TYPES.some(t => t.id === id && t.community)
 export const COLORS = ['#f2a53c', '#3ec7b0', '#a98bff', '#e5484d', '#6ea8ff', '#f07fb4', '#6fd39a', '#8f98a8']
 
-// Film w ogłoszeniu: link do YouTube/Vimeo (odtwarzacz w ramce) albo plik wgrany do bazy (zwykły odtwarzacz wideo).
+// Link do pliku na Dysku Google (też Dokumenty, Arkusze, Prezentacje, folder): adres do otwarcia i podgląd w ramce.
+// Plik musi być udostępniony „Każda osoba mająca link”, inaczej Google poprosi o dostęp.
+export function driveInfo(url) {
+  const u = String(url || '').trim()
+  let m = u.match(/docs\.google\.com\/(document|spreadsheets|presentation|forms)\/d\/([\w-]{20,})/)
+  if (m) return { id: m[2], kind: m[1], link: u, preview: 'https://docs.google.com/' + m[1] + '/d/' + m[2] + '/preview' }
+  m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?(?:.*&)?id=|uc\?(?:.*&)?id=)([\w-]{20,})/)
+  if (m) return { id: m[1], kind: 'file', link: 'https://drive.google.com/file/d/' + m[1] + '/view', preview: 'https://drive.google.com/file/d/' + m[1] + '/preview' }
+  m = u.match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([\w-]{20,})/)
+  if (m) return { id: m[1], kind: 'folder', link: u, preview: '' }
+  return null
+}
+// link do pliku: Dysk Google albo inny adres https
+export const isFileLink = url => !!driveInfo(url) || /^https:\/\/[^\s]+\.[^\s]+/.test(String(url || '').trim())
+
+// Film w ogłoszeniu: link do YouTube/Vimeo/Google Dysku (odtwarzacz w ramce) albo plik wgrany do bazy (zwykły odtwarzacz wideo).
 export function videoInfo(url) {
   const u = String(url || '').trim()
   if (!u) return null
@@ -63,6 +78,8 @@ export function videoInfo(url) {
   if (m) return { kind: 'youtube', embed: 'https://www.youtube-nocookie.com/embed/' + m[1], thumb: 'https://i.ytimg.com/vi/' + m[1] + '/hqdefault.jpg', link: 'https://www.youtube.com/watch?v=' + m[1] }
   m = u.match(/vimeo\.com\/(?:video\/)?(\d+)/)
   if (m) return { kind: 'vimeo', embed: 'https://player.vimeo.com/video/' + m[1], thumb: '', link: 'https://vimeo.com/' + m[1] }
+  const d = driveInfo(u)
+  if (d && d.kind === 'file') return { kind: 'drive', embed: d.preview, thumb: '', link: d.link }
   if (/^https:\/\/.*(\/ogloszenia\/|\.(mp4|webm|mov)(\?|$))/i.test(u)) return { kind: 'file', src: u, link: u }
   return null
 }

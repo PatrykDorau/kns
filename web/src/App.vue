@@ -50,7 +50,7 @@ import TabBar from '@/components/TabBar.vue'
 import { ACCEPT, createDemo, createDrive, fileType, uid } from '@/services/drive'
 import { createApi, createDemoApi } from '@/services/api'
 import { createSupa } from '@/services/supa'
-import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, categoryName, setCategory, mergeTypes, offsetOf, programFrom, videoInfo, youtubeEmbed, spotifyEmbed } from '@/services/church'
+import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, categoryName, setCategory, mergeTypes, offsetOf, programFrom, videoInfo, youtubeEmbed, spotifyEmbed, driveInfo, isFileLink } from '@/services/church'
 const KIND = { image: 'Zdjęcie', video: 'Film', pdf: 'PDF', pptx: 'Prezentacja' }
 
 
@@ -74,7 +74,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.27 · 20.10.2026'
+const VERSION = '3.29 · 20.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -958,7 +958,8 @@ export default defineComponent({
       protoFile.value = null; protoEditing.value = false; protoUrl.value = ''
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
       // adres pliku (prywatny, ważny godzinę) — od razu, żeby link otwierał się bez czekania
-      if (p.file && drive.protocolUrl) drive.protocolUrl(p.file).then(u => { if (currentProto.value?.id === p.id) protoUrl.value = u }, e => { error.value = e.message })
+      if (p.link) protoUrl.value = driveInfo(p.link)?.link || p.link
+      else if (p.file && drive.protocolUrl) drive.protocolUrl(p.file).then(u => { if (currentProto.value?.id === p.id) protoUrl.value = u }, e => { error.value = e.message })
     }
     function newProto(kind = null, ev = null) {
       // bez prawa do protokołów — od razu instrukcja (np. technika dodaje obsługę rzutnika)
@@ -968,12 +969,20 @@ export default defineComponent({
       protoSaved = ''; protoEditing.value = true
     }
     function protoForEvent(ev) { loadProtocols(); newProto(ev.type === 'rada' ? 'rada' : 'czlonkowskie', ev) }
+    // Limity wgrywanych plików (miejsce w darmowym planie): dokumenty 10 MB, filmy 30 MB. Za duży — okno z podpowiedzią:
+    // zmniejsz (konwerter) albo wrzuć na Dysk Google i wklej link (focus — pole na link).
+    const FILE_MAX = 10 * 1048576, VIDEO_MAX = 30 * 1048576
+    async function tooBig(f, max, focus) {
+      const mbs = (f.size / 1048576).toFixed(1).replace('.', ',')
+      const ok = await ask('„' + f.name + '” ma ' + mbs + ' MB — limit to ' + max / 1048576 + ' MB.\n\nMożesz go zmniejszyć: PDF — ilovepdf.com/pl/kompresuj_pdf, zdjęcia — squoosh.app, film — skróć albo wyślij na YouTube.\n\nAlbo wrzuć plik na swój Dysk Google, w „Udostępnij” ustaw „Każda osoba mająca link” i wklej tutaj link.', { title: 'Za duży plik', ok: 'Wkleję link', cancel: 'Zamknij' })
+      if (ok && focus) nextTick(() => document.getElementById(focus)?.focus())
+    }
     function pickProtoFile(e) {
       const f = e.target.files?.[0]
       e.target.value = ''
       if (!f) return
-      if (f.size > 25 * 1048576) { error.value = 'Plik ma ' + Math.round(f.size / 1048576) + ' MB — limit to 25 MB.'; return }
-      protoFile.value = f
+      if (f.size > FILE_MAX) { tooBig(f, FILE_MAX, 'prLink'); return }
+      protoFile.value = f; currentProto.value.link = ''
       if (!currentProto.value.title.trim()) currentProto.value.title = f.name.replace(/\.[^.]+$/, '')
     }
     async function closeProto() {
@@ -984,13 +993,14 @@ export default defineComponent({
     const saveProto = () => guard(async () => {
       const p = currentProto.value, f = protoFile.value, old = p.file
       const data = { ...JSON.parse(JSON.stringify(p)), title: p.title.trim(), status: 'zatwierdzony', updated: Date.now(), updatedBy: me.value?.name || drive.account() || 'telefon' }
-      if (f) Object.assign(data, { file: await drive.uploadProtocolFile(f), fileName: f.name, fileType: f.type, size: f.size })
+      if (f) Object.assign(data, { file: await drive.uploadProtocolFile(f), fileName: f.name, fileType: f.type, size: f.size, link: '' })
+      else if (data.link) Object.assign(data, { link: data.link.trim(), file: '', fileName: '', fileType: '', size: 0 })
       try { await drive.saveProtocol(data, protoBase) } catch (e) {
         if (!e.conflict) throw e
         if (!(await ask('Ktoś inny zmienił ten materiał, odkąd go otworzyłeś. Zapisać mimo to?'))) return
         await drive.saveProtocol(data, protoBase, true)
       }
-      if (f && old && old !== data.file) drive.removeProtocolFile?.(old)
+      if (old && old !== data.file) drive.removeProtocolFile?.(old)
       protocolsRaw.value = [...protocolsRaw.value.filter(x => x.id !== data.id), data]
       openProto(data)
       status.value = 'Zapisano o ' + clockNow()
@@ -1183,7 +1193,7 @@ export default defineComponent({
       const file = e.target.files?.[0]
       e.target.value = ''
       if (!file || !currentAnn.value) return
-      if (file.size > 50 * 1048576) { error.value = 'Film ma ' + Math.round(file.size / 1048576) + ' MB — limit to 50 MB. Skróć go albo wrzuć na YouTube i wklej link.'; return }
+      if (file.size > VIDEO_MAX) { tooBig(file, VIDEO_MAX, 'anVideo'); return }
       vidBusy.value = true
       guard(async () => { currentAnn.value.video = await drive.uploadFile(file, (file.name.match(/\.(\w+)$/) || [, 'mp4'])[1]) }).finally(() => { vidBusy.value = false })
     }
@@ -1581,15 +1591,24 @@ export default defineComponent({
     const asbAddFile = e => {
       const list = [...(e.target.files || [])]; e.target.value = ''
       if (!list.length) return
-      const big = list.find(f => f.size > 25 * 1024 * 1024)
-      if (big) { error.value = 'Plik „' + big.name + '” jest za duży (najwyżej 25 MB).'; return }
+      const big = list.find(f => f.size > FILE_MAX)
+      if (big) { tooBig(big, FILE_MAX, 'asLink'); return }
       guard(async () => { for (const f of list) { const path = await drive.uploadAsbFile(f); asbForm.value?.files.push({ name: f.name, path }) } })
     }
     async function asbRemoveFile(f) {
       if (!(await ask('Usunąć załącznik „' + f.name + '”? (Zniknie po zapisaniu spotkania.)'))) return
-      asbForm.value.files = asbForm.value.files.filter(x => x.path !== f.path); asbForm.value._removed.push(f.path)
+      asbForm.value.files = asbForm.value.files.filter(x => x !== f); if (f.path) asbForm.value._removed.push(f.path)
+    }
+    // załącznik ASB jako link (np. Dysk Google) zamiast pliku
+    function asbAddLink() {
+      const u = String(asbForm.value?._link || '').trim()
+      if (!isFileLink(u)) { error.value = 'To nie wygląda na link do pliku (np. z Dysku Google).'; return }
+      const d = driveInfo(u)
+      asbForm.value.files.push({ name: d ? ({ document: 'Dokument Google', spreadsheets: 'Arkusz Google', presentation: 'Prezentacja Google', folder: 'Folder na Dysku' }[d.kind] || 'Plik na Dysku Google') : u.replace(/^https:\/\/(www\.)?/, '').slice(0, 40), url: d?.link || u })
+      asbForm.value._link = ''
     }
     function asbOpenFile(f) {
+      if (f.url) { window.open(f.url, '_blank', 'noopener'); return }
       const w = window.open('', '_blank')
       guard(async () => { const u = await drive.asbFileUrl(f.path); if (w) w.location.href = u; else location.href = u })
     }
@@ -2405,7 +2424,7 @@ export default defineComponent({
       ASB_KINDS, asbWhen, asbKindName, asbMissing, asbMissingCount, asbLeaderHints, asbPubUpcoming, asbPubShown, asbPubGroups,
       msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
       bulk, annFromImages,
-      MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbRemoveFile, asbOpenFile, openAsbMeeting,
+      MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbAddLink, asbRemoveFile, asbOpenFile, driveInfo, isFileLink, openAsbMeeting,
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,

@@ -191,6 +191,13 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       // Miejsce na dane (miejsce.sql): rozmiar bazy i pliki; usuwanie i pobieranie przez Storage API (reguły koszy)
       if (action === 'storageUsage') return check(await sb.rpc('storage_usage'))
       if (action === 'storageRemove') { const { data: gone, error } = await sb.storage.from(data.bucket).remove(data.names); if (error) throw new Error(error.message); return (gone || []).length }
+      // podglądy (miniatury) wielu plików naraz: { nazwa: adres }
+      if (action === 'storageUrls') {
+        if (data.bucket === 'ogloszenia') return Object.fromEntries(data.names.map(n => [n, sb.storage.from(data.bucket).getPublicUrl(n).data.publicUrl]))
+        const { data: list, error } = await sb.storage.from(data.bucket).createSignedUrls(data.names, 3600)
+        if (error) throw new Error(error.message)
+        return Object.fromEntries((list || []).filter(x => x.signedUrl).map(x => [x.path, x.signedUrl]))
+      }
       if (action === 'storageUrl') {
         if (data.bucket === 'ogloszenia') return sb.storage.from(data.bucket).getPublicUrl(data.name).data.publicUrl
         const { data: s, error } = await sb.storage.from(data.bucket).createSignedUrl(data.name, 600, { download: true })

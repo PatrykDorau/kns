@@ -18,20 +18,27 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     <h2 class="ann-view-title">{{ currentProto.title }}</h2>
     <p class="ann-view-meta">{{ pretty(currentProto.date) }}<template v-if="currentProto.updatedBy"> · dodał(a) {{ currentProto.updatedBy }}</template></p>
     <div v-if="currentProto.note" class="ann-view-text">{{ currentProto.note }}</div>
-    <a v-if="protoUrl" class="button ann-link" :href="protoUrl" target="_blank" rel="noopener"><svg class="i"><use href="#file"/></svg>Otwórz plik<small class="proto-fname">{{ currentProto.fileName }}</small><svg class="i chev"><use href="#chev"/></svg></a>
+    <a v-if="protoUrl" class="button ann-link" :href="protoUrl" target="_blank" rel="noopener"><svg class="i"><use href="#file"/></svg>Otwórz plik<small class="proto-fname">{{ currentProto.link ? (driveInfo(currentProto.link) ? 'Google Dysk' : 'link') : currentProto.fileName }}</small><svg class="i chev"><use href="#chev"/></svg></a>
     <p v-else-if="currentProto.file" class="note">Przygotowuję plik…</p>
+    <!-- plik z Dysku Google: podgląd w ramce (plik zostaje na Dysku — u nas tylko link) -->
+    <iframe v-if="currentProto.link && driveInfo(currentProto.link)?.preview" class="drive-prev" :src="driveInfo(currentProto.link).preview" title="Podgląd pliku z Dysku Google" allow="autoplay; fullscreen" loading="lazy"></iframe>
     <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
     <button v-if="protoEditable" class="ann-edit-btn" @click="protoEditing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
   </article>
   <template v-else>
     <label for="prType">Rodzaj</label>
     <UiSelect id="prType" v-model="currentProto.type" label="Rodzaj" :options="[...(canWriteProto('czlonkowskie') || hasCouncil ? [{ value: 'protokol', label: 'Protokół spotkania' }] : []), { value: 'instrukcja', label: 'Instrukcja (np. obsługa rzutnika)' }, { value: 'plik', label: 'Plik pomocniczy' }]" @change="protoTypeChanged" />
-    <label>Plik <span class="req">*</span></label>
+    <label>Plik <span class="req">*</span> <small class="muted">(do 10 MB — większy wrzuć na Dysk Google i wklej link)</small></label>
     <div class="proto-file">
       <svg class="i"><use href="#list"/></svg>
       <span>{{ protoFile ? protoFile.name : currentProto.fileName || 'Nie wybrano pliku (PDF, Word, PowerPoint, Excel, zdjęcie)' }}</span>
       <button type="button" :disabled="busy" @click="$refs.protoFileIn.click()">{{ currentProto.file || protoFile ? 'Zmień' : 'Wybierz plik' }}</button>
     </div>
+    <label for="prLink">albo link do pliku (Google Dysk)</label>
+    <input id="prLink" v-model.trim="currentProto.link" placeholder="https://drive.google.com/…" inputmode="url" autocomplete="off" :disabled="!!protoFile">
+    <p v-if="currentProto.link && !isFileLink(currentProto.link)" class="error" style="margin:6px 0 0">To nie wygląda na link do pliku.</p>
+    <p v-else-if="currentProto.link && !driveInfo(currentProto.link)" class="note" style="margin:6px 0 0">Link spoza Dysku Google — sprawdź, czy otwiera się innym osobom.</p>
+    <p v-else-if="currentProto.link" class="note" style="margin:6px 0 0">Upewnij się, że plik na Dysku jest udostępniony „Każda osoba mająca link”.</p>
     <input ref="protoFileIn" type="file" accept=".pdf,.doc,.docx,.odt,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,image/*" hidden @change="pickProtoFile">
     <label for="prTitle">Tytuł <span class="req">*</span></label>
     <input id="prTitle" v-model="currentProto.title" :class="{ invalid: !currentProto.title.trim() }" autocomplete="off">
@@ -50,7 +57,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
         <button v-if="confirmDelete" class="danger" :disabled="busy" @click="removeProto">Na pewno usuń</button>
         <button v-else :disabled="busy" aria-label="Usuń materiał" @click="confirmDelete = true"><svg class="i"><use href="#trash"/></svg></button>
       </template>
-      <button class="primary" :disabled="busy || !protoDirty || !currentProto.title.trim() || (!currentProto.file && !protoFile)" @click="saveProto()">
+      <button class="primary" :disabled="busy || !protoDirty || !currentProto.title.trim() || (!currentProto.file && !protoFile && !isFileLink(currentProto.link))" @click="saveProto()">
         <svg v-if="!protoDirty && !busy" class="i"><use href="#check"/></svg>{{ busy ? 'Zapisuję…' : protoDirty ? 'Zapisz' : 'Zapisane' }}
       </button>
     </div>

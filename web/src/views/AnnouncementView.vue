@@ -64,10 +64,10 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
         <iframe v-else :src="videoInfo(currentAnn.video).embed" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>
       </div>
     <template v-if="annEditable">
-      <input v-if="!/\/ogloszenia\//.test(currentAnn.video || '')" id="anVideo" v-model.trim="currentAnn.video" placeholder="Link do YouTube lub Vimeo" autocomplete="off" inputmode="url">
-      <p v-if="currentAnn.video && !videoInfo(currentAnn.video)" class="error" style="margin:6px 0 0">To nie wygląda na link do filmu (YouTube, Vimeo).</p>
+      <input v-if="!/\/ogloszenia\//.test(currentAnn.video || '')" id="anVideo" v-model.trim="currentAnn.video" placeholder="Link do YouTube, Vimeo albo Google Dysku" autocomplete="off" inputmode="url">
+      <p v-if="currentAnn.video && !videoInfo(currentAnn.video)" class="error" style="margin:6px 0 0">To nie wygląda na link do filmu (YouTube, Vimeo, Google Dysk).</p>
       <div class="row" style="margin-top:8px">
-        <button v-if="drive.uploadFile" type="button" :disabled="vidBusy" @click="$refs.annVid.click()"><svg class="i"><use href="#plus"/></svg>{{ vidBusy ? 'Wysyłam film…' : 'Wgraj film (do 50 MB)' }}</button>
+        <button v-if="drive.uploadFile" type="button" :disabled="vidBusy" @click="$refs.annVid.click()"><svg class="i"><use href="#plus"/></svg>{{ vidBusy ? 'Wysyłam film…' : 'Wgraj film (do 30 MB)' }}</button>
         <button v-if="currentAnn.video" type="button" :disabled="vidBusy" @click="currentAnn.video = ''"><svg class="i"><use href="#trash"/></svg>Usuń film</button>
       </div>
       <input ref="annVid" type="file" accept="video/mp4,video/webm,video/quicktime" hidden @change="pickAnnVideo">

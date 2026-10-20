@@ -10,10 +10,24 @@ const BUCKETS = { ogloszenia: 'Grafiki i filmy (ogłoszenia, wydarzenia, cele, w
 export default defineComponent({
   setup() {
     const app = useApp()
-    const st = reactive({ data: null, busy: false, error: '', filter: 'unused', sel: {} })
+    const st = reactive({ data: null, busy: false, error: '', filter: 'unused', sel: {}, thumbs: {}, preview: null })
     async function load() {
       st.busy = true
       try { st.data = await app.api.call('storageUsage'); st.error = '' } catch (e) { st.error = e.message || String(e) } finally { st.busy = false }
+      loadThumbs()
+    }
+    // miniatury obrazków (po jednym zapytaniu na kosz); pozostałe pliki — ikona z rodzajem
+    const ext = f => (f.name.match(/\.(\w+)$/) || [, ''])[1].toLowerCase()
+    const isImg = f => ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext(f))
+    const isVid = f => ['mp4', 'mov', 'webm', 'm4v'].includes(ext(f))
+    async function loadThumbs() {
+      const want = (st.data?.files || []).filter(f => (isImg(f) || isVid(f)) && !st.thumbs[f.bucket + '/' + f.name])
+      for (const b of new Set(want.map(f => f.bucket))) {
+        try {
+          const map = await app.api.call('storageUrls', { bucket: b, names: want.filter(f => f.bucket === b).map(f => f.name) })
+          for (const [n, u] of Object.entries(map || {})) st.thumbs[b + '/' + n] = u
+        } catch { /* bez miniatur — zostaje ikona */ }
+      }
     }
     onMounted(load)
     const mb = n => !n ? '0 MB' : n >= 1073741824 ? (n / 1073741824).toFixed(n % 1073741824 ? 1 : 0).replace('.', ',') + ' GB' : n >= 1024 * 1024 * 100 ? Math.round(n / 1048576) + ' MB' : n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB'
@@ -47,7 +61,7 @@ export default defineComponent({
       await load()
     }
     const ago = d => new Date(d).toLocaleDateString('pl', { day: 'numeric', month: 'short', year: 'numeric' })
-    return { ...app, st, mb, total, buckets, unused, shown, pct, fileName, key, selected, download, remove, ago, BUCKETS }
+    return { ...app, st, ext, isImg, isVid, mb, total, buckets, unused, shown, pct, fileName, key, selected, download, remove, ago, BUCKETS }
   },
 })
 </script>
@@ -84,6 +98,10 @@ export default defineComponent({
     </div>
     <p v-if="!shown.length" class="note">{{ st.filter === 'unused' ? 'Nie ma nieużywanych plików.' : 'Nie ma plików.' }}</p>
     <div v-for="f in shown" :key="key(f)" class="sp-file">
+      <button class="sp-thumb" :class="{ img: isImg(f) && st.thumbs[key(f)] }" :aria-label="'Podgląd: ' + fileName(f)" @click="st.thumbs[key(f)] ? (st.preview = f) : download(f)">
+        <img v-if="isImg(f) && st.thumbs[key(f)]" :src="st.thumbs[key(f)]" alt="" loading="lazy">
+        <template v-else><svg class="i"><use :href="isVid(f) ? '#play' : isImg(f) ? '#image' : '#file'"/></svg><small>{{ ext(f).toUpperCase() || 'PLIK' }}</small></template>
+      </button>
       <label v-if="st.filter === 'all'" class="sp-check"><input v-model="st.sel[key(f)]" type="checkbox" :aria-label="'Zaznacz ' + fileName(f)"></label>
       <span class="sp-info">
         <b>{{ fileName(f) }}</b>
@@ -91,6 +109,16 @@ export default defineComponent({
       </span>
       <button class="icon" aria-label="Pobierz" title="Pobierz (zachowaj na dysku przed usunięciem)" @click="download(f)"><svg class="i"><use href="#download"/></svg></button>
       <button class="icon" :disabled="st.busy" aria-label="Usuń" title="Usuń" @click="remove([f])"><svg class="i"><use href="#trash"/></svg></button>
+    </div>
+    <!-- podgląd pliku (obrazek albo film) -->
+    <div v-if="st.preview" class="np-overlay sp-prev" @click.self="st.preview = null" @keydown.esc="st.preview = null">
+      <div class="np-panel">
+        <div class="sp-prev-h"><b>{{ fileName(st.preview) }}</b><button class="icon" aria-label="Zamknij" @click="st.preview = null"><svg class="i"><use href="#x"/></svg></button></div>
+        <video v-if="isVid(st.preview)" :src="st.thumbs[key(st.preview)]" controls playsinline></video>
+        <img v-else :src="st.thumbs[key(st.preview)]" alt="">
+        <small>{{ mb(st.preview.size) }} · {{ ago(st.preview.created) }} · {{ st.preview.usedBy || 'nieużywany' }}</small>
+        <div class="row"><button @click="download(st.preview)"><svg class="i"><use href="#download"/></svg>Pobierz</button><button class="danger" :disabled="st.busy" @click="remove([st.preview]); st.preview = null"><svg class="i"><use href="#trash"/></svg>Usuń</button></div>
+      </div>
     </div>
   </template>
 </template>
@@ -110,4 +138,13 @@ export default defineComponent({
 .sp-info small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-unused { color: var(--accent); font-weight: 700; }
 .sp-check input { width: 18px; height: 18px; }
+.sp-thumb { flex: none; width: 52px; height: 52px; min-height: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border-radius: 10px; overflow: hidden; background: var(--panel2); color: var(--muted); }
+.sp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sp-thumb .i { width: 20px; height: 20px; }
+.sp-thumb small { font-size: 9.5px; font-weight: 800; letter-spacing: .04em; }
+.sp-prev .np-panel { display: flex; flex-direction: column; gap: 10px; }
+.sp-prev-h { display: flex; align-items: center; gap: 8px; }
+.sp-prev-h b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-prev img, .sp-prev video { width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; background: var(--panel2); }
+.sp-prev small { color: var(--muted); font-size: 12.5px; }
 </style>

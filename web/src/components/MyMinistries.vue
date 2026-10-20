@@ -43,7 +43,7 @@ export default defineComponent({
     <!-- pliki tylko dla tej służby -->
     <div class="mm-sec">
       <small class="mm-lbl">Pliki służby</small>
-      <button v-for="p in ministryFiles(m.id)" :key="p.id" class="mm-file" @click="openProto(p)"><svg class="i"><use href="#file"/></svg><span><b>{{ p.title }}</b><small>{{ p.fileName }}</small></span><svg class="i chev"><use href="#chev"/></svg></button>
+      <button v-for="p in ministryFiles(m.id)" :key="p.id" class="mm-file" @click="openProto(p)"><svg class="i"><use href="#file"/></svg><span><b>{{ p.title }}</b><small>{{ p.link ? 'link · Google Dysk' : p.fileName }}</small></span><svg class="i chev"><use href="#chev"/></svg></button>
       <p v-if="!ministryFiles(m.id).length" class="note">Nie ma jeszcze plików.</p>
       <button v-if="m.lead" class="ghost small" @click="newMinistryFile(m)"><svg class="i"><use href="#plus"/></svg>Dodaj plik</button>
     </div>
