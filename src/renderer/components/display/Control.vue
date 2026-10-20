@@ -150,10 +150,11 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
 
     <main>
       <section>
-        <div class="tabs" role="tablist">
-          <button role="tab" :aria-selected="tab === 'materials'" @click="tab = 'materials'"><Icon name="image" />Biblioteka</button>
-          <button role="tab" :aria-selected="tab === 'songs'" @click="tab = 'songs'"><Icon name="music" />Pieśni<span v-if="serviceList.length" class="pill">{{ serviceList.length }}</span></button>
-          <button role="tab" :aria-selected="tab === 'church'" title="Pliki z „Materiałów” w aplikacji (protokoły, instrukcje, pliki pomocnicze)" @click="tab = 'church'"><Icon name="folder" />Materiały</button>
+        <!-- zakładki: nieaktywne — sama ikonka (nazwa w podpowiedzi), aktywna — z nazwą -->
+        <div class="tabs tabs-icons" role="tablist">
+          <button role="tab" :aria-selected="tab === 'materials'" title="Biblioteka" aria-label="Biblioteka" @click="tab = 'materials'"><Icon name="image" /><span class="tl">Biblioteka</span></button>
+          <button role="tab" :aria-selected="tab === 'songs'" title="Pieśni na to nabożeństwo" aria-label="Pieśni" @click="tab = 'songs'"><Icon name="music" /><span class="tl">Pieśni</span><span v-if="serviceList.length" class="pill">{{ serviceList.length }}</span></button>
+          <button role="tab" :aria-selected="tab === 'church'" title="Materiały — pliki z „Materiałów” w aplikacji (protokoły, instrukcje, pliki pomocnicze)" aria-label="Materiały" @click="tab = 'church'"><Icon name="folder" /><span class="tl">Materiały</span></button>
         </div>
         <MaterialsPanel v-if="tab === 'materials'" />
         <ChurchMaterials v-else-if="tab === 'church'" action="Do biblioteki" @added="tab = 'materials'" />

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ask } from '@/utils/ask'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import NewSongDialog from '@/components/display/NewSongDialog.vue'
 import {
@@ -17,6 +17,12 @@ const browse = ref(false)
 const finder = ref<HTMLInputElement | null>(null)
 function openBrowse() { browse.value = true; nextTick(() => finder.value?.focus()) }
 function closeBrowse() { browse.value = false; search.service = '' }
+// kliknięcie poza polem i listą zamyka listę
+const finderBox = ref<HTMLElement | null>(null)
+const outside = (e: MouseEvent) => { if (!finderBox.value?.contains(e.target as Node)) closeBrowse() }
+const listOpen = computed(() => browse.value || !!search.service.trim())
+watch(listOpen, on => { if (on) document.addEventListener('mousedown', outside); else document.removeEventListener('mousedown', outside) })
+onBeforeUnmount(() => document.removeEventListener('mousedown', outside))
 const inService = computed(() => new Set(serviceList.value.map(e => e.song.id)))
 const browseList = computed(() => songs.value.filter(x => !inService.value.has(x.id)).sort((a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')))
 const shownResults = computed(() => (search.service.trim() ? serviceResults.value : browse.value ? browseList.value : []))
@@ -56,7 +62,7 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
     <span v-else>Nie wczytano nabożeństwa</span>
     <button class="small" @click="serviceModal = true">Wczytaj nabożeństwo</button>
   </div>
-  <div class="finder">
+  <div ref="finderBox" class="finder">
     <label class="searchbox">
       <Icon name="search" />
       <input ref="finder" v-model="search.service" type="search" placeholder="Dodaj pieśń: numer, tytuł lub fragment" aria-label="Wyszukaj pieśń do dodania"
@@ -125,7 +131,13 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
 </template>
 
 <style scoped>
-.browse-results { max-height: 360px; overflow-y: auto; }
+.browse-results { max-height: 360px; overflow: hidden auto; }
+/* pasek przewijania w środku ramki (z odstępem od zaokrąglonych rogów) */
+.browse-results::-webkit-scrollbar { width: 12px; }
+.browse-results::-webkit-scrollbar-track { margin: 10px 0; background: transparent; }
+.browse-results::-webkit-scrollbar-thumb { border: 4px solid transparent; border-radius: 8px; background: var(--line) padding-box; }
+.browse-results::-webkit-scrollbar-thumb:hover { background: var(--muted) padding-box; }
+.browse-results::-webkit-scrollbar-button { display: none; height: 0; }
 .browse-h { display: flex; align-items: center; gap: 8px; }
 .browse-h span { flex: 1; }
 .results .browse-h button { flex: none; width: 30px; height: 30px; padding: 0; justify-content: center; background: transparent; }
