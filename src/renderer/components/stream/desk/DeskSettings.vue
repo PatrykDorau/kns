@@ -69,7 +69,12 @@ function chooseProjector(id: string) { if (id) pickProjector(id); else manualKey
               </select>
               <button class="small" title="Odśwież listę" aria-label="Odśwież listę rzutników" @click="refreshProjectors"><Icon name="refresh" /></button>
             </div>
-            <input v-if="manualKey || !otherProjectors.length" v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Adres z laptopa przy rzutniku (Ustawienia aplikacji → Dla streamu → Kopiuj)" aria-label="Adres z laptopa przy rzutniku">
+            <!-- pole na adres: wybrane „Wklej adres ręcznie…” albo żaden rzutnik z listy nie jest wybrany -->
+            <template v-if="manualKey || !pickedProjector">
+              <span class="st-lbl">Adres rzutnika (napisy i obraz)</span>
+              <input v-model="settings.streamLyricsKey" class="desk-lyr" placeholder="Wklej adres skopiowany z laptopa przy rzutniku" aria-label="Adres rzutnika">
+              <span class="st-hint">To adres, przez który laptop przy rzutniku wysyła napisy pieśni (i obraz rzutnika). Na tamtym laptopie: Ustawienia aplikacji → Dla streamu → „Adres tego rzutnika” → Kopiuj. Zwykle nie trzeba — laptop sam pojawia się na liście powyżej.</span>
+            </template>
             <span v-if="!otherProjectors.length" class="st-hint">Na laptopie przy rzutniku: Ustawienia aplikacji → Dla streamu → włącz „Obraz rzutnika” albo „Napisy pieśni”.</span>
           </div>
           <div class="st-row">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ask } from '@/utils/ask'
-import { ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import NewSongDialog from '@/components/display/NewSongDialog.vue'
 import {
@@ -12,6 +12,14 @@ import {
 // jest w osobnym oknie „Baza pieśni”.
 const confirmClear = ref(false)
 const newSong = ref(false) // okno „Nowa pieśń”
+// „+” przy „Na to nabożeństwo”: lista pieśni z bazy do dodania (bez wpisywania) — wpisanie zawęża; nowa pieśń na końcu listy
+const browse = ref(false)
+const finder = ref<HTMLInputElement | null>(null)
+function openBrowse() { browse.value = true; nextTick(() => finder.value?.focus()) }
+function closeBrowse() { browse.value = false; search.service = '' }
+const inService = computed(() => new Set(serviceList.value.map(e => e.song.id)))
+const browseList = computed(() => songs.value.filter(x => !inService.value.has(x.id)).sort((a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')))
+const shownResults = computed(() => (search.service.trim() ? serviceResults.value : browse.value ? browseList.value : []))
 // Tryb zaznaczania: zdejmowanie wielu pieśni z listy naraz (pieśni zostają w bazie).
 const picking = ref(false)
 const picked = ref(new Set())
@@ -51,20 +59,22 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
   <div class="finder">
     <label class="searchbox">
       <Icon name="search" />
-      <input v-model="search.service" type="search" placeholder="Dodaj pieśń: numer, tytuł lub fragment" aria-label="Wyszukaj pieśń do dodania"
-             @keydown.enter.prevent="serviceResults[0] && addToService(serviceResults[0])" @keydown.esc.stop="search.service = ''">
+      <input ref="finder" v-model="search.service" type="search" placeholder="Dodaj pieśń: numer, tytuł lub fragment" aria-label="Wyszukaj pieśń do dodania"
+             @keydown.enter.prevent="shownResults[0] && addToService(shownResults[0])" @keydown.esc.stop="closeBrowse">
     </label>
-    <ul v-if="search.service.trim()" class="results">
-      <li v-if="!serviceResults.length" class="none">{{ songs.length ? 'Nie ma takiej pieśni w bazie.' : 'Baza pieśni jest pusta — otwórz ją i zaimportuj pieśni.' }} <button class="small" @click="newSong = true"><Icon name="plus" />Nowa pieśń</button></li>
-      <li v-for="song in serviceResults" :key="song.id">
+    <ul v-if="search.service.trim() || browse" class="results browse-results">
+      <li v-if="browse && !search.service.trim()" class="none browse-h"><span>Kliknij pieśń, żeby dodać ją na to nabożeństwo — albo wpisz numer lub tytuł.</span><button class="iconbtn" aria-label="Zamknij listę" @click="closeBrowse"><Icon name="x" /></button></li>
+      <li v-if="!shownResults.length" class="none">{{ songs.length ? (search.service.trim() ? 'Nie ma takiej pieśni w bazie.' : 'Wszystkie pieśni z bazy są już na liście.') : 'Baza pieśni jest pusta — otwórz ją i zaimportuj pieśni.' }}</li>
+      <li v-for="song in shownResults" :key="song.id">
         <button @click="addToService(song)"><Icon name="plus" /><span class="meta"><span class="name">{{ title(song) }}</span><span class="kind">{{ firstLine(song) }}</span></span></button>
       </li>
+      <li class="none"><button class="small" @click="newSong = true; closeBrowse()"><Icon name="plus" />Nowa pieśń (spoza bazy)</button></li>
     </ul>
   </div>
 
   <div class="service-head">
     <h2>Na to nabożeństwo</h2>
-    <button class="iconbtn" title="Nowa pieśń — wpisz tekst, trafi do bazy i na tę listę" aria-label="Nowa pieśń" @click="newSong = true"><Icon name="plus" /></button>
+    <button class="iconbtn" :class="{ on: browse }" title="Dodaj pieśń z bazy na to nabożeństwo" aria-label="Dodaj pieśń na to nabożeństwo" @click="browse ? closeBrowse() : openBrowse()"><Icon name="plus" /></button>
     <template v-if="serviceList.length">
       <template v-if="confirmClear">
         <button class="del-yes small" title="Usuwa wszystkie pieśni z listy (zostają w bazie)" @click="clearService(); confirmClear = false">Wyczyścić?</button>
@@ -113,3 +123,11 @@ const title = song => (song.number ? song.number + '. ' : '') + (song.title || '
   <NewSongDialog v-if="newSong" @close="newSong = false" />
   <button class="wide browse" @click="managerOpen = true"><Icon name="pencil" />Baza pieśni ({{ songs.length }})</button>
 </template>
+
+<style scoped>
+.browse-results { max-height: 360px; overflow-y: auto; }
+.browse-h { display: flex; align-items: center; gap: 8px; }
+.browse-h span { flex: 1; }
+.results .browse-h button { flex: none; width: 30px; height: 30px; padding: 0; justify-content: center; background: transparent; }
+.browse-results li.browse-h + li button { background: transparent; }
+</style>
