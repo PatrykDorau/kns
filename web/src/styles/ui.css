@@ -528,3 +528,16 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 .uisel-list li.act { background: var(--panel2); }
 .uisel-list li.on { color: var(--accent); font-weight: 600; }
 .uisel-list li.dis { opacity: .45; cursor: default; }
+/* Start na komputerze: karty na górze (powiadomienia, nowa wersja, brak internetu) — odstęp od góry i ta sama szerokość co treść strony */
+@media (min-width: 1024px) {
+  #app.has-side.home-wide > .push-ask, #app.has-side.home-wide > .update-ready, #app.has-side.home-wide > .offline { margin: 34px 30px -10px; }
+  #app.has-side.home-wide > .push-ask ~ .update-ready, #app.has-side.home-wide > .push-ask ~ .offline, #app.has-side.home-wide > .update-ready ~ .offline { margin-top: 0; }
+}
+/* kalendarz: wybór dnia / „Wszystkie” — lista znika i nowa wjeżdża po kolei; przesuwany miesiąc i zakładki służb */
+.cal-swap-leave-active { transition: opacity .12s ease-in, transform .12s ease-in; }
+.cal-swap-leave-to { opacity: 0; transform: translateY(-4px); }
+.cal-swap-enter-active { transition: opacity .18s ease-out; }
+.cal-swap-enter-from { opacity: 0; }
+.cal-month, .serve-view { touch-action: pan-y; }
+.cal-month { overflow: hidden; }
+.cal-grid, .serve-pane { will-change: auto; }
