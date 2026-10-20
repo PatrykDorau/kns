@@ -2,9 +2,11 @@
 // @ts-nocheck — stan i działania wspólne (useApp)
 import { computed, defineComponent, ref } from 'vue'
 import { useApp } from '@/composables/useApp'
+import StatsPanel from '@/components/StatsPanel.vue'
 
 // Nabożeństwa: zaplanowane (od najbliższego), wolne niedziele z „Zaplanuj”, dowolny inny termin i minione.
 export default defineComponent({
+  components: { StatsPanel },
   setup() {
     const app = useApp()
     const otherDate = ref('')
@@ -20,12 +22,19 @@ export default defineComponent({
       }
       return out
     })
-    return { ...app, otherDate, showPast, upcoming, past, freeSundays }
+    const svcTab = ref('list') // „Nabożeństwa” / „Statystyki” (pieśni i kazania)
+    return { ...app, otherDate, showPast, upcoming, past, freeSundays, svcTab }
   },
 })
 </script>
 
 <template>
+  <div class="serve-tabs" role="tablist">
+    <button role="tab" :aria-selected="svcTab === 'list'" @click="svcTab = 'list'"><svg class="i"><use href="#book"/></svg>Nabożeństwa</button>
+    <button role="tab" :aria-selected="svcTab === 'stats'" @click="svcTab = 'stats'"><svg class="i"><use href="#list"/></svg>Statystyki</button>
+  </div>
+  <StatsPanel v-if="svcTab === 'stats'" />
+  <template v-else>
   <div class="section"><h2>Zaplanowane</h2></div>
   <p v-if="!upcoming.length" class="note">Nie ma jeszcze zaplanowanych nabożeństw.</p>
   <button v-for="s in upcoming" :key="s.id" class="ev svc-row" :class="{ next: s.id === nextService?.id }" @click="open(s)">
@@ -63,5 +72,6 @@ export default defineComponent({
         <svg class="i chev"><use href="#chev"/></svg>
       </button>
     </template>
+  </template>
   </template>
 </template>

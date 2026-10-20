@@ -567,3 +567,4 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 #app.tab-in-l > :not(.tabbar):not(.side):not(.toast) { animation: tab-in-l .3s cubic-bezier(.2,.8,.2,1) both; }
 #app.tab-in-r > :not(.tabbar):not(.side):not(.toast) { animation: tab-in-r .3s cubic-bezier(.2,.8,.2,1) both; }
 .drive-prev { display: block; width: 100%; height: min(70vh, 640px); margin: 10px 0; border: 1px solid var(--line); border-radius: 14px; background: var(--panel2); }
+.song-sung { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; } .song-sung .i { width: 16px; height: 16px; color: var(--accent); }

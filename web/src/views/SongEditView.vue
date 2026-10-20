@@ -1,15 +1,29 @@
 <script lang="ts">
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
-import { defineComponent } from 'vue'
+import { computed, defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
 import SongSlides from '@/components/SongSlides.vue'
+import { ago, songHistory } from '@/services/stats'
 
 // lista baza pieśni: edycja pojedynczej pieśni
-export default defineComponent({ components: { SongSlides }, setup: () => useApp() })
+// ile razy pieśń była śpiewana (odbyte nabożeństwa) i kiedy ostatnio
+export default defineComponent({
+  components: { SongSlides },
+  setup() {
+    const app = useApp()
+    const sung = computed(() => {
+      if (!app.song.value || app.song.value.isNew) return null
+      const h = songHistory(app.services.value.filter(s => s.date && s.date <= app.todayStr.value), app.songs.value).get(app.song.value.id)
+      return h ? { count: h.count, last: ago(h.dates[0], app.todayStr.value) } : { count: 0 }
+    })
+    return { ...app, sung }
+  },
+})
 </script>
 
 <template>
   <p v-if="!canEdit" class="note readonly"><svg class="i"><use href="#eye"/></svg>Tylko podgląd — pieśni zmieniają osoby z rangą z prawem edycji.</p>
+  <p v-if="sung" class="note song-sung"><svg class="i"><use href="#music"/></svg>{{ sung.count ? 'Śpiewana ' + sung.count + '× · ostatnio ' + sung.last : 'Jeszcze nie śpiewana na nabożeństwie' }}</p>
   <fieldset class="plain" :disabled="!canEdit">
   <div class="row">
     <div style="flex:0 0 96px"><label for="sNum">Numer</label><input id="sNum" v-model="song.number" inputmode="numeric" autocomplete="off"></div>
