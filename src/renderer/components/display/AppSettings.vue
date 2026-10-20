@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { api, flush, output, overlayUrl, remoteUrl, settings, uid } from '@/stores'
 import { share } from '@/services/screenShare'
-import { focusEl } from '@/utils/dom'
+import { focusOnce } from '@/utils/dom'
 
 const emit = defineEmits(['close'])
 const message = ref('')
@@ -57,7 +57,7 @@ async function importBackup() {
     <div class="modal st-modal" role="dialog" aria-modal="true" aria-label="Ustawienia aplikacji">
       <div class="modal-head">
         <h3>Ustawienia aplikacji</h3>
-        <button class="iconbtn" aria-label="Zamknij" :ref="focusEl" @click="emit('close')"><Icon name="x" /></button>
+        <button class="iconbtn" aria-label="Zamknij" :ref="focusOnce" @click="emit('close')"><Icon name="x" /></button>
       </div>
       <div class="st-body">
         <nav class="st-nav" aria-label="Części ustawień">
