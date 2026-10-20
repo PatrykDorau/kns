@@ -490,3 +490,8 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 @media (hover: hover) { .ann-search:hover { border-color: var(--edge-hi); } }
 .ann-search:focus-within { border-color: rgba(242, 165, 60, .75); box-shadow: var(--ring); background-color: var(--field-focus); }
 .ann-search:focus-within > svg.i { color: var(--accent); }
+/* szkielet bocznego paska podczas wczytywania */
+.side-skel .side-top { display: flex; align-items: center; gap: 10px; padding: 6px 8px 14px; }
+.side-skel .side-top img { width: 34px; height: 34px; }
+.side-skel .side-top .skel { flex: 1; height: 16px; }
+.side-skel .side-skel-it { height: 18px; margin: 10px 12px; width: calc(100% - 60px); }

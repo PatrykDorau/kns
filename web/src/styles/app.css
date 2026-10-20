@@ -1094,3 +1094,8 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .svc-other .row input { flex: 1; min-width: 0; }
 .svc-other .row button { flex: none; }
 .goal-once-done { width: 100%; margin-top: 8px; }
+/* dyspozycyjność: pasek przewijania pod treścią (nie na niej), cienki; na szerszym ekranie niedziele się zawijają */
+.avail-days, .avail-table-wrap { padding-bottom: 10px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.avail-days::-webkit-scrollbar, .avail-table-wrap::-webkit-scrollbar { height: 6px; }
+.avail-days::-webkit-scrollbar-thumb, .avail-table-wrap::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+@media (min-width: 700px) { .avail-days { flex-wrap: wrap; overflow-x: visible; } }

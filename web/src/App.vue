@@ -2358,7 +2358,7 @@ export default defineComponent({
       const el = document.getElementById('app')
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
-      el.classList.toggle('has-side', ready.value)
+      el.classList.toggle('has-side', ready.value || booting.value)
       el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || svcListView.value || annView.value || protoView.value || tplView.value || songView.value))
     })
     return provideApp({
@@ -2409,9 +2409,11 @@ export default defineComponent({
 <template>
   <!-- Szeroki ekran: stały boczny pasek — wszystkie części aplikacji, konto na dole. -->
   <SideNav v-if="ready" />
+  <!-- wczytywanie po odświeżeniu (zalogowany): od razu boczny pasek w szkielecie, bez skakania układu -->
+  <aside v-else-if="booting" class="side side-skel" aria-hidden="true"><div class="side-top"><img src="znak.png" alt=""><span class="skel skel-line" style="width:60%"></span></div><span v-for="n in 9" :key="n" class="skel skel-line side-skel-it"></span></aside>
   <!-- Szeroki ekran: pasek konta na górze każdego widoku (jak w aplikacji na komputer). -->
   <AccountBar v-if="ready" />
-  <AppHeader />
+  <AppHeader v-if="ready || !booting" />
   <div v-if="toast" class="toast" role="status">{{ toast }}</div>
 
   <!-- Kamera: sygnały od operatora streamu (przez internet), z dźwiękiem w słuchawce i wibracją. -->
