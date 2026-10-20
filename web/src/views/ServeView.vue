@@ -24,13 +24,23 @@ export default defineComponent({
     <button role="tab" :aria-selected="serveTab === 'all'" @click="serveTab = 'all'"><svg class="i"><use href="#serve"/></svg>Wszystkie służby</button>
     <button role="tab" :aria-selected="serveTab === 'mine'" @click="serveTab = 'mine'"><svg class="i"><use href="#users"/></svg>Moja służba</button>
   </div>
-  <AvailabilityPanel v-if="serveTab === 'mine'" />
+  <template v-if="serveTab === 'mine'">
+  <article v-if="canAsb" class="ministry asb-ministry">
+    <div class="mn-head"><span class="pc-icon"><svg class="i"><use href="#users"/></svg></span><span class="asb-m-text"><b>ASB — Akademickie Spotkania Biblijne</b><small>Masz rangę ASB: grafik spotkań, prowadzący, pomysły i przypomnienia.</small></span></div>
+    <button class="primary" @click="openAsb">Grafik spotkań<svg class="i"><use href="#chev"/></svg></button>
+  </article>
+  <AvailabilityPanel />
+  </template>
   <template v-else>
   <p class="note" style="margin-top:0">Wybierz służbę i zgłoś się — lider służby potwierdzi zgłoszenie.</p>
   <button v-if="canCreateMinistry" class="primary" style="width:100%;margin-bottom:12px" @click="editMinistry()"><svg class="i"><use href="#plus"/></svg>Nowa służba</button>
   <div v-if="serve.busy && !serve.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="serve.error" class="error">{{ serve.error }}</p>
   <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canCreateMinistry ? ' — dodaj pierwszą.' : '.' }}</p>
+  <article v-if="api.enabled" class="ministry asb-ministry">
+    <div class="mn-head"><span class="pc-icon"><svg class="i"><use href="#users"/></svg></span><span class="asb-m-text"><b>ASB — Akademickie Spotkania Biblijne</b><small>Spotkania studenckie — terminarz{{ canAsb ? ', grafik i pomysły' : '' }}.</small></span></div>
+    <button class="primary" @click="openAsb">{{ canAsb ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i"><use href="#chev"/></svg></button>
+  </article>
   <template v-for="sec in serveSections" :key="sec.id">
   <h2 class="mn-sec">{{ sec.title }}</h2>
   <div class="mn-grid">

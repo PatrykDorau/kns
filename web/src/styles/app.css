@@ -1101,3 +1101,10 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .avail-days::-webkit-scrollbar, .avail-table-wrap::-webkit-scrollbar { height: 6px; }
 .avail-days::-webkit-scrollbar-thumb, .avail-table-wrap::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 @media (min-width: 700px) { .avail-days { flex-wrap: wrap; overflow-x: visible; } }
+/* ASB jako karta w służbach; cały ekran „Zaangażuj się” łapie przesunięcie palcem */
+.asb-ministry { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.asb-ministry .mn-head { display: flex; align-items: center; gap: 12px; }
+.asb-m-text { display: flex; flex-direction: column; min-width: 0; }
+.asb-m-text small { color: var(--muted); font-size: 13px; }
+.asb-ministry > button { align-self: flex-start; }
+.serve-view { min-height: calc(100dvh - 150px); }

@@ -466,11 +466,10 @@ export default defineComponent({
         ] },
         ...(api.enabled ? [{ title: 'Wspólnota', items: [
           { id: 'serve', icon: 'serve', name: 'Zaangażuj się' },
-          ...(serve.list.some(m => m.mine === 'active' || m.leader) || canManage.value ? [{ id: 'myserve', icon: 'users', name: 'Moja służba' }] : []),
+          ...(serve.list.some(m => m.mine === 'active' || m.leader) || canManage.value || canAsb.value ? [{ id: 'myserve', icon: 'users', name: 'Moja służba' }] : []),
           { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '' },
           { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '' },
           { id: 'listen', icon: 'music', name: 'Posłuchaj' },
-          { id: 'asb', icon: 'users', name: 'ASB' },
         ] }] : []),
         { title: 'Narzędzia', items: [
           ...(inApp && tech ? [{ id: 'display', icon: 'monitor', name: 'Rzutnik' }, { id: 'stream', icon: 'camera', name: 'Stream' }] : []),
@@ -489,7 +488,7 @@ export default defineComponent({
       const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || svcListView.value || moreView.value
       return {
         home: !editor && !other, cal: (!!currentEvent.value || calView.value || gcalView.value) && !current.value, svc: !!current.value || (svcListView.value && !currentEvent.value), anns: annView.value || !!currentAnn.value,
-        serve: serveView.value && serveTab.value === 'all', myserve: serveView.value && serveTab.value === 'mine', goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
+        serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !canAsb.value), myserve: (serveView.value && serveTab.value === 'mine') || (asbView.value && canAsb.value), goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
     }
