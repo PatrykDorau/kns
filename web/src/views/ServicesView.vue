@@ -33,8 +33,8 @@ export default defineComponent({
     <span class="body">
       <b>{{ s.sermonTitle || 'Nabożeństwo' }}</b>
       <small>{{ s.time || DEFAULT_TIME }}<template v-if="s.passage"> · {{ s.passage }}</template><template v-if="s.speaker"> · {{ s.speaker }}</template></small>
-      <span v-if="missing(s).length" class="tag svc-miss">brakuje: {{ missing(s).join(', ') }}</span>
-      <span v-else class="tag svc-ok">komplet</span>
+      <span v-if="canEdit && missing(s).length" class="tag svc-miss">brakuje: {{ missing(s).join(', ') }}</span>
+      <span v-else-if="canEdit" class="tag svc-ok">komplet</span>
     </span>
     <svg class="i chev"><use href="#chev"/></svg>
   </button>

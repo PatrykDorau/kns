@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/utils/ask'
 import { nextTick, ref, watch } from 'vue'
 
 // Tekst pieśni jako lista slajdów (zwrotki, refren…): każdy slajd osobno, ze skrótem klawisza na rzutniku.
@@ -30,8 +31,8 @@ function add(at = slides.value.length, copy?: Slide) {
   slides.value.splice(at, 0, { id: nextId++, key: copy?.key || '', text: copy?.text || '' })
   push(); focusAt(at)
 }
-function remove(i: number) {
-  if (slides.value[i].text.trim() && !confirm('Usunąć ten slajd?')) return
+async function remove(i: number) {
+  if (slides.value[i].text.trim() && !(await ask('Usunąć ten slajd?'))) return
   slides.value.splice(i, 1); push()
 }
 function move(i: number, d: number) {

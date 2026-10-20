@@ -3,12 +3,23 @@
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
 import AvailabilityPanel from '@/components/AvailabilityPanel.vue'
+import { useSwipe } from '@/utils/swipe'
 
 // Więcej: wszystko poza Startem i Kalendarzem (tylko to, do czego dana ranga ma dostęp) Zaangażuj się: służby szukające chętnych, zgłoszenia, akceptacja przez lidera
-export default defineComponent({ components: { AvailabilityPanel }, setup: () => useApp() })
+export default defineComponent({
+  components: { AvailabilityPanel },
+  setup() {
+    const app = useApp()
+    // przesunięcie palcem: w lewo — „Moja służba”, w prawo — „Wszystkie służby” (gdy jest zakładka „Moja służba”)
+    const hasMine = () => app.sideNav.value.some(g => g.items.some(i => i.id === 'myserve'))
+    const swipe = useSwipe(() => { if (hasMine()) app.serveTab.value = 'mine' }, () => { app.serveTab.value = 'all' }, '.avail-days, .avail-table-wrap, .chips')
+    return { ...app, ...swipe }
+  },
+})
 </script>
 
 <template>
+<div class="serve-view" @touchstart.passive="swipeStart" @touchend="swipeEnd">
   <div v-if="sideNav.some(g => g.items.some(i => i.id === 'myserve'))" class="serve-tabs" role="tablist">
     <button role="tab" :aria-selected="serveTab === 'all'" @click="serveTab = 'all'"><svg class="i"><use href="#serve"/></svg>Wszystkie służby</button>
     <button role="tab" :aria-selected="serveTab === 'mine'" @click="serveTab = 'mine'"><svg class="i"><use href="#users"/></svg>Moja służba</button>
@@ -63,4 +74,5 @@ export default defineComponent({ components: { AvailabilityPanel }, setup: () =>
   </div>
   </template>
   </template>
+</div>
 </template>

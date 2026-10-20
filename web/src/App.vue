@@ -25,6 +25,8 @@ import ServeView from '@/views/ServeView.vue'
 import AsbPublicView from '@/views/AsbPublicView.vue'
 import AsbView from '@/views/AsbView.vue'
 import VotesView from '@/views/VotesView.vue'
+import AskDialog from '@/components/dialogs/AskDialog.vue'
+import { ask } from '@/utils/ask'
 import ServicesView from '@/views/ServicesView.vue'
 import AsbPreviewDialog from '@/components/dialogs/AsbPreviewDialog.vue'
 import LiveEvent from '@/components/LiveEvent.vue'
@@ -162,7 +164,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -317,7 +319,7 @@ export default defineComponent({
     /* ---------- przeniesienie danych z Dysku do bazy (administrator, jednorazowo) ---------- */
     const migrating = ref(''), migrated = ref('')
     async function migrate() {
-      if (!confirm('Przenieść dane z plików na Dysku Google do bazy? Google zapyta o konto z dostępem do folderu „Aplikacja KNS Nabo”.')) return
+      if (!(await ask('Przenieść dane z plików na Dysku Google do bazy? Google zapyta o konto z dostępem do folderu „Aplikacja KNS Nabo”.'))) return
       migrating.value = 'Łączę…'; migrated.value = ''; error.value = ''
       try {
         const c = await drive.migrateFromDrive(step => { migrating.value = step })
@@ -354,7 +356,7 @@ export default defineComponent({
     }
     function openPeople() { songView.value = false; calView.value = false; peopleView.value = true; scrollTo(0, 0); loadPeople() }
     async function setPerson(p, status) {
-      if (status === 'rejected' && p.status === 'active' && !confirm(`Odebrać dostęp osobie ${p.name || p.email}? Straci dostęp do folderów aplikacji na Dysku.`)) return
+      if (status === 'rejected' && p.status === 'active' && !(await ask(`Odebrać dostęp osobie ${p.name || p.email}? Straci dostęp do folderów aplikacji na Dysku.`))) return
       p.busy = true; p.error = ''
       try {
         const res = await api.call('setPerson', { email: p.email, ...(status ? { status } : {}), roles: status === 'rejected' ? p.roles : p.draft })
@@ -385,8 +387,8 @@ export default defineComponent({
       svcEditing.value = true
     }
     const fix = () => { if (alert.value.service) { open(alert.value.service); svcEditing.value = true } else create(alert.value.date) }
-    function back() {
-      if (dirty.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
+    async function back() {
+      if (dirty.value && !(await ask('Masz niezapisane zmiany. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return
       // z edycji zapisanego nabożeństwa — wracamy do podglądu
       const savedSvc = svcEditing.value && services.value.find(x => x.id === current.value.id)
       if (savedSvc) { const cal = fromCal; open(savedSvc); fromCal = cal; return }
@@ -407,9 +409,9 @@ export default defineComponent({
     const slideCount = computed(() => String(song.value?.text || '').split(/\n\s*\n/).filter(x => x.trim()).length)
     const numberTaken = computed(() => song.value?.number?.trim() && songs.value.find(s => s.id !== song.value.id && s.number === song.value.number.trim()))
     // Pasek konta → strona startowa: zamyka otwarte edytory i listy (z pytaniem o niezapisane zmiany).
-    function closeAll() {
+    async function closeAll() {
       if ((current.value && dirty.value) || (currentEvent.value && eventDirty.value) || (currentAnn.value && annDirty.value)) {
-        if (!confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return false
+        if (!(await ask('Masz niezapisane zmiany. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return false
       }
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null
       tplType.value = null; tplView.value = false; protoView.value = false; annView.value = false
@@ -459,7 +461,7 @@ export default defineComponent({
         { title: '', items: [
           { id: 'home', icon: 'church', name: 'Start' },
           { id: 'cal', icon: 'calendar', name: 'Kalendarz' },
-          ...(canEdit.value ? [{ id: 'svc', icon: 'book', name: 'Nabożeństwa', badge: nextService.value && missing(nextService.value).length ? '!' : '' }] : []),
+          { id: 'svc', icon: 'book', name: 'Nabożeństwa', badge: canEdit.value && nextService.value && missing(nextService.value).length ? '!' : '' }, // każdy członek: lista i podgląd; plan i edycja — z prawem edycji
           { id: 'anns', icon: 'megaphone', name: 'Ogłoszenia', badge: activeAnns.value.filter(annIsNew).length || '' },
         ] },
         ...(api.enabled ? [{ title: 'Wspólnota', items: [
@@ -486,17 +488,17 @@ export default defineComponent({
       const editor = current.value || currentEvent.value || currentAnn.value || currentProto.value || song.value || tplType.value
       const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || svcListView.value || moreView.value
       return {
-        home: !editor && !other, cal: !!currentEvent.value || calView.value || gcalView.value, svc: !!current.value || svcListView.value, anns: annView.value || !!currentAnn.value,
+        home: !editor && !other, cal: (!!currentEvent.value || calView.value || gcalView.value) && !current.value, svc: !!current.value || (svcListView.value && !currentEvent.value), anns: annView.value || !!currentAnn.value,
         serve: serveView.value && serveTab.value === 'all', myserve: serveView.value && serveTab.value === 'mine', goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
     }
-    function navTo(id) {
+    async function navTo(id) {
       if (id === 'display' || id === 'stream') { window.knsDesktop?.open(id); return }
       if (id === 'msg') { openMsg(); return }
       if (id === 'camera') { openCamera(); return }
       if (id === 'bugs') { openBugs(); return }
-      if (!closeAll()) return
+      if (!(await closeAll())) return
       resetViews()
       if (id === 'cal') openCalendar()
       else if (id === 'svc') openServices()
@@ -526,8 +528,8 @@ export default defineComponent({
       song.value = { id: uid(), number: '', title: '', text: '', isNew: true }
       songSaved = ''; songBase = 0; status.value = ''; confirmDelete.value = false
     }
-    function closeSong() {
-      if (songDirty.value && song.value.title.trim() && !confirm('Masz niezapisane zmiany w pieśni. Wyjść bez zapisywania?')) return
+    async function closeSong() {
+      if (songDirty.value && song.value.title.trim() && !(await ask('Masz niezapisane zmiany w pieśni. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return
       song.value = null
     }
     const saveSong = (force = false) => guard(async () => {
@@ -537,7 +539,7 @@ export default defineComponent({
         songs.value = await drive.saveSongs({ song: data }, songBase, force === true)
       } catch (e) {
         if (!e.conflict) throw e
-        if (!confirm('Ktoś inny zmienił tę pieśń, odkąd ją otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) { openSong(e.remote); status.value = 'Wczytano najnowszą wersję'; return }
+        if (!(await ask('Ktoś inny zmienił tę pieśń, odkąd ją otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.'))) { openSong(e.remote); status.value = 'Wczytano najnowszą wersję'; return }
         songs.value = await drive.saveSongs({ song: data }, songBase, true)
       }
       const fresh = songs.value.find(s => s.id === data.id)
@@ -584,7 +586,7 @@ export default defineComponent({
     const save = (force = false) => guard(async () => {
       const svc = current.value
       if (services.value.some(s => s.id !== svc.id && s.date === svc.date) &&
-          !confirm('Na ten dzień jest już inne nabożeństwo. Zapisać mimo to? Komputer połączy je w jedno.')) return
+          !(await ask('Na ten dzień jest już inne nabożeństwo. Zapisać mimo to? Komputer połączy je w jedno.'))) return
       svc.updatedBy = drive.account() || 'telefon'
       // Teksty pieśni jadą razem z nabożeństwem — komputer, który ich nie ma, dopisze je do swojej bazy.
       const texts = svc.songs.map(e => songs.value.find(sameSong(e))).filter(Boolean).map(({ number, title, text }) => ({ number: number || '', title, text }))
@@ -594,7 +596,7 @@ export default defineComponent({
       } catch (e) {
         if (!e.conflict) throw e
         // Ktoś (inny telefon albo komputer) zapisał to nabożeństwo, odkąd je otwarto.
-        if (confirm('Ktoś inny zmienił to nabożeństwo, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) {
+        if ((await ask('Ktoś inny zmienił to nabożeństwo, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.'))) {
           await drive.save(payload, base, true)
         } else {
           await fetchAll()
@@ -665,8 +667,8 @@ export default defineComponent({
     const typeOf = id => types.value.find(t => t.id === id) || { id, name: 'Inne', color: '#8f98a8', time: '', place: '', program: [] }
     const eventTypes = computed(() => types.value.filter(t => t.id !== 'nabozenstwo'))
     const clockNow = () => new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' })
-    function fillProgram(target, typeId) {
-      if (target.program.length && !confirm('Zastąpić obecny program programem z szablonu?')) return
+    async function fillProgram(target, typeId) {
+      if (target.program.length && !(await ask('Zastąpić obecny program programem z szablonu?'))) return
       target.program.splice(0, target.program.length, ...programFrom(typeOf(typeId), uid))
     }
     // Jeden kalendarz: nabożeństwa i pozostałe wydarzenia.
@@ -767,9 +769,9 @@ export default defineComponent({
       api.call('pushInbox').catch(() => {})
       await loadSignup(); status.value = SIGNUP_DONE[r.status] || 'Zapisano.'
     })
-    const signupLeave = () => { if (confirm('Wypisać się z tego wydarzenia?')) guard(async () => { await api.call('signupLeave', { id: currentEvent.value.id }); api.call('pushInbox').catch(() => {}); await loadSignup(); status.value = 'Wypisano.' }) }
-    function signupDecide(p, decision) {
-      if (decision === 'remove' && !confirm('Usunąć ' + p.name + ' z zapisów?')) return
+    const signupLeave = async () => { if ((await ask('Wypisać się z tego wydarzenia?'))) guard(async () => { await api.call('signupLeave', { id: currentEvent.value.id }); api.call('pushInbox').catch(() => {}); await loadSignup(); status.value = 'Wypisano.' }) }
+    async function signupDecide(p, decision) {
+      if (decision === 'remove' && !(await ask('Usunąć ' + p.name + ' z zapisów?'))) return
       guard(async () => { await api.call('signupDecide', { id: currentEvent.value.id, who: p.id, decision }); api.call('pushInbox').catch(() => {}); await loadSignup() })
     }
     const eventSavedOnce = computed(() => !!currentEvent.value && [...events.value, ...pendingEvents.value].some(x => x.id === currentEvent.value.id))
@@ -808,8 +810,8 @@ export default defineComponent({
       if (!ev.program.length || programKey(ev.program) === autoProgram) { ev.program = programFrom(t, uid); autoProgram = programKey(ev.program) }
       eventType = ev.type
     }
-    function closeEvent() {
-      if (eventDirty.value && eventSavedOnce.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
+    async function closeEvent() {
+      if (eventDirty.value && eventSavedOnce.value && !(await ask('Masz niezapisane zmiany. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return
       // z edycji zapisanego wydarzenia — wracamy do podglądu
       if (eventEditing.value && eventSavedOnce.value) {
         const e = [...events.value, ...pendingEvents.value].find(x => x.id === currentEvent.value.id)
@@ -827,7 +829,7 @@ export default defineComponent({
         await drive.saveEvent(data, eventBase, force === true)
       } catch (e) {
         if (!e.conflict) throw e
-        if (!confirm('Ktoś inny zmienił to wydarzenie, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.')) {
+        if (!(await ask('Ktoś inny zmienił to wydarzenie, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowszą wersję.'))) {
           await fetchAll()
           const fresh = events.value.find(x => x.id === ev.id)
           if (fresh) openEvent(fresh)
@@ -868,8 +870,8 @@ export default defineComponent({
       openType({ id: uid(), name: '', color: COLORS[types.value.length % COLORS.length], time: '18:00', place: '', program: [] })
       tplSaved = ''
     }
-    function closeType() {
-      if (tplDirty.value && tplType.value.name.trim() && !confirm('Masz niezapisane zmiany w szablonie. Wyjść bez zapisywania?')) return
+    async function closeType() {
+      if (tplDirty.value && tplType.value.name.trim() && !(await ask('Masz niezapisane zmiany w szablonie. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return
       tplType.value = null
     }
     const strip = t => ({ ...t, program: t.program.map(({ offset, category, title, person }) => ({ offset, category, title: title || '', person: person || '' })) })
@@ -880,7 +882,7 @@ export default defineComponent({
         typesBase = await drive.saveTemplates(full, typesBase)
       } catch (e) {
         if (!e.conflict) throw e
-        if (!confirm('Ktoś inny zmienił szablony w międzyczasie. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowsze szablony.')) { await fetchAll(); tplType.value = null; return false }
+        if (!(await ask('Ktoś inny zmienił szablony w międzyczasie. Zapisać mimo to i zastąpić jego zmiany?\n\nAnuluj — wczytam najnowsze szablony.'))) { await fetchAll(); tplType.value = null; return false }
         typesBase = await drive.saveTemplates(full, typesBase, true)
       }
       return true
@@ -961,8 +963,8 @@ export default defineComponent({
       protoFile.value = f
       if (!currentProto.value.title.trim()) currentProto.value.title = f.name.replace(/\.[^.]+$/, '')
     }
-    function closeProto() {
-      if (protoEditing.value && protoDirty.value && protoSavedOnce.value && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) return
+    async function closeProto() {
+      if (protoEditing.value && protoDirty.value && protoSavedOnce.value && !(await ask('Masz niezapisane zmiany. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return
       if (protoEditing.value && protoSavedOnce.value) { const p = protocolsRaw.value.find(x => x.id === currentProto.value.id); if (p) { openProto(p); return } }
       currentProto.value = null
     }
@@ -972,7 +974,7 @@ export default defineComponent({
       if (f) Object.assign(data, { file: await drive.uploadProtocolFile(f), fileName: f.name, fileType: f.type, size: f.size })
       try { await drive.saveProtocol(data, protoBase) } catch (e) {
         if (!e.conflict) throw e
-        if (!confirm('Ktoś inny zmienił ten materiał, odkąd go otworzyłeś. Zapisać mimo to?')) return
+        if (!(await ask('Ktoś inny zmienił ten materiał, odkąd go otworzyłeś. Zapisać mimo to?'))) return
         await drive.saveProtocol(data, protoBase, true)
       }
       if (f && old && old !== data.file) drive.removeProtocolFile?.(old)
@@ -1007,8 +1009,8 @@ export default defineComponent({
     }
     const approveEvent = () => { currentEvent.value.status = 'published'; return saveEvent(false, true) }
     const approveAnn = () => { currentAnn.value.status = 'published'; return saveAnn(true) }
-    function rejectEvent() { if (confirm('Odrzucić to zgłoszenie? Zostanie usunięte.')) removeEvent() }
-    function rejectAnn() { if (confirm('Odrzucić to zgłoszenie? Zostanie usunięte.')) removeAnn() }
+    async function rejectEvent() { if ((await ask('Odrzucić to zgłoszenie? Zostanie usunięte.'))) removeEvent() }
+    async function rejectAnn() { if ((await ask('Odrzucić to zgłoszenie? Zostanie usunięte.'))) removeAnn() }
     const shortDate = d => (d ? new Date(typeof d === 'number' ? d : d + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'short' }) : '')
     const isActive = a => !a.until || a.until >= todayStr.value
     const byNewest = (a, b) => (b.date || 0) - (a.date || 0)
@@ -1076,8 +1078,8 @@ export default defineComponent({
       openAnn({ id: uid(), title: '', text: '', audience: 'members', important: false, until: '', author: me.value?.name || drive.account() || 'telefon' })
       annSaved = ''; annAudience = ''; annEditing.value = true
     }
-    function closeAnn() {
-      if (annDirty.value && annSavedOnce.value && !confirm('Masz niezapisane zmiany w ogłoszeniu. Wyjść bez zapisywania?')) return
+    async function closeAnn() {
+      if (annDirty.value && annSavedOnce.value && !(await ask('Masz niezapisane zmiany w ogłoszeniu. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return
       // z edycji zapisanego ogłoszenia — wracamy do podglądu
       if (annEditing.value && annSavedOnce.value) { const a = announcements.value.find(x => x.id === currentAnn.value.id); if (a) { openAnn(a); return } }
       currentAnn.value = null
@@ -1095,7 +1097,7 @@ export default defineComponent({
         await drive.saveAnnouncement(data, annBase, false, annAudience)
       } catch (e) {
         if (!e.conflict) throw e
-        if (!confirm('Ktoś inny zmienił to ogłoszenie, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?')) return
+        if (!(await ask('Ktoś inny zmienił to ogłoszenie, odkąd je otworzyłeś. Zapisać mimo to i zastąpić jego zmiany?'))) return
         await drive.saveAnnouncement(data, annBase, true, annAudience)
       }
       // poprzednia grafika (zmieniona albo usunięta) znika z magazynu
@@ -1277,7 +1279,7 @@ export default defineComponent({
       try { serve.list = (await api.call('ministries')) || [] } catch (e) { serve.error = e.message } finally { serve.busy = false }
       if (!serve.list.length && !serve.error && !retriedServe) { retriedServe = true; setTimeout(loadServe, 2000) } // pierwsze wczytanie tuż po zalogowaniu bywa puste
     }
-    function openServices() { if (!closeAll()) return; resetViews(); svcListView.value = true; scrollTo(0, 0) }
+    async function openServices() { if (!(await closeAll())) return; resetViews(); svcListView.value = true; scrollTo(0, 0) }
     function openServe(tab = 'all') {
       svcListView.value = false
       serveTab.value = tab === 'mine' ? 'mine' : 'all'
@@ -1305,9 +1307,9 @@ export default defineComponent({
       return addPeople.value.filter(p => !m.people.some(x => x.id === p.id) && (!q || (p.name + ' ' + (p.grupa || '')).toLowerCase().includes(q)))
     })
     const addPerson = p => guard(async () => { const id = addTo.value.id; await api.call('addToMinistry', { id, who: p.id }); api.call('pushInbox').catch(() => {}); await loadServe(); addTo.value = serve.list.find(x => x.id === id) || null })
-    function removeFromMinistry(m, p) { if (confirm('Usunąć ' + p.name + ' ze służby „' + m.name + '”?')) serveCall('decideMinistry', { id: m.id, who: p.id, accept: false }) }
+    async function removeFromMinistry(m, p) { if ((await ask('Usunąć ' + p.name + ' ze służby „' + m.name + '”?'))) serveCall('decideMinistry', { id: m.id, who: p.id, accept: false }) }
     const joinMinistry = m => serveCall('joinMinistry', { id: m.id })
-    function leaveMinistry(m) { if (confirm(m.mine === 'active' ? `Zrezygnować ze służby „${m.name}”?` : 'Wycofać zgłoszenie?')) serveCall('leaveMinistry', { id: m.id }) }
+    async function leaveMinistry(m) { if ((await ask(m.mine === 'active' ? `Zrezygnować ze służby „${m.name}”?` : 'Wycofać zgłoszenie?'))) serveCall('leaveMinistry', { id: m.id }) }
     const decideMinistry = (m, p, accept) => serveCall('decideMinistry', { id: m.id, who: p.id, accept })
     function editMinistry(m = null) {
       mEdit.value = m ? { id: m.id, name: m.name, description: m.description, seeking: m.seeking, leaders: m.leaders.map(l => l.id), isNew: false, full: !!m.full }
@@ -1316,7 +1318,7 @@ export default defineComponent({
     }
     function toggleLeader(id) { const l = mEdit.value.leaders; mEdit.value.leaders = l.includes(id) ? l.filter(x => x !== id) : [...l, id] }
     const saveMinistry = () => guard(async () => { const m = mEdit.value; await api.call('saveMinistry', m.full ? { ...m, leaders: m.leaders.filter(id => memberNames.value.some(p => p.id === id)) } : m); mEdit.value = null; await loadServe() })
-    function deleteMinistry() { if (confirm('Usunąć tę służbę razem z listą osób?')) guard(async () => { await api.call('deleteMinistry', { id: mEdit.value.id }); mEdit.value = null; await loadServe() }) }
+    async function deleteMinistry() { if ((await ask('Usunąć tę służbę razem z listą osób?'))) guard(async () => { await api.call('deleteMinistry', { id: mEdit.value.id }); mEdit.value = null; await loadServe() }) }
     // Konto bez imienia i nazwiska (jedno słowo albo puste) — ostrzeżenie przy koncie i w profilu.
     const needsName = computed(() => api.enabled && !!me.value && !/\S+\s+\S+/.test((me.value.name || '').trim()))
 
@@ -1550,8 +1552,8 @@ export default defineComponent({
       const season = asbForm.value.season.trim()
       await asbPersist(); asbForm.value = null; await loadAsb(); asb.season = season
     })
-    const asbRemind = () => {
-      if (!confirm('Wysłać przypomnienie o tym spotkaniu wszystkim z rangą ASB? (Najpierw zapiszę zmiany.)')) return
+    const asbRemind = async () => {
+      if (!(await ask('Wysłać przypomnienie o tym spotkaniu wszystkim z rangą ASB? (Najpierw zapiszę zmiany.)'))) return
       guard(async () => {
         await asbPersist()
         const n = await api.call('asbRemind', { id: asbForm.value.id })
@@ -1568,16 +1570,16 @@ export default defineComponent({
       if (big) { error.value = 'Plik „' + big.name + '” jest za duży (najwyżej 25 MB).'; return }
       guard(async () => { for (const f of list) { const path = await drive.uploadAsbFile(f); asbForm.value?.files.push({ name: f.name, path }) } })
     }
-    function asbRemoveFile(f) {
-      if (!confirm('Usunąć załącznik „' + f.name + '”? (Zniknie po zapisaniu spotkania.)')) return
+    async function asbRemoveFile(f) {
+      if (!(await ask('Usunąć załącznik „' + f.name + '”? (Zniknie po zapisaniu spotkania.)'))) return
       asbForm.value.files = asbForm.value.files.filter(x => x.path !== f.path); asbForm.value._removed.push(f.path)
     }
     function asbOpenFile(f) {
       const w = window.open('', '_blank')
       guard(async () => { const u = await drive.asbFileUrl(f.path); if (w) w.location.href = u; else location.href = u })
     }
-    function asbDelete() {
-      if (!confirm('Usunąć to spotkanie z grafiku? Zniknie też z kalendarza kościelnego.')) return
+    async function asbDelete() {
+      if (!(await ask('Usunąć to spotkanie z grafiku? Zniknie też z kalendarza kościelnego.'))) return
       guard(async () => {
         const m = asbForm.value
         await api.call('asbDelete', { id: m.id })
@@ -1586,7 +1588,7 @@ export default defineComponent({
       })
     }
     const asbIdeaAdd = () => { if (asb.ideaTopic.trim()) guard(async () => { await api.call('asbIdea', { id: uid(), topic: asb.ideaTopic.trim(), author: asb.ideaAuthor.trim() || me.value?.name?.split(' ')[0] || '' }); asb.ideaTopic = ''; asb.ideaAuthor = ''; await loadAsb() }) }
-    function asbIdeaDelete(i) { if (confirm('Usunąć pomysł „' + i.topic + '”?')) guard(async () => { await api.call('asbIdeaDelete', { id: i.id }); await loadAsb() }) }
+    async function asbIdeaDelete(i) { if ((await ask('Usunąć pomysł „' + i.topic + '”?'))) guard(async () => { await api.call('asbIdeaDelete', { id: i.id }); await loadAsb() }) }
 
     /* ---------- skład zespołu ---------- */
     const INSTRUMENTS = ['Wokal prowadzący', 'Wokal', 'Gitara akustyczna', 'Gitara elektryczna', 'Gitara basowa', 'Klawisze', 'Perkusja', 'Cajon', 'Skrzypce', 'Saksofon', 'Dźwięk (realizacja)']
@@ -1696,8 +1698,8 @@ export default defineComponent({
       showToast(amt ? 'Deklaracja: ' + zl(amt) + ' miesięcznie na „' + g.title + '”' : 'Wycofano deklarację')
     })
     // cel jednorazowy: potwierdzenie wpłaty (raz, ostatecznie)
-    const confirmOnce = g => { if (confirm('Potwierdzić wpłatę ' + zl(g.mine) + ' na „' + g.title + '”? Tego nie da się zmienić.')) guard(async () => { await api.call('pledgeOnceDone', { g: g.id }); await loadGoals(); showToast('Dziękujemy — wpłata potwierdzona.') }) }
-    function withdraw(g) { if (confirm('Wycofać deklarację na „' + g.title + '”? To, co już potwierdziłeś, zostaje w zebranej kwocie.')) { goals.amount[g.id] = 0; savePledge(g) } }
+    const confirmOnce = async g => { if ((await ask('Potwierdzić wpłatę ' + zl(g.mine) + ' na „' + g.title + '”? Tego nie da się zmienić.'))) guard(async () => { await api.call('pledgeOnceDone', { g: g.id }); await loadGoals(); showToast('Dziękujemy — wpłata potwierdzona.') }) }
+    async function withdraw(g) { if ((await ask('Wycofać deklarację na „' + g.title + '”? To, co już potwierdziłeś, zostaje w zebranej kwocie.'))) { goals.amount[g.id] = 0; savePledge(g) } }
     function startReduce(m) { goals.confirming = null; goals.reduce = { month: m.month, items: (m.items || []).map(it => ({ ...it, value: it.amount })) } }
     // Dwa kroki: „Tak” (albo mniejsze kwoty) → przelew i ostateczne potwierdzenie (bez zmian do nowego miesiąca).
     const reducedAmounts = () => Object.fromEntries(goals.reduce.items.map(it => [it.goal, Math.max(0, Math.min(it.amount, Math.round(+it.value || 0)))]))
@@ -1723,7 +1725,7 @@ export default defineComponent({
       await loadGoals()
       showToast('Zapisano cel.')
     })
-    const removeGoal = g => { if (confirm('Usunąć cel „' + g.title + '” razem z deklaracjami i potwierdzeniami? Tego nie da się cofnąć.')) guard(async () => { await api.call('removeGoal', { id: g.id }); goals.edit = null; await loadGoals() }) }
+    const removeGoal = async g => { if ((await ask('Usunąć cel „' + g.title + '” razem z deklaracjami i potwierdzeniami? Tego nie da się cofnąć.'))) guard(async () => { await api.call('removeGoal', { id: g.id }); goals.edit = null; await loadGoals() }) }
     async function loadGoalPeople(id) { try { goals.people[id] = (await api.call('goalPeople', { g: id })) || [] } catch (e) { goals.error = e.message || String(e) } }
     function toggleGoalPeople(g) { if (goals.people[g.id]) delete goals.people[g.id]; else loadGoalPeople(g.id) }
     function pickGoalImage(e) {
@@ -1760,7 +1762,7 @@ export default defineComponent({
         if (bugs.backlog && !bugs.people.length) bugs.people = await api.call('backlogPeople')
       } catch (e) { bugs.error = e.message } finally { bugs.busy = false }
     }
-    function openBugs() { if (!closeAll()) return; resetViews(); bugsView.value = true; scrollTo(0, 0); loadBugs() }
+    async function openBugs() { if (!(await closeAll())) return; resetViews(); bugsView.value = true; scrollTo(0, 0); loadBugs() }
     const bugsShown = computed(() => bugs.list.filter(b => bugs.filter === 'all' || (bugs.filter === 'open' ? ['new', 'doing'].includes(b.status) : bugs.filter === 'mine' ? b.mine : b.status === bugs.filter)))
     const bugCounts = computed(() => ({ open: bugs.list.filter(b => ['new', 'doing'].includes(b.status)).length, done: bugs.list.filter(b => b.status === 'done').length }))
     async function updateBug(b, patch) {
@@ -1887,7 +1889,7 @@ export default defineComponent({
       await loadVotes()
       showToast('Zapisano głosowanie.')
     })
-    const removeElection = e => { if (confirm('Usunąć „' + e.title + '” razem ze zgłoszeniami i głosami? Tego nie da się cofnąć.')) guard(async () => { await api.call('electionRemove', { e: e.id }); votes.edit = null; await loadVotes() }) }
+    const removeElection = async e => { if ((await ask('Usunąć „' + e.title + '” razem ze zgłoszeniami i głosami? Tego nie da się cofnąć.'))) guard(async () => { await api.call('electionRemove', { e: e.id }); votes.edit = null; await loadVotes() }) }
     // zgłoszenie osoby albo propozycji tekstem (i wycofanie własnego)
     const nominate = (e, { who = null, label = null } = {}, withdraw = false) => guard(async () => {
       await api.call('electionNominate', { e: e.id, who, label, withdraw })
@@ -1896,17 +1898,17 @@ export default defineComponent({
       showToast(withdraw ? 'Wycofano zgłoszenie.' : 'Zgłoszono — rada zdecyduje, co trafi na listę.')
     })
     const reviewCand = (c, ok) => guard(async () => { await api.call('electionReview', { c: c.id, ok }); await loadVotes() })
-    const setElectionStatus = (e, s) => {
-      const ask = s === 'voting' && ['nominations', 'ready'].includes(e.status) ? 'Otworzyć głosowanie teraz? ' + (e.status === 'nominations' ? 'Zgłoszenia zostaną zamknięte, a c' : 'C') + 'złonkowie dostaną powiadomienie.' : s === 'closed' ? 'Zakończyć głosowanie? Potem nie da się już oddać głosu.' : ''
-      if (!ask || confirm(ask)) guard(async () => { await api.call('electionStatus', { e: e.id, s }); await loadVotes(); if (s !== 'closed') showToast(s === 'paused' ? 'Głosowanie wstrzymane.' : 'Głosowanie aktywne.') })
+    const setElectionStatus = async (e, s) => {
+      const question = s === 'voting' && ['nominations', 'ready'].includes(e.status) ? 'Otworzyć głosowanie teraz? ' + (e.status === 'nominations' ? 'Zgłoszenia zostaną zamknięte, a c' : 'C') + 'złonkowie dostaną powiadomienie.' : s === 'closed' ? 'Zakończyć głosowanie? Potem nie da się już oddać głosu.' : ''
+      if (!question || (await ask(question))) guard(async () => { await api.call('electionStatus', { e: e.id, s }); await loadVotes(); if (s !== 'closed') showToast(s === 'paused' ? 'Głosowanie wstrzymane.' : 'Głosowanie aktywne.') })
     }
     function toggleBallot(e, c) {
       const cur = votes.ballot[e.id] || []
       votes.ballot[e.id] = e.max_choices === 1 ? (cur[0] === c.id ? [] : [c.id]) : cur.includes(c.id) ? cur.filter(x => x !== c.id) : cur.length < e.max_choices ? [...cur, c.id] : cur
     }
-    const castVote = e => {
+    const castVote = async e => {
       const chosen = (votes.ballot[e.id] || []).map(id => e.candidates.find(c => c.id === id)?.label).filter(Boolean)
-      if (!confirm('Oddać głos na: ' + chosen.join(', ') + '?\n\nGłos jest tajny i ostateczny — nie da się go zmienić.')) return
+      if (!(await ask('Oddać głos na: ' + chosen.join(', ') + '?\n\nGłos jest tajny i ostateczny — nie da się go zmienić.'))) return
       guard(async () => { await api.call('electionVote', { e: e.id, choices: votes.ballot[e.id] }); votes.ballot[e.id] = []; await loadVotes(); showToast('Głos oddany. Dziękujemy!') })
     }
     watch(ready, ok => { if (ok && api.enabled) loadVotes() }, { immediate: true })
@@ -1966,7 +1968,7 @@ export default defineComponent({
       } catch (e) { gcal.error = e.message } finally { gcal.busy = false }
     }
     function openGcal() { calView.value = false; moreView.value = false; gcalView.value = true; scrollTo(0, 0); if (!gcal.url) loadGcal() }
-    function renewGcal() { if (confirm('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.')) loadGcal(true) }
+    async function renewGcal() { if ((await ask('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.'))) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { loadMsgOpts(); openMoreView() }
     function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
@@ -2327,9 +2329,15 @@ export default defineComponent({
       else history.pushState(null, '', p)
     })
     const anyDirty = () => (current.value && dirty.value) || (currentEvent.value && eventDirty.value) || (currentAnn.value && annDirty.value) || (song.value && songDirty.value)
-    window.addEventListener('popstate', () => {
+    window.addEventListener('popstate', async () => {
       if (!ready.value || camera.value) return
-      if (anyDirty() && !confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?')) { history.pushState(null, '', routePath.value); return }
+      if (anyDirty()) {
+        const target = linkToPath(location)
+        history.pushState(null, '', routePath.value) // na razie zostajemy; po „Tak” przechodzimy dalej
+        if (!(await ask('Masz niezapisane zmiany. Wyjść bez zapisywania?', { ok: 'Wyjdź', danger: true }))) return
+        current.value = null; currentEvent.value = null; currentAnn.value = null; song.value = null // porzucone zmiany
+        applyRoute(target); return
+      }
       applyRoute(linkToPath(location))
     })
     // Adres przy wejściu (także link otwarty przed zalogowaniem): pamiętamy go, bo logowanie Google wraca na stronę główną.
@@ -2640,4 +2648,5 @@ export default defineComponent({
   <BugReportDialog v-if="bugs.form" />
   <LiveEvent v-if="ready" :class="{ tabbed: showTabs }" />
   <TabBar v-if="showTabs" />
+  <AskDialog />
 </template>

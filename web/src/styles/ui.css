@@ -495,3 +495,12 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 .side-skel .side-top img { width: 34px; height: 34px; }
 .side-skel .side-top .skel { flex: 1; height: 16px; }
 .side-skel .side-skel-it { height: 18px; margin: 10px 12px; width: calc(100% - 60px); }
+/* okno potwierdzenia (utils/ask.ts) */
+.ask-overlay { z-index: 200; align-items: center !important; padding: 16px; }
+.ask-panel { width: min(420px, 100%) !important; max-width: 420px; padding: 20px 20px 16px; border-radius: 20px; }
+.ask-title { display: block; margin-bottom: 6px; font-size: 17px; }
+.ask-text { margin: 0 0 16px; white-space: pre-line; line-height: 1.5; }
+.ask-btns { display: flex; justify-content: flex-end; gap: 8px; }
+.ask-btns button { min-width: 96px; }
+.ask-fade-enter-active, .ask-fade-leave-active { transition: opacity .15s; }
+.ask-fade-enter-from, .ask-fade-leave-to { opacity: 0; }
