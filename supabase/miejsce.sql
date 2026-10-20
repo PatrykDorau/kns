@@ -31,3 +31,16 @@ begin
 end $$;
 revoke all on function public.storage_usage() from public, anon;
 grant execute on function public.storage_usage() to authenticated;
+
+-- Sprzątanie plików: administrator (ranga z „manage”) może odczytać i usunąć każdy plik w koszach grafik, materiałów i ASB
+-- (także nieużywany — bez materiału, więc bez zwykłego prawa odczytu). Storage API przy usuwaniu najpierw plik odczytuje.
+-- Zdjęcia na stronę główną („zdjecia”) odświeża skrypt — bez zmian.
+do $$ begin
+  if to_regclass('storage.objects') is null then return; end if; -- testowa baza bez plików
+  drop policy if exists pliki_admin_read on storage.objects;
+  drop policy if exists pliki_admin_delete on storage.objects;
+  create policy pliki_admin_read on storage.objects for select to authenticated
+    using (bucket_id in ('ogloszenia', 'protokoly', 'asb') and public.has_flag('manage'));
+  create policy pliki_admin_delete on storage.objects for delete to authenticated
+    using (bucket_id in ('ogloszenia', 'protokoly', 'asb') and public.has_flag('manage'));
+end $$;

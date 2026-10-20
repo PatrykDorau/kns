@@ -56,7 +56,7 @@ export default defineComponent({
         let gone = 0
         for (const b of new Set(list.map(f => f.bucket))) gone += await app.api.call('storageRemove', { bucket: b, names: list.filter(f => f.bucket === b).map(f => f.name) })
         st.sel = {}
-        app.showToast(gone === list.length ? 'Usunięto: ' + gone + '.' : 'Usunięto ' + gone + ' z ' + list.length + ' — do pozostałych brak uprawnień.')
+        app.showToast(gone === list.length ? 'Usunięto: ' + gone + '.' : 'Usunięto ' + gone + ' z ' + list.length + ' — pozostałe może usunąć administrator.')
       } catch (e) { st.error = e.message || String(e) } finally { st.busy = false }
       await load()
     }
