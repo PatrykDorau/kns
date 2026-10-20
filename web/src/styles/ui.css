@@ -504,3 +504,7 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 .ask-btns button { min-width: 96px; }
 .ask-fade-enter-active, .ask-fade-leave-active { transition: opacity .15s; }
 .ask-fade-enter-from, .ask-fade-leave-to { opacity: 0; }
+/* nowa wersja strony (utils/updateCheck.ts) */
+.update-ready { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; padding: 10px 12px 10px 14px; border-radius: 14px; border: 1px solid rgba(242, 165, 60, .45); background: var(--accent-soft); font-size: 14px; }
+.update-ready span { flex: 1; }
+.update-ready .i { width: 18px; height: 18px; color: var(--accent); }

@@ -10,3 +10,4 @@ interface Window {
   google?: any // logowanie Google (skrypt accounts.google.com)
   [key: string]: any
 }
+declare const __BUILD_ID__: string

@@ -40,11 +40,16 @@ function testMode(mode) {
   }
 }
 
+// Numer wydania strony: w kodzie (__BUILD_ID__) i w pliku version.json — aplikacja sama sprawdza, czy jest nowsza wersja.
+const BUILD_ID = String(Date.now())
+const buildId = () => ({ name: 'kns-build-id', generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD_ID }) }) } })
+
 export default defineConfig(({ mode }) => ({
+  define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
   root: here,
   base: '/',
   resolve: { alias: { '@': path.join(here, 'src') } },
   // adresy obrazków w szablonach (znak.png, *.svg) zostają zwykłymi adresami plików z public/ — jak dawniej
-  plugins: [vue({ template: { transformAssetUrls: false } }), ...(mode === 'baza' || mode === 'dysk' ? [testMode(mode)] : [])],
+  plugins: [vue({ template: { transformAssetUrls: false } }), buildId(), ...(mode === 'baza' || mode === 'dysk' ? [testMode(mode)] : [])],
   build: { outDir: path.join(here, 'dist'), emptyOutDir: true },
 }))

@@ -27,6 +27,7 @@ import AsbView from '@/views/AsbView.vue'
 import VotesView from '@/views/VotesView.vue'
 import AskDialog from '@/components/dialogs/AskDialog.vue'
 import { ask } from '@/utils/ask'
+import { startUpdateCheck, updateReady } from '@/utils/updateCheck'
 import ServicesView from '@/views/ServicesView.vue'
 import AsbPreviewDialog from '@/components/dialogs/AsbPreviewDialog.vue'
 import LiveEvent from '@/components/LiveEvent.vue'
@@ -2333,6 +2334,8 @@ export default defineComponent({
       else history.pushState(null, '', p)
     })
     const anyDirty = () => (current.value && dirty.value) || (currentEvent.value && eventDirty.value) || (currentAnn.value && annDirty.value) || (song.value && songDirty.value)
+    startUpdateCheck(() => !anyDirty()) // nowa wersja strony: przeładowanie przy powrocie do aplikacji
+    const reloadPage = () => location.reload()
     window.addEventListener('popstate', async () => {
       if (!ready.value || camera.value) return
       if (anyDirty()) {
@@ -2391,7 +2394,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
@@ -2459,6 +2462,7 @@ export default defineComponent({
     <span class="pa-btns"><button class="ghost" @click="pushLater">Nie teraz</button><a v-if="pushAskMode === 'browser'" class="button primary" :href="chromeLink">Otwórz w Chrome</a><button v-else-if="pushAskMode === 'enable'" class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button></span>
     <small v-if="push.error" class="pa-err">{{ push.error }}</small>
   </div>
+  <div v-if="updateReady" class="update-ready" role="status"><svg class="i"><use href="#refresh"/></svg><span>Jest nowa wersja aplikacji.</span><button class="primary small" @click="reloadPage">Odśwież</button></div>
   <div v-if="offline" class="offline"><svg class="i"><use href="#cloudoff"/></svg>Brak internetu — zmian nie da się teraz zapisać.</div>
   <p v-if="error" class="error" role="alert">{{ error }}
     <button v-if="/konta|konto/.test(error) && !drive.demo" class="ghost link" :disabled="busy" @click="otherAccount">Zaloguj innym kontem</button></p>
