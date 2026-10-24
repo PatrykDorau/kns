@@ -128,5 +128,5 @@ export default defineComponent({
 .st-list small { color: var(--muted); white-space: nowrap; }
 .st-words { display: flex; flex-wrap: wrap; gap: 6px; }
 .st-words .ann-tag { font-size: 12px; }
-.st-words b { color: var(--accent); margin-left: 2px; }
+.st-words b { color: var(--accent-text); margin-left: 2px; }
 </style>

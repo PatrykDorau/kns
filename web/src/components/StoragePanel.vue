@@ -136,7 +136,7 @@ export default defineComponent({
 .sp-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .sp-info b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-info small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sp-unused { color: var(--accent); font-weight: 700; }
+.sp-unused { color: var(--accent-text); font-weight: 700; }
 .sp-check input { width: 18px; height: 18px; }
 .sp-thumb { flex: none; width: 52px; height: 52px; min-height: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border-radius: 10px; overflow: hidden; background: var(--panel2); color: var(--muted); }
 .sp-thumb img { width: 100%; height: 100%; object-fit: cover; }

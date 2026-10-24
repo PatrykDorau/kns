@@ -245,7 +245,7 @@ export default defineComponent({
 .gie-photo { flex: none; width: 72px; height: 72px; border-radius: 12px; overflow: hidden; background: var(--panel); }
 .gie-photo img { width: 100%; height: 100%; object-fit: cover; }
 .gie-add { width: 100%; height: 100%; min-height: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px dashed var(--line); border-radius: 12px; background: transparent; color: var(--muted); }
-.gie-add .i { width: 22px; height: 22px; color: var(--accent); }
+.gie-add .i { width: 22px; height: 22px; color: var(--accent-text); }
 .gie-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .gie-row { display: flex; gap: 6px; align-items: center; }
 .gie-row > input:first-child { flex: 1; min-width: 0; }

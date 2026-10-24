@@ -100,7 +100,7 @@ watch(rawText, v => { if (raw.value) emit('update:modelValue', v) })
 .ss-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .ss-card.long { border-color: rgba(232, 163, 61, .45); }
 .ss-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ss-n { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: 13px; }
+.ss-n { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-text); font-weight: 800; font-size: 13px; }
 .ss-name { flex: 1; min-width: 80px; font-size: 14px; }
 .ss-key { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 12px; }
 .ss-key input { width: 52px !important; min-width: 0; height: 32px; padding: 0 8px; text-align: center; text-transform: uppercase; font-weight: 700; }
@@ -108,6 +108,6 @@ watch(rawText, v => { if (raw.value) emit('update:modelValue', v) })
 .ss-tools .icon { min-height: 32px; width: 32px; padding: 0; }
 .ss-text { width: 100%; min-height: 0; resize: vertical; font: inherit; line-height: 1.5; }
 .ss-info { color: var(--muted); font-size: 12px; }
-.ss-card.long .ss-info { color: var(--accent); }
+.ss-card.long .ss-info { color: var(--accent-text); }
 .ss-add { align-self: flex-start; }
 </style>
