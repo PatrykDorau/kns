@@ -52,6 +52,8 @@ export interface Settings {
   donateInit: boolean
   studioHidden: string[]
   studioSlideSec: number
+  // wygląd sceny „Odliczanie”: tło, napis nad zegarem, podpis (tylko przy zegarze na środku), układ, przyciemnienie grafiki (0–80)
+  cdLook?: { bg: 'paper' | 'dark' | 'colors' | 'image', c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: 'top' | 'center' }
   donateAccount: string
   donatePhone: string
   donateName: string

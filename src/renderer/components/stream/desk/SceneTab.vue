@@ -5,6 +5,7 @@ import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
 import { remote as remoteScreen } from '@/services/screenShare'
 import { addCountdown, setCountdown, setMediaPos, setOverlayMode, showMediaOverlay, studio } from '@/services/studio'
+import { CD_DEFAULT } from '@/services/studio/cards'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
 
@@ -21,6 +22,11 @@ const SCENE_HELP = {
 }
 const clock = (sec: number) => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
 const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.left) : 'na planszy: „Zaraz zaczynamy”') + (studio.countdownTo ? '' : ' · do nabożeństwa'))
+// wygląd odliczania (zapisany w ustawieniach tego komputera)
+if (!settings.cdLook) settings.cdLook = { ...CD_DEFAULT }
+const cd = settings.cdLook
+const CD_BG = [['paper', 'Papier'], ['dark', 'Ciemne'], ['colors', 'Kolory'], ['image', 'Grafika']] as const
+const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMode('corner') } else setOverlayMode('off') }
 // co widać na scenie „Rzutnik”
 const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć'
@@ -40,6 +46,35 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
     <button title="Dodaj minutę" @click="addCountdown(1)">+1</button>
     <small class="desk-left-time">{{ countdownInfo }}</small>
     <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
+  </div>
+  <!-- wygląd odliczania: tło, układ, napis i podpis -->
+  <div v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-cd" role="group" aria-label="Wygląd odliczania">
+    <div class="desk-opt-group">
+      <small class="muted">Tło</small>
+      <button v-for="[id, name] in CD_BG" :key="id" :class="{ on: cd.bg === id }" :aria-pressed="cd.bg === id" @click="cd.bg = id">{{ name }}</button>
+      <template v-if="cd.bg === 'colors'">
+        <label class="desk-color" title="Kolor z lewej u góry"><input v-model="cd.c1" type="color" aria-label="Pierwszy kolor"></label>
+        <label class="desk-color" title="Kolor z prawej u dołu"><input v-model="cd.c2" type="color" aria-label="Drugi kolor"></label>
+      </template>
+      <template v-if="cd.bg === 'image'">
+        <select v-model="cd.image" aria-label="Grafika na tło">
+          <option value="">— wybierz grafikę z Mediów —</option>
+          <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
+        </select>
+        <label class="desk-dim" title="Przyciemnienie grafiki — żeby zegar był czytelny">Przyciemnienie <input v-model.number="cd.dim" type="range" min="0" max="80" step="5" aria-label="Przyciemnienie"> {{ cd.dim }}%</label>
+        <button v-if="!images.length" class="small" @click="deskTab = 'media'">Dodaj grafikę w Mediach…</button>
+      </template>
+    </div>
+    <div class="desk-opt-group">
+      <small class="muted">Układ</small>
+      <button :class="{ on: cd.layout !== 'center' }" title="Zegar u góry, w środku ogłoszenia w pętli (albo najbliższe nabożeństwo)" @click="cd.layout = 'top'">Zegar u góry + ogłoszenia</button>
+      <button :class="{ on: cd.layout === 'center' }" title="Duży zegar na środku, pod nim podpis" @click="cd.layout = 'center'">Duży zegar na środku</button>
+    </div>
+    <div class="desk-opt-group desk-cd-text">
+      <label>Napis nad zegarem <input v-model="cd.title" maxlength="40" placeholder="ZACZYNAMY ZA"></label>
+      <label v-if="cd.layout === 'center'">Podpis pod zegarem <input v-model="cd.sub" maxlength="90" placeholder="np. Kawa po nabożeństwie w holu"></label>
+      <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(cd, CD_DEFAULT)">Domyślny</button>
+    </div>
   </div>
   <div v-if="studio.preview.scene === 'projector'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
     <button :class="{ on: studio.preview.pip.on, live: studio.program.scene === 'projector' && studio.program.pip.on }" :aria-pressed="!!studio.preview.pip.on" @click="pip({ on: !studio.preview.pip.on })"><Icon name="camera" />Kamera w okienku {{ studio.preview.pip.on ? 'wł.' : 'wył.' }}</button>

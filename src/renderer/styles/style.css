@@ -1248,3 +1248,14 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-media-act button .icon { width: 15px; height: 15px; flex: none; }
 .desk-media-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
 .desk-media-edit { width: 100%; margin-top: 8px; }
+
+/* Studio → Scena: wygląd odliczania */
+.desk-cd { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); }
+.desk-cd .desk-opt-group { flex-wrap: wrap; }
+.desk-color { display: inline-flex; width: 34px; height: 30px; padding: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); cursor: pointer; }
+.desk-color input { width: 48px; height: 44px; margin: -7px; padding: 0; border: 0; cursor: pointer; background: none; }
+.desk-dim { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.desk-dim input { width: 120px; }
+.desk-cd-text label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.desk-cd-text input { min-width: 0; width: 220px; }
+.desk-cd button.on, .desk-opt-group button.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }

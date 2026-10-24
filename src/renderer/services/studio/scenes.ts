@@ -2,7 +2,7 @@
 import { nearestService, servicePlace } from '@/stores'
 import { H, W, studio } from './state'
 import { S, background, fitLine, g, img, rounded, text } from './paint'
-import { CARD, armed, bankQr, carousel, drawCarousel, paper, qr, serviceCard, setArmed, sideArt, svcWhen, timerBlob, topWave, upcomingService, zeroAt } from './cards'
+import { CARD, armed, bankQr, carousel, cdBackground, cdLook, drawCarousel, paper, qr, serviceCard, setArmed, svcWhen, timerBlob, topWave, upcomingService, zeroAt } from './cards'
 import { drawCamera } from './camera'
 import { drawMedia, mediaOverlay, mediaSlide } from './media'
 import { projectorFrame } from './projector'
@@ -12,21 +12,27 @@ let lyricShown = '', lyricPrev = '', lyricAt = 0
 /* ---------- sceny ---------- */
 export const SCENE_DRAW = {
   camera(t) { drawCamera(); mediaOverlay(); lowerThird(t); lyrics(t) },
-  // „Zaraz zaczynamy”: papier, u góry pomarańczowa fala z timerem, na środku ogłoszenia jak prezentacja w pętli,
-  // po bokach proste grafiki (okrąg z kropkami, szczyty jak w logo). Bez animacji — tylko przenikanie grafik.
+  // „Zaraz zaczynamy” (wygląd w Studio → Scena): tło (papier z grafikami po bokach, ciemne, kolory, grafika),
+  // zegar u góry z ogłoszeniami w pętli na środku — albo duży zegar na środku z napisem i podpisem.
   countdown(t) {
-    paper()
-    sideArt()
-    const c = carousel(t)
-    const pw = 1240, ph = 698, px = (W - pw) / 2, py = 330
-    g.save(); g.shadowColor = 'rgba(40,30,20,0.35)'; g.shadowBlur = 50; g.shadowOffsetY = 18
-    rounded(px, py, pw, ph, 18); g.fillStyle = '#fff'; g.fill(); g.restore()
-    g.save(); rounded(px, py, pw, ph, 18); g.clip()
-    if (c) drawCarousel(c, px, py, pw, ph)
-    else serviceCard(px, py, pw, ph)
-    g.restore()
-    topWave()
-    const left = timerBlob()
+    const L = cdLook()
+    cdBackground(L, t)
+    let left
+    if (L.layout === 'center') {
+      left = timerBlob({ cy: H / 2 - 40, scale: 1.7, title: L.title })
+      if (L.sub) { const s = fitLine(L.sub, W - 240, 56, 34, 700); text(s.str, W / 2, H / 2 + 300, { size: s.size, weight: 700, align: 'center', color: L.bg === 'paper' ? '#2b2b2b' : '#fff', shadow: L.bg === 'paper' ? 0 : 18 }) }
+    } else {
+      const c = carousel(t)
+      const pw = 1240, ph = 698, px = (W - pw) / 2, py = 330
+      g.save(); g.shadowColor = 'rgba(40,30,20,0.35)'; g.shadowBlur = 50; g.shadowOffsetY = 18
+      rounded(px, py, pw, ph, 18); g.fillStyle = '#fff'; g.fill(); g.restore()
+      g.save(); rounded(px, py, pw, ph, 18); g.clip()
+      if (c) drawCarousel(c, px, py, pw, ph)
+      else serviceCard(px, py, pw, ph)
+      g.restore()
+      if (L.bg === 'paper') topWave()
+      left = timerBlob({ title: L.title })
+    }
     // po zerze: 3 s „Zaraz zaczynamy”, potem sama Kamera (gdy zaznaczone)
     if (S !== studio.program) return
     if (left > 0) { setArmed(true) } else if (armed && studio.autoCamera) {

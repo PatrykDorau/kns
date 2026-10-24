@@ -4,7 +4,9 @@ import qrcode from 'qrcode-generator'
 import { currentAnnouncements, nearestService, projectorGraphics, servicePlace, serviceTime, sortedServices } from '@/stores'
 import type { StudioSlide } from '@/types'
 import { H, W, studio } from './state'
-import { S, fit, fitLine, g, img, rounded, text, wrap } from './paint'
+import { S, background, fit, fitLine, g, img, rounded, text, wrap } from './paint'
+import { mediaSlide, mediaUrl } from './media'
+import { settings } from '@/stores'
 
 let slideBase = 0
 export const svcWhen = svc => (svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + serviceTime(svc) : '')
@@ -165,11 +167,29 @@ export function setCountdown(minutes) { studio.countdownTo = minutes ? Date.now(
 export function addCountdown(minutes) { studio.countdownTo = Math.max(Date.now(), studio.countdownTo || Date.now()) + minutes * 60000 }
 export let armed = false, zeroAt = 0
 export function setArmed(v: boolean, at = 0) { armed = v; zeroAt = at }
-export function timerBlob() {
+// Wygląd „Odliczania” (Studio → Scena): domyślnie papier z falą i ogłoszeniami w środku.
+export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'ZACZYNAMY ZA', sub: '', layout: 'top' } as const
+export const cdLook = () => ({ ...CD_DEFAULT, ...(settings.cdLook || {}) })
+// Tło odliczania: papier z grafikami po bokach, ciemne z płynącymi plamami, gradient dwóch kolorów albo grafika z Mediów.
+export function cdBackground(L, t) {
+  if (L.bg === 'dark') return background(t)
+  if (L.bg === 'colors') {
+    const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, L.c1 || CD_DEFAULT.c1); gr.addColorStop(1, L.c2 || CD_DEFAULT.c2)
+    g.fillStyle = gr; g.fillRect(0, 0, W, H); return
+  }
+  if (L.bg === 'image') {
+    const it = mediaSlide(L.image), im = it?.type === 'image' && img(mediaUrl(it.path))
+    if (!im) return background(t)
+    fit(im, im.naturalWidth, im.naturalHeight, 0, 0, W, H, 'cover')
+    g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H); return
+  }
+  paper(); sideArt()
+}
+export function timerBlob({ cx = W / 2, cy = 165, scale = 1, title = 'ZACZYNAMY ZA' } = {}) {
   const left = countdownLeft()
   const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), sec = left % 60
   const clock = (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec).padStart(2, '0')
-  const cx = W / 2, cy = 165, rx = h ? 310 : 265, ry = 130
+  const rx = (h ? 310 : 265) * scale, ry = 130 * scale
   g.save()
   g.beginPath()
   for (let i = 0; i <= 120; i++) {
@@ -181,8 +201,9 @@ export function timerBlob() {
   g.shadowColor = 'rgba(0,0,0,0.3)'; g.shadowBlur = 30; g.shadowOffsetY = 8
   g.fillStyle = '#2b2b2b'; g.fill()
   g.restore()
-  text(left ? 'ZACZYNAMY ZA' : 'ZARAZ', cx, cy - 46, { size: 30, weight: 800, color: '#f3e3c8', align: 'center' })
-  text(left ? clock : 'ZACZYNAMY', cx, cy + (left ? 64 : 46), { size: left ? 112 : 64, weight: 800, color: '#f6a836', align: 'center' })
+  const label = fitLine(String(title || '').toUpperCase(), rx * 1.5, 30 * scale, 18 * scale, 800)
+  text(left ? label.str : 'ZARAZ', cx, cy - 46 * scale, { size: left ? label.size : 30 * scale, weight: 800, color: '#f3e3c8', align: 'center' })
+  text(left ? clock : 'ZACZYNAMY', cx, cy + (left ? 64 : 46) * scale, { size: (left ? 112 : 64) * scale, weight: 800, color: '#f6a836', align: 'center' })
   return left
 }
 // Proste grafiki po bokach: lewy — okrąg z kropkami, prawy — szczyty jak w logo.
