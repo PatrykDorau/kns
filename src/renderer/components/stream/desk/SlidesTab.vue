@@ -3,7 +3,7 @@ import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { showSlide, studio, upcomingService } from '@/services/studio'
 
-// Zakładka „Ogłoszenia”: pętla ogłoszeń na transmisji — które są w pętli, co ile sekund, pokaż teraz.
+// Zakładka „Ogłoszenia”: pętla ogłoszeń w odliczaniu — które są w pętli, co ile sekund, pokaż teraz.
 defineProps<{ slides: { id: string; title: string; image?: string; text?: string; service?: boolean }[] }>()
 function toggleSlide(id: string) { const h = new Set(settings.studioHidden || []); h.has(id) ? h.delete(id) : h.add(id); settings.studioHidden = [...h] }
 </script>

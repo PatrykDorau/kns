@@ -4,8 +4,9 @@ import qrcode from 'qrcode-generator'
 import { currentAnnouncements, nearestService, projectorGraphics, servicePlace, serviceTime, sortedServices } from '@/stores'
 import type { StudioSlide } from '@/types'
 import { H, W, studio } from './state'
-import { S, background, fit, fitLine, g, img, rounded, text, wrap } from './paint'
+import { S, background, fit, fitLine, g, img, paintOn, rounded, text, wrap } from './paint'
 import { mediaSlide, mediaUrl } from './media'
+import { BACKGROUNDS } from './backgrounds'
 import { settings } from '@/stores'
 
 let slideBase = 0
@@ -170,8 +171,13 @@ export function setArmed(v: boolean, at = 0) { armed = v; zeroAt = at }
 // Wygląd „Odliczania” (Studio → Scena): domyślnie papier z falą i ogłoszeniami w środku.
 export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'ZACZYNAMY ZA', sub: '', layout: 'top' } as const
 export const cdLook = () => ({ ...CD_DEFAULT, ...(settings.cdLook || {}) })
-// Tło odliczania: papier z grafikami po bokach, ciemne z płynącymi plamami, gradient dwóch kolorów albo grafika z Mediów.
-export function cdBackground(L, t) {
+// Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
+export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'Dziękujemy, że byliście z nami!', sub: '', layout: 'cards' } as const
+export const endLook = () => ({ ...END_DEFAULT, ...(settings.endLook || {}) })
+// Tło planszy: papier z grafikami po bokach, góry, promienie, fale, światła, szkic, ciemne z płynącymi plamami,
+// gradient dwóch kolorów albo grafika z Biblioteki.
+export function cdBackground(L, t, side = true) {
+  if (BACKGROUNDS[L.bg]) return BACKGROUNDS[L.bg](t)
   if (L.bg === 'dark') return background(t)
   if (L.bg === 'colors') {
     const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, L.c1 || CD_DEFAULT.c1); gr.addColorStop(1, L.c2 || CD_DEFAULT.c2)
@@ -183,7 +189,15 @@ export function cdBackground(L, t) {
     fit(im, im.naturalWidth, im.naturalHeight, 0, 0, W, H, 'cover')
     g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H); return
   }
-  paper(); sideArt()
+  paper(); if (side) sideArt()
+}
+// Miniatura tła do wyboru (raz, 320×180).
+export function bgThumb(id: string) {
+  const c = document.createElement('canvas'); c.width = 320; c.height = 180
+  const ctx = c.getContext('2d'); ctx.scale(320 / W, 180 / H)
+  const prev = paintOn(ctx, studio.preview)
+  try { cdBackground({ ...CD_DEFAULT, bg: id }, 4000) } finally { paintOn(prev.ctx, prev.look) }
+  return c.toDataURL('image/jpeg', 0.8)
 }
 export function timerBlob({ cx = W / 2, cy = 165, scale = 1, title = 'ZACZYNAMY ZA' } = {}) {
   const left = countdownLeft()

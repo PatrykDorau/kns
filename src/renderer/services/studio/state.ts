@@ -16,12 +16,12 @@ export const SCENES = [
   ['camera', 'Kamera'],
   ['projector', 'Rzutnik'],
   ['countdown', 'Odliczanie'],
-  ['announcements', 'Ogłoszenia'],
   ['media', 'Materiał'],
   ['end', 'Koniec'],
 ]
-// Na których scenach są nakładki (na planszach — odliczanie, ogłoszenia, koniec — nie ma ich celowo).
-export const OVERLAYS = { lyrics: ['camera', 'projector', 'media'], lowerThird: ['camera', 'projector', 'media'], media: ['camera', 'projector'] }
+// Na których scenach są nakładki (napisów i paska mówcy na planszach — odliczanie, koniec — nie ma celowo);
+// kamera w okienku — na każdej scenie poza Kamerą.
+export const OVERLAYS = { lyrics: ['camera', 'projector', 'media'], lowerThird: ['camera', 'projector', 'media'], media: ['camera', 'projector'], pip: ['projector', 'countdown', 'media', 'end'] }
 // media — materiał na cały ekran (scena „Media”); omedia — materiał jako nakładka na kamerze/rzutniku,
 // ovl: 'off', 'full' (cały kadr — PNG z przezroczystym tłem, napis bez tła), 'corner' (okienko w rogu, mpos)
 const look = (): Look => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small', on: false }, lowerAt: 0, lowerOff: 0, media: '', omedia: '', ovl: 'off', mpos: { corner: 'tr', size: 'small' } })

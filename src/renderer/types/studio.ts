@@ -1,14 +1,14 @@
 // Studio streamu: wygląd obrazu (podgląd i wizja) i odtwarzanie materiałów.
 import type { TextStyle } from './library'
 
-export type SceneId = 'camera' | 'projector' | 'countdown' | 'announcements' | 'media' | 'end'
+export type SceneId = 'camera' | 'projector' | 'countdown' | 'media' | 'end'
 export type Corner = 'tl' | 'tr' | 'bl' | 'br'
 export type BoxSize = 'small' | 'medium' | 'large' | string
 
 export interface Pip {
   corner: Corner | string
   size: BoxSize
-  on: boolean // kamera w okienku na scenie „Rzutnik”
+  on: boolean // kamera w okienku (na każdej scenie poza Kamerą)
 }
 
 // Wygląd jednej strony (podgląd albo wizja).

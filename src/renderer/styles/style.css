@@ -947,8 +947,8 @@ main.stream > section:first-child { overflow-y: auto; }
 .studio-host { position: absolute; inset: 0; }
 .studio-host canvas { display: block; width: 100%; height: 100%; }
 /* sceny: równa siatka (6 w rzędzie, na wąskim 3) — bez „sierot” w nowej linii */
-.desk-scenes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
-@media (max-width: 1500px) { .desk-scenes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.desk-scenes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+@media (max-width: 900px) { .desk-scenes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .desk-scenes button, .desk-opts button { padding: 7px 10px; font-size: 13px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .desk-scenes button.on, .desk-opts button.on { background: var(--accent-soft, rgba(232,163,61,.18)); border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .desk-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 8px; }
@@ -1298,3 +1298,9 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 /* pole w ramce (szukajka): bez drugiej ramki i tła */
 .searchbox input, .searchbox input:hover, .searchbox input:focus { min-height: 0; padding: 8px 0; border: 0 !important; background: transparent !important; box-shadow: none !important; }
 select { padding-right: 36px !important; }
+
+/* Studio — wybór tła planszy: miniatury */
+.desk-bgs .desk-bg { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 4px 5px; min-width: 0; font-size: 11.5px; line-height: 1.1; }
+.desk-bg-pic { display: block; width: 72px; height: 40px; border-radius: 6px; background: var(--panel3, #2a2d34) center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.desk-bg-pic.bg-image { background: repeating-linear-gradient(45deg, #3a3f4a 0 8px, #2e323b 8px 16px); }
+.desk-bgs .desk-bg.on .desk-bg-pic { box-shadow: 0 0 0 2px var(--accent); }

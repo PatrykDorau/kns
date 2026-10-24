@@ -9,7 +9,7 @@ import SlidesTab from './SlidesTab.vue'
 import MusicPanel from './MusicPanel.vue'
 
 // Źródła (pod scenami): Biblioteka (zdjęcia, filmy, prezentacje, napisy — na ekran albo jako nakładka),
-// Ogłoszenia (pętla na planszach) i Muzyka (podkład na każdej scenie).
+// Ogłoszenia (pętla w odliczaniu) i Muzyka (podkład na każdej scenie).
 const { deskTab, mediaList } = useDesk()
 const slideList = computed(() => slideCandidates())
 const shownSlides = computed(() => slideList.value.filter(x => !studio.hidden.includes(x.id)).length)

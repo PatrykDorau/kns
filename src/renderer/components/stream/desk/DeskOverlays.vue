@@ -6,11 +6,12 @@ import { label } from '@/stores'
 import { OVERLAYS, setMediaPos, setOverlayMode, studio, toggleLowerThird, toggleLyrics } from '@/services/studio'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 
-// Nakładki: na obrazie z kamery i rzutnika — zawsze pod ręką (napisy, pasek mówcy, grafika/napis).
-const { pvOver, pgOver, deskTab } = useDesk()
-// scena w podglądzie bez nakładek (Odliczanie, Ogłoszenia, Koniec) — pasek się chowa; każda nakładka tylko tam, gdzie ją widać
+// Nakładki: zawsze pod ręką (napisy, pasek mówcy, grafika/napis, kamera w okienku).
+const { pvOver, pgOver, deskTab, pip } = useDesk()
+// każda nakładka tylko na scenach, na których ją widać (kamera w okienku — na każdej poza Kamerą)
 const on = (k: keyof typeof OVERLAYS) => OVERLAYS[k].includes(studio.preview.scene)
-const anyOverlay = computed(() => on('lyrics') || on('lowerThird') || on('media'))
+const anyOverlay = computed(() => on('lyrics') || on('lowerThird') || on('media') || on('pip'))
+const pipLive = computed(() => !!studio.program.pip.on && OVERLAYS.pip.includes(studio.program.scene))
 </script>
 
 <template>
@@ -35,6 +36,13 @@ const anyOverlay = computed(() => on('lyrics') || on('lowerThird') || on('media'
         <button class="desk-x" title="Zdejmij nakładkę" aria-label="Zdejmij nakładkę" @click="setOverlayMode('off')"><Icon name="x" /></button>
       </template>
       <button v-else class="desk-ovl-add" title="Grafika, logo albo napis na obrazie z kamery/rzutnika" @click="deskTab = 'media'"><Icon name="image" />Grafika / napis…</button>
+    </span>
+    <span v-if="on('pip')" class="desk-ovl-media" :class="{ on: studio.preview.pip.on, live: pipLive }">
+      <button :class="{ on: studio.preview.pip.on, live: pipLive }" :aria-pressed="!!studio.preview.pip.on" title="Obraz z kamery (ATEM) w okienku na tej scenie — najpierw na podglądzie, na wizję po „Na wizję”" @click="pip({ on: !studio.preview.pip.on })"><Icon name="camera" />Kamera w okienku</button>
+      <template v-if="studio.preview.pip.on">
+        <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="lbl" :aria-label="lbl" @click="pip({ corner: id })">{{ arrow }}</button>
+        <button class="desk-corner" :title="studio.preview.pip.size === 'large' ? 'Mniejsze okienko' : 'Większe okienko'" @click="pip({ size: studio.preview.pip.size === 'large' ? 'small' : 'large' })">{{ studio.preview.pip.size === 'large' ? 'L' : 'S' }}</button>
+      </template>
     </span>
   </div>
 </template>

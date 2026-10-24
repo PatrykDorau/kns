@@ -44,10 +44,9 @@ function createDesk(service: Ref<Service | null>) {
 
   function pip(p: Partial<Pip>) { setPip(p); if (p.corner) settings.pipCorner = p.corner; if (p.size) settings.pipSize = p.size }
 
-  // zakładki pod scenami: same przechodzą na tę, która pasuje do wybranej sceny
-  // źródła pod scenami: przy scenie Ogłoszenia — ich pętla, przy Materiale — biblioteka; inaczej zostaje to, co było
-  const deskTab = ref<DeskTab>(studio.preview.scene === 'announcements' ? 'slides' : 'media')
-  watch(() => studio.preview.scene, sc => { if (sc === 'announcements') deskTab.value = 'slides'; else if (sc === 'media') deskTab.value = 'media' })
+  // źródła pod scenami: przy Materiale — biblioteka; inaczej zostaje to, co było
+  const deskTab = ref<DeskTab>('media')
+  watch(() => studio.preview.scene, sc => { if (sc === 'media') deskTab.value = 'media' })
 
   // ikonka w zwiniętej kolumnie: rozwija kolumnę i daną sekcję
   function unrail(which: 'yt' | 'cue' | 'svc') { settings.railFolded = false; settings[({ yt: 'ytFolded', cue: 'cueFolded', svc: 'svcFolded' } as const)[which]] = false }

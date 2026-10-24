@@ -1,32 +1,33 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
 import { remote as remoteScreen } from '@/services/screenShare'
 import { addCountdown, setCountdown, setMediaPos, setOverlayMode, showMediaOverlay, studio } from '@/services/studio'
-import { CD_DEFAULT } from '@/services/studio/cards'
+import { CD_DEFAULT, END_DEFAULT } from '@/services/studio/cards'
+import LookBg from './LookBg.vue'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
 
 // Ustawienia sceny w podglądzie (stale pod przyciskami scen) (odliczanie, kamera w okienku, okienko z materiałem).
-const { mediaList, pvFull, deskTab, pip } = useDesk()
+const { mediaList, pvFull, deskTab } = useDesk()
 
 const SCENE_HELP = {
   camera: 'Obraz z kamery (ATEM po USB) — z okienkiem, do którego wrzucisz materiał z Biblioteki. Napisy i pasek mówcy — niżej, w „Nakładkach”.',
-  projector: 'Obraz z rzutnika (przez sieć z laptopa przy rzutniku) — z kamerą w okienku, gdy włączysz.',
-  countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku, na końcu „Zaraz zaczynamy”.',
-  announcements: 'Ogłoszenia w pętli — które i jak często: zakładka „Ogłoszenia”.',
+  projector: 'Obraz z rzutnika (przez sieć z laptopa przy rzutniku). Kamerę w okienku włączysz niżej, w „Nakładkach”.',
+  countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku (które i jak często — zakładka „Ogłoszenia”), na końcu „Zaraz zaczynamy”.',
   media: 'Materiał z Biblioteki na cały ekran — wybierz go niżej w Bibliotece („Na ekran”).',
-  end: 'Podziękowanie z kodami QR (wsparcie, YouTube, Spotify) — dane w „Plansza końcowa” w prawej kolumnie.',
+  end: 'Podziękowanie z kodami QR (wsparcie, YouTube, Spotify) — dane do wsparcia w „Plansza końcowa” w prawej kolumnie.',
 }
 const clock = (sec: number) => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
 const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.left) : 'na planszy: „Zaraz zaczynamy”') + (studio.countdownTo ? '' : ' · do nabożeństwa'))
 // wygląd odliczania (zapisany w ustawieniach tego komputera)
 if (!settings.cdLook) settings.cdLook = { ...CD_DEFAULT }
 const cd = settings.cdLook
-const CD_BG = [['paper', 'Papier'], ['dark', 'Ciemne'], ['colors', 'Kolory'], ['image', 'Grafika']] as const
-const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
+// wygląd końca
+if (!settings.endLook) settings.endLook = { ...END_DEFAULT }
+const en = settings.endLook
+const END_LAYOUTS = [['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: karta, pod napisem kody QR obok siebie'], ['side', 'Napis obok kodów', 'Po lewej podziękowanie i najbliższe nabożeństwo, po prawej kody QR'], ['center', 'Duży napis', 'Duże podziękowanie na środku, kody QR małe u dołu']] as const
 function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMode('corner') } else setOverlayMode('off') }
 // co widać na scenie „Rzutnik”
 const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć'
@@ -49,22 +50,7 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
   </div>
   <!-- wygląd odliczania: tło, układ, napis i podpis -->
   <div v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-cd" role="group" aria-label="Wygląd odliczania">
-    <div class="desk-opt-group">
-      <small class="muted">Tło</small>
-      <button v-for="[id, name] in CD_BG" :key="id" :class="{ on: cd.bg === id }" :aria-pressed="cd.bg === id" @click="cd.bg = id">{{ name }}</button>
-      <template v-if="cd.bg === 'colors'">
-        <label class="desk-color" title="Kolor z lewej u góry"><input v-model="cd.c1" type="color" aria-label="Pierwszy kolor"></label>
-        <label class="desk-color" title="Kolor z prawej u dołu"><input v-model="cd.c2" type="color" aria-label="Drugi kolor"></label>
-      </template>
-      <template v-if="cd.bg === 'image'">
-        <select v-model="cd.image" aria-label="Grafika na tło">
-          <option value="">— wybierz grafikę z Biblioteki —</option>
-          <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
-        </select>
-        <label class="desk-dim" title="Przyciemnienie grafiki — żeby zegar był czytelny">Przyciemnienie <input v-model.number="cd.dim" type="range" min="0" max="80" step="5" aria-label="Przyciemnienie"> {{ cd.dim }}%</label>
-        <button v-if="!images.length" class="small" @click="deskTab = 'media'">Dodaj grafikę w Bibliotece…</button>
-      </template>
-    </div>
+    <LookBg :look="cd" />
     <div class="desk-opt-group">
       <small class="muted">Układ</small>
       <button :class="{ on: cd.layout !== 'center' }" title="Zegar u góry, w środku ogłoszenia w pętli (albo najbliższe nabożeństwo)" @click="cd.layout = 'top'">Zegar u góry + ogłoszenia</button>
@@ -76,13 +62,18 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
       <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(cd, CD_DEFAULT)">Domyślny</button>
     </div>
   </div>
-  <div v-if="studio.preview.scene === 'projector'" class="desk-opt-group" role="group" aria-label="Okienko z kamerą">
-    <button :class="{ on: studio.preview.pip.on, live: studio.program.scene === 'projector' && studio.program.pip.on }" :aria-pressed="!!studio.preview.pip.on" @click="pip({ on: !studio.preview.pip.on })"><Icon name="camera" />Kamera w okienku {{ studio.preview.pip.on ? 'wł.' : 'wył.' }}</button>
-    <template v-if="studio.preview.pip.on">
-      <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="lbl" :aria-label="lbl" @click="pip({ corner: id })">{{ arrow }}</button>
-      <button :class="{ on: studio.preview.pip.size !== 'large' }" @click="pip({ size: 'small' })">Małe</button>
-      <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
-    </template>
+  <!-- wygląd końca: tło, układ, napis i podpis -->
+  <div v-if="studio.preview.scene === 'end' || studio.program.scene === 'end'" class="desk-cd" role="group" aria-label="Wygląd końca">
+    <LookBg :look="en" />
+    <div class="desk-opt-group">
+      <small class="muted">Układ</small>
+      <button v-for="[id, name, tip] in END_LAYOUTS" :key="id" :class="{ on: en.layout === id }" :aria-pressed="en.layout === id" :title="tip" @click="en.layout = id">{{ name }}</button>
+    </div>
+    <div class="desk-opt-group desk-cd-text">
+      <label>Napis <input v-model="en.title" maxlength="60" :placeholder="END_DEFAULT.title"></label>
+      <label>Podpis <input v-model="en.sub" maxlength="90" placeholder="np. Błogosławionego tygodnia!"></label>
+      <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(en, END_DEFAULT)">Domyślny</button>
+    </div>
   </div>
   <!-- Kamera: okienko z materiałem z Biblioteki (zdjęcie, film, prezentacja, napis) -->
   <div v-if="studio.preview.scene === 'camera'" class="desk-opt-group" role="group" aria-label="Okienko z materiałem">
