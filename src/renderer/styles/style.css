@@ -1242,3 +1242,9 @@ main.stream > section:first-child { overflow-y: auto; }
 .tabs.tabs-icons button[aria-selected=true] .tl { display: inline; }
 .tabs.tabs-icons button:not([aria-selected=true]) .pill { position: absolute; transform: translate(11px, -9px); font-size: 10px; padding: 0 5px; }
 .tabs.tabs-icons button { position: relative; }
+/* Media w Studio: „Na ekran” i „Nakładka” obok siebie, wygodnej wysokości, z ikonkami */
+.desk-media-it > span.desk-media-act { flex-direction: row; gap: 6px; }
+.desk-media-act button { min-height: 32px; padding: 6px 8px; font-size: 12.5px; font-weight: 600; gap: 5px; justify-content: center; }
+.desk-media-act button .icon { width: 15px; height: 15px; flex: none; }
+.desk-media-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.desk-media-edit { width: 100%; margin-top: 8px; }

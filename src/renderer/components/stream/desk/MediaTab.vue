@@ -29,8 +29,8 @@ async function addFiles() { if (await addMediaFiles()) deskTab.value = 'media' }
       <button class="desk-media-pic" :title="'Podgląd: ' + label(it)" @click="pickMedia(it)"><Thumb :item="it" /></button>
       <span class="desk-media-meta"><b :title="label(it)">{{ label(it) }}</b><small>{{ mediaKind(it) }}<template v-if="it.type === 'scene'"> · {{ (it.entries || []).length }} slajdów</template></small></span>
       <span class="desk-media-act">
-        <button :class="{ on: pvFull?.id === it.id }" title="Na cały ekran (scena Media)" @click="showMediaFull(it.id)">Na ekran</button>
-        <button :class="{ on: pvOver?.id === it.id }" title="Nakładka na kamerze/rzutniku" @click="showMediaOverlay(it.id)">Nakładka</button>
+        <button :class="{ on: pvFull?.id === it.id }" title="Na cały ekran (scena Media)" @click="showMediaFull(it.id)"><Icon name="monitor" />Na ekran</button>
+        <button :class="{ on: pvOver?.id === it.id }" title="Nakładka na kamerze/rzutniku" @click="showMediaOverlay(it.id)"><Icon name="layers" />Nakładka</button>
       </span>
       <label v-if="it.type === 'scene'" class="desk-media-auto" title="Slajdy zmieniają się same, gdy prezentacja jest na wizji">
         <input type="checkbox" :checked="!!it.mAuto" @change="it.mAuto = ($event.target as HTMLInputElement).checked"> same co
