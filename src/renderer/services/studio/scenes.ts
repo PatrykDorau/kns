@@ -122,16 +122,19 @@ function endSide(L, light) {
 // Czas modlitwy: obraz zostaje, u dołu spokojny napis (rozstrzelone „CZAS MODLITWY”, napis kursywą, podpis).
 function prayerOverlay() {
   if (!S.prayer) return
-  const txt = settings.prayerText || 'Zachęcamy do modlitwy', sub = settings.prayerSub || '', h = 380, y = H - h
+  const txt = settings.prayerText || 'Zachęcamy do modlitwy', sub = settings.prayerSub || '', link = String(settings.prayerLink || '').trim(), h = 380, y = H - h
+  const tw = link ? W - 640 : W - 300 // z kodem QR po prawej napisy węższe
   const gr = g.createLinearGradient(0, y, 0, H); gr.addColorStop(0, 'rgba(12,10,8,0)'); gr.addColorStop(0.45, 'rgba(12,10,8,0.62)'); gr.addColorStop(1, 'rgba(12,10,8,0.86)')
   g.fillStyle = gr; g.fillRect(0, y, W, h)
   const ly = y + (sub ? 150 : 180), label = 'CZAS MODLITWY'
   g.save(); g.font = fontStr(700, 32, 'cond'); g.letterSpacing = '14px'; const lw = g.measureText(label).width; g.restore()
   text(label, W / 2 + 7, ly, { size: 32, weight: 700, font: 'cond', color: '#f6c27a', align: 'center', spacing: 14 })
   g.fillStyle = 'rgba(246,194,122,0.7)'; g.fillRect(W / 2 - lw / 2 - 150, ly - 11, 110, 2); g.fillRect(W / 2 + lw / 2 + 40, ly - 11, 110, 2)
-  const f = fitLine(txt, W - 300, 78, 44, 400, 'serif', true)
+  const f = fitLine(txt, tw, 78, 44, 400, 'serif', true)
   text(f.str, W / 2, ly + 96, { size: f.size, weight: 400, font: 'serif', italic: true, align: 'center', shadow: 24 })
-  if (sub) { const s = fitLine(sub, W - 400, 34, 24, 500); text(s.str, W / 2, ly + 160, { size: s.size, weight: 500, color: '#e9e1d6', align: 'center', shadow: 16 }) }
+  if (sub) { const s = fitLine(sub, tw - 100, 34, 24, 500); text(s.str, W / 2, ly + 160, { size: s.size, weight: 500, color: '#e9e1d6', align: 'center', shadow: 16 }) }
+  // kod QR do strony z prośbami modlitewnymi (gdy podany link)
+  if (link) { const q = 190, qx = W - q - 90, qy = H - q - 84; qrTile({ qr: link, head: '' }, qx, qy, q, settings.prayerLinkLabel || 'Prośby modlitewne') }
 }
 function bannerQrs(B) {
   const tiles = endTiles(), pick = h => tiles.filter(x => x.head === h)

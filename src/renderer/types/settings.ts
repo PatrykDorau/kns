@@ -67,6 +67,8 @@ export interface Settings {
   streamLyricsKey: string
   prayerText?: string // nakładka „Modlitwa”: napis i podpis
   prayerSub?: string
+  prayerLink?: string // kod QR do strony z prośbami modlitewnymi
+  prayerLinkLabel?: string
   musicList: { id: string; name: string; path: string }[] // podkład muzyczny na transmisji
   musicVolume: number // 0–1
   musicLoop: boolean // lista w kółko (po ostatnim utworze znowu pierwszy)
