@@ -35,7 +35,7 @@ export default defineComponent({
   </template>
   <template v-else>
   <p class="note" style="margin-top:0">Wybierz służbę i zgłoś się — lider służby potwierdzi zgłoszenie.</p>
-  <button v-if="canCreateMinistry" class="primary" style="width:100%;margin-bottom:12px" @click="editMinistry()"><svg class="i"><use href="#plus"/></svg>Nowa służba</button>
+  <button v-if="canCreateMinistry" class="primary page-action" style="width:100%;margin-bottom:12px" @click="editMinistry()"><svg class="i"><use href="#plus"/></svg>Nowa służba</button>
   <div v-if="serve.busy && !serve.list.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="serve.error" class="error">{{ serve.error }}</p>
   <p v-else-if="!serve.list.length" class="note">Nie ma jeszcze żadnych służb{{ canCreateMinistry ? ' — dodaj pierwszą.' : '.' }}</p>

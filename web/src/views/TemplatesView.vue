@@ -13,5 +13,5 @@ export default defineComponent({ setup: () => useApp() })
     <span class="body"><b>{{ t.name }}</b><small>{{ t.time || 'bez godziny' }}<template v-if="t.place"> · {{ t.place }}</template> · punktów programu: {{ t.program.length }}</small></span>
     <svg class="i chev"><use href="#chev"/></svg>
   </button>
-  <button class="primary" style="width:100%;margin-top:6px" @click="newType"><svg class="i"><use href="#plus"/></svg>Nowy rodzaj wydarzenia</button>
+  <button class="primary page-action" style="width:100%;margin-top:6px" @click="newType"><svg class="i"><use href="#plus"/></svg>Nowy rodzaj wydarzenia</button>
 </template>

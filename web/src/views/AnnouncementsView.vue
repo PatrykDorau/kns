@@ -33,12 +33,14 @@ export default defineComponent({ components: { Giveaways }, setup: () => useApp(
   </div>
   <p v-if="!activeAnns.length" class="note">Nie ma aktualnych ogłoszeń.</p>
   <p v-else-if="annQuery.trim() && !shownActiveAnns.length && !shownOldAnns.length" class="note">Nic nie znaleziono dla „{{ annQuery.trim() }}”.</p>
+  <div class="wide-list ann-list">
   <button v-for="a in shownActiveAnns" :key="a.id" class="ann" :class="{ important: a.important, fresh: annIsNew(a) }" @click="openAnn(a)">
     <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
     <span class="ann-tags"><span v-if="annIsNew(a)" class="ann-tag kh-new">Nowe</span><span v-if="a.pinned" class="ann-tag pin"><svg class="i"><use href="#pin"/></svg>Przypięte</span><span v-if="a.video" class="ann-tag vid">▶ Film</span><span v-if="a.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
     <b>{{ a.title }}</b>
     <span class="ann-body">{{ a.text }}</span>
   </button>
+  </div>
   <template v-if="shownOldAnns.length">
     <div class="section"><h2>Archiwum · {{ shownOldAnns.length }}</h2></div>
     <button v-for="a in shownOldAnns" :key="a.id" class="ann old" @click="openAnn(a)">

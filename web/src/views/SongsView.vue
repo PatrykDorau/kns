@@ -12,8 +12,8 @@ export default defineComponent({ setup: () => useApp() })
     <svg class="i"><use href="#search"/></svg>
     <input v-model="songQuery" type="search" :placeholder="`Szukaj: numer, tytuł, tekst (${songs.length})`" autocomplete="off">
   </div>
-  <button v-if="canEdit" class="primary" style="width:100%;margin-top:12px" @click="newSong"><svg class="i"><use href="#plus"/></svg>Nowa pieśń</button>
-  <div class="songs">
+  <button v-if="canEdit" class="primary page-action" style="width:100%;margin-top:12px" @click="newSong"><svg class="i"><use href="#plus"/></svg>Nowa pieśń</button>
+  <div class="songs wide-list">
     <p v-if="!songResults.length" class="note">{{ songs.length ? 'Nie ma takiej pieśni.' : 'Baza pieśni jest pusta.' }}</p>
     <button v-for="s in songResults" :key="s.id" class="song pickable" @click="openSong(s)">
       <span class="pos">{{ s.number || '♪' }}</span>
