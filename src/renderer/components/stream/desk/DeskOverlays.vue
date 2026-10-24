@@ -3,14 +3,15 @@ import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label } from '@/stores'
-import { OVERLAYS, setMediaPos, setOverlayMode, studio, toggleLowerThird, toggleLyrics } from '@/services/studio'
+import { OVERLAYS, setMediaPos, setOverlayMode, studio, toggleEndOverlay, toggleLowerThird, toggleLyrics } from '@/services/studio'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 
 // Nakładki: zawsze pod ręką (napisy, pasek mówcy, grafika/napis, kamera w okienku).
 const { pvOver, pgOver, deskTab, pip } = useDesk()
 // każda nakładka tylko na scenach, na których ją widać (kamera w okienku — na każdej poza Kamerą)
 const on = (k: keyof typeof OVERLAYS) => OVERLAYS[k].includes(studio.preview.scene)
-const anyOverlay = computed(() => on('lyrics') || on('lowerThird') || on('media') || on('pip'))
+const anyOverlay = computed(() => on('lyrics') || on('lowerThird') || on('media') || on('end') || on('pip'))
+const endLive = computed(() => !!studio.program.endOvl && OVERLAYS.end.includes(studio.program.scene))
 const pipLive = computed(() => !!studio.program.pip.on && OVERLAYS.pip.includes(studio.program.scene))
 </script>
 
@@ -37,6 +38,7 @@ const pipLive = computed(() => !!studio.program.pip.on && OVERLAYS.pip.includes(
       </template>
       <button v-else class="desk-ovl-add" title="Grafika, logo albo napis na obrazie z kamery/rzutnika" @click="deskTab = 'media'"><Icon name="image" />Grafika / napis…</button>
     </span>
+    <button v-if="on('end')" :class="{ on: studio.preview.endOvl, live: endLive }" :aria-pressed="!!studio.preview.endOvl" title="Plansza końcowa na obrazie z kamery: podziękowanie, najbliższe nabożeństwo i kody QR w pasku u dołu (napis i podpis — w ustawieniach sceny Koniec). Najpierw na podglądzie, na wizję po „Na wizję”" @click="toggleEndOverlay"><Icon name="qr" />Koniec</button>
     <span v-if="on('pip')" class="desk-ovl-media" :class="{ on: studio.preview.pip.on, live: pipLive }">
       <button :class="{ on: studio.preview.pip.on, live: pipLive }" :aria-pressed="!!studio.preview.pip.on" title="Obraz z kamery (ATEM) w okienku na tej scenie — najpierw na podglądzie, na wizję po „Na wizję”" @click="pip({ on: !studio.preview.pip.on })"><Icon name="camera" />Kamera w okienku</button>
       <template v-if="studio.preview.pip.on">

@@ -22,6 +22,7 @@ export interface Look {
   media: string // materiał na cały ekran (scena „Media”)
   omedia: string // materiał jako nakładka
   ovl: 'off' | 'full' | 'corner'
+  endOvl: boolean // plansza końcowa jako nakładka (pasek u dołu)
   mpos: { corner: Corner | string; size: BoxSize }
 }
 

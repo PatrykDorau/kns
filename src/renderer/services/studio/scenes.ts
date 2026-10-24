@@ -12,7 +12,7 @@ import { toProgram } from './look'
 let lyricShown = '', lyricPrev = '', lyricAt = 0
 /* ---------- sceny ---------- */
 export const SCENE_DRAW = {
-  camera(t) { drawCamera(); mediaOverlay(); lowerThird(t); lyrics(t) },
+  camera(t) { drawCamera(); mediaOverlay(); endOverlay(); lowerThird(t); lyrics(t) },
   // „Zaraz zaczynamy” (wygląd w Studio → Scena): tło (papier z grafikami po bokach, ciemne, kolory, grafika),
   // zegar u góry z ogłoszeniami w pętli na środku — albo duży zegar na środku z napisem i podpisem.
   countdown(t) {
@@ -56,7 +56,7 @@ export const SCENE_DRAW = {
   projector(t) {
     projectorFrame(t)
     cameraPip()
-    mediaOverlay(); lowerThird(t); lyrics(t)
+    mediaOverlay(); endOverlay(); lowerThird(t); lyrics(t)
   },
   media(t) {
     const it = mediaSlide(S.media)
@@ -134,6 +134,29 @@ function endSide(L, light) {
     else { text('BLIK na numer', tx, mid + 22, { size: 32, weight: 600, color: '#6b6258' }); text(tl.phone, tx, mid + 96, { size: 64, weight: 800, color: '#e8952f' }) }
     ty += th + gap
   }
+}
+// Koniec jako nakładka (Kamera, Rzutnik): obraz zostaje, u dołu ciemny pasek z logo, podziękowaniem,
+// najbliższym nabożeństwem i małymi kodami QR po prawej.
+function endOverlay() {
+  if (!S.endOvl) return
+  const L = endLook(), tiles = endTiles(), bh = 330, y = H - bh
+  const gr = g.createLinearGradient(0, y - 160, 0, H); gr.addColorStop(0, 'rgba(10,10,12,0)'); gr.addColorStop(0.35, 'rgba(10,10,12,0.72)'); gr.addColorStop(1, 'rgba(10,10,12,0.9)')
+  g.fillStyle = gr; g.fillRect(0, y - 160, W, bh + 160)
+  g.fillStyle = '#f6a836'; g.fillRect(0, H - 8, W, 8)
+  const tw = 190, gap = 26, qrW = tiles.length * tw + Math.max(0, tiles.length - 1) * gap, tx0 = W - 80 - qrW
+  logo(80, y + 60, 150, true)
+  const maxT = tx0 - 330 - 60
+  const t = fitLine(L.title || '', maxT, 72, 44, 800)
+  text(t.str, 300, y + 128, { size: t.size, weight: 800, color: '#fff', shadow: 20 })
+  let ly = y + 190
+  for (const l of [L.sub, nextLine()].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 300, ly, { size: f.size, weight: 600, color: '#f3e3c8', shadow: 14 }); ly += 48 }
+  tiles.forEach((tl, i) => {
+    const x = tx0 + i * (tw + gap), qy = y + 40
+    if (tl.qr) { g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 20; rounded(x, qy, tw, tw, 14); g.fillStyle = '#fff'; g.fill(); g.restore(); qr(tl.qr, x + 8, qy + 8, tw - 16) }
+    else { rounded(x, qy, tw, tw, 14); g.fillStyle = 'rgba(255,255,255,0.1)'; g.fill(); text('BLIK', x + tw / 2, qy + 80, { size: 34, weight: 700, color: '#f3e3c8', align: 'center' }); const p = fitLine(tl.phone, tw - 16, 40, 24, 800); text(p.str, x + tw / 2, qy + 136, { size: p.size, weight: 800, color: '#f6a836', align: 'center' }) }
+    const hd = fitLine(tl.head === 'Wesprzyj kościół' ? 'Wsparcie' : tl.head, tw, 28, 20, 700)
+    text(hd.str, x + tw / 2, qy + tw + 42, { size: hd.size, weight: 700, color: '#fff', align: 'center', shadow: 12 })
+  })
 }
 // duży napis na środku, pod nim nabożeństwo; kody QR małe, w pasku u dołu
 function endCenter(L, light) {
