@@ -42,6 +42,7 @@ function createDesk(service: Ref<Service | null>) {
   loadListen().then(v => { if (v && !v.error) Object.assign(studio.end, { youtube: v.youtube || v.youtubeMore || '', spotify: v.spotify || '' }) })
   onBeforeUnmount(pauseIdle)
 
+  // PIP kamera: włącz/wyłącz (wyłączenie od razu z wizji), róg i rozmiar zapamiętane na tym komputerze
   function pip(p: Partial<Pip>) { setPip(p); if (p.corner) settings.pipCorner = p.corner; if (p.size) settings.pipSize = p.size }
 
   // źródła pod scenami: przy Materiale — biblioteka; inaczej zostaje to, co było

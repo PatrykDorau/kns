@@ -3,10 +3,11 @@
 import { itemById, settings } from '@/stores'
 import type { Look } from '@/types'
 import { studio } from './state'
+import { CD_DEFAULT, END_DEFAULT } from './cards'
 
 // Bieżący wygląd plansz z ustawień (kopia) — wizja dostaje go przy „Na wizję”, podgląd zawsze rysuje z ustawień.
 const copy = x => (x == null ? x : JSON.parse(JSON.stringify(x)))
-export const liveStyles = () => ({ cd: copy(settings.cdLook), end: copy(settings.endLook), banner: copy(settings.banner), prayer: { text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel } })
+export const liveStyles = () => ({ cd: { ...CD_DEFAULT, ...copy(settings.cdLook || {}) }, end: { ...END_DEFAULT, ...copy(settings.endLook || {}) } }) // plansze; nakładki działają od razu
 const stylesOf = l => JSON.stringify(l.styles || liveStyles())
 // przejście na wizji: poprzedni wygląd znika przez pół sekundy
 export const fade: { from: Look | null; at: number } = { from: null, at: 0 }
@@ -29,11 +30,19 @@ export function change(fn) {
   if (studio.direct) toProgram(fn)
 }
 export function setScene(id) { change(l => { l.scene = id }) }
-export function toggleLowerThird() { change(l => { l.lowerThird = !l.lowerThird; l[l.lowerThird ? 'lowerAt' : 'lowerOff'] = performance.now() }) }
+// Nakładki (pasek mówcy, modlitwa, baner, PIP, grafika): włączenie i zmiany idą na podgląd (na wizję po „Na wizję”),
+// a wyłączenie działa od razu — zdejmuje nakładkę z wizji i z podglądu.
+function off(fn) { fn(studio.preview); toProgram(fn) }
+function toggle(key: 'lowerThird' | 'prayer' | 'endOvl', set = (l, v) => { l[key] = v }) {
+  if (studio.program[key] || studio.preview[key]) off(l => set(l, false))
+  else change(l => set(l, true))
+}
+const lt = (l, v) => { l.lowerThird = v; l[v ? 'lowerAt' : 'lowerOff'] = performance.now() }
+export function toggleLowerThird() { toggle('lowerThird', lt) }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
-export function togglePrayer() { change(l => { l.prayer = !l.prayer }) }
-export function toggleEndOverlay() { change(l => { l.endOvl = !l.endOvl }) }
-export function setPip(p) { change(l => { l.pip = { ...l.pip, ...p } }) }
+export function togglePrayer() { toggle('prayer') }
+export function toggleEndOverlay() { toggle('endOvl') }
+export function setPip(p) { if (p.on === false) off(l => { l.pip = { ...l.pip, on: false } }); else change(l => { l.pip = { ...l.pip, ...p } }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
 export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, endOvl: p.endOvl, prayer: p.prayer, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }) }
@@ -47,5 +56,5 @@ export function showMediaOverlay(id) {
   const it = itemById(id)
   change(l => { l.omedia = id; if (l.ovl === 'off') l.ovl = it?.type === 'text' ? 'full' : 'corner'; if (l.scene === 'media') l.scene = 'camera' })
 }
-export function setOverlayMode(mode) { change(l => { l.ovl = mode }) }
+export function setOverlayMode(mode) { if (mode === 'off') off(l => { l.ovl = 'off' }); else change(l => { l.ovl = mode }) }
 export function setMediaPos(p) { change(l => { l.mpos = { ...l.mpos, ...p } }) }

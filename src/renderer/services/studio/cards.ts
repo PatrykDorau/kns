@@ -172,15 +172,15 @@ export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: ''
 // tło spoza listy (np. dawne „Ciemne”) — papier
 const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'paper' })
 // wizja rysuje wygląd z chwili „Na wizję” (S.styles), podgląd — bieżące ustawienia
-export const styleOf = (k: 'cd' | 'end' | 'banner' | 'prayer', live) => (S?.styles ? S.styles[k] : live)
+export const styleOf = (k: 'cd' | 'end', live) => (S?.styles ? S.styles[k] : live)
 export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.cdLook) || {}) })
 // Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
 export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'Dziękujemy, że byliście z nami!', sub: '', layout: 'cards', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
 // Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
 export const BANNER_DEFAULT = { style: 'frame', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: '', note: '', qr: 'all', link: '' } as const
-export const bannerLook = () => ({ ...BANNER_DEFAULT, ...(styleOf('banner', settings.banner) || {}) })
-export const prayerLook = () => styleOf('prayer', { text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel }) || {}
+export const bannerLook = () => ({ ...BANNER_DEFAULT, ...(settings.banner || {}) }) // nakładka — zawsze bieżące ustawienia (działa od razu na wizji)
+export const prayerLook = () => ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 // Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów albo grafika z Biblioteki.
 export function cdBackground(L, t, side = true) {
   if (BACKGROUNDS[L.bg]) return BACKGROUNDS[L.bg](t)

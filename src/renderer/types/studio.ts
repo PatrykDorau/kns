@@ -11,8 +11,8 @@ export interface Pip {
   on: boolean // kamera w okienku (na każdej scenie poza Kamerą)
 }
 
-// Wygląd plansz i nakładek (kopia ustawień): odliczanie, koniec, baner, modlitwa.
-export interface LookStyles { cd: any, end: any, banner: any, prayer: { text?: string, sub?: string, link?: string, label?: string } }
+// Wygląd plansz (kopia ustawień): odliczanie, koniec.
+export interface LookStyles { cd: any, end: any }
 
 // Wygląd jednej strony (podgląd albo wizja).
 export interface Look {
