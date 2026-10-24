@@ -41,7 +41,7 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
 <template>
   <p class="desk-help">{{ SCENE_HELP[studio.preview.scene] }}</p>
   <div v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
-    <small class="muted">Zegar</small>
+    <small class="muted">{{ studio.preview.scene === 'countdown' ? 'Zegar' : 'Zegar na wizji' }}</small>
     <button :class="{ on: !studio.countdownTo }" title="Odliczanie do godziny nabożeństwa" @click="setCountdown(0)">do nabożeństwa</button>
     <button v-for="m in [5, 10, 15]" :key="m" @click="setCountdown(m)">{{ m }} min</button>
     <button title="Dodaj minutę" @click="addCountdown(1)">+1</button>
@@ -49,9 +49,9 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
     <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
   </div>
   <!-- wygląd odliczania: układ, zegar, kolor, tło, treść, napisy -->
-  <CountdownLook v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" />
+  <CountdownLook v-if="studio.preview.scene === 'countdown'" />
   <!-- wygląd końca: tło, układ, napis i podpis -->
-  <div v-if="studio.preview.scene === 'end' || studio.program.scene === 'end'" class="desk-cd" role="group" aria-label="Wygląd końca">
+  <div v-if="studio.preview.scene === 'end'" class="desk-cd" role="group" aria-label="Wygląd końca">
     <div class="desk-opt-group">
       <small class="muted">Układ</small>
       <button v-for="[id, name, tip] in END_LAYOUTS" :key="id" :class="{ on: en.layout === id }" :aria-pressed="en.layout === id" :title="tip" @click="en.layout = id">{{ name }}</button>
