@@ -205,7 +205,7 @@ img.kh-note-ic { object-fit: cover; padding: 0; }
 .skel-row { height: 62px; }
 .skel-line { height: 14px; border-radius: 7px; }
 .skel-hero { height: 170px; border-radius: 18px; }
-.boot { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 1080px; margin: 28px auto; padding: 0 16px; box-sizing: border-box; }
+.boot { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 1080px; margin: 0 auto 28px; padding: 28px 16px 0; /* odstęp wewnątrz — margines „przeciekał” przez body i u góry był ciemny pasek */ box-sizing: border-box; }
 .boot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .kh-top2 > .kh-svc .kh-foot { margin-top: auto; }
 /* Bez komunikatów rady: karta najbliższego nabożeństwa na całą szerokość, niższa. */

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
 import { remote as remoteScreen } from '@/services/screenShare'
-import { addCountdown, setCountdown, studio } from '@/services/studio'
+import { ANN_MEDIA, addCountdown, setCountdown, studio } from '@/services/studio'
 import { END_DEFAULT } from '@/services/studio/cards'
 import LookBg from './LookBg.vue'
 import CountdownLook from './CountdownLook.vue'
@@ -62,7 +62,8 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
   </div>
   <p v-if="studio.preview.scene === 'projector'" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ projectorNote }}</p>
   <div v-if="studio.preview.scene === 'media'" class="desk-opt-group">
-    <template v-if="pvFull"><Thumb :item="pvFull" /><b>{{ label(pvFull) }}</b><button @click="deskTab = 'media'">Zmień</button></template>
+    <template v-if="studio.preview.media === ANN_MEDIA"><b>Ogłoszenia w pętli</b><button @click="deskTab = 'slides'">Które ogłoszenia…</button><button @click="deskTab = 'media'">Zmień</button></template>
+    <template v-else-if="pvFull"><Thumb :item="pvFull" /><b>{{ label(pvFull) }}</b><button @click="deskTab = 'media'">Zmień</button></template>
     <button v-else class="primary" @click="deskTab = 'media'">Wybierz materiał</button>
   </div>
 </template>

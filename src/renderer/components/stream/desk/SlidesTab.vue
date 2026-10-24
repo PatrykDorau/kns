@@ -24,5 +24,5 @@ function toggleSlide(id: string) { const h = new Set(settings.studioHidden || []
       <button class="desk-slide-eye" :title="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" :aria-label="studio.hidden.includes(sl.id) ? 'Włącz do pętli' : 'Pomiń w pętli'" @click="toggleSlide(sl.id)"><Icon :name="studio.hidden.includes(sl.id) ? 'eyeoff' : 'eye'" /></button>
     </div>
   </div>
-  <p class="note">Inne ogłoszenia dodasz albo wyłączysz w Ogłoszeniach („Pokaż na nabożeństwie”, „Dla wszystkich”). Lista zmienia się sama.</p>
+  <p class="note">Ta pętla gra w Odliczaniu i na scenie Materiał (Biblioteka → „Ogłoszenia w pętli” → Na ekran). Pętla „Ogłoszenia — grafiki” z Rzutnika to osobna, stała kopia — tej listy nie słucha. Inne ogłoszenia dodasz albo wyłączysz w Ogłoszeniach („Pokaż na nabożeństwie”, „Dla wszystkich”). Lista zmienia się sama.</p>
 </template>

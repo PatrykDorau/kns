@@ -1,8 +1,8 @@
 // Sceny: co rysujemy na płótnie dla każdej sceny, napisy pieśni i pasek z mówcą.
 import { nearestService, servicePlace, settings } from '@/stores'
-import { H, W, studio } from './state'
+import { ANN_MEDIA, H, W, studio } from './state'
 import { S, background, fitLine, fontStr, g, img, rounded, setHalo, text, wrap } from './paint'
-import { CARD, armed, bankQr, bannerLook, cdBackground, cdLook, endLook, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
+import { CARD, armed, bankQr, bannerLook, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
@@ -41,6 +41,12 @@ export const SCENE_DRAW = {
     mediaOverlay(); prayerOverlay(); endOverlay(); lowerThird(t); lyrics(t)
   },
   media(t) {
+    if (S.media === ANN_MEDIA) {
+      const c = carousel(t)
+      if (c) drawCarousel(c, 0, 0, W, H)
+      else { paper(); text('Brak ogłoszeń — włącz je w zakładce „Ogłoszenia”', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }) }
+      cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t); return
+    }
     const it = mediaSlide(S.media)
     if (!it) { background(t); text('Wybierz materiał w Bibliotece (pod podglądem)', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
     drawMedia(it, true); cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t)

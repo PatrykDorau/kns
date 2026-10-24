@@ -81,6 +81,7 @@ export interface Settings {
   camOnTop: boolean
   camCueBar: boolean
   deletedSongs: Record<string, number> // id → czas usunięcia
+  libraryTrash?: { item: any, extras?: any[], refs?: { loop: string, i: number, entry: any }[], at: number }[] // kosz Biblioteki
   songStyle: TextStyle
   sharedLayout?: number // wersja układu folderu wspólnego (przenoszenie starych zapisów)
 }

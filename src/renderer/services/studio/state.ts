@@ -11,6 +11,8 @@ import { reactive } from 'vue'
 import type { Look, StudioState } from '@/types'
 
 export const W = 1920, H = 1080
+// „Materiał” specjalny: ogłoszenia w pętli (zakładka „Ogłoszenia” — które i co ile sekund)
+export const ANN_MEDIA = '@ann'
 
 export const SCENES = [
   ['camera', 'Kamera'],

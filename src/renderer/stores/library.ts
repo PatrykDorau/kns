@@ -79,7 +79,8 @@ export const pickFiles = async intoLoop => addFiles(await api.pickFiles(), intoL
 export const pickDeck = async () => addFiles(await api.pickFiles('deck'))
 
 export const fileUsed = p => items.value.some(i => i.path === p || i.bgImage === p) || settings.songStyle.bgImage === p ||
-  services.value.some(s => s.files.some(f => f.path === p))
+  services.value.some(s => s.files.some(f => f.path === p)) ||
+  (settings.libraryTrash || []).some(r => [r.item, ...(r.extras || [])].some(i => i.path === p || i.bgImage === p)) // w koszu — plik zostaje
 // Kasuje kopię pliku z folderu aplikacji, gdy nic już z niej nie korzysta.
 export const dropFile = p => { if (p && !fileUsed(p)) api.removeFile(p) }
 
@@ -202,6 +203,37 @@ export function removeEntry(loop, i) {
   if (it?.hidden && !stillUsed) deleteItem(it)
 }
 
+/* ---------- kosz: usunięte materiały (nie pieśni) czekają TRASH_DAYS dni, pliki zostają do opróżnienia ---------- */
+export const TRASH_DAYS = 30
+const clone = x => JSON.parse(JSON.stringify(x))
+export function trashItem(it) {
+  if (!settings.libraryTrash) settings.libraryTrash = []
+  // gdzie był w pętlach (żeby wrócił na swoje miejsce) i — dla pętli — jej ukryte slajdy
+  const refs = []
+  for (const loop of items.value) if (loop.type === 'scene' && loop !== it) loop.entries.forEach((e, i) => { if (e.ref === it.id) refs.push({ loop: loop.id, i, entry: clone(e) }) })
+  const extras = it.type === 'scene' ? it.entries.map(e => itemById(e.ref)).filter(x => x?.hidden && !items.value.some(l => l !== it && l.type === 'scene' && l.entries.some(e2 => e2.ref === x.id))) : []
+  settings.libraryTrash.unshift({ item: clone(it), extras: extras.map(clone), refs, at: Date.now() })
+  for (const loop of items.value) if (loop.type === 'scene' && loop !== it) loop.entries = loop.entries.filter(e => e.ref !== it.id)
+  for (const x of [it, ...extras]) { const i = items.value.indexOf(x); if (i >= 0) items.value.splice(i, 1) }
+}
+export function restoreTrash(index) {
+  const [r] = (settings.libraryTrash || []).splice(index, 1)
+  if (!r) return
+  for (const x of [...(r.extras || []), r.item]) if (!itemById(x.id)) items.value.push(x)
+  for (const ref of r.refs || []) { const loop = itemById(ref.loop); if (loop?.type === 'scene' && !loop.entries.some(e => e.ref === r.item.id)) loop.entries.splice(Math.min(ref.i, loop.entries.length), 0, ref.entry) }
+  notice.value = '„' + label(r.item) + '” wrócił do Biblioteki.'
+}
+// usunięcie na zawsze: najpierw z kosza, potem plik (gdy nic innego z niego nie korzysta)
+function purge(r) { for (const x of [r.item, ...(r.extras || [])]) { dropFile(x.path); dropFile(x.bgImage) } }
+export function purgeTrashAt(index) { const [r] = (settings.libraryTrash || []).splice(index, 1); if (r) purge(r) }
+export function emptyTrash() { const all = (settings.libraryTrash || []).splice(0); all.forEach(purge) }
+// przy starcie: starsze niż TRASH_DAYS dni znikają same
+export function purgeOldTrash() {
+  const list = settings.libraryTrash || [], old = list.filter(r => Date.now() - r.at > TRASH_DAYS * 86400000)
+  if (!old.length) return
+  settings.libraryTrash = list.filter(r => !old.includes(r)); old.forEach(purge)
+}
+
 export function remove(it) {
   confirmId.value = null
   if (it.id === liveId.value) hide()
@@ -213,9 +245,7 @@ export function remove(it) {
     settings.service = settings.service.filter(e => e.songId !== it.id)
     if (settings.sharedDir) settings.deletedSongs[it.id] = Date.now()
   } else {
-    if (it.type === 'scene') while (it.entries.length) removeEntry(it, 0)
-    else for (const loop of items.value) if (loop.type === 'scene') loop.entries = loop.entries.filter(e => e.ref !== it.id)
-    deleteItem(it)
+    trashItem(it) // do kosza — da się przywrócić
   }
   if (it.id === selectedId.value) selectedId.value = neighbour?.id ?? null
 }

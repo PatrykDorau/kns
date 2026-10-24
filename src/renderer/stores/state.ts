@@ -39,6 +39,7 @@ export const settings = reactive<Settings>({
   camLabels: true, // podpisy na obrazach kamer
   camOnTop: false, // okno stream zawsze na wierzchu
   camCueBar: true, // w trybie nakładki: pasek sygnałów dla kamerzysty pod kamerami
+  libraryTrash: [], // kosz Biblioteki: { item, extras, refs, at }
   deletedSongs: {}, // id → czas usunięcia; żeby pieśń usunięta tutaj zniknęła też na innych komputerach
   songStyle: { ...TEXT_STYLE, fs: 14, shadow: true, valign: 'top' }, // pieśni domyślnie od góry ekranu
 })

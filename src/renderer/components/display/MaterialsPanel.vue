@@ -3,15 +3,17 @@ import { ref } from 'vue'
 import { focusEl } from '@/utils/dom'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
+import LibraryTrash from '@/components/common/LibraryTrash.vue'
 import {
   bibleOpen, addLoop, addCountdown, addText, addWeb, addAnnouncements, currentAnnouncements, projectorGraphics, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
-  renameValue, renamingId, search, selectedId, startRename, visibleItems,
+  renameValue, renamingId, search, selectedId, settings, startRename, visibleItems,
 } from '@/stores'
 
 // Tryb zaznaczania: pola wyboru przy wierszach i jedno usunięcie dla wielu naraz.
 const picking = ref(false)
 const picked = ref(new Set())
 const confirmBulk = ref(false)
+const showTrash = ref(false) // kosz: usunięte materiały do przywrócenia
 function togglePick(id) {
   const set = new Set(picked.value)
   set.has(id) ? set.delete(id) : set.add(id)
@@ -54,7 +56,9 @@ function drop(it) {
       <input v-model="search.materials" type="search" placeholder="Szukaj w Bibliotece" aria-label="Szukaj w Bibliotece">
     </label>
     <button class="small" :aria-pressed="picking" title="Zaznaczanie wielu pozycji naraz" :disabled="!visibleItems.length" @click="picking ? stopPicking() : (picking = true)">{{ picking ? 'Gotowe' : 'Zaznacz' }}</button>
+    <button class="small" :aria-pressed="showTrash" title="Usunięte materiały — można je przywrócić" @click="showTrash = !showTrash"><Icon name="trash" /><template v-if="settings.libraryTrash?.length">{{ settings.libraryTrash.length }}</template></button>
   </div>
+  <LibraryTrash v-if="showTrash" />
   <div v-if="picking" class="bulk">
     <button class="small" @click="pickAll">{{ allPicked() ? 'Odznacz wszystkie' : 'Zaznacz wszystkie' }}</button>
     <span class="spacer"></span>
