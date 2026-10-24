@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label } from '@/stores'
@@ -7,16 +8,19 @@ import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 
 // Nakładki: na obrazie z kamery i rzutnika — zawsze pod ręką (napisy, pasek mówcy, grafika/napis).
 const { pvOver, pgOver, deskTab } = useDesk()
+// scena w podglądzie bez nakładek (Odliczanie, Ogłoszenia, Koniec) — pasek się chowa; każda nakładka tylko tam, gdzie ją widać
+const on = (k: keyof typeof OVERLAYS) => OVERLAYS[k].includes(studio.preview.scene)
+const anyOverlay = computed(() => on('lyrics') || on('lowerThird') || on('media'))
 </script>
 
 <template>
-  <div class="desk-ovl">
+  <div v-if="anyOverlay" class="desk-ovl">
     <small class="desk-lbl">Nakładki</small>
-    <button :class="{ on: studio.program.lyricsOn, live: studio.program.lyricsOn, idle: !OVERLAYS.lyrics.includes(studio.program.scene) }" :aria-pressed="studio.program.lyricsOn"
+    <button v-if="on('lyrics')" :class="{ on: studio.program.lyricsOn, live: studio.program.lyricsOn, idle: !OVERLAYS.lyrics.includes(studio.program.scene) }" :aria-pressed="studio.program.lyricsOn"
             :title="'Napisy pieśni — włączają się i wyłączają od razu na wizji. Sceny: Kamera, Rzutnik, Rzutnik + kamera, Media' + (OVERLAYS.lyrics.includes(studio.program.scene) ? '' : ' (na tej scenie wizji ich nie ma)')" @click="toggleLyrics"><Icon name="music" />Napisy {{ studio.program.lyricsOn ? 'wł.' : 'wył.' }}</button>
-    <button :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird, idle: !OVERLAYS.lowerThird.includes(studio.preview.scene) }" :aria-pressed="studio.preview.lowerThird"
+    <button v-if="on('lowerThird')" :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird, idle: !OVERLAYS.lowerThird.includes(studio.preview.scene) }" :aria-pressed="studio.preview.lowerThird"
             :title="'Pasek z mówcą — najpierw na podglądzie, na wizję po „Na wizję”. Sceny: Kamera, Rzutnik + kamera, Media' + (OVERLAYS.lowerThird.includes(studio.preview.scene) ? '' : ' (na tej scenie go nie ma)')" @click="toggleLowerThird"><Icon name="text" />Pasek mówcy</button>
-    <span class="desk-ovl-media" :class="{ on: pvOver, live: pgOver }">
+    <span v-if="on('media')" class="desk-ovl-media" :class="{ on: pvOver, live: pgOver }">
       <template v-if="pvOver">
         <Thumb :item="pvOver" />
         <span class="desk-ovl-name" :title="label(pvOver)">{{ label(pvOver) }}</span>
@@ -32,6 +36,5 @@ const { pvOver, pgOver, deskTab } = useDesk()
       </template>
       <button v-else class="desk-ovl-add" title="Grafika, logo albo napis na obrazie z kamery/rzutnika" @click="deskTab = 'media'"><Icon name="image" />Grafika / napis…</button>
     </span>
-    <small v-if="!OVERLAYS.lyrics.includes(studio.preview.scene)" class="muted desk-ov-note">na tej scenie bez nakładek</small>
   </div>
 </template>
