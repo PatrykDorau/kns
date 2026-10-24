@@ -39,10 +39,12 @@ const minutes = t => { const [h, m] = String(t || '0:0').split(':').map(Number);
 const hhmm = total => String(Math.floor(total / 60) % 24).padStart(2, '0') + String(total % 60).padStart(2, '0')
 const ymd = d => d.replace(/-/g, '')
 function addDays(date, n) { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
-// Czas trwania: koniec programu + 15 min, inaczej nabożeństwo 1 h 45 min, wydarzenie 1 h 30 min.
+// Czas trwania: podana godzina zakończenia (po północy — następny dzień); inaczej koniec programu + 15 min,
+// a bez programu — nabożeństwo 1 h 45 min, wydarzenie 2 h.
 function span(item, start, fallback) {
-  const last = Math.max(0, ...(item.program || []).map(p => Number(p.offset) || 0))
   const s = minutes(start)
+  if (/^\d\d:\d\d$/.test(item.endTime || '')) { const e = minutes(item.endTime); return { s, e: e > s ? e : e + 1440 } }
+  const last = Math.max(0, ...(item.program || []).map(p => Number(p.offset) || 0))
   return { s, e: s + Math.max(fallback, last ? last + 15 : 0) }
 }
 function programText(item, start) {
@@ -80,7 +82,7 @@ export function buildIcs(feed, now = new Date()) {
   }
   for (const e of feed.events || []) {
     const about = [e.description, programText(e, e.time || '00:00')].filter(Boolean).join('\n\n')
-    event('ev-' + e.id, e, e.title || typeName(e.type) || 'Wydarzenie', e.time || '', e.place || '', about, 90)
+    event('ev-' + e.id, e, e.title || typeName(e.type) || 'Wydarzenie', e.time || '', e.place || '', about, 120)
   }
   lines.push('END:VCALENDAR')
   return lines.map(fold).join('\r\n') + '\r\n'

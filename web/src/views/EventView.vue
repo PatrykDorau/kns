@@ -18,7 +18,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     <h2 class="ann-view-title">{{ currentEvent.title || typeOf(currentEvent.type).name }}</h2>
     <p v-if="typeOf(currentEvent.type).community" class="ev-community"><svg class="i"><use href="#users"/></svg>Inicjatywa członków kościoła{{ currentEvent.createdBy ? ' — organizuje: ' + currentEvent.createdBy : '' }}</p>
     <div class="facts">
-      <span class="fact"><svg class="i"><use href="#calendar"/></svg><span><small>Kiedy</small><b>{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time">, {{ currentEvent.time }}</template></b></span></span>
+      <span class="fact"><svg class="i"><use href="#calendar"/></svg><span><small>Kiedy</small><b>{{ pretty(currentEvent.date).replace(/^./, c => c.toUpperCase()) }}<template v-if="currentEvent.time">, {{ timeRange(currentEvent) }}</template></b></span></span>
       <a v-if="currentEvent.place" class="fact" :href="mapLink(currentEvent.place)" target="_blank" rel="noopener"><svg class="i"><use href="#pin"/></svg><span><small>Gdzie · mapa</small><b>{{ currentEvent.place }}</b></span></a>
     </div>
     <div v-if="currentEvent.description" class="ann-view-text">{{ currentEvent.description }}</div>
@@ -118,10 +118,13 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
       <p v-if="!eventSavedOnce && canEdit" class="note" style="margin-top:4px">Nabożeństwo dodajesz w <button type="button" class="linkbtn" @click="newEvent('nabozenstwo')">Nabożeństwa → nowe nabożeństwo</button>.</p>
       <label for="evTitle">Nazwa <span class="req">*</span></label>
       <input id="evTitle" v-model="currentEvent.title" :class="{ invalid: !currentEvent.title.trim() }" autocomplete="off">
+      <label for="evDate">Data <span class="req">*</span></label>
+      <input id="evDate" v-model="currentEvent.date" type="date" :class="{ invalid: !currentEvent.date }">
       <div class="row">
-        <div><label for="evDate">Data <span class="req">*</span></label><input id="evDate" v-model="currentEvent.date" type="date" :class="{ invalid: !currentEvent.date }"></div>
-        <div><label for="evTime">Godzina</label><input id="evTime" v-model="currentEvent.time" type="time"></div>
+        <div><label for="evTime">Początek</label><input id="evTime" v-model="currentEvent.time" type="time"></div>
+        <div><label for="evEnd">Koniec <small class="muted">(ok.)</small></label><input id="evEnd" v-model="currentEvent.endTime" type="time" :disabled="!currentEvent.time"></div>
       </div>
+      <p v-if="currentEvent.time" class="note" style="margin:4px 0 0">Koniec jest opcjonalny i przybliżony — do tej godziny wydarzenie widać jako „Trwa teraz”. Bez niego przyjmujemy ok. 2 godziny.</p>
       <label for="evPlace">Miejsce</label>
       <input id="evPlace" v-model="currentEvent.place" autocomplete="off">
       <label for="evDesc">Opis</label>

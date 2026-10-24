@@ -34,7 +34,7 @@ export default defineComponent({
         <button class="icon le-x" title="Zamknij — przy tym wydarzeniu już się nie pokaże" aria-label="Zamknij okienko „Trwa teraz”" @click="close"><svg class="i"><use href="#x"/></svg></button>
       </div>
       <div v-if="open" class="le-body">
-        <small class="le-meta">{{ typeOf(liveEvent.type).name }}<template v-if="liveEvent.time"> · {{ liveEvent.time }}</template><template v-if="liveEvent.place"> · {{ liveEvent.place }}</template></small>
+        <small class="le-meta">{{ typeOf(liveEvent.type).name }}<template v-if="liveEvent.time"> · {{ timeRange(liveEvent) }}</template><template v-if="liveEvent.place"> · {{ liveEvent.place }}</template></small>
         <small v-if="attendance[liveEvent.id]" class="le-count"><svg class="i"><use href="#users"/></svg>{{ attendance[liveEvent.id].count }} z {{ attendance[liveEvent.id].members }} członków</small>
         <div class="le-act">
           <template v-if="canCheckIn(liveEvent)">

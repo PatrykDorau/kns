@@ -74,7 +74,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.33 · 20.10.2026'
+const VERSION = '3.34 · 24.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -680,7 +680,7 @@ export default defineComponent({
     // Jeden kalendarz: nabożeństwa i pozostałe wydarzenia.
     const calItems = computed(() => [
       ...services.value.filter(s => s.date).map(s => ({ kind: 'service', id: s.id, type: 'nabozenstwo', date: s.date, time: s.time || DEFAULT_TIME, place: s.place || DEFAULT_PLACE, title: s.sermonTitle ? 'Nabożeństwo: ' + s.sermonTitle : 'Nabożeństwo', ref: s })),
-      ...events.value.filter(e => e.date).map(e => ({ kind: 'event', id: e.id, type: e.type, date: e.date, time: e.time || '', place: e.place || '', title: e.title || typeOf(e.type).name, ref: e })),
+      ...events.value.filter(e => e.date).map(e => ({ kind: 'event', id: e.id, type: e.type, date: e.date, time: timeRange(e), place: e.place || '', title: e.title || typeOf(e.type).name, ref: e })),
     ].sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00'))))
     // Filtr kalendarza: nic nie zaznaczone = wszystko; gotowe zestawy dla każdego (Dla mnie — według rang),
     // pojedyncze rodzaje do doprecyzowania; wyszukiwanie po nazwie, miejscu i rodzaju. Zapamiętane na tym urządzeniu.
@@ -1820,16 +1820,25 @@ export default defineComponent({
     })
     // głosowania podpięte pod otwarte wydarzenie
     /* ---------- trwa teraz: wydarzenie, które właśnie się odbywa; obecność na spotkaniach ---------- */
+    // godziny wydarzenia do wyświetlenia: „18:00–20:00” albo samo „18:00”
+    function timeRange(e) { return e?.time ? e.time + (e.endTime ? '–' + e.endTime : '') : '' }
     const MEETINGS = ['czlonkowskie', 'rada']
     const isMeeting = ev => !!ev && MEETINGS.includes(ev.type)
     const yesterdayStr = computed(() => { const d = new Date(); d.setDate(d.getDate() - 1); return localDate(d) })
-    // od 45 min przed początkiem do ok. 5 godz. po nim (bez godziny — cały dzień); najpierw spotkania
+    // od 45 min przed początkiem do godziny zakończenia (przybliżonej; bez niej — 2 godz. po początku,
+    // bez godziny — cały dzień); najpierw spotkania
+    const eventEnd = e => {
+      const start = new Date(e.date + 'T' + (e.time || '00:00')).getTime()
+      if (!e.time) return start + 24 * 3600e3
+      if (/^\d\d:\d\d$/.test(e.endTime || '')) { let end = new Date(e.date + 'T' + e.endTime).getTime(); if (end <= start) end += 24 * 3600e3; return end }
+      return start + 2 * 3600e3
+    }
     const liveEvent = computed(() => {
       now.value
       const t = Date.now()
       return events.value.filter(e => e.date === todayStr.value || e.date === yesterdayStr.value).filter(e => {
         const start = new Date(e.date + 'T' + (e.time || '00:00')).getTime()
-        return t >= start - 45 * 60e3 && t <= start + (e.time ? 5 : 24) * 3600e3
+        return t >= start - 45 * 60e3 && t <= eventEnd(e)
       }).sort((a, b) => Number(isMeeting(b)) - Number(isMeeting(a)) || (a.time || '').localeCompare(b.time || ''))[0] || null
     })
     const attendance = reactive({}) // id spotkania → { count, members, me, names }
@@ -2428,7 +2437,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, annTab, giftOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
