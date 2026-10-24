@@ -9,13 +9,13 @@ import { connectMedia } from './audio'
 export const mediaUrl = p => (/^https?:\/\//.test(p) ? p : 'media://local/' + encodeURIComponent(p))
 export const videos = new Map() // id materiału → <video> (dźwięk filmu idzie do transmisji)
 // Materiał do narysowania: dla prezentacji/pętli — jej bieżący slajd.
-export function mediaSlide(id: string): MediaSlide | null {
+export function mediaSlide(id: string, at?: number): MediaSlide | null {
   const it = id && itemById(id)
   if (!it || it.missing) return null
   if (it.type !== 'scene') return it
   const list = (it.entries || []).map(e => itemById(e.ref)).filter(x => x && !x.missing)
   if (!list.length) return null
-  const n = ((studio.mplay.slides[id] || 0) % list.length + list.length) % list.length
+  const n = (((at ?? studio.mplay.slides[id]) || 0) % list.length + list.length) % list.length
   return { ...list[n], deckOf: id, slideNo: n + 1, slideCount: list.length }
 }
 export function mediaVideo(it) {
@@ -47,19 +47,36 @@ export function drawMedia(it, opaque) {
     if (v.readyState >= 2) fit(v, v.videoWidth, v.videoHeight, 0, 0, W, H)
   } else if (it.type === 'text') textItem(it, opaque)
 }
+// Prezentacja: przy zmianie slajdu krótkie przenikanie — poprzedni slajd pod spodem, nowy wchodzi (bez przeskoku).
+const SLIDE_FADE = 280
+const deckLast = new Map<string, { no: number, prev: number, at: number }>() // prezentacja → bieżący i poprzedni slajd
+export function drawSlideOf(id: string, draw: (it) => void) {
+  const it = mediaSlide(id)
+  if (!it) return false
+  if (!it.deckOf) { draw(it); return true }
+  const now = performance.now()
+  let d = deckLast.get(id)
+  if (!d) { d = { no: it.slideNo, prev: 0, at: 0 }; deckLast.set(id, d) }
+  if (d.no !== it.slideNo) { d.prev = d.no; d.no = it.slideNo; d.at = now }
+  const k = Math.min(1, (now - d.at) / SLIDE_FADE), prev = k < 1 && d.prev ? mediaSlide(id, d.prev - 1) : null
+  if (!prev) { draw(it); return true }
+  draw(prev)
+  g.save(); g.globalAlpha *= 1 - Math.pow(1 - k, 2); draw(it); g.restore()
+  return true
+}
 // Okienko w rogu (jak kamera w „Rzutnik + kamera”): materiał przeskalowany do okienka.
-export function mediaBox(it, pos) {
+export function mediaBox(id, pos) {
   const w = pos.size === 'large' ? 800 : 512, h = w * 9 / 16, m = 48
   const x = pos.corner.includes('l') ? m : W - w - m, y = pos.corner.includes('t') ? m : H - h - m
   g.save(); g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 40; rounded(x, y, w, h, 22); g.fillStyle = '#000'; g.fill(); g.restore()
-  g.save(); rounded(x, y, w, h, 22); g.clip(); g.translate(x, y); g.scale(w / W, h / H); drawMedia(it, true); g.restore()
+  g.save(); rounded(x, y, w, h, 22); g.clip(); g.translate(x, y); g.scale(w / W, h / H); drawSlideOf(id, it => drawMedia(it, true)); g.restore()
   g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
 }
 export function mediaOverlay() {
   if (S.ovl === 'off') return
   const it = mediaSlide(S.omedia)
   if (!it) return
-  if (S.ovl === 'corner') mediaBox(it, S.mpos); else drawMedia(it, false)
+  if (S.ovl === 'corner') mediaBox(S.omedia, S.mpos); else drawSlideOf(S.omedia, x => drawMedia(x, false))
 }
 // Co jest na wizji: materiał sceny „Media” i materiał nakładki (scena „Media” — bez nakładki).
 export function airMedia(L = studio.program) {

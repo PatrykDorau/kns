@@ -6,7 +6,7 @@ import { CARD, armed, bankQr, bannerLook, prayerLook, carousel, cdBackground, cd
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
-import { drawMedia, mediaOverlay, mediaSlide, mediaUrl } from './media'
+import { drawMedia, drawSlideOf, mediaOverlay, mediaSlide, mediaUrl } from './media'
 import { projectorFrame } from './projector'
 import { toProgram } from './look'
 
@@ -56,7 +56,7 @@ export const SCENE_DRAW = {
     }
     const it = mediaSlide(S.media)
     if (!it) { background(t); text('Wybierz materiał w Bibliotece (pod podglądem)', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
-    drawMedia(it, true); cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t)
+    drawSlideOf(S.media, x => drawMedia(x, true)); cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t)
   },
 }
 // Kamera w okienku (nakładka na każdej scenie poza Kamerą): wybrany róg, małe albo duże.
