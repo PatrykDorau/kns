@@ -1,7 +1,7 @@
 // Sceny: co rysujemy na płótnie dla każdej sceny, napisy pieśni i pasek z mówcą.
-import { nearestService, servicePlace } from '@/stores'
+import { nearestService, servicePlace, settings } from '@/stores'
 import { H, W, studio } from './state'
-import { S, background, fitLine, g, img, rounded, text, wrap } from './paint'
+import { S, background, fitLine, fontStr, g, img, rounded, setHalo, text, wrap } from './paint'
 import { CARD, armed, bankQr, bannerLook, cdBackground, cdLook, endLook, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
@@ -13,7 +13,7 @@ import { toProgram } from './look'
 let lyricShown = '', lyricPrev = '', lyricAt = 0
 /* ---------- sceny ---------- */
 export const SCENE_DRAW = {
-  camera(t) { drawCamera(); mediaOverlay(); endOverlay(); lowerThird(t); lyrics(t) },
+  camera(t) { drawCamera(); mediaOverlay(); prayerOverlay(); endOverlay(); lowerThird(t); lyrics(t) },
   // „Zaraz zaczynamy”: układ, styl zegara, tło i treść — w Studio → Odliczanie (countdown.ts)
   countdown(t) {
     const left = drawCountdown(cdLook(), t)
@@ -30,21 +30,20 @@ export const SCENE_DRAW = {
   end(t) {
     const L = endLook(), light = LIGHT_BG.includes(L.bg)
     cdBackground(L, t, L.layout !== 'cards')
-    if (L.layout === 'side') endSide(L, light)
-    else if (L.layout === 'center') endCenter(L, light)
-    else endCards(L)
+    const prev = setHalo(light && L.layout !== 'cards' ? 'rgba(244,237,227,0.92)' : '')
+    try { if (L.layout === 'side') endSide(L, light); else if (L.layout === 'center') endCenter(L, light); else endCards(L) } finally { setHalo(prev) }
     cameraPip()
   },
   // Rzutnik — z kamerą w okienku, gdy włączona (wybrany róg, małe albo duże)
   projector(t) {
     projectorFrame(t)
     cameraPip()
-    mediaOverlay(); endOverlay(); lowerThird(t); lyrics(t)
+    mediaOverlay(); prayerOverlay(); endOverlay(); lowerThird(t); lyrics(t)
   },
   media(t) {
     const it = mediaSlide(S.media)
     if (!it) { background(t); text('Wybierz materiał w Bibliotece (pod podglądem)', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
-    drawMedia(it, true); cameraPip(); lowerThird(t); lyrics(t)
+    drawMedia(it, true); cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t)
   },
 }
 // Kamera w okienku (nakładka na każdej scenie poza Kamerą): wybrany róg, małe albo duże.
@@ -120,6 +119,20 @@ function endSide(L, light) {
 }
 // Baner (nakładka na Kamerze i Rzutniku): obraz zostaje, u dołu napis i kod QR — w ramce, w pasku
 // albo w karcie w rogu; kolor, napisy, dopisek i kod QR ustawia się w „Nakładkach”.
+// Czas modlitwy: obraz zostaje, u dołu spokojny napis (rozstrzelone „CZAS MODLITWY”, napis kursywą, podpis).
+function prayerOverlay() {
+  if (!S.prayer) return
+  const txt = settings.prayerText || 'Zachęcamy do modlitwy', sub = settings.prayerSub || '', h = 380, y = H - h
+  const gr = g.createLinearGradient(0, y, 0, H); gr.addColorStop(0, 'rgba(12,10,8,0)'); gr.addColorStop(0.45, 'rgba(12,10,8,0.62)'); gr.addColorStop(1, 'rgba(12,10,8,0.86)')
+  g.fillStyle = gr; g.fillRect(0, y, W, h)
+  const ly = y + (sub ? 150 : 180), label = 'CZAS MODLITWY'
+  g.save(); g.font = fontStr(700, 32, 'cond'); g.letterSpacing = '14px'; const lw = g.measureText(label).width; g.restore()
+  text(label, W / 2 + 7, ly, { size: 32, weight: 700, font: 'cond', color: '#f6c27a', align: 'center', spacing: 14 })
+  g.fillStyle = 'rgba(246,194,122,0.7)'; g.fillRect(W / 2 - lw / 2 - 150, ly - 11, 110, 2); g.fillRect(W / 2 + lw / 2 + 40, ly - 11, 110, 2)
+  const f = fitLine(txt, W - 300, 78, 44, 400, 'serif', true)
+  text(f.str, W / 2, ly + 96, { size: f.size, weight: 400, font: 'serif', italic: true, align: 'center', shadow: 24 })
+  if (sub) { const s = fitLine(sub, W - 400, 34, 24, 500); text(s.str, W / 2, ly + 160, { size: s.size, weight: 500, color: '#e9e1d6', align: 'center', shadow: 16 }) }
+}
 function bannerQrs(B) {
   const tiles = endTiles(), pick = h => tiles.filter(x => x.head === h)
   if (B.qr === 'bank') return pick('Wesprzyj kościół')

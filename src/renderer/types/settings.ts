@@ -65,9 +65,12 @@ export interface Settings {
   donateTitle: string
   streamLyrics: 'local' | 'online' | 'none' | string
   streamLyricsKey: string
+  prayerText?: string // nakładka „Modlitwa”: napis i podpis
+  prayerSub?: string
   musicList: { id: string; name: string; path: string }[] // podkład muzyczny na transmisji
   musicVolume: number // 0–1
-  musicLoop: boolean // po utworze następny (w kółko)
+  musicLoop: boolean // lista w kółko (po ostatnim utworze znowu pierwszy)
+  musicShuffle?: boolean // losowa kolejność
   streamLines: number // napisy dla streamu: najwyżej tyle linijek naraz (0 — cała zwrotka)
   streamPartMode: 'keys' | 'auto'
   streamLineSec: number

@@ -5,7 +5,8 @@ import { reactive } from 'vue'
 import { api, settings, uid } from '@/stores'
 import { musicNode } from './audio'
 
-export const music = reactive({ current: '', playing: false, time: 0, duration: 0, error: '' })
+// all — gra cała lista (po utworze następny; na końcu stop, chyba że „W kółko”)
+export const music = reactive({ current: '', playing: false, time: 0, duration: 0, error: '', all: false })
 let el: HTMLAudioElement = null
 let gain: GainNode = null
 let ctx: AudioContext = null
@@ -21,7 +22,7 @@ async function ensure() {
   el.addEventListener('timeupdate', () => { music.time = el.currentTime; music.duration = el.duration || 0 })
   el.addEventListener('play', () => { music.playing = true })
   el.addEventListener('pause', () => { music.playing = false })
-  el.addEventListener('ended', () => { music.playing = false; if (settings.musicLoop) next() })
+  el.addEventListener('ended', () => { music.playing = false; if (music.all || settings.musicLoop) next(true) })
   el.addEventListener('error', () => { music.error = 'Nie mogę odtworzyć pliku — sprawdź, czy jeszcze istnieje.'; music.playing = false })
   ;({ gain, ctx } = await musicNode(el))
 }
@@ -64,15 +65,26 @@ export function toggleMusic() {
 // zatrzymanie z płynnym wyciszeniem (fade — sekundy); rewind: od początku przy następnym odtworzeniu
 export function stopMusic(fade = 3, rewind = true) {
   if (!el) return
+  if (rewind) music.all = false
   rampTo(0, fade)
   clearTimeout(stopTimer)
   stopTimer = window.setTimeout(() => { el.pause(); if (rewind) el.currentTime = 0 }, fade * 1000 + 50)
 }
 export function nextMusic() { next() }
-function next() {
+// Odtwórz wszystkie: od pierwszego (albo losowego) utworu, potem kolejne.
+export function playAllMusic() {
+  const list = settings.musicList
+  if (!list.length) return
+  music.all = true
+  playMusic(settings.musicShuffle ? list[Math.floor(Math.random() * list.length)].id : list[0].id)
+}
+// auto — po skończonym utworze: na końcu listy stop (chyba że w kółko)
+function next(auto = false) {
   const list = settings.musicList
   if (!list.length) return
   const i = list.findIndex(x => x.id === music.current)
+  if (settings.musicShuffle && list.length > 1) { const others = list.filter(x => x.id !== music.current); playMusic(others[Math.floor(Math.random() * others.length)].id, 1); return }
+  if (auto && i === list.length - 1 && !settings.musicLoop) { music.all = false; return }
   const n = list[(i + 1) % list.length]
   if (n.id === music.current && el) { el.currentTime = 0; el.play().catch(() => {}); return }
   playMusic(n.id, 1)

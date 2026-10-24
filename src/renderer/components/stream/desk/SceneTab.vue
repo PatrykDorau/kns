@@ -3,18 +3,17 @@ import { computed } from 'vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
 import { remote as remoteScreen } from '@/services/screenShare'
-import { addCountdown, setCountdown, setMediaPos, setOverlayMode, showMediaOverlay, studio } from '@/services/studio'
+import { addCountdown, setCountdown, studio } from '@/services/studio'
 import { END_DEFAULT } from '@/services/studio/cards'
 import LookBg from './LookBg.vue'
 import CountdownLook from './CountdownLook.vue'
-import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
-import { mediaKind } from '@/composables/stream/useStudioMedia'
+import { useDesk } from '@/composables/stream/useStreamDesk'
 
 // Ustawienia sceny w podglądzie (stale pod przyciskami scen) (odliczanie, kamera w okienku, okienko z materiałem).
 const { mediaList, pvFull, deskTab } = useDesk()
 
 const SCENE_HELP = {
-  camera: 'Obraz z kamery (ATEM po USB) — z okienkiem, do którego wrzucisz materiał z Biblioteki. Napisy i pasek mówcy — niżej, w „Nakładkach”.',
+  camera: 'Obraz z kamery (ATEM po USB). Napisy, pasek mówcy, modlitwa, PIP (materiał w okienku), grafika i baner — niżej, w „Nakładkach”.',
   projector: 'Obraz z rzutnika (przez sieć z laptopa przy rzutniku). Kamerę w okienku włączysz niżej, w „Nakładkach”.',
   countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku (które i jak często — zakładka „Ogłoszenia”), na końcu „Zaraz zaczynamy”.',
   media: 'Materiał z Biblioteki na cały ekran — wybierz go niżej w Bibliotece („Na ekran”).',
@@ -27,7 +26,6 @@ const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.l
 if (!settings.endLook) settings.endLook = { ...END_DEFAULT }
 const en = settings.endLook
 const END_LAYOUTS = [['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: karta, pod napisem kody QR obok siebie'], ['side', 'Napis obok kodów', 'Po lewej podziękowanie i najbliższe nabożeństwo, po prawej kody QR'], ['center', 'Duży napis', 'Duże podziękowanie na środku, kody QR małe u dołu']] as const
-function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMode('corner') } else setOverlayMode('off') }
 // co widać na scenie „Rzutnik”
 const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć'
   : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze'
@@ -61,20 +59,6 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
       <label>Podpis <input v-model="en.sub" maxlength="90" placeholder="np. Błogosławionego tygodnia!"></label>
       <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(en, END_DEFAULT)">Domyślny</button>
     </div>
-  </div>
-  <!-- Kamera: okienko z materiałem z Biblioteki (zdjęcie, film, prezentacja, napis) -->
-  <div v-if="studio.preview.scene === 'camera'" class="desk-opt-group" role="group" aria-label="Okienko z materiałem">
-    <small class="muted">Okienko</small>
-    <select :value="studio.preview.ovl === 'corner' ? studio.preview.omedia : ''" aria-label="Materiał w okienku" @change="cornerMedia(($event.target as HTMLSelectElement).value)">
-      <option value="">— bez okienka —</option>
-      <option v-for="it in mediaList" :key="it.id" :value="it.id">{{ label(it) }} ({{ mediaKind(it).toLowerCase() }})</option>
-    </select>
-    <template v-if="studio.preview.ovl === 'corner'">
-      <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.mpos.corner === id }" :title="lbl" :aria-label="lbl" @click="setMediaPos({ corner: id })">{{ arrow }}</button>
-      <button :class="{ on: studio.preview.mpos.size !== 'large' }" @click="setMediaPos({ size: 'small' })">Małe</button>
-      <button :class="{ on: studio.preview.mpos.size === 'large' }" @click="setMediaPos({ size: 'large' })">Duże</button>
-    </template>
-    <button class="small" title="Dodaj pliki albo napis" @click="deskTab = 'media'">Biblioteka…</button>
   </div>
   <p v-if="studio.preview.scene === 'projector'" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ projectorNote }}</p>
   <div v-if="studio.preview.scene === 'media'" class="desk-opt-group">

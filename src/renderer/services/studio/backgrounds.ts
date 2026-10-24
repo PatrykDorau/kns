@@ -45,12 +45,11 @@ function mountains(t: number) {
   g.restore()
 }
 
-// Szkic: jasne tło z kreską gór jak w logo i słońcem — spokojne, jasne (ciemny tekst).
+// Szkic: jasne tło z kreską gór jak w logo — spokojne, jasne (ciemny tekst).
 function sketch() {
   once('sketch', p => {
     const gr = p.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#fbf6ee'); gr.addColorStop(1, '#efe4d3')
     p.fillStyle = gr; p.fillRect(0, 0, W, H)
-    p.fillStyle = 'rgba(246,168,54,0.85)'; p.beginPath(); p.arc(1500, 250, 80, 0, Math.PI * 2); p.fill()
     p.lineJoin = 'round'; p.lineCap = 'round'
     const line = (pts: number[][], w: number, c: string) => { p.beginPath(); pts.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y))); p.lineWidth = w; p.strokeStyle = c; p.stroke() }
     line([[-20, 980], [260, 760], [420, 880], [700, 600], [960, 900], [1180, 700], [1420, 920], [1660, 640], [1940, 960]], 10, 'rgba(43,43,43,0.16)')

@@ -1314,3 +1314,20 @@ select { padding-right: 36px !important; }
 .desk-swatch { width: 26px; height: 26px; min-height: 0; padding: 0; border-radius: 50%; border: 2px solid var(--line); }
 .desk-swatch.on { border-color: var(--text, #fff); box-shadow: 0 0 0 2px var(--accent); }
 .desk-banner { margin: -4px 0 10px; }
+
+/* Studio — nakładki: włączona na podglądzie (zielona), na wizji (czerwona z kropką) */
+.desk-ovl .ovl-btn { position: relative; transition: background .15s, border-color .15s, color .15s; }
+.desk-ovl .ovl-btn.on { background: rgba(60, 207, 115, .16); border-color: #3ccf73; color: #c8f5d9; box-shadow: inset 0 0 0 1px rgba(60, 207, 115, .35); }
+.desk-ovl .ovl-btn.live { background: rgba(229, 72, 77, .22); border-color: #e5484d; color: #fff; box-shadow: inset 0 0 0 1px rgba(229, 72, 77, .45), 0 0 14px rgba(229, 72, 77, .25); }
+.desk-ovl .ovl-btn.live::after { content: ''; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 2px var(--panel2), 0 0 8px #e5484d; animation: ovl-pulse 1.6s ease-in-out infinite; }
+@keyframes ovl-pulse { 50% { opacity: .45; } }
+.desk-ovl-media.on, .desk-ovl-media.live { position: relative; }
+.desk-ovl-media.live::after { content: ''; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 2px var(--panel2), 0 0 8px #e5484d; animation: ovl-pulse 1.6s ease-in-out infinite; }
+.desk-ovl-media > .icon { width: 15px; height: 15px; margin-left: 6px; color: var(--muted); }
+.desk-ovl-tag { font-size: 12px; letter-spacing: .06em; color: var(--muted); }
+.desk-ovl-media.on > .desk-ovl-tag, .desk-ovl-media.on > .icon { color: #3ccf73; }
+.desk-ovl-media.live > .desk-ovl-tag, .desk-ovl-media.live > .icon { color: #ff8a8d; }
+.desk-ovl-media select { max-width: 220px; min-height: 0; padding-top: 5px; padding-bottom: 5px; }
+
+/* muzyka na transmisji: znaczek przy „Na wizji” */
+.desk-mon-music { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; padding: 1px 8px 1px 6px; border-radius: 999px; background: rgba(60, 207, 115, .14); color: #3ccf73; font-size: 11px; font-weight: 700; text-transform: none; letter-spacing: 0; }

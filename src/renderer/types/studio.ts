@@ -22,7 +22,8 @@ export interface Look {
   media: string // materiał na cały ekran (scena „Media”)
   omedia: string // materiał jako nakładka
   ovl: 'off' | 'full' | 'corner'
-  endOvl: boolean // plansza końcowa jako nakładka (pasek u dołu)
+  endOvl: boolean // baner (nakładka u dołu)
+  prayer: boolean // czas modlitwy (napis u dołu)
   mpos: { corner: Corner | string; size: BoxSize }
 }
 

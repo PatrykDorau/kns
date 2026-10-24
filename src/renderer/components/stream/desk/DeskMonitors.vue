@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { settings } from '@/stores'
 import { SCENES, differs, music, previewCanvas, setDirect, setFps, setScene, stopMusic, studio, studioCanvas, take } from '@/services/studio'
 import Icon from '@/components/common/Icon.vue'
+import MusicEq from './MusicEq.vue'
 import { SCENE_NAME } from '@/composables/stream/useStreamDesk'
 
 // Studio: podgląd i wizja (płótna rysowane przez moduł studio), „Na wizję” i przyciski scen.
@@ -23,7 +24,7 @@ function direct(v: boolean) { settings.studioDirect = v; setDirect(v) }
       <div class="mon-scr"><div ref="pvEl" class="studio-host"></div></div>
     </figure>
     <figure class="mon pgm">
-      <figcaption>Na wizji <small>{{ SCENE_NAME[studio.program.scene] }}</small></figcaption>
+      <figcaption>Na wizji <small>{{ SCENE_NAME[studio.program.scene] }}</small><span v-if="music.playing" class="desk-mon-music" :title="'Na transmisji gra: ' + musicName"><MusicEq />muzyka</span></figcaption>
       <div class="mon-scr"><div ref="stageEl" class="studio-host"></div></div>
     </figure>
   </div>
@@ -31,7 +32,7 @@ function direct(v: boolean) { settings.studioDirect = v; setDirect(v) }
     <button class="desk-take-btn" :class="{ ready: pending }" :disabled="studio.direct || !pending" title="Podgląd przechodzi na wizję (płynnie)" @click="take">Na wizję ▸</button>
     <small class="muted">{{ studio.direct ? 'Zmiany idą od razu na wizję' : pending ? 'Podgląd różni się od wizji — sprawdź i kliknij „Na wizję”' : 'Podgląd = wizja' }}</small>
     <span class="spacer"></span>
-    <span v-if="music.playing" class="desk-music-pill" :title="'Podkład: ' + musicName"><Icon name="music" /><span>{{ musicName }}</span><button class="small" @click="stopMusic(3)">Wycisz</button></span>
+    <span v-if="music.playing" class="desk-music-pill" :title="'Podkład: ' + musicName"><MusicEq /><span>{{ musicName }}</span><button class="small" @click="stopMusic(3)">Wycisz</button></span>
     <label class="check" title="Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube"><input :checked="studio.direct" type="checkbox" @change="direct(($event.target as HTMLInputElement).checked)"> Od razu na wizję</label>
   </div>
   <div class="desk-scenes" role="group" aria-label="Sceny transmisji">

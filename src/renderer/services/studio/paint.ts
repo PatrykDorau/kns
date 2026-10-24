@@ -48,6 +48,10 @@ export function background(t) {
 export const FAMILY = { ui: '"Segoe UI", system-ui, sans-serif', cond: '"Bahnschrift Condensed", Bahnschrift, Impact, sans-serif', serif: 'Georgia, "Palatino Linotype", serif' }
 export type Font = keyof typeof FAMILY
 export const fontStr = (weight, size, font: Font = 'ui', italic = false) => `${italic ? 'italic ' : ''}${weight} ${size}px ${FAMILY[font] || FAMILY.ui}`
+// Obwódka ciemnych napisów na jasnych planszach (ustawiana na czas rysowania planszy).
+let halo = ''
+export function setHalo(c: string) { const p = halo; halo = c; return p }
+const darkHex = (c: string) => { const m = /^#([0-9a-f]{6})$/i.exec(c); if (!m) return false; const n = parseInt(m[1], 16); return ((n >> 16) * 0.3 + (n >> 8 & 255) * 0.59 + (n & 255) * 0.11) < 120 }
 export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'left', alpha = 1, shadow = 0, font = 'ui' as Font, italic = false, spacing = 0 } = {}) {
   g.save()
   g.globalAlpha *= alpha
@@ -55,6 +59,7 @@ export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align
   if (spacing) g.letterSpacing = spacing + 'px'
   g.fillStyle = color; g.textAlign = align as CanvasTextAlign; g.textBaseline = 'alphabetic'
   if (shadow) { g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = shadow; g.shadowOffsetY = shadow / 6 }
+  else if (halo && darkHex(color)) { g.lineJoin = 'round'; g.lineWidth = Math.min(16, Math.max(5, size * 0.16)); g.strokeStyle = halo; g.strokeText(str, x, y) }
   g.fillText(str, x, y)
   g.restore()
 }

@@ -2,7 +2,7 @@
 // treść (ogłoszenia w pętli albo własny napis) i zegar w wybranym stylu; zwraca, ile sekund zostało.
 import { servicePlace } from '@/stores'
 import { H, W, studio } from './state'
-import { fit, fitLine, fontStr, g, img, paintOn, rounded, text, wrap } from './paint'
+import { fit, fitLine, fontStr, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
 import { carousel, cdBackground, countdownLeft, drawCarousel, paper, serviceCard, svcWhen, topWave, upcomingService } from './cards'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, LIGHT_BG } from './backgrounds'
@@ -73,7 +73,7 @@ export function drawTimer(style: string, o: TimerOpt) {
     if (title) text(title, o.cx, o.cy - ch / 2 - 18 * s, { size: 36 * s, weight: 700, font: 'cond', align: 'center', color: ink, spacing: 8 * s, shadow: o.light ? 0 : 14 })
   } else if (style === 'plain') {
     // same duże cyfry
-    if (title) text(title, o.cx, o.cy - 120 * s, { size: 40 * s, weight: 700, font: 'cond', align: 'center', color: o.light ? o.accent : '#f3e3c8', spacing: 10 * s, shadow: o.light ? 0 : 14 })
+    if (title) text(title, o.cx, o.cy - 120 * s, { size: 40 * s, weight: 700, font: 'cond', align: 'center', color: o.light ? '#2b2b2b' : '#f3e3c8', spacing: 10 * s, shadow: o.light ? 0 : 14 })
     const f = fitLine(clock, 1500 * s, 230 * s, 80, 700, 'cond')
     text(f.str, o.cx, o.cy + 90 * s, { size: f.size, weight: 700, font: 'cond', align: 'center', color: ink, shadow: o.light ? 0 : 30 })
   } else {
@@ -95,11 +95,11 @@ export function drawTimer(style: string, o: TimerOpt) {
 
 /* ---------- treść: ogłoszenia w pętli (albo karta nabożeństwa) w ramce ---------- */
 function annBox(t, x, y, w, h, r = 18) {
-  const c = carousel(t)
+  const c = carousel(t), prevHalo = setHalo('')
   g.save(); shadow(50, 18, 'rgba(40,30,20,0.35)'); rounded(x, y, w, h, r); g.fillStyle = '#fff'; g.fill(); g.restore()
   g.save(); rounded(x, y, w, h, r); g.clip()
   if (c) drawCarousel(c, x, y, w, h); else serviceCard(x, y, w, h)
-  g.restore()
+  g.restore(); setHalo(prevHalo)
 }
 // napis jako treść (gdy wybrane „Napis” albo w układach bez ogłoszeń): duży, wąską czcionką, do 3 linii
 function bigText(str, x, y, w, { size = 130, color = '#2b2b2b', align = 'left', lines = 3, shadowPx = 0 } = {}) {
@@ -125,6 +125,10 @@ function logoAt(x, y, size, ring = true) {
 
 /* ---------- układy ---------- */
 export function drawCountdown(L, t) {
+  const prev = setHalo(LIGHT_BG.includes(L.bg) ? 'rgba(244,237,227,0.92)' : '')
+  try { return layout(L, t) } finally { setHalo(prev) }
+}
+function layout(L, t) {
   const light = LIGHT_BG.includes(L.bg), accent = L.accent || '#f6a836', ink = light ? '#2b2b2b' : '#fff'
   const T = (cx, cy, scale = 1, light2 = light) => drawTimer(L.timer, { cx, cy, scale, title: L.title, accent, light: light2 })
   const showText = L.show === 'text' && L.sub
@@ -181,21 +185,29 @@ export function drawCountdown(L, t) {
       return left
     }
     case 'bar': {
-      // treść na cały ekran, u dołu ciemny pasek z napisem i zegarem
-      const bh = 170
-      if (showText) { cdBackground(L, t); bigText(L.sub, 120, (H - bh) / 2 - 40, W - 240, { size: 150, color: ink, align: 'center', lines: 3, shadowPx: light ? 0 : 20 }) }
-      else { const c = carousel(t); g.fillStyle = '#000'; g.fillRect(0, 0, W, H); if (c) drawCarousel(c, 0, 0, W, H - bh); else serviceCard(0, 0, W, H - bh) }
-      const y = H - bh
+      // tło, ogłoszenie (całe) nad paskiem; u dołu ciemny pasek z napisem, nabożeństwem i zegarem
+      const bh = 170, y = H - bh
+      cdBackground(L, t)
+      if (showText) bigText(L.sub, 120, y / 2 - 60, W - 240, { size: 150, color: ink, align: 'center', lines: 3, shadowPx: light ? 0 : 20 })
+      else { const ah = y - 80, aw = ah * 16 / 9; annBox(t, (W - aw) / 2, 40, aw, ah, 16) }
+      const prevHalo = setHalo('')
       g.fillStyle = '#121214'; g.fillRect(0, y, W, bh)
       g.fillStyle = accent; g.fillRect(0, y, W, 6)
       logoAt(60, y + 38, 94)
-      const left = countdownLeft()
-      text((left ? L.title || 'Zaczynamy za' : 'Zaraz zaczynamy').toUpperCase(), 200, y + 108, { size: 54, weight: 700, font: 'cond', color: '#fff', spacing: 6 })
-      const nx = nextLine()
-      if (nx) text(nx.toUpperCase(), W / 2 + 120, y + 106, { size: 30, weight: 700, font: 'cond', color: '#a9a39b', spacing: 3, align: 'center' })
-      if (left) text(clockStr(left), W - 70, y + 132, { size: 130, weight: 700, font: 'cond', color: accent, align: 'right' })
-      // kropka „na żywo wkrótce” pulsuje
-      g.save(); g.globalAlpha = 0.5 + 0.5 * Math.sin(t / 300); g.fillStyle = '#e5484d'; g.beginPath(); g.arc(W - 70 - (left >= 3600 ? 470 : 360), y + 88, 12, 0, Math.PI * 2); g.fill(); g.restore()
+      const left = countdownLeft(), clk = left ? clockStr(left) : ''
+      const head = (left ? L.title || 'Zaczynamy za' : 'Zaraz zaczynamy').toUpperCase()
+      g.save(); g.font = fontStr(700, 130, 'cond'); const cw = clk ? g.measureText(clk).width : 0
+      g.font = fontStr(700, 54, 'cond'); g.letterSpacing = '6px'; const hw = g.measureText(head).width; g.restore()
+      text(head, 200, y + 108, { size: 54, weight: 700, font: 'cond', color: '#fff', spacing: 6 })
+      const dotX = W - 70 - cw - 40
+      if (clk) {
+        text(clk, W - 70, y + 132, { size: 130, weight: 700, font: 'cond', color: accent, align: 'right' })
+        // kropka „na żywo wkrótce” pulsuje
+        g.save(); g.globalAlpha = 0.5 + 0.5 * Math.sin(t / 300); g.fillStyle = '#e5484d'; g.beginPath(); g.arc(dotX, y + 88, 12, 0, Math.PI * 2); g.fill(); g.restore()
+      }
+      const nx = nextLine(), a0 = 200 + hw + 60, a1 = (clk ? dotX - 40 : W - 70)
+      if (nx && a1 - a0 > 200) { const f = fitLine(nx.toUpperCase(), a1 - a0 - 40, 30, 20, 700, 'cond'); text(f.str, (a0 + a1) / 2, y + 104, { size: f.size, weight: 700, font: 'cond', color: '#a9a39b', align: 'center' }) }
+      setHalo(prevHalo)
       return left
     }
     case 'minimal': {
@@ -203,7 +215,7 @@ export function drawCountdown(L, t) {
       const line = light ? 'rgba(43,43,43,0.55)' : 'rgba(255,255,255,0.45)'
       g.save(); g.strokeStyle = line; g.lineWidth = 3; g.strokeRect(60, 60, W - 120, H - 120); g.restore()
       const left = countdownLeft()
-      text((left ? L.title || 'Zaczynamy za' : 'Zaraz zaczynamy').toUpperCase(), W / 2, 230, { size: 46, weight: 700, font: 'cond', align: 'center', color: light ? accent : '#f3e3c8', spacing: 18, shadow: light ? 0 : 14 })
+      text((left ? L.title || 'Zaczynamy za' : 'Zaraz zaczynamy').toUpperCase(), W / 2, 230, { size: 46, weight: 700, font: 'cond', align: 'center', color: light ? '#2b2b2b' : '#f3e3c8', spacing: 18, shadow: light ? 0 : 14 })
       if (left) drawTimer(L.timer, { cx: W / 2, cy: H / 2 + 10, scale: L.timer === 'plain' ? 1.6 : 1.4, title: '', accent, light })
       const bottom = L.sub || nextLine()
       if (bottom) { const f = fitLine(bottom.toUpperCase(), W - 400, 38, 26, 700, 'cond'); text(f.str, W / 2, H - 170, { size: f.size, weight: 700, font: 'cond', align: 'center', color: ink, spacing: 6, shadow: light ? 0 : 12 }) }

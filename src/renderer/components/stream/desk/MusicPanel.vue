@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
-import { addMusic, music, nextMusic, playMusic, removeMusic, setMusicVolume, stopMusic, toggleMusic } from '@/services/studio'
+import { addMusic, music, nextMusic, playAllMusic, playMusic, removeMusic, setMusicVolume, stopMusic, toggleMusic } from '@/services/studio'
+import MusicEq from './MusicEq.vue'
 import { mmss } from '@/composables/stream/useStudioMedia'
 
 const nowName = computed(() => settings.musicList.find(x => x.id === music.current)?.name || 'Nic nie gra')
@@ -13,23 +14,28 @@ const nowName = computed(() => settings.musicList.find(x => x.id === music.curre
 <template>
   <section class="desk-music" aria-label="Podkład muzyczny">
     <div class="desk-music-h">
-      <b><Icon name="music" />Podkład muzyczny</b>
+      <b><MusicEq v-if="music.playing" /><Icon v-else name="music" />Podkład muzyczny</b>
       <button class="small" title="MP3, M4A, WAV albo MP4 (sam dźwięk) — pliki kopiują się do aplikacji" @click="addMusic"><Icon name="plus" />Dodaj muzykę</button>
     </div>
     <p class="desk-help">Gra na każdej scenie, tylko na transmisji (nie w nagłośnieniu sali) — np. przy odliczaniu albo na planszy końcowej.</p>
     <p v-if="!settings.musicList.length" class="desk-help"> Własne utwory z kanału YouTube pobierzesz w YouTube Studio (Treści → ⋮ → Pobierz) i dodasz tutaj.</p>
     <template v-else>
       <div class="desk-music-ctl">
+        <button class="primary small" :class="{ on: music.all && music.playing }" title="Gra całą listę po kolei (albo losowo) — na końcu cisza, chyba że „W kółko”" @click="playAllMusic"><Icon name="play" />Odtwórz wszystkie ({{ settings.musicList.length }})</button>
         <button class="iconbtn solid" :title="music.playing ? 'Pauza (płynnie)' : 'Odtwórz'" :aria-label="music.playing ? 'Pauza' : 'Odtwórz'" @click="toggleMusic"><Icon :name="music.playing ? 'pause' : 'play'" /></button>
         <button class="iconbtn" title="Następny utwór" aria-label="Następny utwór" @click="nextMusic"><Icon name="right" /></button>
         <button class="small" :disabled="!music.playing" title="Płynne wyciszenie (3 s) i zatrzymanie" @click="stopMusic(3)">Wycisz</button>
-        <span class="desk-music-now">{{ nowName }}<small v-if="music.current && music.duration"> · {{ mmss(music.time) }} / {{ mmss(music.duration) }}</small></span>
+        <span class="desk-music-now"><MusicEq v-if="music.playing" />{{ nowName }}<small v-if="music.current && music.duration"> · {{ mmss(music.time) }} / {{ mmss(music.duration) }}</small></span>
       </div>
       <label class="desk-music-vol"><Icon name="volume" /><input type="range" min="0" max="1" step="0.01" :value="settings.musicVolume" aria-label="Głośność podkładu" @input="setMusicVolume(+($event.target as HTMLInputElement).value)"><small>{{ Math.round(settings.musicVolume * 100) }}%</small></label>
-      <label class="check"><input v-model="settings.musicLoop" type="checkbox"> Po utworze następny (w kółko)</label>
+      <div class="desk-music-opts">
+        <label class="check"><input v-model="settings.musicLoop" type="checkbox"> W kółko</label>
+        <label class="check"><input v-model="settings.musicShuffle" type="checkbox"> Losowo</label>
+        <small v-if="music.all && music.playing" class="muted">gra cała lista</small>
+      </div>
       <ul class="desk-music-list">
         <li v-for="t in settings.musicList" :key="t.id" :class="{ on: music.current === t.id, playing: music.current === t.id && music.playing }">
-          <button class="desk-music-play" :title="'Odtwórz: ' + t.name" @click="playMusic(t.id)"><Icon :name="music.current === t.id && music.playing ? 'volume' : 'play'" /><span>{{ t.name }}</span></button>
+          <button class="desk-music-play" :title="'Odtwórz: ' + t.name" @click="playMusic(t.id)"><MusicEq v-if="music.current === t.id && music.playing" /><Icon v-else name="play" /><span>{{ t.name }}</span></button>
           <button class="iconbtn" title="Usuń z listy" :aria-label="'Usuń: ' + t.name" @click="removeMusic(t.id)"><Icon name="trash" /></button>
         </li>
       </ul>
@@ -45,6 +51,8 @@ const nowName = computed(() => settings.musicList.find(x => x.id === music.curre
 .desk-music-ctl { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; }
 .desk-music-now { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .desk-music-now small { opacity: .7; font-weight: 400; }
+.desk-music-opts { display: flex; align-items: center; gap: 14px; margin: 4px 0; }
+.desk-music-now { display: flex; align-items: center; gap: 8px; }
 .desk-music-vol { display: flex; align-items: center; gap: 8px; }
 .desk-music-vol input { flex: 1; }
 .desk-music-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
