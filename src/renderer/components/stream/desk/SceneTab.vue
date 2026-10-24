@@ -9,15 +9,15 @@ import { CD_DEFAULT } from '@/services/studio/cards'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
 
-// Zakładka „Scena”: opis i ustawienia sceny w podglądzie (odliczanie, kamera w okienku, okienko z materiałem).
+// Ustawienia sceny w podglądzie (stale pod przyciskami scen) (odliczanie, kamera w okienku, okienko z materiałem).
 const { mediaList, pvFull, deskTab, pip } = useDesk()
 
 const SCENE_HELP = {
-  camera: 'Obraz z kamery (ATEM po USB) — z okienkiem, do którego wrzucisz materiał z Mediów. Napisy i pasek mówcy — wyżej, w „Nakładkach”.',
+  camera: 'Obraz z kamery (ATEM po USB) — z okienkiem, do którego wrzucisz materiał z Biblioteki. Napisy i pasek mówcy — niżej, w „Nakładkach”.',
   projector: 'Obraz z rzutnika (przez sieć z laptopa przy rzutniku) — z kamerą w okienku, gdy włączysz.',
   countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku, na końcu „Zaraz zaczynamy”.',
   announcements: 'Ogłoszenia w pętli — które i jak często: zakładka „Ogłoszenia”.',
-  media: 'Materiał z biblioteki na cały ekran — wybierz go w zakładce „Media”.',
+  media: 'Materiał z Biblioteki na cały ekran — wybierz go niżej w Bibliotece („Na ekran”).',
   end: 'Podziękowanie z kodami QR (wsparcie, YouTube, Spotify) — dane w „Plansza końcowa” w prawej kolumnie.',
 }
 const clock = (sec: number) => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
@@ -58,11 +58,11 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
       </template>
       <template v-if="cd.bg === 'image'">
         <select v-model="cd.image" aria-label="Grafika na tło">
-          <option value="">— wybierz grafikę z Mediów —</option>
+          <option value="">— wybierz grafikę z Biblioteki —</option>
           <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
         </select>
         <label class="desk-dim" title="Przyciemnienie grafiki — żeby zegar był czytelny">Przyciemnienie <input v-model.number="cd.dim" type="range" min="0" max="80" step="5" aria-label="Przyciemnienie"> {{ cd.dim }}%</label>
-        <button v-if="!images.length" class="small" @click="deskTab = 'media'">Dodaj grafikę w Mediach…</button>
+        <button v-if="!images.length" class="small" @click="deskTab = 'media'">Dodaj grafikę w Bibliotece…</button>
       </template>
     </div>
     <div class="desk-opt-group">
@@ -84,7 +84,7 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
       <button :class="{ on: studio.preview.pip.size === 'large' }" @click="pip({ size: 'large' })">Duże</button>
     </template>
   </div>
-  <!-- Kamera: okienko z materiałem z Mediów (zdjęcie, film, prezentacja, napis) -->
+  <!-- Kamera: okienko z materiałem z Biblioteki (zdjęcie, film, prezentacja, napis) -->
   <div v-if="studio.preview.scene === 'camera'" class="desk-opt-group" role="group" aria-label="Okienko z materiałem">
     <small class="muted">Okienko</small>
     <select :value="studio.preview.ovl === 'corner' ? studio.preview.omedia : ''" aria-label="Materiał w okienku" @change="cornerMedia(($event.target as HTMLSelectElement).value)">
@@ -96,7 +96,7 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
       <button :class="{ on: studio.preview.mpos.size !== 'large' }" @click="setMediaPos({ size: 'small' })">Małe</button>
       <button :class="{ on: studio.preview.mpos.size === 'large' }" @click="setMediaPos({ size: 'large' })">Duże</button>
     </template>
-    <button class="small" title="Dodaj pliki albo napis" @click="deskTab = 'media'">Media…</button>
+    <button class="small" title="Dodaj pliki albo napis" @click="deskTab = 'media'">Biblioteka…</button>
   </div>
   <p v-if="studio.preview.scene === 'projector'" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ projectorNote }}</p>
   <div v-if="studio.preview.scene === 'media'" class="desk-opt-group">

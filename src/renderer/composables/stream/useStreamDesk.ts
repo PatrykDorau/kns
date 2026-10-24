@@ -16,7 +16,7 @@ import { useYouTube } from './useYouTube'
 
 export const SCENE_NAME: Record<string, string> = Object.fromEntries(SCENES)
 export const CORNERS = [['tl', '↖', 'Lewy górny róg'], ['tr', '↗', 'Prawy górny róg'], ['bl', '↙', 'Lewy dolny róg'], ['br', '↘', 'Prawy dolny róg']]
-export type DeskTab = 'scene' | 'media' | 'slides'
+export type DeskTab = 'media' | 'slides' | 'music'
 
 function createDesk(service: Ref<Service | null>) {
   const atem = useAtem()
@@ -45,9 +45,9 @@ function createDesk(service: Ref<Service | null>) {
   function pip(p: Partial<Pip>) { setPip(p); if (p.corner) settings.pipCorner = p.corner; if (p.size) settings.pipSize = p.size }
 
   // zakładki pod scenami: same przechodzą na tę, która pasuje do wybranej sceny
-  const tabFor = (sc: string): DeskTab => (sc === 'media' ? 'media' : sc === 'announcements' ? 'slides' : 'scene')
-  const deskTab = ref<DeskTab>(tabFor(studio.preview.scene))
-  watch(() => studio.preview.scene, sc => { deskTab.value = tabFor(sc) })
+  // źródła pod scenami: przy scenie Ogłoszenia — ich pętla, przy Materiale — biblioteka; inaczej zostaje to, co było
+  const deskTab = ref<DeskTab>(studio.preview.scene === 'announcements' ? 'slides' : 'media')
+  watch(() => studio.preview.scene, sc => { if (sc === 'announcements') deskTab.value = 'slides'; else if (sc === 'media') deskTab.value = 'media' })
 
   // ikonka w zwiniętej kolumnie: rozwija kolumnę i daną sekcję
   function unrail(which: 'yt' | 'cue' | 'svc') { settings.railFolded = false; settings[({ yt: 'ytFolded', cue: 'cueFolded', svc: 'svcFolded' } as const)[which]] = false }

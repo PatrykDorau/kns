@@ -16,7 +16,8 @@ const nowName = computed(() => settings.musicList.find(x => x.id === music.curre
       <b><Icon name="music" />Podkład muzyczny</b>
       <button class="small" title="MP3, M4A, WAV albo MP4 (sam dźwięk) — pliki kopiują się do aplikacji" @click="addMusic"><Icon name="plus" />Dodaj muzykę</button>
     </div>
-    <p v-if="!settings.musicList.length" class="desk-help">Muzyka w tle transmisji, np. na planszy końcowej. Własne utwory z kanału YouTube pobierzesz w YouTube Studio (Treści → ⋮ → Pobierz) i dodasz tutaj. Gra tylko na transmisji — nie w nagłośnieniu sali.</p>
+    <p class="desk-help">Gra na każdej scenie, tylko na transmisji (nie w nagłośnieniu sali) — np. przy odliczaniu albo na planszy końcowej.</p>
+    <p v-if="!settings.musicList.length" class="desk-help"> Własne utwory z kanału YouTube pobierzesz w YouTube Studio (Treści → ⋮ → Pobierz) i dodasz tutaj.</p>
     <template v-else>
       <div class="desk-music-ctl">
         <button class="iconbtn solid" :title="music.playing ? 'Pauza (płynnie)' : 'Odtwórz'" :aria-label="music.playing ? 'Pauza' : 'Odtwórz'" @click="toggleMusic"><Icon :name="music.playing ? 'pause' : 'play'" /></button>
@@ -38,7 +39,7 @@ const nowName = computed(() => settings.musicList.find(x => x.id === music.curre
 </template>
 
 <style scoped>
-.desk-music { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line, #333); }
+.desk-music { margin: 0; }
 .desk-music-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .desk-music-h b { flex: 1; display: flex; align-items: center; gap: 6px; }
 .desk-music-ctl { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; }

@@ -17,7 +17,7 @@ export const SCENES = [
   ['projector', 'Rzutnik'],
   ['countdown', 'Odliczanie'],
   ['announcements', 'Ogłoszenia'],
-  ['media', 'Media'],
+  ['media', 'Materiał'],
   ['end', 'Koniec'],
 ]
 // Na których scenach są nakładki (na planszach — odliczanie, ogłoszenia, koniec — nie ma ich celowo).

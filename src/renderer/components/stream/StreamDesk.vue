@@ -9,6 +9,7 @@ import DeskHealth from './desk/DeskHealth.vue'
 import DeskMonitors from './desk/DeskMonitors.vue'
 import DeskOverlays from './desk/DeskOverlays.vue'
 import DeskTabs from './desk/DeskTabs.vue'
+import SceneTab from './desk/SceneTab.vue'
 import DeskAirControls from './desk/DeskAirControls.vue'
 import DeskAtem from './desk/DeskAtem.vue'
 import DeskYouTube from './desk/DeskYouTube.vue'
@@ -36,10 +37,12 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
         </div>
         <DeskHealth v-if="liveOn" />
         <template v-if="engine === 'studio'">
+          <!-- 1. podgląd i wizja, „Na wizję”, sceny; 2. ustawienia wybranej sceny; 3. nakładki; 4. co gra na wizji; 5. źródła -->
           <DeskMonitors />
+          <div class="desk-scene-panel"><SceneTab /></div>
           <DeskOverlays />
-          <DeskTabs />
           <DeskAirControls />
+          <DeskTabs />
         </template>
         <div v-else class="desk-screen">
           <img v-if="liveOn && live.previewUrl" class="desk-preview" :src="live.previewUrl" alt="Podgląd — to widzą widzowie">

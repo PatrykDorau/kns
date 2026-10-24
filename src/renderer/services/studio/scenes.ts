@@ -87,7 +87,7 @@ export const SCENE_DRAW = {
   },
   media(t) {
     const it = mediaSlide(S.media)
-    if (!it) { background(t); text('Wybierz materiał w panelu „Media”', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
+    if (!it) { background(t); text('Wybierz materiał w Bibliotece (pod podglądem)', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
     drawMedia(it, true); lowerThird(t); lyrics(t)
   },
 }
