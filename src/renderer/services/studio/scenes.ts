@@ -2,7 +2,8 @@
 import { nearestService, servicePlace } from '@/stores'
 import { H, W, studio } from './state'
 import { S, background, fitLine, g, img, rounded, text, wrap } from './paint'
-import { CARD, armed, bankQr, carousel, cdBackground, cdLook, drawCarousel, endLook, qr, serviceCard, setArmed, svcWhen, timerBlob, topWave, upcomingService, zeroAt } from './cards'
+import { CARD, armed, bankQr, bannerLook, cdBackground, cdLook, endLook, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
+import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
 import { drawMedia, mediaOverlay, mediaSlide } from './media'
@@ -13,27 +14,9 @@ let lyricShown = '', lyricPrev = '', lyricAt = 0
 /* ---------- sceny ---------- */
 export const SCENE_DRAW = {
   camera(t) { drawCamera(); mediaOverlay(); endOverlay(); lowerThird(t); lyrics(t) },
-  // „Zaraz zaczynamy” (wygląd w Studio → Scena): tło (papier z grafikami po bokach, ciemne, kolory, grafika),
-  // zegar u góry z ogłoszeniami w pętli na środku — albo duży zegar na środku z napisem i podpisem.
+  // „Zaraz zaczynamy”: układ, styl zegara, tło i treść — w Studio → Odliczanie (countdown.ts)
   countdown(t) {
-    const L = cdLook()
-    cdBackground(L, t)
-    let left
-    if (L.layout === 'center') {
-      left = timerBlob({ cy: H / 2 - 40, scale: 1.7, title: L.title })
-      if (L.sub) { const s = fitLine(L.sub, W - 240, 56, 34, 700); text(s.str, W / 2, H / 2 + 300, { size: s.size, weight: 700, align: 'center', color: LIGHT_BG.includes(L.bg) ? '#2b2b2b' : '#fff', shadow: LIGHT_BG.includes(L.bg) ? 0 : 18 }) }
-    } else {
-      const c = carousel(t)
-      const pw = 1240, ph = 698, px = (W - pw) / 2, py = 330
-      g.save(); g.shadowColor = 'rgba(40,30,20,0.35)'; g.shadowBlur = 50; g.shadowOffsetY = 18
-      rounded(px, py, pw, ph, 18); g.fillStyle = '#fff'; g.fill(); g.restore()
-      g.save(); rounded(px, py, pw, ph, 18); g.clip()
-      if (c) drawCarousel(c, px, py, pw, ph)
-      else serviceCard(px, py, pw, ph)
-      g.restore()
-      if (L.bg === 'paper') topWave()
-      left = timerBlob({ title: L.title })
-    }
+    const left = drawCountdown(cdLook(), t)
     cameraPip()
     // po zerze: 3 s „Zaraz zaczynamy”, potem sama Kamera (gdy zaznaczone)
     if (S !== studio.program) return
@@ -135,28 +118,75 @@ function endSide(L, light) {
     ty += th + gap
   }
 }
-// Koniec jako nakładka (Kamera, Rzutnik): obraz zostaje, u dołu ciemny pasek z logo, podziękowaniem,
-// najbliższym nabożeństwem i małymi kodami QR po prawej.
+// Baner (nakładka na Kamerze i Rzutniku): obraz zostaje, u dołu napis i kod QR — w ramce, w pasku
+// albo w karcie w rogu; kolor, napisy, dopisek i kod QR ustawia się w „Nakładkach”.
+function bannerQrs(B) {
+  const tiles = endTiles(), pick = h => tiles.filter(x => x.head === h)
+  if (B.qr === 'bank') return pick('Wesprzyj kościół')
+  if (B.qr === 'youtube') return pick('YouTube')
+  if (B.qr === 'spotify') return pick('Spotify')
+  if (B.qr === 'link') return B.link ? [{ head: 'Link', qr: B.link, lines: [String(B.link).replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')] }] : []
+  if (B.qr === 'none') return []
+  return tiles
+}
+const autoNote = q => !q ? '' : q.head === 'Wesprzyj kościół' ? (q.qr ? 'Zeskanuj kod w aplikacji banku' + (q.phone ? ' · BLIK ' + q.phone : '') : '') : q.lines[0] || ''
+function qrTile(q, x, y, size, label = '') {
+  if (q.qr) { g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 18; rounded(x, y, size, size, 12); g.fillStyle = '#fff'; g.fill(); g.restore(); qr(q.qr, x + 7, y + 7, size - 14) }
+  else { rounded(x, y, size, size, 12); g.fillStyle = 'rgba(255,255,255,0.12)'; g.fill(); text('BLIK', x + size / 2, y + size * 0.42, { size: size * 0.18, weight: 700, font: 'cond', color: '#f3e3c8', align: 'center' }); const p = fitLine(q.phone, size - 16, size * 0.22, 18, 700, 'cond'); text(p.str, x + size / 2, y + size * 0.72, { size: p.size, weight: 700, font: 'cond', color: '#fff', align: 'center' }) }
+  if (label) { const f = fitLine(label, size + 20, 26, 18, 700, 'cond'); text(f.str.toUpperCase(), x + size / 2, y + size + 34, { size: f.size, weight: 700, font: 'cond', color: '#fff', align: 'center', spacing: 2, shadow: 10 }) }
+}
 function endOverlay() {
   if (!S.endOvl) return
-  const L = endLook(), tiles = endTiles(), bh = 330, y = H - bh
-  const gr = g.createLinearGradient(0, y - 160, 0, H); gr.addColorStop(0, 'rgba(10,10,12,0)'); gr.addColorStop(0.35, 'rgba(10,10,12,0.72)'); gr.addColorStop(1, 'rgba(10,10,12,0.9)')
-  g.fillStyle = gr; g.fillRect(0, y - 160, W, bh + 160)
-  g.fillStyle = '#f6a836'; g.fillRect(0, H - 8, W, 8)
-  const tw = 190, gap = 26, qrW = tiles.length * tw + Math.max(0, tiles.length - 1) * gap, tx0 = W - 80 - qrW
-  logo(80, y + 60, 150, true)
-  const maxT = tx0 - 330 - 60
-  const t = fitLine(L.title || '', maxT, 72, 44, 800)
-  text(t.str, 300, y + 128, { size: t.size, weight: 800, color: '#fff', shadow: 20 })
-  let ly = y + 190
-  for (const l of [L.sub, nextLine()].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 300, ly, { size: f.size, weight: 600, color: '#f3e3c8', shadow: 14 }); ly += 48 }
-  tiles.forEach((tl, i) => {
-    const x = tx0 + i * (tw + gap), qy = y + 40
-    if (tl.qr) { g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 20; rounded(x, qy, tw, tw, 14); g.fillStyle = '#fff'; g.fill(); g.restore(); qr(tl.qr, x + 8, qy + 8, tw - 16) }
-    else { rounded(x, qy, tw, tw, 14); g.fillStyle = 'rgba(255,255,255,0.1)'; g.fill(); text('BLIK', x + tw / 2, qy + 80, { size: 34, weight: 700, color: '#f3e3c8', align: 'center' }); const p = fitLine(tl.phone, tw - 16, 40, 24, 800); text(p.str, x + tw / 2, qy + 136, { size: p.size, weight: 800, color: '#f6a836', align: 'center' }) }
-    const hd = fitLine(tl.head === 'Wesprzyj kościół' ? 'Wsparcie' : tl.head, tw, 28, 20, 700)
-    text(hd.str, x + tw / 2, qy + tw + 42, { size: hd.size, weight: 700, color: '#fff', align: 'center', shadow: 12 })
-  })
+  const B = bannerLook(), qs = bannerQrs(B), color = B.color || '#f6a836'
+  const title = String(B.title || ''), sub = B.sub || nextLine(), note = B.note || (qs.length === 1 && B.style !== 'card' ? autoNote(qs[0]) : '')
+  if (B.style === 'card') {
+    // karta w prawym dolnym rogu
+    const w = 820, h = 300, x = W - w - 60, y = H - h - 60, q = qs[0], qw = q ? 230 : 0, tw = w - qw - (q ? 110 : 80)
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 40; g.shadowOffsetY = 12; rounded(x, y, w, h, 24); g.fillStyle = '#f7f2ea'; g.fill(); g.restore()
+    g.save(); rounded(x, y, w, h, 24); g.clip(); g.fillStyle = color; g.fillRect(x, y, 14, h); g.restore()
+    const tl = wrap(title.toUpperCase(), tw, 64, 700, 2, 'cond')
+    tl.forEach((l, i) => text(l, x + 50, y + 92 + i * 64, { size: 64, weight: 700, font: 'cond', color: '#221c16' }))
+    let ly = y + 92 + (tl.length - 1) * 64 + 54
+    if (sub) { const f = fitLine(sub, tw, 32, 22, 600); text(f.str, x + 50, ly, { size: f.size, weight: 600, color: '#6b5d50' }); ly += 44 }
+    if (note) wrap(note, tw, 26, 500, 2).forEach(l => { text(l, x + 50, ly, { size: 26, weight: 500, color: '#8a7b6c' }); ly += 34 })
+    if (q) { if (q.qr) qr(q.qr, x + w - qw - 35, y + (h - qw) / 2, qw); else { text('BLIK', x + w - 150, y + 130, { size: 40, weight: 700, font: 'cond', color: '#6b5d50', align: 'center' }); text(q.phone, x + w - 150, y + 190, { size: 46, weight: 700, font: 'cond', color, align: 'center' }) } }
+    return
+  }
+  if (B.style === 'band') {
+    // ciemny pasek przechodzący w przezroczystość, logo, napis, kody QR po prawej
+    const bh = 330, y = H - bh
+    const gr = g.createLinearGradient(0, y - 160, 0, H); gr.addColorStop(0, 'rgba(10,10,12,0)'); gr.addColorStop(0.35, 'rgba(10,10,12,0.72)'); gr.addColorStop(1, 'rgba(10,10,12,0.9)')
+    g.fillStyle = gr; g.fillRect(0, y - 160, W, bh + 160)
+    g.fillStyle = color; g.fillRect(0, H - 8, W, 8)
+    const tw = 190, gap = 26, qrW = qs.length * tw + Math.max(0, qs.length - 1) * gap, tx0 = W - 80 - qrW
+    logo(80, y + 60, 150, true)
+    const maxT = tx0 - 330 - 60
+    const t = fitLine(title, maxT, 72, 44, 800)
+    text(t.str, 300, y + 128, { size: t.size, weight: 800, color: '#fff', shadow: 20 })
+    let ly = y + 190
+    for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 300, ly, { size: f.size, weight: 600, color: '#f3e3c8', shadow: 14 }); ly += 48 }
+    qs.forEach((q, i) => qrTile(q, tx0 + i * (tw + gap), y + 40, tw, q.head === 'Wesprzyj kościół' ? 'Wsparcie' : q.head))
+    return
+  }
+  // ramka: zaokrąglony baner w kolorze, duży napis wąską czcionką, z prawej dopisek i kod QR
+  const m = 40, h = 240, x = m, y = H - h - m, w = W - 2 * m
+  g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30; rounded(x, y, w, h, 30); g.fillStyle = 'rgba(16,14,12,0.84)'; g.fill(); g.restore()
+  g.save(); g.lineWidth = 8; g.strokeStyle = color; rounded(x + 4, y + 4, w - 8, h - 8, 27); g.stroke(); g.restore()
+  const many = qs.length > 1, qsz = many ? 160 : 186, qgap = 34
+  const qrW = qs.length ? qs.length * qsz + (qs.length - 1) * qgap : 0
+  let rx = x + w - 44 - qrW
+  if (many) qs.forEach((q, i) => qrTile(q, rx + i * (qsz + qgap), y + 22, qsz, q.head === 'Wesprzyj kościół' ? 'Wsparcie' : q.head))
+  else if (qs[0]) qrTile(qs[0], rx, y + (h - qsz) / 2, qsz)
+  let noteW = 0
+  if (note && !many) {
+    noteW = 420
+    const nl = wrap(note.toUpperCase(), noteW, 30, 700, 4, 'cond')
+    nl.forEach((l, i) => text(l, rx - 34, y + h / 2 - (nl.length - 1) * 17 + i * 34 + 10, { size: 30, weight: 700, font: 'cond', color: color, align: 'right' }))
+  }
+  const maxT = rx - (noteW ? noteW + 70 : 50) - (x + 60)
+  const t = fitLine(title.toUpperCase(), maxT, 112, 56, 700, 'cond')
+  text(t.str, x + 60, y + (sub ? 128 : 150), { size: t.size, weight: 700, font: 'cond', color })
+  if (sub) { const f = fitLine(sub.toUpperCase(), maxT, 54, 32, 700, 'cond'); text(f.str, x + 62, y + 196, { size: f.size, weight: 700, font: 'cond', color: '#fff' }) }
 }
 // duży napis na środku, pod nim nabożeństwo; kody QR małe, w pasku u dołu
 function endCenter(L, light) {

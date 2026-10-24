@@ -53,8 +53,11 @@ export interface Settings {
   studioHidden: string[]
   studioSlideSec: number
   // wygląd sceny „Odliczanie”: tło, napis nad zegarem, podpis (tylko przy zegarze na środku), układ, przyciemnienie grafiki (0–80)
-  cdLook?: { bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: 'top' | 'center' }
+  // układ: top, center, split, poster, bar, minimal; zegar: blob, bubble, pill, flip, plain; w środku: ogłoszenia albo napis (sub)
+  cdLook?: { bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: string, timer: string, accent: string, show: 'ann' | 'text' }
   // wygląd sceny „Koniec”: tło (jak w odliczaniu), układ: karta z kafelkami, obok siebie, duży napis
+  // baner na kamerze: styl (frame — ramka, band — pasek, card — karta w rogu), kolor, napisy, kod QR (all, bank, youtube, spotify, link, none)
+  banner?: { style: string, color: string, title: string, sub: string, note: string, qr: string, link: string }
   endLook?: { bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: 'cards' | 'side' | 'center' }
   donateAccount: string
   donatePhone: string

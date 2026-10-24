@@ -4,8 +4,9 @@ import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
 import { remote as remoteScreen } from '@/services/screenShare'
 import { addCountdown, setCountdown, setMediaPos, setOverlayMode, showMediaOverlay, studio } from '@/services/studio'
-import { CD_DEFAULT, END_DEFAULT } from '@/services/studio/cards'
+import { END_DEFAULT } from '@/services/studio/cards'
 import LookBg from './LookBg.vue'
+import CountdownLook from './CountdownLook.vue'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
 
@@ -22,8 +23,6 @@ const SCENE_HELP = {
 const clock = (sec: number) => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
 const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.left) : 'na planszy: „Zaraz zaczynamy”') + (studio.countdownTo ? '' : ' · do nabożeństwa'))
 // wygląd odliczania (zapisany w ustawieniach tego komputera)
-if (!settings.cdLook) settings.cdLook = { ...CD_DEFAULT }
-const cd = settings.cdLook
 // wygląd końca
 if (!settings.endLook) settings.endLook = { ...END_DEFAULT }
 const en = settings.endLook
@@ -48,20 +47,8 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
     <small class="desk-left-time">{{ countdownInfo }}</small>
     <label class="check" title="Po zerze 3 s „Zaraz zaczynamy”, potem sama przełącza na Kamerę"><input v-model="settings.studioAutoCamera" type="checkbox"> po zerze Kamera</label>
   </div>
-  <!-- wygląd odliczania: tło, układ, napis i podpis -->
-  <div v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-cd" role="group" aria-label="Wygląd odliczania">
-    <LookBg :look="cd" />
-    <div class="desk-opt-group">
-      <small class="muted">Układ</small>
-      <button :class="{ on: cd.layout !== 'center' }" title="Zegar u góry, w środku ogłoszenia w pętli (albo najbliższe nabożeństwo)" @click="cd.layout = 'top'">Zegar u góry + ogłoszenia</button>
-      <button :class="{ on: cd.layout === 'center' }" title="Duży zegar na środku, pod nim podpis" @click="cd.layout = 'center'">Duży zegar na środku</button>
-    </div>
-    <div class="desk-opt-group desk-cd-text">
-      <label>Napis nad zegarem <input v-model="cd.title" maxlength="40" placeholder="ZACZYNAMY ZA"></label>
-      <label v-if="cd.layout === 'center'">Podpis pod zegarem <input v-model="cd.sub" maxlength="90" placeholder="np. Kawa po nabożeństwie w holu"></label>
-      <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(cd, CD_DEFAULT)">Domyślny</button>
-    </div>
-  </div>
+  <!-- wygląd odliczania: układ, zegar, kolor, tło, treść, napisy -->
+  <CountdownLook v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" />
   <!-- wygląd końca: tło, układ, napis i podpis -->
   <div v-if="studio.preview.scene === 'end' || studio.program.scene === 'end'" class="desk-cd" role="group" aria-label="Wygląd końca">
     <LookBg :look="en" />

@@ -7,7 +7,7 @@ import { useDesk } from '@/composables/stream/useStreamDesk'
 // Wybór tła planszy (Odliczanie, Koniec): miniatury gotowych teł, dwa kolory albo grafika z Biblioteki.
 const props = defineProps<{ look: { bg: string, c1: string, c2: string, image: string, dim: number } }>()
 const { mediaList, deskTab } = useDesk()
-const BGS = [['paper', 'Papier'], ['sketch', 'Szkic'], ['mountains', 'Góry'], ['rays', 'Promienie'], ['waves', 'Fale'], ['bokeh', 'Światła'], ['dark', 'Ciemne'], ['colors', 'Kolory'], ['image', 'Grafika']] as const
+const BGS = [['paper', 'Papier'], ['sketch', 'Szkic'], ['mountains', 'Góry'], ['colors', 'Kolory'], ['image', 'Grafika']] as const
 const thumbs = Object.fromEntries(BGS.filter(([id]) => id !== 'colors' && id !== 'image').map(([id]) => [id, bgThumb(id)]))
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 const swatch = (id: string) => id === 'colors' ? { background: `linear-gradient(135deg, ${props.look.c1}, ${props.look.c2})` } : thumbs[id] ? { backgroundImage: `url(${thumbs[id]})` } : {}

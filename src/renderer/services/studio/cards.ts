@@ -6,7 +6,7 @@ import type { StudioSlide } from '@/types'
 import { H, W, studio } from './state'
 import { S, background, fit, fitLine, g, img, paintOn, rounded, text, wrap } from './paint'
 import { mediaSlide, mediaUrl } from './media'
-import { BACKGROUNDS } from './backgrounds'
+import { BACKGROUNDS, BG_IDS } from './backgrounds'
 import { settings } from '@/stores'
 
 let slideBase = 0
@@ -157,7 +157,6 @@ export function topWave() {
   wave(250, 26, 760, 1.2, '#e8952f')
   wave(222, 22, 640, 0, '#f6a836')
 }
-// Timer: ciemna plakietka z falowanym brzegiem (kolor obwódki logo), cyfry w kolorze fali.
 export function countdownLeft() {
   const svc = nearestService.value
   const start = studio.countdownTo || (svc ? new Date(`${svc.date}T${serviceTime(svc)}`).getTime() : 0)
@@ -169,23 +168,26 @@ export function addCountdown(minutes) { studio.countdownTo = Math.max(Date.now()
 export let armed = false, zeroAt = 0
 export function setArmed(v: boolean, at = 0) { armed = v; zeroAt = at }
 // Wygląd „Odliczania” (Studio → Scena): domyślnie papier z falą i ogłoszeniami w środku.
-export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'ZACZYNAMY ZA', sub: '', layout: 'top' } as const
-export const cdLook = () => ({ ...CD_DEFAULT, ...(settings.cdLook || {}) })
+export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'ZACZYNAMY ZA', sub: '', layout: 'top', timer: 'blob', accent: '#f6a836', show: 'ann' } as const
+// tło spoza listy (np. dawne „Ciemne”) — papier
+const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'paper' })
+export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(settings.cdLook || {}) })
 // Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
 export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'Dziękujemy, że byliście z nami!', sub: '', layout: 'cards' } as const
-export const endLook = () => ({ ...END_DEFAULT, ...(settings.endLook || {}) })
-// Tło planszy: papier z grafikami po bokach, góry, promienie, fale, światła, szkic, ciemne z płynącymi plamami,
-// gradient dwóch kolorów albo grafika z Biblioteki.
+export const endLook = () => safeBg({ ...END_DEFAULT, ...(settings.endLook || {}) })
+// Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
+export const BANNER_DEFAULT = { style: 'frame', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: '', note: '', qr: 'all', link: '' } as const
+export const bannerLook = () => ({ ...BANNER_DEFAULT, ...(settings.banner || {}) })
+// Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów albo grafika z Biblioteki.
 export function cdBackground(L, t, side = true) {
   if (BACKGROUNDS[L.bg]) return BACKGROUNDS[L.bg](t)
-  if (L.bg === 'dark') return background(t)
   if (L.bg === 'colors') {
     const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, L.c1 || CD_DEFAULT.c1); gr.addColorStop(1, L.c2 || CD_DEFAULT.c2)
     g.fillStyle = gr; g.fillRect(0, 0, W, H); return
   }
   if (L.bg === 'image') {
     const it = mediaSlide(L.image), im = it?.type === 'image' && img(mediaUrl(it.path))
-    if (!im) return background(t)
+    if (!im) { paper(); return }
     fit(im, im.naturalWidth, im.naturalHeight, 0, 0, W, H, 'cover')
     g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H); return
   }
@@ -198,27 +200,6 @@ export function bgThumb(id: string) {
   const prev = paintOn(ctx, studio.preview)
   try { cdBackground({ ...CD_DEFAULT, bg: id }, 4000) } finally { paintOn(prev.ctx, prev.look) }
   return c.toDataURL('image/jpeg', 0.8)
-}
-export function timerBlob({ cx = W / 2, cy = 165, scale = 1, title = 'ZACZYNAMY ZA' } = {}) {
-  const left = countdownLeft()
-  const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), sec = left % 60
-  const clock = (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec).padStart(2, '0')
-  const rx = (h ? 310 : 265) * scale, ry = 130 * scale
-  g.save()
-  g.beginPath()
-  for (let i = 0; i <= 120; i++) {
-    const a = (i / 120) * Math.PI * 2, wob = 1 + 0.035 * Math.sin(a * 14)
-    const x = cx + Math.cos(a) * rx * wob, y = cy + Math.sin(a) * ry * wob
-    i ? g.lineTo(x, y) : g.moveTo(x, y)
-  }
-  g.closePath()
-  g.shadowColor = 'rgba(0,0,0,0.3)'; g.shadowBlur = 30; g.shadowOffsetY = 8
-  g.fillStyle = '#2b2b2b'; g.fill()
-  g.restore()
-  const label = fitLine(String(title || '').toUpperCase(), rx * 1.5, 30 * scale, 18 * scale, 800)
-  text(left ? label.str : 'ZARAZ', cx, cy - 46 * scale, { size: left ? label.size : 30 * scale, weight: 800, color: '#f3e3c8', align: 'center' })
-  text(left ? clock : 'ZACZYNAMY', cx, cy + (left ? 64 : 46) * scale, { size: (left ? 112 : 64) * scale, weight: 800, color: '#f6a836', align: 'center' })
-  return left
 }
 // Proste grafiki po bokach: lewy — okrąg z kropkami, prawy — szczyty jak w logo.
 export function sideArt() {

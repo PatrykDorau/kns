@@ -5,6 +5,7 @@ import Thumb from '@/components/common/Thumb.vue'
 import { label } from '@/stores'
 import { OVERLAYS, setMediaPos, setOverlayMode, studio, toggleEndOverlay, toggleLowerThird, toggleLyrics } from '@/services/studio'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
+import BannerSettings from './BannerSettings.vue'
 
 // Nakładki: zawsze pod ręką (napisy, pasek mówcy, grafika/napis, kamera w okienku).
 const { pvOver, pgOver, deskTab, pip } = useDesk()
@@ -38,7 +39,7 @@ const pipLive = computed(() => !!studio.program.pip.on && OVERLAYS.pip.includes(
       </template>
       <button v-else class="desk-ovl-add" title="Grafika, logo albo napis na obrazie z kamery/rzutnika" @click="deskTab = 'media'"><Icon name="image" />Grafika / napis…</button>
     </span>
-    <button v-if="on('end')" :class="{ on: studio.preview.endOvl, live: endLive }" :aria-pressed="!!studio.preview.endOvl" title="Plansza końcowa na obrazie z kamery: podziękowanie, najbliższe nabożeństwo i kody QR w pasku u dołu (napis i podpis — w ustawieniach sceny Koniec). Najpierw na podglądzie, na wizję po „Na wizję”" @click="toggleEndOverlay"><Icon name="qr" />Koniec</button>
+    <button v-if="on('end')" :class="{ on: studio.preview.endOvl, live: endLive }" :aria-pressed="!!studio.preview.endOvl" title="Baner na obrazie z kamery: napis i kod QR (podziękowanie, wsparcie, YouTube…) — wygląd ustawisz pod spodem. Najpierw na podglądzie, na wizję po „Na wizję”" @click="toggleEndOverlay"><Icon name="qr" />Baner</button>
     <span v-if="on('pip')" class="desk-ovl-media" :class="{ on: studio.preview.pip.on, live: pipLive }">
       <button :class="{ on: studio.preview.pip.on, live: pipLive }" :aria-pressed="!!studio.preview.pip.on" title="Obraz z kamery (ATEM) w okienku na tej scenie — najpierw na podglądzie, na wizję po „Na wizję”" @click="pip({ on: !studio.preview.pip.on })"><Icon name="camera" />Kamera w okienku</button>
       <template v-if="studio.preview.pip.on">
@@ -47,4 +48,5 @@ const pipLive = computed(() => !!studio.program.pip.on && OVERLAYS.pip.includes(
       </template>
     </span>
   </div>
+  <BannerSettings v-if="anyOverlay && on('end') && studio.preview.endOvl" />
 </template>

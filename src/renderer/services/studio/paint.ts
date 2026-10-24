@@ -44,18 +44,23 @@ export function background(t) {
   blob(W * (0.8 + 0.06 * Math.cos(t / 8000)), H * (0.75 + 0.08 * Math.sin(t / 6000)), 800, 'rgba(224,122,95,0.26)')
   blob(W * (0.6 + 0.1 * Math.sin(t / 11000)), H * 0.1, 600, 'rgba(169,139,255,0.12)')
 }
-export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'left', alpha = 1, shadow = 0 } = {}) {
+// Czcionki: zwykła (Segoe UI), wąska plakatowa (Bahnschrift Condensed — jest w Windows 10/11) i szeryfowa (Georgia).
+export const FAMILY = { ui: '"Segoe UI", system-ui, sans-serif', cond: '"Bahnschrift Condensed", Bahnschrift, Impact, sans-serif', serif: 'Georgia, "Palatino Linotype", serif' }
+export type Font = keyof typeof FAMILY
+export const fontStr = (weight, size, font: Font = 'ui', italic = false) => `${italic ? 'italic ' : ''}${weight} ${size}px ${FAMILY[font] || FAMILY.ui}`
+export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'left', alpha = 1, shadow = 0, font = 'ui' as Font, italic = false, spacing = 0 } = {}) {
   g.save()
   g.globalAlpha *= alpha
-  g.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`
+  g.font = fontStr(weight, size, font, italic)
+  if (spacing) g.letterSpacing = spacing + 'px'
   g.fillStyle = color; g.textAlign = align as CanvasTextAlign; g.textBaseline = 'alphabetic'
   if (shadow) { g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = shadow; g.shadowOffsetY = shadow / 6 }
   g.fillText(str, x, y)
   g.restore()
 }
 // Tekst w kilku liniach (zawijanie po słowach), najwyżej max linii.
-export function wrap(str, width, size, weight, max) {
-  g.save(); g.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`
+export function wrap(str, width, size, weight, max, font: Font = 'ui') {
+  g.save(); g.font = fontStr(weight, size, font)
   const out = []
   for (const para of String(str).split('\n')) {
     let line = ''
@@ -70,13 +75,13 @@ export function wrap(str, width, size, weight, max) {
   return out
 }
 // Jedna linia, która musi się zmieścić: najpierw mniejsza czcionka (do min), potem skrót z „…”.
-export function fitLine(str, maxW, size, min, weight) {
+export function fitLine(str, maxW, size, min, weight, font: Font = 'ui', italic = false) {
   g.save()
-  const width = sz => { g.font = `${weight} ${sz}px "Segoe UI", system-ui, sans-serif`; return g.measureText(str).width }
+  const width = sz => { g.font = fontStr(weight, sz, font, italic); return g.measureText(str).width }
   while (size > min && width(size) > maxW) size -= 2
   let out = String(str)
   if (width(size) > maxW) {
-    g.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`
+    g.font = fontStr(weight, size, font, italic)
     while (out.length > 1 && g.measureText(out + '…').width > maxW) out = out.slice(0, -1)
     out = out.replace(/[\s·,.-]+$/, '') + '…'
   }

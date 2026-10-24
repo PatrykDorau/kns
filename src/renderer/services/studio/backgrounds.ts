@@ -1,5 +1,5 @@
 // Tła plansz (Odliczanie, Koniec): rysowane na płótnie w kolorach kościoła — stałe części liczone raz,
-// ruch (mgła, promienie, fale, światła) — w każdej klatce, powoli, żeby nie rozpraszał.
+// ruch (mgła w górach) — w każdej klatce, powoli, żeby nie rozpraszał.
 import { H, W } from './state'
 import { g } from './paint'
 
@@ -45,56 +45,6 @@ function mountains(t: number) {
   g.restore()
 }
 
-// Promienie: ciepły gradient, promienie światła z dołu obracają się bardzo wolno.
-function rays(t: number) {
-  once('rays', p => {
-    const gr = p.createRadialGradient(W / 2, H * 1.1, 0, W / 2, H * 1.1, W)
-    gr.addColorStop(0, '#ffd27a'); gr.addColorStop(0.35, '#f2a541'); gr.addColorStop(0.75, '#b8562a'); gr.addColorStop(1, '#5a2418')
-    p.fillStyle = gr; p.fillRect(0, 0, W, H)
-  })
-  g.save(); g.translate(W / 2, H * 1.1); g.rotate(t / 60000)
-  g.fillStyle = 'rgba(255,240,200,0.07)'
-  for (let i = 0; i < 18; i++) { g.rotate(Math.PI / 9); g.beginPath(); g.moveTo(0, 0); g.lineTo(-90, -2400); g.lineTo(90, -2400); g.closePath(); g.fill() }
-  g.restore()
-  const v = g.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, W * 0.75); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(40,12,6,0.45)')
-  g.fillStyle = v; g.fillRect(0, 0, W, H)
-}
-
-// Fale: granat z płynącymi liniami w odcieniach pomarańczu (jak fala na grafikach ogłoszeń).
-function waves(t: number) {
-  once('waves', p => {
-    const gr = p.createLinearGradient(0, 0, W, H); gr.addColorStop(0, '#111628'); gr.addColorStop(1, '#1f2a44')
-    p.fillStyle = gr; p.fillRect(0, 0, W, H)
-  })
-  g.save(); g.lineCap = 'round'
-  for (let i = 0; i < 14; i++) {
-    const base = 560 + i * 34, amp = 70 + i * 6, len = 900 + i * 40, ph = t / (5200 + i * 300) + i * 0.4
-    g.beginPath()
-    for (let x = -20; x <= W + 20; x += 20) { const y = base + amp * Math.sin((x / len) * Math.PI * 2 + ph) + 30 * Math.sin((x / 380) + ph * 1.7); x < 0 ? g.moveTo(x, y) : g.lineTo(x, y) }
-    g.strokeStyle = i % 3 === 0 ? `rgba(246,168,54,${0.55 - i * 0.025})` : `rgba(255,214,170,${0.22 - i * 0.01})`
-    g.lineWidth = i % 3 === 0 ? 4 : 2; g.stroke()
-  }
-  g.restore()
-}
-
-// Światła: ciepła ciemna sala z rozmytymi światełkami (bokeh), które wolno płyną w górę.
-const LIGHTS = (() => { const r = seeded(23); return Array.from({ length: 34 }, () => ({ x: r() * W, y: r() * H, r: 30 + r() * 120, s: 0.3 + r() * 0.9, a: 0.08 + r() * 0.22, warm: r() > 0.3 })) })()
-function bokeh(t: number) {
-  once('bokeh', p => {
-    const gr = p.createRadialGradient(W * 0.5, H * 0.6, 0, W * 0.5, H * 0.6, W * 0.8); gr.addColorStop(0, '#3a2616'); gr.addColorStop(1, '#120c08')
-    p.fillStyle = gr; p.fillRect(0, 0, W, H)
-  })
-  g.save()
-  for (const l of LIGHTS) {
-    const y = ((l.y - (t / 1000) * l.s * 12) % (H + 300) + H + 300) % (H + 300) - 150, x = l.x + 40 * Math.sin(t / 9000 + l.y)
-    const gr = g.createRadialGradient(x, y, 0, x, y, l.r)
-    const c = l.warm ? '255,190,110' : '255,236,210'
-    gr.addColorStop(0, `rgba(${c},${l.a})`); gr.addColorStop(0.7, `rgba(${c},${l.a * 0.7})`); gr.addColorStop(1, `rgba(${c},0)`)
-    g.fillStyle = gr; g.beginPath(); g.arc(x, y, l.r, 0, Math.PI * 2); g.fill()
-  }
-  g.restore()
-}
-
 // Szkic: jasne tło z kreską gór jak w logo i słońcem — spokojne, jasne (ciemny tekst).
 function sketch() {
   once('sketch', p => {
@@ -110,5 +60,6 @@ function sketch() {
   })
 }
 
-export const BACKGROUNDS = { mountains, rays, waves, bokeh, sketch }
+export const BACKGROUNDS = { mountains, sketch }
+export const BG_IDS = ['paper', 'sketch', 'mountains', 'colors', 'image']
 export const LIGHT_BG = ['paper', 'sketch'] // jasne tła — tekst na nich ciemny
