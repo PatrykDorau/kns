@@ -30,19 +30,19 @@ export function change(fn) {
   if (studio.direct) toProgram(fn)
 }
 export function setScene(id) { change(l => { l.scene = id }) }
-// Nakładki (pasek mówcy, modlitwa, baner, PIP, grafika): włączenie i zmiany idą na podgląd (na wizję po „Na wizję”),
-// a wyłączenie działa od razu — zdejmuje nakładkę z wizji i z podglądu.
-function off(fn) { fn(studio.preview); toProgram(fn) }
-function toggle(key: 'lowerThird' | 'prayer' | 'endOvl', set = (l, v) => { l[key] = v }) {
-  if (studio.program[key] || studio.preview[key]) off(l => set(l, false))
-  else change(l => set(l, true))
-}
-const lt = (l, v) => { l.lowerThird = v; l[v ? 'lowerAt' : 'lowerOff'] = performance.now() }
-export function toggleLowerThird() { toggle('lowerThird', lt) }
+// Nakładki (pasek mówcy, modlitwa, baner, napis na cały kadr) — od razu na wizji i podglądzie (pulpit pyta wcześniej
+// o potwierdzenie); wyłączenie — od razu. PIP (kamera, materiał w rogu) — najpierw na podgląd, na wizję przyciskiem
+// „Na wizję” przy PIP (albo całym „Na wizję”); wyłączenie PIP — od razu z wizji i podglądu.
+function both(fn) { fn(studio.preview); toProgram(fn) }
+const lt = v => l => { l.lowerThird = v; l[v ? 'lowerAt' : 'lowerOff'] = performance.now() }
+export function setLowerThird(v: boolean) { both(lt(v)) }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
-export function togglePrayer() { toggle('prayer') }
-export function toggleEndOverlay() { toggle('endOvl') }
-export function setPip(p) { if (p.on === false) off(l => { l.pip = { ...l.pip, on: false } }); else change(l => { l.pip = { ...l.pip, ...p } }) }
+export function setPrayer(v: boolean) { both(l => { l.prayer = v }) }
+export function setEndOverlay(v: boolean) { both(l => { l.endOvl = v }) }
+export function setPip(p) { if (p.on === false) both(l => { l.pip = { ...l.pip, on: false } }); else change(l => { l.pip = { ...l.pip, ...p } }) }
+// PIP z podglądu na wizję (tylko PIP — reszta wizji bez zmian)
+export function pipToProgram() { const p = { ...studio.preview.pip }; toProgram(l => { l.pip = p }) }
+export function mediaPipToProgram() { const { omedia, ovl } = studio.preview, mpos = { ...studio.preview.mpos }; toProgram(l => { l.omedia = omedia; l.ovl = ovl; l.mpos = mpos }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
 export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, endOvl: p.endOvl, prayer: p.prayer, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }) }
@@ -52,9 +52,12 @@ export function initLook(pip) { for (const l of [studio.preview, studio.program]
 // Wybór materiału — jak inne zmiany: najpierw podgląd, na wizję po „Na wizję”.
 // „Na ekran”: scena Media z tym materiałem. „Nakładka”: ten materiał na kamerze/rzutniku (napis — na cały kadr, reszta — w rogu).
 export function showMediaFull(id) { change(l => { l.media = id; l.scene = 'media' }) }
-export function showMediaOverlay(id) {
-  const it = itemById(id)
-  change(l => { l.omedia = id; if (l.ovl === 'off') l.ovl = it?.type === 'text' ? 'full' : 'corner'; if (l.scene === 'media') l.scene = 'camera' })
+// live — napis na cały kadr od razu na wizji (po potwierdzeniu na pulpicie); bez — PIP w rogu na podgląd
+export function showMediaOverlay(id, live = false) {
+  const it = itemById(id), mode = it?.type === 'text' ? 'full' : 'corner'
+  const fn = l => { l.omedia = id; l.ovl = mode }
+  if (live) { fn(studio.preview); if (studio.preview.scene === 'media') change(l => { l.scene = 'camera' }); toProgram(fn) }
+  else change(l => { fn(l); if (l.scene === 'media') l.scene = 'camera' })
 }
-export function setOverlayMode(mode) { if (mode === 'off') off(l => { l.ovl = 'off' }); else change(l => { l.ovl = mode }) }
+export function setOverlayMode(mode) { if (mode === 'off') both(l => { l.ovl = 'off' }); else change(l => { l.ovl = mode }) }
 export function setMediaPos(p) { change(l => { l.mpos = { ...l.mpos, ...p } }) }

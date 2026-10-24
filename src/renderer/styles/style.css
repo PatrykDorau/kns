@@ -1348,3 +1348,14 @@ select { padding-right: 36px !important; }
 .desk-media-confirm { position: absolute; top: 6px; left: 6px; right: 6px; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; border-radius: 8px; background: rgba(15, 16, 19, .92); box-shadow: 0 0 0 1px #c8352d; }
 .desk-media-confirm b { flex-basis: 100%; text-align: center; font-size: 13px; }
 .desk-media-confirm button { min-height: 0; padding: 5px 10px; font-size: 12px; }
+
+/* Nakładki: pytanie przed wizją, „Na wizję” przy PIP */
+.ovl-ask { flex-basis: 100%; order: -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid #e5484d; background: rgba(229, 72, 77, .14); font-size: 13.5px; animation: ovl-ask-in .15s ease-out; }
+.ovl-ask .icon { width: 16px; height: 16px; color: #ff8a8d; }
+.ovl-ask b { color: #fff; }
+.ovl-ask .primary { background: #e5484d; border-color: #e5484d; color: #fff; }
+@keyframes ovl-ask-in { from { opacity: 0; transform: translateY(-3px); } }
+.desk-send { display: inline-flex; align-items: center; gap: 4px; min-height: 0; padding: 4px 10px; font-size: 12px; font-weight: 700; border-radius: 8px; }
+.desk-send .icon { width: 13px; height: 13px; }
+.desk-send.ready { background: #e5484d; border-color: #e5484d; color: #fff; }
+.desk-send:disabled { opacity: .45; }

@@ -6,7 +6,8 @@ import LibraryTrash from '@/components/common/LibraryTrash.vue'
 import { ref } from 'vue'
 import { busy, label, settings, trashItem } from '@/stores'
 import { computed } from 'vue'
-import { ANN_MEDIA, showMediaFull, showMediaOverlay, slideCandidates, studio } from '@/services/studio'
+import { ANN_MEDIA, showMediaFull, slideCandidates, studio } from '@/services/studio'
+import { overlayItem } from '@/composables/stream/ovlAsk'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
 
@@ -51,7 +52,7 @@ async function addFiles() { if (await addMediaFiles()) deskTab.value = 'media' }
       <span class="desk-media-meta"><b :title="label(it)">{{ label(it) }}</b><small>{{ mediaKind(it) }}<template v-if="it.type === 'scene'"> · {{ (it.entries || []).length }} slajdów</template></small></span>
       <span class="desk-media-act">
         <button :class="{ on: pvFull?.id === it.id }" title="Na cały ekran (scena Media)" @click="showMediaFull(it.id)"><Icon name="monitor" />Na ekran</button>
-        <button :class="{ on: pvOver?.id === it.id }" title="Nakładka na kamerze/rzutniku" @click="showMediaOverlay(it.id)"><Icon name="layers" />Nakładka</button>
+        <button :class="{ on: pvOver?.id === it.id }" :title="it.type === 'text' ? 'Napis na całym kadrze — od razu na wizję (po potwierdzeniu)' : 'PIP: w okienku w rogu — najpierw na podglądzie'" @click="overlayItem(it)"><Icon name="layers" />Nakładka</button>
       </span>
       <label v-if="it.type === 'scene'" class="desk-media-auto" title="Slajdy zmieniają się same, gdy prezentacja jest na wizji">
         <input type="checkbox" :checked="!!it.mAuto" @change="it.mAuto = ($event.target as HTMLInputElement).checked"> same co

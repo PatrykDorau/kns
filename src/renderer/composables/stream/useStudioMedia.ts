@@ -2,7 +2,8 @@
 // albo jako nakładka na kamerze/rzutniku; co jest w podglądzie i na wizji.
 import { computed, ref } from 'vue'
 import { TEXT_STYLE, items, pickFiles, uid } from '@/stores'
-import { airMedia, mediaSlide, showMediaFull, showMediaOverlay, studio } from '@/services/studio'
+import { airMedia, mediaSlide, showMediaFull, studio } from '@/services/studio'
+import { overlayItem } from './ovlAsk'
 import type { LibraryItem } from '@/types'
 
 export const mediaKind = (it: LibraryItem) => ({ image: 'Zdjęcie', video: 'Film', text: 'Napis', scene: 'Prezentacja' })[it.type] || ''
@@ -17,7 +18,7 @@ export function useStudioMedia() {
   const onAirIds = computed(() => airMedia())
   // sterowanie tym, co na wizji (film, prezentacja) — dla każdego materiału na wizji
   const airCtl = computed(() => onAirIds.value.map(id => ({ item: itemOf(id), slide: mediaSlide(id) })).filter(x => x.item && x.slide && (x.slide.type === 'video' || x.slide.deckOf)))
-  const pickMedia = (it: LibraryItem) => (it.type === 'text' ? showMediaOverlay(it.id) : showMediaFull(it.id))
+  const pickMedia = (it: LibraryItem) => (it.type === 'text' ? overlayItem(it) : showMediaFull(it.id))
 
   // dodawanie: pliki (zwraca, czy coś przybyło) albo napis — od razu jako nakładka
   async function addMediaFiles() {
@@ -31,7 +32,7 @@ export function useStudioMedia() {
     if (!text) return
     const it: LibraryItem = { ...TEXT_STYLE, id: uid(), type: 'text', name: text.split('\n')[0].slice(0, 40), text, fs: 9, valign: 'bottom', shadow: true }
     items.value.push(it); newText.value = ''
-    showMediaOverlay(it.id)
+    overlayItem(it)
   }
 
   return { mediaList, pvFull, pvOver, pgOver, onAirIds, airCtl, pickMedia, addMediaFiles, newText, addMediaText }
