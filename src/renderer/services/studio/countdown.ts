@@ -37,7 +37,7 @@ export function drawTimer(style: string, o: TimerOpt) {
     const w = Math.max(460 * s, cw + 120 * s), h = 260 * s, x = o.cx - w / 2, y = o.cy - h / 2
     g.save(); g.translate(o.cx, o.cy); g.rotate(-0.025); g.translate(-o.cx, -o.cy)
     g.save(); shadow(34, 14); g.beginPath(); g.roundRect(x, y, w, h, 18 * s)
-    g.moveTo(x + 60 * s, y + h - 2); g.lineTo(x + 56 * s, y + h + 70 * s); g.lineTo(x + 130 * s, y + h - 2)
+    g.moveTo(x + 130 * s, y + h - 24 * s); g.lineTo(x + 56 * s, y + h + 70 * s); g.lineTo(x + 60 * s, y + h - 24 * s); g.closePath()
     g.fillStyle = o.accent; g.fill(); g.restore()
     if (title) text(title, o.cx, y + 58 * s, { size: 30 * s, weight: 700, font: 'cond', align: 'center', color: 'rgba(255,255,255,0.85)', spacing: 6 * s })
     const f = fitLine(clock, w - 60 * s, 170 * s, 60 * s, 400, 'serif', true)
@@ -108,13 +108,18 @@ function bigText(str, x, y, w, { size = 130, color = '#2b2b2b', align = 'left', 
   return ls.length * size * 0.98
 }
 const nextLine = () => { const svc = upcomingService(); return svc ? svcWhen(svc) + ' · ' + servicePlace(svc) : '' }
+// lewa strona układu „Dzielony”: góry (domyślnie), szkic, papier, kolor akcentu albo grafika z Biblioteki
 function photo(L, x, y, w, h) {
-  const it = L.image && mediaSlide(L.image), im = it?.type === 'image' && img(mediaUrl(it.path))
+  const id = L.photo || '', it = id && !id.startsWith('@') && mediaSlide(id), im = it?.type === 'image' && img(mediaUrl(it.path))
+  const lightSide = id === '@sketch' || id === '@paper'
   g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip()
   if (im) fit(im, im.naturalWidth, im.naturalHeight, x, y, w, h, 'cover')
+  else if (id === '@sketch') BACKGROUNDS.sketch()
+  else if (id === '@paper') paper()
+  else if (id === '@accent') { const a = g.createLinearGradient(x, y, x + w, y + h); a.addColorStop(0, L.accent || '#f6a836'); a.addColorStop(1, '#2b2b2b'); g.fillStyle = a; g.fillRect(x, y, w, h) }
   else BACKGROUNDS.mountains(0)
-  // ciepłe przyciemnienie, żeby zegar się wyróżniał
-  const gr = g.createLinearGradient(x, y, x, y + h); gr.addColorStop(0, 'rgba(30,18,10,0.15)'); gr.addColorStop(1, 'rgba(30,18,10,0.55)')
+  // ciepłe przyciemnienie, żeby zegar się wyróżniał (na jasnych — delikatne)
+  const gr = g.createLinearGradient(x, y, x, y + h); gr.addColorStop(0, lightSide ? 'rgba(30,18,10,0.04)' : 'rgba(30,18,10,0.15)'); gr.addColorStop(1, lightSide ? 'rgba(30,18,10,0.16)' : 'rgba(30,18,10,0.55)')
   g.fillStyle = gr; g.fillRect(x, y, w, h)
   g.restore()
 }

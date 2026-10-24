@@ -168,12 +168,12 @@ export function addCountdown(minutes) { studio.countdownTo = Math.max(Date.now()
 export let armed = false, zeroAt = 0
 export function setArmed(v: boolean, at = 0) { armed = v; zeroAt = at }
 // Wygląd „Odliczania” (Studio → Scena): domyślnie papier z falą i ogłoszeniami w środku.
-export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'ZACZYNAMY ZA', sub: '', layout: 'top', timer: 'blob', accent: '#f6a836', show: 'ann' } as const
+export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'ZACZYNAMY ZA', sub: '', layout: 'top', timer: 'blob', accent: '#f6a836', show: 'ann', photo: '' } as const
 // tło spoza listy (np. dawne „Ciemne”) — papier
 const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'paper' })
 export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(settings.cdLook || {}) })
 // Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
-export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'Dziękujemy, że byliście z nami!', sub: '', layout: 'cards' } as const
+export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'Dziękujemy, że byliście z nami!', sub: '', layout: 'cards', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(settings.endLook || {}) })
 // Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
 export const BANNER_DEFAULT = { style: 'frame', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: '', note: '', qr: 'all', link: '' } as const

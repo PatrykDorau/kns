@@ -10,7 +10,7 @@ import CountdownLook from './CountdownLook.vue'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 
 // Ustawienia sceny w podglądzie (stale pod przyciskami scen) (odliczanie, kamera w okienku, okienko z materiałem).
-const { mediaList, pvFull, deskTab } = useDesk()
+const { mediaList, pvFull, deskTab, addMediaFiles } = useDesk()
 
 const SCENE_HELP = {
   camera: 'Obraz z kamery (ATEM po USB). Napisy, pasek mówcy, modlitwa, PIP (materiał w okienku), grafika i baner — niżej, w „Nakładkach”.',
@@ -25,7 +25,10 @@ const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.l
 // wygląd końca
 if (!settings.endLook) settings.endLook = { ...END_DEFAULT }
 const en = settings.endLook
-const END_LAYOUTS = [['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: karta, pod napisem kody QR obok siebie'], ['side', 'Napis obok kodów', 'Po lewej podziękowanie i najbliższe nabożeństwo, po prawej kody QR'], ['center', 'Duży napis', 'Duże podziękowanie na środku, kody QR małe u dołu']] as const
+const END_LAYOUTS = [['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: karta, pod napisem kody QR obok siebie'], ['side', 'Napis obok kodów', 'Po lewej podziękowanie i najbliższe nabożeństwo, po prawej kody QR'], ['center', 'Duży napis', 'Duże podziękowanie na środku, kody QR małe u dołu'], ['image', 'Sama grafika', 'Tylko wybrana grafika (np. przygotowana plansza) na cały ekran']] as const
+const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
+// grafika z dysku: dodaje do Biblioteki i od razu wybiera
+async function addPic() { const before = new Set(mediaList.value.map(x => x.id)); if (await addMediaFiles()) { const n = mediaList.value.find(x => x.type === 'image' && !before.has(x.id)); if (n) en.pic = n.id } }
 // co widać na scenie „Rzutnik”
 const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć'
   : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze'
@@ -49,12 +52,20 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
   <CountdownLook v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" />
   <!-- wygląd końca: tło, układ, napis i podpis -->
   <div v-if="studio.preview.scene === 'end' || studio.program.scene === 'end'" class="desk-cd" role="group" aria-label="Wygląd końca">
-    <LookBg :look="en" />
     <div class="desk-opt-group">
       <small class="muted">Układ</small>
       <button v-for="[id, name, tip] in END_LAYOUTS" :key="id" :class="{ on: en.layout === id }" :aria-pressed="en.layout === id" :title="tip" @click="en.layout = id">{{ name }}</button>
     </div>
-    <div class="desk-opt-group desk-cd-text">
+    <div v-if="en.layout === 'image'" class="desk-opt-group">
+      <small class="muted">Grafika</small>
+      <select v-model="en.pic" aria-label="Grafika na Koniec">
+        <option value="">— wybierz grafikę —</option>
+        <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
+      </select>
+      <button class="small" title="Grafika z dysku — trafi też do Biblioteki" @click="addPic">Z dysku…</button>
+    </div>
+    <LookBg v-if="en.layout !== 'image'" :look="en" />
+    <div v-if="en.layout !== 'image'" class="desk-opt-group desk-cd-text">
       <label>Napis <input v-model="en.title" maxlength="60" :placeholder="END_DEFAULT.title"></label>
       <label>Podpis <input v-model="en.sub" maxlength="90" placeholder="np. Błogosławionego tygodnia!"></label>
       <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(en, END_DEFAULT)">Domyślny</button>

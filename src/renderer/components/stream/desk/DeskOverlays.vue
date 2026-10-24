@@ -48,14 +48,13 @@ if (settings.prayerText === undefined) settings.prayerText = 'Zachęcamy do modl
       <button v-if="!mediaList.length" class="desk-ovl-add" @click="deskTab = 'media'">Biblioteka…</button>
     </span>
     <!-- grafika albo napis na całym kadrze -->
-    <span v-if="on('media')" class="desk-ovl-media" :class="{ on: pvFullOvl, live: pgFullOvl }">
+    <span v-if="on('media') && pvFullOvl" class="desk-ovl-media" :class="{ on: pvFullOvl, live: pgFullOvl }">
       <template v-if="pvFullOvl">
         <Thumb :item="pvFullOvl" />
         <span class="desk-ovl-name" :title="label(pvFullOvl)">{{ label(pvFullOvl) }}</span>
         <button class="desk-corner" title="Do okienka PIP w rogu" @click="setOverlayMode('corner')">PIP</button>
         <button class="desk-x" title="Zdejmij nakładkę" aria-label="Zdejmij nakładkę" @click="setOverlayMode('off')"><Icon name="x" /></button>
       </template>
-      <button v-else class="desk-ovl-add" title="Logo PNG albo napis na całym obrazie — w Bibliotece kliknij „Nakładka”" @click="deskTab = 'media'"><Icon name="image" />Grafika / napis…</button>
     </span>
     <!-- PIP: kamera w okienku (sceny inne niż Kamera) -->
     <span v-if="on('pip')" class="desk-ovl-media" :class="{ on: studio.preview.pip.on, live: studio.program.pip.on && air('pip') }">

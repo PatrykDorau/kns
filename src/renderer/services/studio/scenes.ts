@@ -1,12 +1,12 @@
 // Sceny: co rysujemy na płótnie dla każdej sceny, napisy pieśni i pasek z mówcą.
 import { nearestService, servicePlace, settings } from '@/stores'
 import { ANN_MEDIA, H, W, studio } from './state'
-import { S, background, fitLine, fontStr, g, img, rounded, setHalo, text, wrap } from './paint'
+import { S, background, fitLine, fontStr, fullImage, g, img, rounded, setHalo, text, wrap } from './paint'
 import { CARD, armed, bankQr, bannerLook, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
-import { drawMedia, mediaOverlay, mediaSlide } from './media'
+import { drawMedia, mediaOverlay, mediaSlide, mediaUrl } from './media'
 import { projectorFrame } from './projector'
 import { toProgram } from './look'
 
@@ -29,6 +29,13 @@ export const SCENE_DRAW = {
   // w jednym z układów: karta z kafelkami, napis obok kodów albo duży napis z kodami u dołu.
   end(t) {
     const L = endLook(), light = LIGHT_BG.includes(L.bg)
+    // sama grafika z Biblioteki (rozmyte tło z tej samej grafiki + grafika w całości)
+    if (L.layout === 'image') {
+      const it = L.pic && mediaSlide(L.pic), im = it?.type === 'image' && img(mediaUrl(it.path))
+      if (im) fullImage(im)
+      else { paper(); text(it ? 'Wczytuję grafikę…' : 'Wybierz grafikę w ustawieniach sceny Koniec', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }) }
+      cameraPip(); return
+    }
     cdBackground(L, t, L.layout !== 'cards')
     const prev = setHalo(light && L.layout !== 'cards' ? 'rgba(244,237,227,0.92)' : '')
     try { if (L.layout === 'side') endSide(L, light); else if (L.layout === 'center') endCenter(L, light); else endCards(L) } finally { setHalo(prev) }

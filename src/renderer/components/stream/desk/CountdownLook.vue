@@ -10,7 +10,9 @@ import LookBg from './LookBg.vue'
 if (!settings.cdLook) settings.cdLook = { ...CD_DEFAULT }
 const cd = settings.cdLook
 for (const [k, v] of Object.entries(CD_DEFAULT)) if (cd[k] === undefined) cd[k] = v // nowe pola po aktualizacji
-const { mediaList, deskTab } = useDesk()
+const { mediaList, addMediaFiles } = useDesk()
+// zdjęcie z dysku do układu „Dzielony”: dodaje do Biblioteki i od razu wybiera
+async function addPhoto() { const before = new Set(mediaList.value.map(x => x.id)); if (await addMediaFiles()) { const n = mediaList.value.find(x => x.type === 'image' && !before.has(x.id)); if (n) cd.photo = n.id } }
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 // miniatury układów — odświeżane chwilę po zmianie wyglądu (i raz po wczytaniu grafik)
 const thumbs = ref<Record<string, string>>({})
@@ -47,12 +49,19 @@ const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w �
       <button :class="{ on: cd.show !== 'text' }" title="Ogłoszenia w pętli (które — zakładka „Ogłoszenia” niżej)" @click="cd.show = 'ann'">Ogłoszenia</button>
       <button :class="{ on: cd.show === 'text' }" title="Własny duży napis zamiast ogłoszeń" @click="cd.show = 'text'">Napis</button>
       <template v-if="cd.layout === 'split'">
-        <small class="muted">Zdjęcie z lewej</small>
-        <select v-model="cd.image" aria-label="Zdjęcie z lewej">
-          <option value="">— góry (bez zdjęcia) —</option>
-          <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
+        <small class="muted">Z lewej</small>
+        <select v-model="cd.photo" aria-label="Co z lewej">
+          <optgroup label="Gotowe">
+            <option value="">Góry</option>
+            <option value="@sketch">Szkic</option>
+            <option value="@paper">Papier</option>
+            <option value="@accent">Kolor akcentu</option>
+          </optgroup>
+          <optgroup v-if="images.length" label="Grafiki z Biblioteki">
+            <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
+          </optgroup>
         </select>
-        <button v-if="!images.length" class="small" @click="deskTab = 'media'">Dodaj w Bibliotece…</button>
+        <button class="small" title="Zdjęcie z dysku — trafi też do Biblioteki" @click="addPhoto">Z dysku…</button>
       </template>
     </div>
     <div class="desk-opt-group desk-cd-text">
