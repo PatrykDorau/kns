@@ -1,14 +1,18 @@
 // Podgląd → wizja: zmiany (scena, pasek mówcy, okienko, materiały) najpierw na podglądzie, na wizję po „Na wizję”
 // (z przenikaniem) — chyba że włączone „Od razu na wizję”.
-import { itemById } from '@/stores'
+import { itemById, settings } from '@/stores'
 import type { Look } from '@/types'
 import { studio } from './state'
 
+// Bieżący wygląd plansz z ustawień (kopia) — wizja dostaje go przy „Na wizję”, podgląd zawsze rysuje z ustawień.
+const copy = x => (x == null ? x : JSON.parse(JSON.stringify(x)))
+export const liveStyles = () => ({ cd: copy(settings.cdLook), end: copy(settings.endLook), banner: copy(settings.banner), prayer: { text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel } })
+const stylesOf = l => JSON.stringify(l.styles || liveStyles())
 // przejście na wizji: poprzedni wygląd znika przez pół sekundy
 export const fade: { from: Look | null; at: number } = { from: null, at: 0 }
-const snap = l => ({ ...l, pip: { ...l.pip }, mpos: { ...l.mpos } })
+const snap = l => ({ ...l, pip: { ...l.pip }, mpos: { ...l.mpos }, styles: l.styles ? copy(l.styles) : l.styles })
 const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size && !!a.pip.on === !!b.pip.on
-  && !!a.endOvl === !!b.endOvl && !!a.prayer === !!b.prayer && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
+  && !!a.endOvl === !!b.endOvl && !!a.prayer === !!b.prayer && stylesOf(a) === stylesOf(b) && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
 export const differs = () => !same(studio.preview, studio.program)
 export function toProgram(fn) {
   const before = snap(studio.program)
@@ -32,10 +36,10 @@ export function toggleEndOverlay() { change(l => { l.endOvl = !l.endOvl }) }
 export function setPip(p) { change(l => { l.pip = { ...l.pip, ...p } }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
-export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, endOvl: p.endOvl, prayer: p.prayer, pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }) }
-export function setDirect(v) { studio.direct = !!v; if (v) take() }
+export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, endOvl: p.endOvl, prayer: p.prayer, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }) }
+export function setDirect(v) { studio.direct = !!v; if (v) take(); else studio.program.styles = liveStyles() }
 // Wygląd na start (zapamiętane okienko): ten sam na podglądzie i wizji.
-export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip } }
+export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip }; studio.program.styles = studio.direct ? null : liveStyles() }
 // Wybór materiału — jak inne zmiany: najpierw podgląd, na wizję po „Na wizję”.
 // „Na ekran”: scena Media z tym materiałem. „Nakładka”: ten materiał na kamerze/rzutniku (napis — na cały kadr, reszta — w rogu).
 export function showMediaFull(id) { change(l => { l.media = id; l.scene = 'media' }) }
