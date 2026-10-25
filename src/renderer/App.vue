@@ -12,7 +12,7 @@ import HomeBoard from '@/components/home/HomeBoard.vue'
 import WebShell from '@/components/home/WebShell.vue'
 import { lyricsFeed, startLyricsFeed } from '@/services/lyricsFeed'
 import { startProjectorFeed } from '@/services/projectorFeed'
-import { audioInfo, setCamera, startEncoding, stopEncoding, studio } from '@/services/studio'
+import { audioInfo, bannerPending, bannerToProgram, setCamera, setEndOverlay, startEncoding, stopEncoding, studio } from '@/services/studio'
 import SermonThoughts from '@/components/home/SermonThoughts.vue'
 import GuestBoard from '@/components/home/GuestBoard.vue'
 import InboxBell from '@/components/common/InboxBell.vue'
@@ -25,7 +25,7 @@ import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init
 const ready = ref(false)
 onMounted(async () => {
   window.rzutnik = store // uchwyt do podglądania stanu z konsoli i w testach
-  window.rzutnikStream = { studio, lyricsFeed, startEncoding, stopEncoding, audioInfo, setCamera }
+  window.rzutnikStream = { studio, lyricsFeed, startEncoding, stopEncoding, audioInfo, setCamera, setEndOverlay, bannerPending, bannerToProgram }
   await init()
   startLyricsFeed() // napisy na stream niezależnie od otwartego ekranu
   startProjectorFeed() // scena „Rzutnik”: to, co pokazuje rzutnik na tym komputerze

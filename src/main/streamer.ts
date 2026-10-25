@@ -222,7 +222,9 @@ class Streamer extends EventEmitter {
     const proc = spawn(ffmpegPath(), ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1',
       '-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-probesize', '500000', '-analyzeduration', '0', '-framerate', String(fps), '-f', 'h264', '-i', 'pipe:0',
       '-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', `tcp://127.0.0.1:${port}?listen=1`,
-      '-map', '0:v', '-c:v', 'copy', '-map', '1:a', '-af', 'aresample=async=1000', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2',
+      // dźwięk: znaczniki z zegara ściennego drgają (paczki PCM przychodzą nierówno) — bez rozciągania próbek (to dawało
+      // „wibracje” wysokości dźwięku); dopasowanie tylko przy rozjeździe > 100 ms (cisza / pominięcie)
+      '-map', '0:v', '-c:v', 'copy', '-map', '1:a', '-af', 'aresample=async=1:min_hard_comp=0.100000', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2',
       '-f', 'flv', o.url.replace(/\/$/, '') + '/' + o.key], { windowsHide: true })
     this.proc = proc
     this.audio = { socket: null, queue: [] }

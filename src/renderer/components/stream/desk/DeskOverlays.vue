@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
-import { OVERLAYS, mediaPipToProgram, pipToProgram, previewOverlay, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
+import { OVERLAYS, bannerPending, bannerToProgram, mediaPipToProgram, pipToProgram, previewOverlay, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
 import { answerLive, confirmLive, ovlAsk } from '@/composables/stream/ovlAsk'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
@@ -42,6 +42,8 @@ if (settings.prayerText === undefined) settings.prayerText = 'Zachęcamy do modl
 <template>
   <div v-if="anyOverlay" class="desk-ovl">
     <small class="desk-lbl">Nakładki</small>
+    <!-- baner na wizji, a jego ustawienia (albo kolejka) się zmieniły — zmiany są na podglądzie, na wizję po potwierdzeniu -->
+    <span v-if="!ovlAsk && bannerPending()" class="ovl-ask" role="alertdialog" aria-label="Zmiany banera"><Icon name="info" /><span>Zmiany banera są na podglądzie — wysłać je na wizję?</span><button class="primary small" @click="bannerToProgram()">Tak, na wizję</button></span>
     <span v-if="ovlAsk" class="ovl-ask" role="alertdialog" aria-label="Potwierdź"><Icon name="info" /><span>Na podglądzie: <b>{{ ovlAsk.what }}</b> — dopasuj i wyślij na wizję?</span><button class="primary small" @click="answerLive(true)">Tak, na wizję</button><button class="small" @click="answerLive(false)">Nie</button></span>
     <button v-if="on('lyrics')" class="ovl-btn" :class="{ live: studio.program.lyricsOn && air('lyrics'), on: studio.program.lyricsOn }" :aria-pressed="studio.program.lyricsOn"
             title="Napisy pieśni — włączają się i wyłączają od razu na wizji (Kamera, Rzutnik, Materiał)" @click="toggleLyrics"><Icon name="music" />Napisy</button>
@@ -89,6 +91,7 @@ if (settings.prayerText === undefined) settings.prayerText = 'Zachęcamy do modl
     <label>Napis modlitwy <input v-model="settings.prayerText" maxlength="80" placeholder="Zachęcamy do modlitwy"></label>
     <label>Podpis <input v-model="settings.prayerSub" maxlength="100" placeholder="np. Możesz podejść do przodu — modlimy się za ciebie"></label>
       <label title="Link do strony, gdzie można zostawić prośbę o modlitwę — na nakładce pokaże się kod QR">Kod QR (link) <input v-model="settings.prayerLink" type="url" placeholder="https://… strona z prośbami (puste — bez kodu)"></label>
+      <button v-if="!settings.prayerLink" class="small" title="Strona z prośbami modlitewnymi w aplikacji kościoła" @click="settings.prayerLink = 'https://kns-nabo.netlify.app/modlitwa'">Strona próśb KNS</button>
       <label v-if="settings.prayerLink">Podpis kodu <input v-model="settings.prayerLinkLabel" maxlength="30" placeholder="Prośby modlitewne"></label>
     </div>
   </div>

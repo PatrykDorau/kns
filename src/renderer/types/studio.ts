@@ -26,6 +26,7 @@ export interface Look {
   omedia: string // materiał jako nakładka
   ovl: 'off' | 'full' | 'corner'
   endOvl: boolean // baner (nakładka u dołu)
+  banner?: { list: any[], sec: number } | null // wizja: banery z chwili wysłania (podgląd — bieżące ustawienia)
   prayer: boolean // czas modlitwy (napis u dołu)
   styles?: LookStyles | null // wizja: wygląd plansz z chwili „Na wizję” (null — bieżące ustawienia)
   mpos: { corner: Corner | string; size: BoxSize }

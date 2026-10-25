@@ -179,7 +179,13 @@ export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
 // Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
 export const BANNER_DEFAULT = { style: 'frame', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: '', note: '', qr: 'all', link: '' } as const
-export const bannerLook = () => ({ ...BANNER_DEFAULT, ...(settings.banner || {}) }) // nakładka — zawsze bieżące ustawienia (działa od razu na wizji)
+// Banery: jeden albo kolejka kilku (slajdy w kółko co „sec” sekund). Podgląd — bieżące ustawienia; wizja — kopia z chwili
+// wysłania (S.banner), więc zmiany na pulpicie widać najpierw na podglądzie, a na wizję idą po potwierdzeniu.
+export const bannerSet = () => ({
+  list: (settings.bannerCycle && settings.bannerQueue?.length ? settings.bannerQueue : [settings.banner || {}]).map(b => ({ ...BANNER_DEFAULT, ...b })),
+  sec: Math.max(4, Math.min(120, +settings.bannerSec || 10)),
+})
+export const bannerNow = () => S?.banner || bannerSet()
 export const prayerLook = () => ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 // Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów albo grafika z Biblioteki.
 export function cdBackground(L, t, side = true) {

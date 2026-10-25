@@ -2,7 +2,7 @@
 import { nearestService, servicePlace, settings } from '@/stores'
 import { ANN_MEDIA, H, W, studio } from './state'
 import { S, background, fitLine, fontStr, fullImage, g, img, rounded, setHalo, text, wrap } from './paint'
-import { CARD, armed, bankQr, bannerLook, prayerLook, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
+import { CARD, armed, bankQr, bannerNow, prayerLook, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
@@ -164,9 +164,18 @@ function qrTile(q, x, y, size, label = '') {
   else { rounded(x, y, size, size, 12); g.fillStyle = 'rgba(255,255,255,0.12)'; g.fill(); text('BLIK', x + size / 2, y + size * 0.42, { size: size * 0.18, weight: 700, font: 'cond', color: '#f3e3c8', align: 'center' }); const p = fitLine(q.phone, size - 16, size * 0.22, 18, 700, 'cond'); text(p.str, x + size / 2, y + size * 0.72, { size: p.size, weight: 700, font: 'cond', color: '#fff', align: 'center' }) }
   if (label) { const f = fitLine(label, size + 20, 26, 18, 700, 'cond'); text(f.str.toUpperCase(), x + size / 2, y + size + 34, { size: f.size, weight: 700, font: 'cond', color: '#fff', align: 'center', spacing: 2, shadow: 10 }) }
 }
+// baner albo kolejka banerów — kolejny wchodzi płynnie (0,6 s przenikania)
 function endOverlay() {
   if (!S.endOvl) return
-  const B = bannerLook(), qs = bannerQrs(B), color = B.color || '#f6a836'
+  const { list, sec } = bannerNow()
+  if (list.length < 2) { drawBanner(list[0]); return }
+  const t = performance.now(), slot = sec * 1000, i = Math.floor(t / slot) % list.length, k = Math.min(1, (t % slot) / 600)
+  if (k < 1) { g.save(); g.globalAlpha = 1 - k; drawBanner(list[(i - 1 + list.length) % list.length]); g.restore() }
+  g.save(); g.globalAlpha = k; drawBanner(list[i]); g.restore()
+}
+function drawBanner(B) {
+  if (!B) return
+  const qs = bannerQrs(B), color = B.color || '#f6a836'
   const title = String(B.title || ''), sub = B.sub || nextLine(), note = B.note || (qs.length === 1 && B.style !== 'card' ? autoNote(qs[0]) : '')
   if (B.style === 'card') {
     // karta w prawym dolnym rogu
