@@ -207,6 +207,12 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
         if (error) throw new Error(error.message)
         return s.signedUrl
       }
+      // Prośby modlitewne (modlitwa.sql)
+      if (action === 'prayers') return check(await sb.rpc('prayer_board'))
+      if (action === 'prayerAdd') return check(await sb.rpc('prayer_add', { t: data.text, nm: data.name || '', ct: data.contact || '', sh: !!data.share }))
+      if (action === 'prayerPray') return check(await sb.rpc('prayer_pray', { rid: data.id }))
+      if (action === 'prayerStatus') return check(await sb.rpc('prayer_status', { rid: data.id, st: data.status }))
+      if (action === 'prayerRemove') return check(await sb.rpc('prayer_remove', { rid: data.id }))
       // Ankiety (ankiety.sql)
       if (action === 'surveys') return check(await sb.rpc('survey_board'))
       if (action === 'surveySave') return check(await sb.rpc('survey_save', { s: data }))

@@ -1198,7 +1198,8 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .login-screen .deck-img { height: auto; margin: 0; }
 .login-screen .deck-text { text-align: left; }
 @media (max-width: 1023px) { .login-screen .guest-deck .deck-stack { width: min(300px, 76vw); aspect-ratio: 1; } .login-screen .guest-deck .deck-ph { font-size: 80px; } }
-.serve-tabs.ann-tabs { grid-template-columns: repeat(3, 1fr); }
+.serve-tabs.ann-tabs { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 480px) { .serve-tabs.ann-tabs button { font-size: 13px; gap: 4px; padding-left: 2px; padding-right: 2px; } .serve-tabs.ann-tabs button .i { width: 16px; height: 16px; } }
 /* cele wsparcia: okienko z kwotą dziesięciny i karta bieżącego miesiąca */
 .tithe-pop { display: flex; flex-direction: column; gap: 10px; }
 .tithe-in { display: flex; align-items: center; gap: 10px; margin: 4px 0 0; }

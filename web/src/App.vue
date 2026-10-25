@@ -76,7 +76,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.56 · 25.10.2026'
+const VERSION = '3.57 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2345,7 +2345,7 @@ export default defineComponent({
       if (song.value) return song.value.isNew ? '/piesn/nowa' : '/piesn/' + song.value.id
       if (tplType.value || tplView.value) return '/szablony'
       if (annView.value) return annTab.value === 'gift' ? (giftOpen.value ? '/wydawka/' + encodeURIComponent(giftOpen.value) : '/wydawka')
-        : annTab.value === 'survey' ? (surveyOpen.value ? '/ankiety/' + encodeURIComponent(surveyOpen.value) : '/ankiety') : '/ogloszenia'
+        : annTab.value === 'survey' ? (surveyOpen.value ? '/ankiety/' + encodeURIComponent(surveyOpen.value) : '/ankiety') : annTab.value === 'prayer' ? '/modlitwa' : '/ogloszenia'
       if (protoView.value) return '/materialy'
       if (songView.value) return '/piesni'
       if (peopleView.value) return '/osoby'
@@ -2395,6 +2395,7 @@ export default defineComponent({
         } else if (view === 'ogloszenia') openAnns()
         else if (view === 'wydawka') { openAnns(); annTab.value = 'gift'; giftOpen.value = id }
         else if (view === 'ankiety') { openAnns(); annTab.value = 'survey'; surveyOpen.value = id }
+        else if (view === 'modlitwa') { openAnns(); annTab.value = 'prayer' }
         else if (view === 'ogloszenie') {
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
