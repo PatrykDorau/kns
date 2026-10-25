@@ -197,11 +197,82 @@ html[data-theme="light"] .tabbar button.on { color: var(--text) !important; }
 .ann-tag.pin { background: var(--panel3) !important; color: var(--text) !important; }
 .ann .ann-tag.pin, .hw-banner .ann-tag.pin, .ann-view .ann-tag.pin { background: var(--accent-soft) !important; color: var(--accent-text) !important; }
 
-/* ekran logowania: niebo z górą nad kartą, karta wchodzi na linię horyzontu */
-.login-screen { padding-top: 0 !important; }
-.login-sky { margin: 0 -16px; }
-.login-screen .login-card { margin-top: -1px !important; border-radius: 0 0 24px 24px !important; }
+/* ekran logowania */
 .login-screen .login-card > img { width: 64px !important; margin: 4px 0 2px; }
+
+/* =================== RUCH (utils/motion.ts) =================== */
+/* 1. żywe tło: plamy ciepłego światła wolno dryfują pod treścią, ziarno jak na filmie, wolniejsze przy przewijaniu */
+.amb { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; --sy: 0; }
+.amb i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; will-change: transform; }
+.amb-a { width: 62vmax; height: 62vmax; left: -18vmax; top: -24vmax; background: radial-gradient(closest-side, rgba(246, 168, 54, .30), rgba(246, 168, 54, 0));
+  animation: amb-a 38s ease-in-out infinite alternate; }
+.amb-b { width: 54vmax; height: 54vmax; right: -20vmax; top: 18vh; background: radial-gradient(closest-side, rgba(214, 96, 52, .22), rgba(214, 96, 52, 0));
+  animation: amb-b 46s ease-in-out infinite alternate; }
+.amb-c { width: 48vmax; height: 48vmax; left: 20vw; bottom: -30vmax; background: radial-gradient(closest-side, rgba(255, 214, 150, .14), rgba(255, 214, 150, 0));
+  animation: amb-c 54s ease-in-out infinite alternate; }
+.amb > i { translate: 0 calc(var(--sy) * -0.06px); }
+.amb-b { translate: 0 calc(var(--sy) * -0.12px); }
+.amb-grain { position: absolute; inset: -50%; opacity: .07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: amb-grain 1.2s steps(6) infinite; }
+@keyframes amb-a { to { transform: translate(14vw, 10vh) scale(1.15); } }
+@keyframes amb-b { to { transform: translate(-16vw, 14vh) scale(.9); } }
+@keyframes amb-c { to { transform: translate(-10vw, -18vh) scale(1.2); } }
+@keyframes amb-grain { 0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -3%); } 60% { transform: translate(-2%, -1%); } 80% { transform: translate(3%, 3%); } 100% { transform: translate(0, 0); } }
+html[data-theme="light"] .amb i { opacity: .5; }
+html[data-theme="light"] .amb-a { background: radial-gradient(closest-side, rgba(246, 168, 54, .26), rgba(246, 168, 54, 0)); }
+html[data-theme="light"] .amb-b { background: radial-gradient(closest-side, rgba(232, 120, 70, .16), rgba(232, 120, 70, 0)); }
+html[data-theme="light"] .amb-grain { opacity: .05; mix-blend-mode: multiply; }
+#app, .side, .tabbar { position: relative; z-index: 1; }
+.side, .tabbar { z-index: 30; }
+.tabbar { position: fixed !important; }
+@media (min-width: 1024px) { .side { position: fixed !important; } }
+/* karty lekko przezroczyste — tło prześwieca, widać warstwy */
+.card, .ann, .ev, .song, .ministry, .view-card, .dv-card, .kh-panel, .hw-feature, .hw-banner, .mm-card, .person, .goal, .listen-card, .more-list, .sermon-notes, .sv-part, .fact, .login-card, .push-card {
+  background: color-mix(in srgb, var(--panel) 82%, transparent) !important; }
+html, body { background: var(--bg) !important; }
+
+/* 2. wejścia: od dołu, kolejno (tylko gdy skrypt działa — klasa rv-on) */
+.rv-on .rv { opacity: 0; transform: translateY(22px) scale(.985); transition: opacity .7s cubic-bezier(.2, .8, .2, 1) var(--rv-d, 0ms), transform .8s cubic-bezier(.2, .8, .2, 1) var(--rv-d, 0ms); }
+.rv-on .rv.rv-in { opacity: 1; transform: none; }
+.rv-on :is(.card, .ann, .ministry, .goal, .goal-confirm, .person, .listen-card, .kh-tile, .kh-panel, .kh-svc, .more-list, .view-card, .ev, .asb-row, .timeline > *, .push-card) { animation: none !important; }
+
+/* 3. światło pod kursorem */
+.glow-on { background-image: radial-gradient(320px circle at var(--mx) var(--my), rgba(246, 168, 54, .10), transparent 70%) !important; }
+html[data-theme="light"] .glow-on { background-image: radial-gradient(320px circle at var(--mx) var(--my), rgba(232, 148, 31, .10), transparent 70%) !important; }
+button.card, button.ann, button.song, button.ev, .hw-row, .more-list button { transition: transform .25s cubic-bezier(.2, .8, .2, 1), background-color .2s; }
+@media (hover: hover) { button.card:hover, button.ann:hover, button.song:hover, button.ev:hover, .hw-row:hover { transform: translateY(-2px); } }
+
+/* 4. strona startowa: powitanie wchodzi, ilustracja nabożeństwa żyje */
+@media (prefers-reduced-motion: no-preference) {
+  .kh-hello h1, .hello h1 { animation: hello-in 1s cubic-bezier(.2, .8, .2, 1) both; }
+  .kh-hello p, .hello p { animation: hello-in 1s cubic-bezier(.2, .8, .2, 1) .15s both; }
+  .hw-art.on { animation: kenburns 24s ease-in-out infinite alternate; transform-origin: 60% 70%; }
+  .cd-dot, .kh-live i, .hw-when i { animation: dot-pulse 1.6s ease-in-out infinite; }
+}
+@keyframes hello-in { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } }
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.08) translate(-1.5%, -1%); } }
+@keyframes dot-pulse { 50% { opacity: .35; transform: scale(.8); } }
+
+/* zmiana widoku: treść wchodzi miękko */
+@media (prefers-reduced-motion: no-preference) {
+  #app > header { animation: view-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+}
+@keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* zakładki: wskaźnik (Motion) zamiast tła na przycisku */
+.has-ind { position: relative; }
+.has-ind > button { position: relative; z-index: 1; }
+.tab-ind { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--text); pointer-events: none; opacity: 0; }
+.serve-tabs.has-ind button[aria-selected=true], .seg.has-ind button.on { background: none !important; }
+.tabbar .tab-ind { background: rgba(255, 255, 255, .08); border-radius: 16px; }
+html[data-theme="light"] .tabbar .tab-ind { background: rgba(0, 0, 0, .06); }
+.serve-tabs button, .seg button { transition: color .25s ease; }
+/* paralaksa ilustracji */
+.hw-art { translate: 0 var(--para, 0px); inset: -40px 0 !important; }
+
+/* ograniczony ruch: tło stoi */
+.still .amb i, .still .amb-grain { animation: none !important; }
 
 /* boczny pasek: pełna nazwa kościoła i osoby */
 @media (min-width: 1024px) {

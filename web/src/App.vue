@@ -74,7 +74,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.40 · 25.10.2026'
+const VERSION = '3.41 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2565,8 +2565,6 @@ export default defineComponent({
     <div class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 5" :key="n" class="skel skel-row"></div></div>
   </div>
   <div v-else-if="!ready" class="center login-screen">
-    <!-- pierwsze wrażenie: góra KNS rysuje się, zza niej wschodzi słońce (jak w logo) -->
-    <KnsSky big class="login-sky" />
     <div class="login-card">
     <img src="logo.png" alt="Kościół Na Skale">
     <div v-if="countdown" class="countdown login-cd">
