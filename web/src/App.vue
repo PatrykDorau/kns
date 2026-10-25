@@ -39,6 +39,7 @@ import MoreView from '@/views/MoreView.vue'
 import HomeView from '@/views/HomeView.vue'
 import CardDeck from '@/components/CardDeck.vue'
 import GuestView from '@/views/GuestView.vue'
+import Prayers from '@/components/Prayers.vue'
 import ServiceEditView from '@/views/ServiceEditView.vue'
 import PublicListen from '@/components/PublicListen.vue'
 import BandPickDialog from '@/components/dialogs/BandPickDialog.vue'
@@ -76,7 +77,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.58 · 25.10.2026'
+const VERSION = '3.59 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -184,7 +185,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, Prayers, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -242,7 +243,7 @@ export default defineComponent({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
-    const homeWide = computed(() => (ready.value || booting.value) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value && !svcListView.value)
+    const homeWide = computed(() => (ready.value || booting.value) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value && !prayView.value && !svcListView.value)
     const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
@@ -493,6 +494,7 @@ export default defineComponent({
           // beta — funkcje eksperymentalne (mogą się jeszcze zmienić)
           { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '', beta: true },
           { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '', beta: true },
+          { id: 'pray', icon: 'heart', name: 'Modlitwa' },
           { id: 'listen', icon: 'music', name: 'Posłuchaj' },
         ] }] : []),
         { title: 'Narzędzia', items: [
@@ -509,10 +511,10 @@ export default defineComponent({
     })
     function navOn(id) {
       const editor = current.value || currentEvent.value || currentAnn.value || currentProto.value || song.value || tplType.value
-      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || svcListView.value || moreView.value
+      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || prayView.value || svcListView.value || moreView.value
       return {
         home: !editor && !other, cal: (!!currentEvent.value || calView.value || gcalView.value) && !current.value, svc: !!current.value || (svcListView.value && !currentEvent.value), anns: annView.value || !!currentAnn.value,
-        serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !canAsb.value), myserve: (serveView.value && serveTab.value === 'mine') || (asbView.value && canAsb.value), goals: goalsView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
+        serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !canAsb.value), myserve: (serveView.value && serveTab.value === 'mine') || (asbView.value && canAsb.value), goals: goalsView.value, pray: prayView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
       }[id] || false
     }
@@ -533,6 +535,7 @@ export default defineComponent({
       else if (id === 'myserve') openServe('mine')
       else if (id === 'goals') openGoals()
       else if (id === 'votes') openVotes()
+      else if (id === 'pray') openPray()
       else if (id === 'listen') openListen()
       else if (id === 'asb') openAsb()
       else if (id === 'songs') openSongs()
@@ -543,7 +546,7 @@ export default defineComponent({
       else showServices()
       scrollTo(0, 0)
     }
-    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
+    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '' }
@@ -758,7 +761,7 @@ export default defineComponent({
       return (near.length >= 5 ? near : next.slice(0, 5)).slice(0, 30)
     })
     let fromCal = false // nabożeństwo otwarte z kalendarza wraca do kalendarza
-    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
+    function openCalendar() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; moreView.value = false; gcalView.value = false; calView.value = true; scrollTo(0, 0) }
     function openItem(it) { if (it.kind === 'service') { open(it.ref); fromCal = true } else openEvent(it.ref) }
 
     const currentEvent = ref(null)
@@ -1386,7 +1389,7 @@ export default defineComponent({
       profile.name = me.value.name || ''; profile.grupa = me.value.grupa || ''; status.value = ''
       current.value = null; currentEvent.value = null; currentAnn.value = null; currentProto.value = null
       songView.value = false; peopleView.value = false; calView.value = false; gcalView.value = false; annView.value = false; protoView.value = false; tplView.value = false
-      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
+      serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = true; scrollTo(0, 0); loadServe()
       api.call('groups').then(r => { groupNames.value = r.groups || [] }, () => {})
     }
     const saveProfile = () => guard(async () => {
@@ -1761,7 +1764,7 @@ export default defineComponent({
     function openGoals(id = '') {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false; asbView.value = false
-      svcListView.value = false; goalsView.value = true; goals.open = id; goals.edit = null; scrollTo(0, 0)
+      svcListView.value = false; prayView.value = false; goalsView.value = true; goals.open = id; goals.edit = null; scrollTo(0, 0)
       loadSupport()
       return loadGoals().then(() => {
         // najpierw okienko: ile w tym miesiącu wpłaciłeś(-aś) — dopiero potem rozdzielanie na cele
@@ -1807,7 +1810,7 @@ export default defineComponent({
     }
 
     /* ---------- Wybory i głosowania (wybory.sql) ---------- */
-    const votesView = ref(false), bugsView = ref(false)
+    const votesView = ref(false), bugsView = ref(false), prayView = ref(false) // prayView — Modlitwa (osobna strona)
     /* ---------- zgłoś błąd / backlog (administrator i deweloperzy) ---------- */
     const BUG_STATUS = { new: 'Nowe', doing: 'W trakcie', done: 'Zrobione', rejected: 'Odrzucone' }
     const bugs = reactive({ list: [], backlog: false, busy: false, error: '', filter: 'open', people: [], open: 0, form: null })
@@ -1905,6 +1908,7 @@ export default defineComponent({
       catch (e) { votes.error = e.message || String(e) } finally { votes.busy = false }
     }
     async function loadElectionPeople() { if (!votes.people.length) try { votes.people = (await api.call('electionPeople')) || [] } catch (e) { votes.error = e.message } }
+    function openPray() { resetViews(); prayView.value = true; scrollTo(0, 0) }
     function openVotes() {
       resetViews(); votesView.value = true; votes.edit = null; scrollTo(0, 0)
       return loadVotes().then(() => { if (votes.canRun || votes.list.some(e => e.status === 'nominations')) loadElectionPeople() })
@@ -2016,7 +2020,7 @@ export default defineComponent({
     }
     function openListen() {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
-      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false
+      annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false
       listenView.value = true; scrollTo(0, 0); loadListen()
     }
     const saveListen = () => guard(async () => { await api.call('setListen', { ...listenEdit }); await loadListen(); status.value = 'Zapisano linki.' })
@@ -2050,7 +2054,7 @@ export default defineComponent({
     async function renewGcal() { if ((await ask('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.'))) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { loadMsgOpts(); openMoreView() }
-    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -2350,7 +2354,7 @@ export default defineComponent({
       if (song.value) return song.value.isNew ? '/piesn/nowa' : '/piesn/' + song.value.id
       if (tplType.value || tplView.value) return '/szablony'
       if (annView.value) return annTab.value === 'gift' ? (giftOpen.value ? '/wydawka/' + encodeURIComponent(giftOpen.value) : '/wydawka')
-        : annTab.value === 'survey' ? (surveyOpen.value ? '/ankiety/' + encodeURIComponent(surveyOpen.value) : '/ankiety') : annTab.value === 'prayer' ? '/modlitwa' : '/ogloszenia'
+        : annTab.value === 'survey' ? (surveyOpen.value ? '/ankiety/' + encodeURIComponent(surveyOpen.value) : '/ankiety') : '/ogloszenia'
       if (protoView.value) return '/materialy'
       if (songView.value) return '/piesni'
       if (peopleView.value) return '/osoby'
@@ -2360,6 +2364,7 @@ export default defineComponent({
       if (listenView.value) return '/posluchaj'
       if (goalsView.value) return goals.open ? '/cel/' + encodeURIComponent(goals.open) : '/cele'
       if (votesView.value) return '/glosowania'
+      if (prayView.value) return '/modlitwa'
       if (bugsView.value) return '/zgloszenia'
       if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
       if (svcListView.value) return '/nabozenstwa'
@@ -2380,7 +2385,7 @@ export default defineComponent({
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false
     }
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
     async function applyRoute(path) {
@@ -2400,7 +2405,7 @@ export default defineComponent({
         } else if (view === 'ogloszenia') openAnns()
         else if (view === 'wydawka') { openAnns(); annTab.value = 'gift'; giftOpen.value = id }
         else if (view === 'ankiety') { openAnns(); annTab.value = 'survey'; surveyOpen.value = id }
-        else if (view === 'modlitwa') { openAnns(); annTab.value = 'prayer' }
+        else if (view === 'modlitwa') prayView.value = true
         else if (view === 'ogloszenie') {
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
@@ -2475,12 +2480,12 @@ export default defineComponent({
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
       el.classList.toggle('has-side', ready.value || booting.value)
-      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || svcListView.value || annView.value || protoView.value || tplView.value || songView.value))
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || prayView.value || svcListView.value || annView.value || protoView.value || tplView.value || songView.value))
       // edytory i formularze — węższe (czytelność); listy i przeglądy — szerokość strony głównej
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
@@ -2690,6 +2695,7 @@ export default defineComponent({
   <!-- Cele wsparcia: deklaracje z dziesięciny, potwierdzanie miesięcy, pasek postępu; rada — cele i kto ile -->
   <!-- Wybory i głosowania: zgłoszenia → rada zatwierdza → tajne głosowanie (można kilka) → wyniki -->
   <VotesView v-else-if="votesView && !current" />
+  <Prayers v-else-if="prayView && !current" />
   <ServicesView v-else-if="svcListView && !current" />
   <BugsView v-else-if="bugsView && !current" />
 

@@ -66,3 +66,25 @@ revoke all on function public.schedule_toggle(text, date, uuid) from public, ano
 revoke all on function public.schedule_publish(text) from public, anon;
 grant execute on function public.schedule_toggle(text, date, uuid) to authenticated;
 grant execute on function public.schedule_publish(text) to authenticated;
+
+-- Dyspozycyjność: niedziela, na którą lider wpisał osobę do grafiku, a ona potwierdziła „mogę” — zablokowana do zmiany
+-- przez tę osobę (zmianę ustala z liderem; po zdjęciu z grafiku znów może zmienić).
+create or replace function public.availability_set(mid text, d date, st text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from ministry_members x where x.ministry_id = mid and x.person = auth.uid() and x.status = 'active') then
+    raise exception 'Dyspozycyjność podają osoby, które służą w tej służbie.';
+  end if;
+  if d is null or extract(dow from d) <> 0 or d < (now() at time zone 'Europe/Warsaw')::date then raise exception 'Wybierz jedną z najbliższych niedziel.'; end if;
+  if coalesce(st, '') <> 'yes'
+     and exists (select 1 from ministry_schedule s where s.ministry_id = mid and s.day = d and s.person = auth.uid())
+     and exists (select 1 from ministry_availability a where a.ministry_id = mid and a.day = d and a.person = auth.uid() and a.state = 'yes') then
+    raise exception 'Na tę niedzielę jesteś w grafiku — zmianę ustal z liderem służby.';
+  end if;
+  if st is null then delete from ministry_availability where ministry_id = mid and person = auth.uid() and day = d; return; end if;
+  if st not in ('yes', 'no', 'maybe') then raise exception 'Nieznana odpowiedź.'; end if;
+  insert into ministry_availability (ministry_id, person, day, state) values (mid, auth.uid(), d, st)
+  on conflict (ministry_id, person, day) do update set state = excluded.state, updated = now();
+end $$;
+revoke all on function public.availability_set(text, date, text) from public, anon;
+grant execute on function public.availability_set(text, date, text) to authenticated;

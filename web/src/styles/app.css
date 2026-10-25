@@ -1198,7 +1198,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .login-screen .deck-img { height: auto; margin: 0; }
 .login-screen .deck-text { text-align: left; }
 @media (max-width: 1023px) { .login-screen .guest-deck .deck-stack { width: min(300px, 76vw); aspect-ratio: 1; } .login-screen .guest-deck .deck-ph { font-size: 80px; } }
-.serve-tabs.ann-tabs { grid-template-columns: repeat(4, 1fr); }
+.serve-tabs.ann-tabs { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 480px) { .serve-tabs.ann-tabs button { font-size: 13px; gap: 4px; padding-left: 2px; padding-right: 2px; } .serve-tabs.ann-tabs button .i { width: 16px; height: 16px; } }
 /* cele wsparcia: okienko z kwotą dziesięciny i karta bieżącego miesiąca */
 .tithe-pop { display: flex; flex-direction: column; gap: 10px; }
@@ -1254,3 +1254,11 @@ html, body { overflow-x: clip; } /* odlatujące karty talii nie poszerzają stro
 .login-back { position: absolute; top: 4px; left: 0; }
 .ann-view .mat-photo { display: block; width: 100%; max-height: 70vh; object-fit: contain; margin: 12px 0; border-radius: 16px; background: var(--panel2); }
 .ann-view .mat-audio { display: block; width: 100%; margin: 12px 0; }
+/* kalendarz: zestawy filtrów w jednej przewijanej linii (bez zawijania) */
+.cal-presets { display: flex !important; flex-wrap: nowrap !important; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 8px -16px 0; padding: 0 16px 2px; scroll-snap-type: x proximity; }
+.cal-presets::-webkit-scrollbar { display: none; }
+.cal-presets .chipbtn { flex: none; white-space: nowrap; scroll-snap-align: start; }
+@media (min-width: 1024px) { .cal-presets { margin-left: 0; margin-right: 0; padding: 0 0 2px; } }
+/* dyspozycyjność: obwódka „w grafiku” nie jest ucinana przez przewijany pasek; zablokowany termin */
+.avail-days { padding: 3px 3px 10px !important; }
+.avail-day.locked { cursor: not-allowed; }

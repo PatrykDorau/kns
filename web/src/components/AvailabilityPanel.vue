@@ -26,7 +26,10 @@ export default defineComponent({
     // kilka kart naraz — jedno zapytanie
     onMounted(() => { if (!loading) loading = load().finally(() => setTimeout(() => { loading = null }, 1000)) })
     const m = computed(() => av.list.find(x => x.id === props.ministry))
+    // w grafiku i potwierdzone „mogę” — zmianę ustala się z liderem (blokada też w bazie)
+    const locked = (m, d) => inPlan(m, d, m.you) && m.mine[d] === 'yes'
     async function cycle(m, d) {
+      if (locked(m, d)) { av.error = 'Na tę niedzielę jesteś w grafiku — zmianę ustal z liderem służby.'; return }
       const st = NEXT[m.mine[d]]
       const before = m.mine[d]
       if (st) m.mine[d] = st; else delete m.mine[d]
@@ -58,7 +61,7 @@ export default defineComponent({
       try { const n = await app.api.call('schedulePublish', { id: m.id }); app.showToast(n ? 'Grafik wysłany (' + n + ' os.).' : 'W grafiku nikogo jeszcze nie ma.') }
       catch (e) { av.error = e.message } finally { av.busy = false }
     }
-    return { ...app, av, m, cycle, remind, dayLabel, count, LABEL, inPlan, planDays, names, togglePlan, publish }
+    return { ...app, av, m, cycle, locked, remind, dayLabel, count, LABEL, inPlan, planDays, names, togglePlan, publish }
   },
 })
 </script>
@@ -69,9 +72,9 @@ export default defineComponent({
     <template v-if="m.member">
       <p class="avail-hint">Kliknij niedzielę: <b class="st-yes">mogę</b> → <b class="st-no">nie mogę</b> → <b class="st-maybe">nie wiem</b> → puste.</p>
       <div class="avail-days" role="group" :aria-label="'Moja dyspozycyjność: ' + m.name">
-        <button v-for="d in m.days" :key="d" type="button" class="avail-day" :class="[m.mine[d] ? 'st-' + m.mine[d] : '', { planned: inPlan(m, d, m.you) }]" :title="(LABEL[m.mine[d]] || 'Brak odpowiedzi') + (inPlan(m, d, m.you) ? ' · w grafiku' : '')" :aria-label="dayLabel(d) + ': ' + (LABEL[m.mine[d]] || 'brak odpowiedzi') + (inPlan(m, d, m.you) ? ', jesteś w grafiku' : '')" @click="cycle(m, d)">
+        <button v-for="d in m.days" :key="d" type="button" class="avail-day" :class="[m.mine[d] ? 'st-' + m.mine[d] : '', { planned: inPlan(m, d, m.you), locked: locked(m, d) }]" :aria-disabled="locked(m, d)" :title="(LABEL[m.mine[d]] || 'Brak odpowiedzi') + (locked(m, d) ? ' · w grafiku — zmianę ustal z liderem' : inPlan(m, d, m.you) ? ' · w grafiku' : '')" :aria-label="dayLabel(d) + ': ' + (LABEL[m.mine[d]] || 'brak odpowiedzi') + (inPlan(m, d, m.you) ? ', jesteś w grafiku' : '')" @click="cycle(m, d)">
           <small>{{ dayLabel(d) }}</small><span>{{ m.mine[d] === 'yes' ? '✓' : m.mine[d] === 'no' ? '✕' : m.mine[d] === 'maybe' ? '?' : '–' }}</span>
-          <em v-if="inPlan(m, d, m.you)" class="avail-plan-tag">grafik</em>
+          <em v-if="inPlan(m, d, m.you)" class="avail-plan-tag">{{ locked(m, d) ? '🔒 grafik' : 'grafik' }}</em>
         </button>
       </div>
     </template>

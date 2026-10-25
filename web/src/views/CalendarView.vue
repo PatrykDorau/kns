@@ -59,7 +59,6 @@ export default defineComponent({
   <div class="cal-actions">
     <!-- nowe wydarzenie: przycisk w przypiętym zaproszeniu poniżej -->
     <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg>Dodaj do swojego kalendarza</button>
-    <button v-if="canEdit" @click="openTemplates">Szablony</button>
   </div>
   <!-- zaproszenie: przypięte u dołu ekranu, zawsze widoczne (na telefonie skrócone, nad dolnym menu) -->
   <div v-if="canSubmit" class="invite invite-cal"><svg class="i"><use href="#users"/></svg><span><b><span class="inv-long">Zaproś kościół na swoje wydarzenie</span><span class="inv-short">Zaproś na swoje wydarzenie</span></b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg><span class="inv-long">{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</span><span class="inv-short">{{ canEdit || canReview ? 'Dodaj' : 'Zgłoś' }}</span></button></div>
