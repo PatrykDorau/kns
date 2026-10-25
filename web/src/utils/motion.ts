@@ -9,7 +9,7 @@ const REVEAL = [
   '.card', '.ann', '.ev', '.song', '.ministry', '.view-card', '.dv-card', '.kh-panel', '.hw-feature', '.hw-banner', '.hw-row',
   '.mm-card', '.person', '.goal', '.listen-card', '.more-list', '.timeline > *', '.sermon-notes', '.sv-part', '.form-sec',
   '.wide-list > *', '.hw-col', '.push-card', '.asb-row', '.inbox-item', '.giveaway', '.fact', '.login-card',
-  '.gx-sec .gx-h', '.gx-sec .gx-sub', '.gx-ev', '.gx-ann', '.gx-sermon', '.gx-values li', '.gx-mission', '.gx-verse-t', '.gx-video',
+  '.gx-sec .gx-h', '.gx-sec .gx-sub', '.gx-ev', '.gx-ann', '.gx-sermon', '.gx-values li', '.gx-mission', '.gx-video',
 ].join(',')
 
 export function startMotion() {

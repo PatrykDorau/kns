@@ -98,7 +98,7 @@ export default defineComponent({
           <span class="gx-in gx-dim" style="--i: 1" aria-hidden="true">Kościół</span>
           <span class="gx-in" style="--i: 2" aria-hidden="true">Na Skale</span>
         </h1>
-        <p class="gx-lead gx-in" style="--i: 3">Wspólnota, która co niedzielę spotyka się, żeby słuchać Boga i być razem. Przyjdź taki, jaki jesteś.</p>
+        <blockquote class="gx-lead gx-in" style="--i: 3">Rzecz ma się tak, jak z ciałem. Jest jedno, lecz członków ma wiele. Wszystkie jego członki, mimo że ich wiele, stanowią jedno ciało. Podobnie z Chrystusem.<cite>1 Kor 12,12</cite></blockquote>
         <div class="gx-actions gx-in" style="--i: 4">
           <button class="gx-btn gx-accent" @click="loginView = true">Zaloguj się</button>
           <button class="gx-btn gx-dark" @click="discover">Odkryj nas <span aria-hidden="true">↓</span></button>
@@ -150,11 +150,6 @@ export default defineComponent({
         </figure>
       </section>
 
-      <!-- nasz główny werset -->
-      <section class="gx-sec gx-verse">
-        <p class="gx-verse-t"><span class="gx-dim">Rzecz ma się tak, jak z ciałem. Jest jedno, lecz członków ma wiele.</span> Wszystkie jego członki, mimo że ich wiele, stanowią jedno ciało. Podobnie z Chrystusem.</p>
-        <p class="gx-verse-ref">1 Kor 12,12 — nasz główny werset</p>
-      </section>
 
       <section id="wydarzenia" class="gx-sec">
         <h2 class="gx-h"><span class="gx-dim">Co się</span>u nas dzieje</h2>
@@ -245,7 +240,8 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 /* nazwa: „Kościół” lekko i szaro, „Na Skale” ciężko i biało */
 .gx-title { display: flex; flex-direction: column; align-items: center; margin: 0; font: 600 clamp(58px, 9.6vw, 144px)/.94 var(--display); letter-spacing: -.055em; font-feature-settings: "ss01", "cv11"; }
 .gx-title .gx-dim { letter-spacing: -.045em; }
-.gx-lead { margin: 26px 0 0; max-width: 36ch; font-size: 18px; line-height: 1.5; color: #c4c1bd; text-wrap: balance; }
+.gx-lead cite { display: block; margin-top: 12px; color: var(--accent); font: normal 600 15px/1 var(--display); }
+.gx-lead { margin: 26px 0 0; max-width: 44ch; font-size: 18px; line-height: 1.5; color: #c4c1bd; text-wrap: balance; }
 .gx-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
 /* wejście po narysowaniu góry: po kolei, z lekkim rozmyciem */
 .gx-in { opacity: 0; transform: translateY(18px); filter: blur(8px); transition: opacity .8s ease, transform .9s cubic-bezier(.2, .7, .2, 1), filter .8s ease; transition-delay: calc(var(--i) * 110ms); }
@@ -287,9 +283,6 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 .gx-mission figcaption { color: var(--accent); font: 600 15px/1.5 var(--display); }
 .gx-mission blockquote { margin: 0; font: 500 clamp(19px, 1.7vw, 23px)/1.45 var(--display); letter-spacing: -.01em; text-wrap: pretty; }
 .gx-mission cite { grid-column: 2; color: #8c8985; font: normal 500 15px/1 var(--display); }
-.gx-verse-t { max-width: 26ch; margin: 0 auto; font: 600 clamp(30px, 4.2vw, 54px)/1.12 var(--display); letter-spacing: -.035em; text-wrap: balance; }
-.gx-verse-t .gx-dim { font-weight: 600; }
-.gx-verse-ref { margin: 26px auto 0; color: var(--accent); font: 600 16px/1 var(--display); }
 .gx-evs { list-style: none; display: flex; flex-direction: column; gap: 10px; max-width: 760px; margin: 56px auto 0; padding: 0; text-align: left; }
 .gx-ev { display: grid; grid-template-columns: 110px 1fr; gap: 20px; align-items: center; padding: 20px 26px; }
 .gx-ev-date { display: flex; align-items: baseline; gap: 6px; color: var(--c, var(--accent)); font: 600 18px/1 var(--display); }
