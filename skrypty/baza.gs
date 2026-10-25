@@ -127,13 +127,14 @@ function htmlNewslettera(services, events, anns, types, tz) {
 /* ---------- zdjęcia z nabożeństw: Dysk → karta najbliższego nabożeństwa na stronie startowej ---------- */
 // Folder ze zdjęciami (lata → MM_RR → DD_MM, np. 2026 / 10_26 / 18_10). Skrypt bierze najnowszy folder, w którym są
 // zdjęcia, wgrywa do bazy (prywatny kubełek „zdjecia”, widzą tylko zatwierdzeni członkowie) do 8 pomniejszonych
-// zdjęć wybranych równo z całego folderu i zapisuje ich listę. Gdy nic się nie zmieniło — nic nie robi.
-// Instalacja (raz): uruchom „ustawZdjecia” (raz dziennie, ok. 3:00 w nocy; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
+// zdjęć wybranych równo z całego folderu i zapisuje ich listę. Gdy nic się nie zmieniło — nic nie robi (to tanie sprawdzenie,
+// więc skrypt zagląda co godzinę — zdjęcia z niedzieli są w aplikacji tego samego dnia, a nie dopiero w nocy).
+// Instalacja (raz, także po zmianie tego pliku): uruchom „ustawZdjecia” (co godzinę; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
 const ZDJECIA = { folderId: '1JDHuBFv_l6QZpKc5oPcO_vBY1V60vbKs', max: 8, size: 1600 }
 
 function ustawZdjecia() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'zdjeciaNabozenstw').forEach(t => ScriptApp.deleteTrigger(t))
-  ScriptApp.newTrigger('zdjeciaNabozenstw').timeBased().everyDays(1).atHour(3).inTimezone('Europe/Warsaw').create()
+  ScriptApp.newTrigger('zdjeciaNabozenstw').timeBased().everyHours(1).create()
   zdjeciaNabozenstw()
 }
 // Najnowszy folder ze zdjęciami. Nazwy z datą: „2026”, „10_26” (miesiąc_rok), „18_10” (dzień_miesiąc) —
@@ -155,9 +156,10 @@ function najnowszyFolderZdjec(folder, path) {
   while (fi.hasNext()) { const x = fi.next(); if (/^image\//.test(x.getMimeType())) imgs.push(x) }
   return imgs.length ? { folder, imgs, path } : null
 }
-// Data z nazw folderów (rok i DD_MM), np. ['2026', '10_26', '18_10'] → 2026-10-18
+// Data z nazw folderów (rok i DD_MM), np. ['2026', '10_26', '18_10'] → 2026-10-18; bez folderu roku — rok z MM_RR
 function dataZdjec(path) {
-  const year = path.filter(n => /^\d{4}$/.test(n))[0]
+  const mr = path.length > 1 ? /^(\d{1,2})[_.\-](\d{2})$/.exec(path[path.length - 2]) : null
+  const year = path.filter(n => /^\d{4}$/.test(n))[0] || (mr ? '20' + mr[2] : '')
   const day = /^(\d{1,2})[_.\-](\d{1,2})$/.exec(path[path.length - 1] || '')
   return year && day ? year + '-' + ('0' + day[2]).slice(-2) + '-' + ('0' + day[1]).slice(-2) : ''
 }
@@ -185,7 +187,7 @@ function zdjeciaNabozenstw() {
       const meta = JSON.parse(UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.getId() + '?fields=thumbnailLink&supportsAllDrives=true', { headers: auth }).getContentText())
       if (!meta.thumbnailLink) return
       const img = UrlFetchApp.fetch(meta.thumbnailLink.replace(/=s\d+(-[a-z0-9-]+)?$/i, '') + '=s' + ZDJECIA.size, { headers: auth }).getBlob()
-      const path = id + '/' + i + '.jpg'
+      const path = id + '/' + all.length + '-' + i + '.jpg' // nowa nazwa przy każdej zmianie — bez starych kopii w pamięci podręcznej
       const res = UrlFetchApp.fetch(BAZA.url + '/storage/v1/object/zdjecia/' + path, {
         method: 'post', headers: bazaNaglowki({ 'x-upsert': 'true' }), contentType: img.getContentType() || 'image/jpeg', payload: img.getBytes(), muteHttpExceptions: true,
       })
