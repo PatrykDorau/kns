@@ -77,7 +77,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.65 · 26.10.2026'
+const VERSION = '3.66 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1479,10 +1479,11 @@ export default defineComponent({
     })
     // Ekran dla gości: talia nadchodzących nabożeństw i wydarzeń oraz publicznych ogłoszeń (dane z public_preview).
     const guestCat = ref('ev')
-    // logowanie: prosty ekran; od razu, gdy otwarto udostępniony link, ktoś był już zalogowany albo bez bazy (Dysk)
-    const loginView = ref(location.pathname.startsWith('/logowanie'))
+    // logowanie: okienko nad stroną dla gości — samo otwiera się tylko przy wejściu linkiem do podstrony (lub /logowanie)
+    // (nie przy zwykłym odświeżeniu strony głównej); zawsze da się je zamknąć (zapamiętany link i tak otworzy się po zalogowaniu)
+    const loginView = ref(location.pathname !== '/')
     window.addEventListener('keydown', e => { if (e.key === 'Escape' && loginView.value && !ready.value) loginView.value = false })
-    const showLogin = computed(() => loginView.value || !!pendingLink.value?.kind || !!drive.account() || !api.enabled)
+    const showLogin = computed(() => loginView.value || !api.enabled)
     const guestCats = computed(() => {
       if (!pub.value) return []
       const when = it => shortDate(it.date) + (it.time ? ' · ' + it.time : '')
@@ -2629,9 +2630,9 @@ export default defineComponent({
   <template v-else-if="!ready">
   <GuestView />
   <!-- logowanie: okienko nad stroną dla gości (zamykane, chyba że otwarto udostępniony link albo ktoś był już zalogowany) -->
-  <div v-if="showLogin" class="login-screen login-pop" role="dialog" aria-modal="true" aria-label="Logowanie" @click.self="!pendingLink?.kind && !drive.account() && (loginView = false)">
+  <div v-if="showLogin" class="login-screen login-pop" role="dialog" aria-modal="true" aria-label="Logowanie" @click.self="loginView = false">
     <div class="login-card">
-    <button v-if="!pendingLink?.kind && !drive.account()" class="ghost icon login-x" title="Zamknij" aria-label="Zamknij" @click="loginView = false"><svg class="i"><use href="#x"/></svg></button>
+    <button v-if="api.enabled" class="ghost icon login-x" title="Zamknij" aria-label="Zamknij" @click="loginView = false"><svg class="i"><use href="#x"/></svg></button>
     <img src="logo.png" alt="Kościół Na Skale">
     <h1 class="login-title">{{ drive.account() ? 'Witaj ponownie' : 'Zaloguj się' }}</h1>
     <p class="login-lead">{{ api.enabled ? 'Ogłoszenia, kalendarz, służby i nabożeństwa — w jednym miejscu dla członków kościoła.' : 'Nabożeństwa i pieśni kościoła.' }}</p>
