@@ -276,3 +276,14 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
   button.hw-link:hover:not(:disabled), button.kh-link:hover:not(:disabled), button.link:hover:not(:disabled), .deck-words button:hover:not(:disabled) { background: none !important; }
   button.hw-link:hover:not(:disabled), button.kh-link:hover:not(:disabled), button.link:hover:not(:disabled) { color: var(--text) !important; text-decoration: underline; text-underline-offset: 4px; }
 }
+/* logowanie: typografia — nagłówek, wstęp, przycisk, stopka */
+.login-screen .login-card { padding: 34px 28px 26px !important; gap: 0; }
+.login-screen .login-card > img { width: 56px !important; margin: 0 0 22px !important; }
+.login-screen .login-title { margin: 0; font: 650 30px/1.1 var(--display); letter-spacing: -.03em; color: var(--text); text-transform: none; text-wrap: balance; }
+.login-screen .login-lead { margin: 10px auto 26px; max-width: 30ch; color: var(--muted); font-size: 15px; line-height: 1.5; text-wrap: pretty; }
+.login-screen .login-google { width: 100%; min-height: 50px; justify-content: center; gap: 10px; font-size: 15.5px; font-weight: 600; letter-spacing: -.005em; }
+.login-screen .login-card > .note { margin: 14px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.login-screen .login-note { margin-top: 18px !important; padding-top: 16px; border-top: 1px solid var(--line); width: 100%; font-size: 12.5px !important; color: var(--faint, var(--muted)) !important; letter-spacing: .005em; }
+.login-screen .pending-note { margin: 0 0 18px; font-size: 13.5px; line-height: 1.45; }
+.login-screen .login-back { font-size: 14px; font-weight: 500; color: var(--muted); }
+@media (max-width: 420px) { .login-screen .login-title { font-size: 27px; } .login-screen .login-card { padding: 28px 22px 22px !important; } }

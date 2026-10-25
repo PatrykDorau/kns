@@ -76,7 +76,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.55 · 25.10.2026'
+const VERSION = '3.56 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2443,13 +2443,13 @@ export default defineComponent({
     // Adres przy wejściu (także link otwarty przed zalogowaniem): pamiętamy go, bo logowanie Google wraca na stronę główną.
     const LINK_LABEL = { wydarzenie: 'wydarzenie', ogloszenie: 'ogłoszenie', nabozenstwo: 'nabożeństwo', 'zaangazuj-sie': 'listę służb' }
     const startPath = linkToPath(location)
-    if (startPath !== '/') {
+    if (startPath !== '/' && !startPath.startsWith('/logowanie')) {
       try { localStorage.setItem('kns-link', JSON.stringify({ path: startPath, at: Date.now() })) } catch { /* tryb prywatny */ }
     }
     const pendingLink = ref(null)
     try {
       const saved = JSON.parse(localStorage.getItem('kns-link') || 'null')
-      if (saved?.path && Date.now() - saved.at < 3 * 3600e3) pendingLink.value = { ...saved, kind: saved.path.split('/')[1].split('?')[0] }
+      if (saved?.path && !saved.path.startsWith('/logowanie') && Date.now() - saved.at < 3 * 3600e3) pendingLink.value = { ...saved, kind: saved.path.split('/')[1].split('?')[0] }
       else localStorage.removeItem('kns-link')
     } catch { /* tryb prywatny */ }
     const stopStart = watch(ready, ok => {
@@ -2619,6 +2619,8 @@ export default defineComponent({
     <button v-if="!pendingLink?.kind && !drive.account()" class="ghost login-back" @click="loginView = false"><svg class="i"><use href="#back"/></svg>Strona kościoła</button>
     <div class="login-card">
     <img src="logo.png" alt="Kościół Na Skale">
+    <h1 class="login-title">{{ drive.account() ? 'Witaj ponownie' : 'Zaloguj się' }}</h1>
+    <p class="login-lead">{{ api.enabled ? 'Ogłoszenia, kalendarz, służby i nabożeństwa — w jednym miejscu dla członków kościoła.' : 'Nabożeństwa i pieśni kościoła.' }}</p>
     <p v-if="pendingLink && pendingLink.kind" class="pending-note"><svg class="i"><use href="#link"/></svg>{{ LINK_LABEL[pendingLink.kind] ? 'Ktoś udostępnił Ci ' + LINK_LABEL[pendingLink.kind] : 'Otwierasz link do aplikacji' }} — po zalogowaniu od razu się otworzy.</p>
     <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
     <div v-if="wrongOrigin" class="origin-warn">
@@ -2630,7 +2632,7 @@ export default defineComponent({
       {{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj przez Google' }}
     </button>
     <p v-if="drive.account()" class="note">jako {{ drive.account() }} · <button class="ghost link" :disabled="busy" @click="otherAccount">inne konto</button></p>
-    <p class="note login-note">{{ api.enabled ? 'Dla członków kościoła. Nowe konto czeka na zatwierdzenie.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
+    <p class="note login-note">{{ api.enabled ? 'Nowe konto czeka na zatwierdzenie przez administratora.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
     </div>
   </div>
 
