@@ -1,4 +1,4 @@
--- Prośby modlitewne: zalogowana osoba (gość z kodu QR — po włączeniu dostępu dla anon, patrz niżej) zostawia prośbę; może podać imię i kontakt,
+-- Prośby modlitewne (tylko wewnątrz zboru): zalogowany członek zostawia prośbę; może podać imię i kontakt,
 -- i zdecydować, czy prośbę może zobaczyć cały zbór (lista modlitewna), czy tylko prowadzący (pastor, rada, administrator).
 -- Prowadzący dostają powiadomienie, widzą wszystkie prośby i decydują, które pokazać zborowi (prośby gości — dopiero po
 -- akceptacji). Członkowie widzą prośby pokazane zborowi i swoje; „Modlę się” — licznik osób, które się modlą.
@@ -103,7 +103,7 @@ end $$;
 
 revoke all on function public.prayer_leader(), public.prayer_add(text, text, text, boolean), public.prayer_board(), public.prayer_status(bigint, text),
   public.prayer_pray(bigint), public.prayer_remove(bigint) from public, anon;
--- goście (bez logowania, np. z kodu QR): grant execute on function public.prayer_add(text, text, text, boolean) to anon; — tylko po zgodzie (zapis z zewnątrz)
+-- tylko wewnątrz zboru: bez dostępu dla gości (anon)
 grant execute on function public.prayer_add(text, text, text, boolean) to authenticated;
 grant execute on function public.prayer_leader(), public.prayer_board(), public.prayer_status(bigint, text), public.prayer_pray(bigint), public.prayer_remove(bigint) to authenticated;
 

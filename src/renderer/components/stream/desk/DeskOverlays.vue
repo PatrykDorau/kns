@@ -91,7 +91,6 @@ if (settings.prayerText === undefined) settings.prayerText = 'Zachęcamy do modl
     <label>Napis modlitwy <input v-model="settings.prayerText" maxlength="80" placeholder="Zachęcamy do modlitwy"></label>
     <label>Podpis <input v-model="settings.prayerSub" maxlength="100" placeholder="np. Możesz podejść do przodu — modlimy się za ciebie"></label>
       <label title="Link do strony, gdzie można zostawić prośbę o modlitwę — na nakładce pokaże się kod QR">Kod QR (link) <input v-model="settings.prayerLink" type="url" placeholder="https://… strona z prośbami (puste — bez kodu)"></label>
-      <button v-if="!settings.prayerLink" class="small" title="Strona z prośbami modlitewnymi w aplikacji kościoła" @click="settings.prayerLink = 'https://kns-nabo.netlify.app/modlitwa'">Strona próśb KNS</button>
       <label v-if="settings.prayerLink">Podpis kodu <input v-model="settings.prayerLinkLabel" maxlength="30" placeholder="Prośby modlitewne"></label>
     </div>
   </div>
