@@ -207,6 +207,13 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
         if (error) throw new Error(error.message)
         return s.signedUrl
       }
+      // Ankiety (ankiety.sql)
+      if (action === 'surveys') return check(await sb.rpc('survey_board'))
+      if (action === 'surveySave') return check(await sb.rpc('survey_save', { s: data }))
+      if (action === 'surveyAnswer') return check(await sb.rpc('survey_answer', { sid: data.id, answers: data.answers }))
+      if (action === 'surveyResults') return check(await sb.rpc('survey_results', { sid: data.id }))
+      if (action === 'surveyStatus') return check(await sb.rpc('survey_status', { sid: data.id, st: data.status }))
+      if (action === 'surveyRemove') return check(await sb.rpc('survey_remove', { sid: data.id }))
       // Wydawka (wydawka.sql)
       if (action === 'giveaways') return check(await sb.rpc('giveaway_board')) || []
       if (action === 'giveawaySave') return check(await sb.rpc('giveaway_save', { gid: data.id, new_title: data.title || '', new_description: data.description || '', new_place: data.place || '', new_items: (data.items || []).map(i => ({ id: i.id || '', title: i.title || '', image: i.image || '', qty: +i.qty || 1 })), new_closed: !!data.closed }))

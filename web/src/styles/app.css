@@ -1170,7 +1170,6 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 /* talia kart (CardDeck): obok — duże słowa do wyboru (dla kogo / kategoria) */
 .seg.ann-mode { width: 240px; max-width: 100%; }
 .seg.ann-mode button { white-space: nowrap; }
-.seg.home-mode { width: 300px; margin-bottom: -8px; }
 .ann-mode button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .ann-deck { display: flex; align-items: center; justify-content: center; gap: 56px; padding: 18px 0 8px; }
 .ann-deck > .deck { width: auto; }
@@ -1183,19 +1182,12 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
   .deck-words { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 16px; }
   .deck-words button { font-size: 22px; }
 }
-/* ekran dla gości: duży napis, talia wydarzeń i ogłoszeń, obok logowanie */
-.guest-hero { text-align: left; margin: 0 auto 6px; width: min(420px, 100%); }
-.guest-title { margin: 0; font: 700 clamp(48px, 13vw, 104px)/.9 var(--display); letter-spacing: -.05em; text-transform: uppercase; color: var(--text); }
-.guest-hero p { margin: 14px 0 0; color: var(--muted); font-size: 15px; }
-.guest-deck { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 26px auto 30px; }
+/* ekran dla gości: pod logowaniem talia wydarzeń i ogłoszeń */
+.guest-deck { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 34px auto 10px; }
+.guest-h { margin: 0; font: 650 22px/1.2 var(--display); letter-spacing: -.02em; }
 .guest-deck .deck-words { flex-direction: row; gap: 4px 18px; }
-.guest-deck .deck-words button { font-size: 22px; }
-@media (min-width: 1024px) {
-  .login-screen.has-guest { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "hero deck" "card deck"; align-items: start; column-gap: 56px; row-gap: 28px; max-width: 1040px; margin: 0 auto; padding-top: 56px; }
-  .has-guest .guest-hero { grid-area: hero; margin: 0; width: auto; }
-  .has-guest .login-card { grid-area: card; margin: 0; }
-  .has-guest .guest-deck { grid-area: deck; margin: 0; align-self: center; }
-}
+.guest-deck .deck-words button { font-size: 20px; }
 .login-screen .deck-img { height: auto; margin: 0; }
 .login-screen .deck-text { text-align: left; }
 @media (max-width: 1023px) { .login-screen .guest-deck .deck-stack { width: min(300px, 76vw); aspect-ratio: 1; } .login-screen .guest-deck .deck-ph { font-size: 80px; } }
+.serve-tabs.ann-tabs { grid-template-columns: repeat(3, 1fr); }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Talia kart: przechylone karty jedna na drugiej; górną przeciąga się palcem/myszą (albo strzałkami) — odlatuje na spód talii.
 // Karta: zdjęcie (albo kolor i pierwsza litera), znaczek, tytuł, podpis. Kliknięcie górnej karty — „open”.
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { animate } from 'motion'
 
 // action — przycisk pod talią dla tej karty (np. „Biorę”); '' — bez przycisku; brak — wspólny z „action” talii
@@ -9,42 +9,56 @@ export interface DeckCard { key: string; title: string; sub?: string; tag?: stri
 const props = withDefaults(defineProps<{ cards: DeckCard[]; label?: string; action?: string; busy?: boolean }>(), { label: 'Talia kart', action: '', busy: false })
 const emit = defineEmits<{ open: [card: DeckCard, index: number]; action: [card: DeckCard, index: number] }>()
 
-const top = ref(0)
-watch(() => props.cards.map(c => c.key).join(), () => { if (top.value >= props.cards.length) top.value = 0 })
+// karta na wierzchu zapamiętana po kluczu — gdy lista zmieni kolejność (np. ogłoszenie przestało być „nowe”), talia nie przeskakuje
+const topKey = ref('')
 const n = computed(() => props.cards.length)
+const top = computed({
+  get: () => Math.max(0, props.cards.findIndex(c => c.key === topKey.value)),
+  set: i => { topKey.value = props.cards[i]?.key || '' },
+})
 // widoczne: górna i trzy pod nią (od spodu, żeby górna była ostatnia w DOM — na wierzchu)
 const shown = computed(() => Array.from({ length: Math.min(4, n.value) }, (_, d) => ({ d, i: (top.value + d) % n.value, c: props.cards[(top.value + d) % n.value] })).reverse())
 const TILT = [0, -5, 4, -3]
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches
 
-const topEl = ref<HTMLElement | null>(null)
-let drag: { x: number; y: number; dx: number; id: number; moved: boolean } | null = null
+// górna karta — zawsze aktualna (po przełożeniu na spód górną staje się inna karta)
+const stack = ref<HTMLElement | null>(null)
+const topCard = () => stack.value?.querySelector('.deck-card.top') as HTMLElement | null
+let drag: { x: number; y: number; dx: number; id: number; moved: boolean; el: HTMLElement } | null = null
+let flying = false
 function down(e: PointerEvent) {
-  if (e.button) return
-  drag = { x: e.clientX, y: e.clientY, dx: 0, id: e.pointerId, moved: false }
+  if (e.button || flying) return
+  drag = { x: e.clientX, y: e.clientY, dx: 0, id: e.pointerId, moved: false, el: e.currentTarget as HTMLElement }
   try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch { /* wskaźnik już zniknął */ }
 }
 function move(e: PointerEvent) {
   if (!drag || e.pointerId !== drag.id) return
   drag.dx = e.clientX - drag.x
   if (Math.abs(drag.dx) > 6) drag.moved = true
-  if (topEl.value) topEl.value.style.transform = `translateX(${drag.dx}px) rotate(${drag.dx / 18}deg)`
+  drag.el.style.transform = `translateX(${drag.dx}px) rotate(${drag.dx / 18}deg)`
 }
 function up(e: PointerEvent) {
   if (!drag || e.pointerId !== drag.id) return
-  const { dx, moved } = drag
+  const { dx, moved, el } = drag
   drag = null
-  if (!moved) { if (topEl.value) topEl.value.style.transform = ''; const c = props.cards[top.value]; if (c) emit('open', c, top.value); return }
+  if (!moved) { el.style.transform = ''; const c = props.cards[top.value]; if (c) emit('open', c, top.value); return }
   if (Math.abs(dx) > 90) fling(dx > 0 ? 1 : -1)
-  else if (topEl.value) still ? (topEl.value.style.transform = '') : animate(topEl.value, { transform: 'translateX(0px) rotate(0deg)' }, { type: 'spring', stiffness: 500, damping: 32 })
+  else if (still) el.style.transform = ''
+  else animate(el, { transform: 'translateX(0px) rotate(0deg)' }, { type: 'spring', stiffness: 500, damping: 32 }).then(() => { el.style.transform = '' })
 }
 // górna karta odlatuje w bok i wraca na spód; wstecz — ostatnia karta wraca na wierzch
 async function fling(dir: number) {
-  if (n.value < 2) { if (topEl.value) topEl.value.style.transform = ''; return }
-  const el = topEl.value
-  if (el && !still) await animate(el, { transform: `translateX(${dir * 420}px) rotate(${dir * 24}deg)`, opacity: 0 }, { duration: 0.28, ease: 'easeIn' })
-  if (el) { el.style.transform = ''; el.style.opacity = '' }
-  top.value = (top.value + 1) % n.value
+  const el = topCard()
+  if (n.value < 2) { if (el) el.style.transform = ''; return }
+  if (flying) return
+  flying = true
+  try {
+    if (el && !still) await animate(el, { transform: `translateX(${dir * 420}px) rotate(${dir * 24}deg)`, opacity: 0 }, { duration: 0.28, ease: 'easeIn' })
+    top.value = (top.value + 1) % n.value
+    await nextTick()
+    // karta wraca na spód talii — bez śladów przeciągania i odlotu
+    if (el) { el.getAnimations?.().forEach(a => a.cancel()); el.style.transform = ''; el.style.opacity = '' }
+  } finally { flying = false }
 }
 function back() { if (n.value > 1) top.value = (top.value - 1 + n.value) % n.value }
 function key(e: KeyboardEvent) {
@@ -57,8 +71,8 @@ const initial = (c: DeckCard) => (c.title || '?').trim()[0]?.toUpperCase()
 
 <template>
   <div class="deck" :aria-label="label" role="group">
-    <div class="deck-stack" tabindex="0" :aria-label="n ? `${label}: ${cards[top]?.title} (${top + 1} z ${n}). Strzałki — następna i poprzednia, Enter — otwórz.` : label" @keydown="key">
-      <article v-for="s in shown" :key="s.c.key" :ref="el => { if (s.d === 0) topEl = el as HTMLElement }" class="deck-card" :class="{ top: s.d === 0 }"
+    <div ref="stack" class="deck-stack" tabindex="0" :aria-label="n ? `${label}: ${cards[top]?.title} (${top + 1} z ${n}). Strzałki — następna i poprzednia, Enter — otwórz.` : label" @keydown="key">
+      <article v-for="s in shown" :key="s.c.key" class="deck-card" :class="{ top: s.d === 0 }"
                :style="{ '--d': s.d, '--tilt': TILT[s.d] + 'deg', '--c': s.c.color || 'var(--accent)' }"
                @pointerdown="s.d === 0 && down($event)" @pointermove="move" @pointerup="up" @pointercancel="up">
         <img v-if="s.c.image" class="deck-img" :src="s.c.image" alt="" draggable="false" loading="lazy">
@@ -81,7 +95,7 @@ const initial = (c: DeckCard) => (c.title || '?').trim()[0]?.toUpperCase()
 </template>
 
 <style scoped>
-.deck { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+.deck { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; overflow-x: clip; padding: 14px 0; } /* odlatująca karta nie poszerza strony */
 .deck-stack { position: relative; width: min(340px, 82vw); aspect-ratio: 4 / 5; outline: none; touch-action: pan-y; }
 .deck-stack:focus-visible { outline: 2px solid var(--accent); outline-offset: 10px; border-radius: 24px; }
 .deck-card { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: var(--panel2, #1f1f1f);

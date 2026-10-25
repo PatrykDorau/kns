@@ -3,7 +3,7 @@
 // zakładki służb — utils/swipe.ts), poziomo przewijane listy, pola tekstowe i okna. Nowy widok lekko wjeżdża z boku.
 import { swipeState } from './swipe'
 
-const SKIP = 'input, textarea, select, [contenteditable], .ui-select-list, .np-overlay, .ask-overlay, dialog, .tabbar'
+const SKIP = 'input, textarea, select, [contenteditable], .ui-select-list, .np-overlay, .ask-overlay, dialog, .tabbar, .deck'
 // czy coś pod palcem przewija się w poziomie
 function scrollsX(el: Element | null) {
   for (let n = el as HTMLElement | null; n && n !== document.body; n = n.parentElement) {

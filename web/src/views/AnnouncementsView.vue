@@ -4,13 +4,14 @@ import { computed, defineComponent, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
 import Giveaways from '@/components/Giveaways.vue'
 import CardDeck from '@/components/CardDeck.vue'
+import Surveys from '@/components/Surveys.vue'
 
-// wszystkie ogłoszenia (lista albo talia kart — zapamiętane na tym urządzeniu); druga zakładka — wydawka (rzeczy za darmo)
+// wszystkie ogłoszenia (lista albo talia kart — zapamiętane na tym urządzeniu); kolejne zakładki — wydawka (rzeczy za darmo) i ankiety
 const AUD_COLOR = { public: '#f2a65a', members: '#7cc4a4', council: '#c79bf2' }
 const AUD_WORD = { public: 'Publiczne', members: 'Członkowie', council: 'Rada' }
 const remembered = () => { try { return localStorage.getItem('kns-ann-mode') === 'cards' ? 'cards' : 'list' } catch { return 'list' } }
 export default defineComponent({
-  components: { Giveaways, CardDeck },
+  components: { Giveaways, CardDeck, Surveys },
   setup() {
     const app = useApp()
     const annMode = ref(remembered())
@@ -28,11 +29,13 @@ export default defineComponent({
 </script>
 
 <template>
-  <div v-if="api.enabled" class="serve-tabs" role="tablist">
-    <button role="tab" :aria-selected="annTab === 'ann'" @click="annTab = 'ann'; giftOpen = ''"><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia</button>
-    <button role="tab" :aria-selected="annTab === 'gift'" @click="annTab = 'gift'"><svg class="i"><use href="#gift"/></svg>Wydawka</button>
+  <div v-if="api.enabled" class="serve-tabs ann-tabs" role="tablist">
+    <button role="tab" :aria-selected="annTab === 'ann'" @click="annTab = 'ann'; giftOpen = ''; surveyOpen = ''"><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia</button>
+    <button role="tab" :aria-selected="annTab === 'gift'" @click="annTab = 'gift'; surveyOpen = ''"><svg class="i"><use href="#gift"/></svg>Wydawka</button>
+    <button role="tab" :aria-selected="annTab === 'survey'" @click="annTab = 'survey'; giftOpen = ''"><svg class="i"><use href="#check"/></svg>Ankiety</button>
   </div>
   <Giveaways v-if="annTab === 'gift'" />
+  <Surveys v-else-if="annTab === 'survey'" />
   <template v-else>
   <div v-if="canAnnounce" class="ann-new-row">
     <button class="primary" @click="newAnn"><svg class="i"><use href="#plus"/></svg>Nowe ogłoszenie</button>

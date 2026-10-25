@@ -75,7 +75,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.45 · 25.10.2026'
+const VERSION = '3.46 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1058,8 +1058,8 @@ export default defineComponent({
     // Zwykłe ogłoszenia — osoby z prawem edycji; komunikaty rady i ogłoszenia dla rady — rada i pastor.
     const annEditable = computed(() => !!currentAnn.value && mayChange(currentAnn.value, annSavedOnce.value) && (hasCouncil.value || (!currentAnn.value.important && currentAnn.value.audience !== 'council' && annAudience !== 'council')))
     // Ogłoszenia: zakładki „Ogłoszenia” i „Wydawka” (rzeczy za darmo); giftOpen — otwarta rzecz z wydawki
-    const annTab = ref('ann'), giftOpen = ref('')
-    function openAnns() { annView.value = true; annQuery.value = ''; annTab.value = 'ann'; giftOpen.value = ''; scrollTo(0, 0) }
+    const annTab = ref('ann'), giftOpen = ref(''), surveyOpen = ref('')
+    function openAnns() { annView.value = true; annQuery.value = ''; annTab.value = 'ann'; giftOpen.value = ''; surveyOpen.value = ''; scrollTo(0, 0) }
     // Wyszukiwanie w ogłoszeniach (tytuł, treść, autor — bez polskich znaków i wielkości liter) z podpowiedziami.
     const annQuery = ref(''), annHintsOpen = ref(false)
     const annMatch = a => { const q = plain(annQuery.value.trim()); return !q || plain([a.title, a.text, a.author].join(' ')).includes(q) }
@@ -2315,7 +2315,8 @@ export default defineComponent({
       if (currentProto.value) return protoSavedOnce.value ? '/material/' + currentProto.value.id : '/material/nowy'
       if (song.value) return song.value.isNew ? '/piesn/nowa' : '/piesn/' + song.value.id
       if (tplType.value || tplView.value) return '/szablony'
-      if (annView.value) return annTab.value === 'gift' ? (giftOpen.value ? '/wydawka/' + encodeURIComponent(giftOpen.value) : '/wydawka') : '/ogloszenia'
+      if (annView.value) return annTab.value === 'gift' ? (giftOpen.value ? '/wydawka/' + encodeURIComponent(giftOpen.value) : '/wydawka')
+        : annTab.value === 'survey' ? (surveyOpen.value ? '/ankiety/' + encodeURIComponent(surveyOpen.value) : '/ankiety') : '/ogloszenia'
       if (protoView.value) return '/materialy'
       if (songView.value) return '/piesni'
       if (peopleView.value) return '/osoby'
@@ -2364,6 +2365,7 @@ export default defineComponent({
           if (sv) { open(sv); if (edit && canEdit.value) svcEditing.value = true }
         } else if (view === 'ogloszenia') openAnns()
         else if (view === 'wydawka') { openAnns(); annTab.value = 'gift'; giftOpen.value = id }
+        else if (view === 'ankiety') { openAnns(); annTab.value = 'survey'; surveyOpen.value = id }
         else if (view === 'ogloszenie') {
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
@@ -2458,7 +2460,7 @@ export default defineComponent({
       goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
       startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, surveyOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
@@ -2582,18 +2584,7 @@ export default defineComponent({
       <section v-for="n in 3" :key="n" class="hw-col"><span class="skel boot-hh"></span><div class="skel-list"><div v-for="k in 3" :key="k" class="skel skel-row"></div></div></section>
     </div>
   </div>
-  <div v-else-if="!ready" class="center login-screen" :class="{ 'has-guest': !!guestDeck }">
-    <!-- goście: duży napis i talia tego, co się dzieje w kościele (bez logowania) -->
-    <div v-if="guestDeck" class="guest-hero">
-      <h1 class="guest-title">Kościół<br>Na Skale</h1>
-      <p>Zobacz, co się u nas dzieje — przesuń kartę w bok.</p>
-    </div>
-    <section v-if="guestDeck" class="guest-deck" aria-label="Co się dzieje w kościele">
-      <CardDeck :key="guestDeck.id" :cards="guestDeck.cards" :label="guestDeck.name" />
-      <nav v-if="guestCats.length > 1" class="deck-words" aria-label="Kategoria">
-        <button v-for="c in guestCats" :key="c.id" :class="{ on: guestDeck.id === c.id }" :aria-pressed="guestDeck.id === c.id" @click="guestCat = c.id">{{ c.name }}</button>
-      </nav>
-    </section>
+  <div v-else-if="!ready" class="center login-screen">
     <div class="login-card">
     <img src="logo.png" alt="Kościół Na Skale">
     <div v-if="countdown" class="countdown login-cd">
@@ -2624,6 +2615,14 @@ export default defineComponent({
     <p v-if="drive.account()" class="note">jako {{ drive.account() }} · <button class="ghost link" :disabled="busy" @click="otherAccount">inne konto</button></p>
     <p class="note login-note">{{ api.enabled ? 'Nowe konto czeka na zatwierdzenie przez administratora kościoła.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
     </div>
+    <!-- goście: pod logowaniem talia tego, co się dzieje w kościele; dalej — „Odkryj nas” (PublicListen) -->
+    <section v-if="guestDeck" class="guest-deck" aria-label="Co się dzieje w kościele">
+      <h2 class="guest-h">Co się u nas dzieje</h2>
+      <nav v-if="guestCats.length > 1" class="deck-words" aria-label="Kategoria">
+        <button v-for="c in guestCats" :key="c.id" :class="{ on: guestDeck.id === c.id }" :aria-pressed="guestDeck.id === c.id" @click="guestCat = c.id">{{ c.name }}</button>
+      </nav>
+      <CardDeck :key="guestDeck.id" :cards="guestDeck.cards" :label="guestDeck.name" />
+    </section>
   </div>
 
   <!-- lista -->
