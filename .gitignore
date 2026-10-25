@@ -4,3 +4,7 @@ release
 .claude
 dist-electron
 src/main/google-secret.cjs
+
+# taste-skill: robocze pliki kierunku wyglądu i blokada instalacji umiejętności (lokalne)
+.taste-skill/
+skills-lock.json

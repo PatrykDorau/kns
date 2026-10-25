@@ -1,0 +1,197 @@
+/* Warstwa „taste” (ładowana na końcu, nadpisuje app.css, home.css i ui.css).
+   Kierunek: true-black-flat (taste-skill, ziarno 1967459553) z twarzą kościoła:
+   - grunt ciepła czerń (jak noc przed świtem), powierzchnie wyżej o krok jasności — bez obramowań, cieni, gradientów i szkła;
+   - jedyny kolor na danych to słońce z logo (pomarańcz): najbliższe nabożeństwo, „nowe”, liczniki do zrobienia —
+     nigdy na przyciskach, zakładkach ani w menu;
+   - główny przycisk przez odwrócenie (biała „pigułka” z czarnym tekstem), aktywne menu — biały napis zamiast szarego;
+   - Inter, wagi 400–600, etykiety zwykłymi literami (bez rozstrzelonych wersalików). */
+
+:root {
+  --bg: #0e0d0c; --panel: #181716; --panel2: #201e1c; --panel3: #2a2826; --line: #262422;
+  --text: #ffffff; --muted: #b4b4b4; --faint: #949494;
+  --accent: #f6a836; --accent-soft: rgba(246, 168, 54, .13); --accent-text: #f6a836;
+  --ok: #8fd19e; --ok-soft: rgba(143, 209, 158, .12); --ok-text: #8fd19e;
+  --bad: #e5484d; --bad-soft: rgba(229, 72, 77, .13); --bad-text: #ff8a8d; --warn: #e5a93b;
+  /* warstwa ui.css */
+  --edge: transparent; --edge-hi: rgba(255, 255, 255, .1);
+  --surface: var(--panel); --surface-solid: var(--panel);
+  --shadow-1: none; --shadow-2: none; --ring: 0 0 0 2px rgba(255, 255, 255, .55);
+  --display: "Inter", system-ui, "Segoe UI", sans-serif;
+  --field: var(--panel); --field-focus: var(--panel);
+  --glass: var(--bg); --side-bg: var(--bg);
+  --tint: rgba(255, 255, 255, .05); --tint-hi: rgba(255, 255, 255, .08);
+  --r-sm: 12px; --r: 16px; --r-lg: 20px; --r-xl: 20px;
+}
+html[data-theme="light"] {
+  --bg: #f4f3f1; --panel: #ffffff; --panel2: #ebe9e6; --panel3: #dfdcd8; --line: #e2dfdb;
+  --text: #141210; --muted: #57534e; --faint: #6f6a64;
+  --accent: #e8941f; --accent-soft: rgba(232, 148, 31, .14); --accent-text: #9a5a08;
+  --ok: #2f8a57; --ok-soft: rgba(47, 138, 87, .12); --ok-text: #1f6e43;
+  --bad: #d23f3a; --bad-soft: rgba(210, 63, 58, .1); --bad-text: #b0302b;
+  --edge-hi: rgba(0, 0, 0, .12); --tint: rgba(0, 0, 0, .04); --tint-hi: rgba(0, 0, 0, .07);
+  --ring: 0 0 0 2px rgba(20, 18, 16, .6);
+  --glass: var(--bg); --side-bg: var(--bg); --field: #ffffff; --field-focus: #ffffff;
+}
+
+/* ---------- grunt i pismo ---------- */
+html, body { background: var(--bg) !important; }
+body { background-image: none !important; font-family: "Inter", system-ui, "Segoe UI", sans-serif !important; font-feature-settings: "cv11", "ss01"; color: var(--text); }
+body::before { display: none !important; } /* góry w tle pod każdym ekranem — zamiast nich znak dnia na stronie startowej */
+h1, h2, h3, h4, b, strong, th { font-weight: 600 !important; }
+header h1, .kh-hello h1, .hello h1, .ann-view-title, .view-title { font-family: var(--display) !important; font-weight: 600 !important; letter-spacing: -.025em !important; }
+#app.has-side header h1 { font-size: 30px; }
+.kh-hello h1, .hello h1 { font-size: clamp(28px, 4vw, 40px) !important; line-height: 1.05; }
+::selection { background: rgba(246, 168, 54, .35); }
+time, .cd-digits, .count-pill, .side-badge, .tabbar .count, td, .kh-num { font-variant-numeric: tabular-nums; }
+
+/* etykiety: zwykłe litery, czytelny rozmiar (zamiast drobnych rozstrzelonych wersalików) */
+.side-sec, .hw-banner-text small, .hw-kicker, .hw-rows dt, .hw-h, .hw-day small, .fact small, .dv-card-h, .more-sec,
+.gift-claims .mm-lbl, .beta-tag, .kh-tag, .kh-wd, .kh-new, .section h2, .card .date small, .cd-label, .cal-grid .wd, .ev .when small,
+.notice-tag, .mn-pending > small, .view-h, .view-card > small, .su-list > small, .vote-lbl, .asb-badge, .asb-date small, .mn-sec,
+.le-tag, .asb-prev h4, .bug-status, .mm-sec.avail .mm-lbl, .mm-lbl, .sn-n, .sv-label, .desk-lbl {
+  text-transform: none !important; letter-spacing: 0 !important; }
+.side-sec, .more-sec, .view-h, .mn-sec, .dv-card-h, .hw-h, .kh-tag, .mm-lbl, .vote-lbl, .sv-label { font-size: 13px !important; font-weight: 500 !important; color: var(--faint) !important; opacity: 1 !important; }
+.section h2 { font-size: 16px !important; font-weight: 600 !important; color: var(--text) !important; }
+.section h2::before { display: none !important; }
+.section { border-top: 0 !important; }
+.fact small, .hw-rows dt, .cd-label, .ev .when small, .card .date small, .asb-date small, .hw-day small, .cal-grid .wd, .kh-wd { font-size: 12px !important; font-weight: 500 !important; color: var(--faint) !important; }
+
+/* ---------- powierzchnie: krok jasności zamiast obramowania i cienia ---------- */
+.card, .ann, .ministry, .goal, .goal-confirm, .person, .push-card, .listen-card, .song, .view-card, .install, .account, .getapp, .whoami,
+.more-list, .ev, .asb-row, .inbox-item, .goal-form, .goal-support, .dv-card, .kh-panel, .kh-tile, .kh-svc, .hw-feature, .sermon-notes,
+.lib-trash, .login-card, .remind, .countdown, .np-panel, .bar, .suggest, .sv-part, .mm-card {
+  background: var(--panel) !important; background-image: none !important; border-color: transparent !important; box-shadow: none !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.card, .ann, .ministry, .goal, .person, .push-card, .listen-card, .view-card, .dv-card, .kh-panel, .kh-tile, .hw-feature, .sermon-notes, .sv-part, .mm-card { border-radius: 20px !important; }
+.ministry.seeking, .goal-confirm.due { box-shadow: inset 3px 0 0 var(--accent) !important; }
+@media (hover: hover) {
+  button.card:hover, button.ann:hover, button.song:hover, button.ev:hover, .kh-tile:hover { background: var(--panel2) !important; border-color: transparent !important; box-shadow: none !important; }
+}
+.card .date, .kh-date { background: var(--panel2) !important; box-shadow: none !important; }
+/* zagnieżdżone panele — krok wyżej */
+.card .card, .view-card .note, .ann .ann-img-wrap, .kh-panel .kh-panel, .hw-rows, .avail-plan p, .login-perks li, .beta-note, .form-hint, .readonly { background: var(--panel2) !important; border: 0 !important; box-shadow: none !important; }
+
+/* ---------- przyciski ---------- */
+button, a.button { border-color: transparent; background: var(--panel2); background-image: none; box-shadow: none; font-weight: 500; border-radius: 999px; }
+@media (hover: hover) { button:hover:not(:disabled), a.button:hover { background: var(--panel3) !important; background-image: none !important; border-color: transparent; } }
+button.primary, a.button.primary { background: var(--text) !important; background-image: none !important; color: var(--bg) !important; border-color: transparent !important; box-shadow: none !important; font-weight: 600; }
+@media (hover: hover) { button.primary:hover:not(:disabled), a.button.primary:hover { background: color-mix(in srgb, var(--text) 86%, var(--bg)) !important; box-shadow: none !important; } }
+button.primary:disabled, a.button.primary[aria-disabled=true] { background: var(--panel2) !important; color: var(--faint) !important; box-shadow: none !important; }
+button.danger { background: var(--bad) !important; background-image: none !important; box-shadow: none !important; color: #fff !important; }
+button.ghost { color: var(--text); background: none; }
+button.ghost:hover { color: var(--text); }
+button.icon { color: var(--muted); }
+button.small { border-radius: 999px; }
+.bar button.primary:disabled:has(> svg) { background: var(--ok-soft) !important; color: var(--ok-text) !important; box-shadow: none !important; }
+:focus-visible { box-shadow: var(--ring) !important; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--text) !important; outline-offset: 2px; box-shadow: none !important; }
+header button.back, #app.has-side header > .back:hover { color: var(--text) !important; }
+
+/* ---------- pola ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), textarea, select {
+  background-color: var(--panel) !important; border: 1px solid var(--panel3) !important; border-radius: 14px; }
+input:focus, textarea:focus, select:focus { border-color: var(--muted) !important; box-shadow: none !important; }
+input[type=checkbox], input[type=radio] { accent-color: var(--text); }
+/* pola wyszukiwania z ikoną w opakowaniu (.ann-search, .cal-search…): ramka na opakowaniu, pole w środku bez ramki */
+[class*="-search"]:has(> input) { background: var(--panel) !important; border: 1px solid var(--panel3) !important; border-radius: 14px !important; box-shadow: none !important; }
+[class*="-search"]:has(> input:focus) { border-color: var(--muted) !important; }
+[class*="-search"] > input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]) { border: 0 !important; background: transparent !important; box-shadow: none !important; }
+
+/* zakładki u góry widoku (Ogłoszenia / Wydawka, Wszystkie / Moja służba…): aktywna przez odwrócenie */
+.serve-tabs, .seg { border: 0 !important; background: var(--panel) !important; border-radius: 999px !important; }
+.serve-tabs button, .seg button { border-radius: 999px !important; color: var(--muted) !important; background: none !important; }
+.serve-tabs button[aria-selected=true], .seg button.on { background: var(--text) !important; color: var(--bg) !important; }
+.serve-tabs button[aria-selected=true] svg.i, .seg button.on svg.i { color: var(--bg) !important; }
+@media (max-width: 1023px) { header h1 { font-size: 22px !important; } }
+
+/* ---------- znaczniki i filtry: neutralne; aktywny filtr przez odwrócenie ---------- */
+.ann-tag, .chip, .kh-pill, .count-pill, .asb-badge, .bug-status, .ev .tag, .mn-head .ann-tag { background: var(--panel3) !important; color: var(--text) !important; border: 0 !important; font-weight: 500 !important; }
+.ann-tag.pin { background: var(--accent-soft) !important; color: var(--accent-text) !important; }
+html[data-theme="light"] .ev .tag { color: var(--text) !important; }
+button.filter, .chipbtn, .cal-types .filter { background: var(--panel2) !important; color: var(--muted) !important; border: 0 !important; box-shadow: none !important; }
+button.filter.on, button.filter[aria-pressed="true"], .chipbtn.on, .chipbtn[aria-pressed="true"], .filters .on { background: var(--text) !important; color: var(--bg) !important; }
+.beta-tag { border: 1px solid var(--panel3) !important; color: var(--muted) !important; font-size: 11px !important; font-weight: 500 !important; }
+/* liczniki tego, co czeka na działanie — jedyne miejsce koloru w menu (to dane, nie ozdoba) */
+.side-badge, .side-dot, .tabbar .count { background: var(--accent) !important; color: #1b1205 !important; box-shadow: none !important; }
+.kh-new { background: var(--accent) !important; color: #1b1205 !important; }
+
+/* ikony bez barwionych kwadratów */
+.mn-ic, .hw-banner-ic, .more-list button > svg.i:first-child { background: none !important; box-shadow: none !important; color: var(--muted) !important; }
+.mn-ic { width: 22px !important; height: 22px !important; }
+.more-list button > svg.i:first-child { width: 22px !important; height: 22px !important; padding: 0 !important; }
+
+/* ---------- boczny pasek: płasko na gruncie, oddzielony jedną linią ---------- */
+@media (min-width: 1024px) {
+  body:has(#app.has-side) { padding-left: 272px !important; padding-right: 32px !important; }
+  .side { left: 0 !important; top: 0 !important; bottom: 0 !important; width: 240px !important; border: 0 !important; border-right: 1px solid var(--line) !important; border-radius: 0 !important;
+    background: var(--bg) !important; background-image: none !important; box-shadow: none !important; backdrop-filter: none !important; padding: 18px 14px 14px !important; }
+  .side-top { border-bottom: 0 !important; padding-bottom: 14px !important; }
+  .side-it { color: #bbbbbb !important; font-size: 14px !important; font-weight: 500 !important; min-height: 34px !important; padding: 6px 10px !important; border-radius: 10px !important; }
+  html[data-theme="light"] .side-it { color: #5a5550 !important; }
+  .side-it svg.i { color: currentColor !important; width: 17px !important; height: 17px !important; }
+  .side-it:hover:not(:disabled) { background: none !important; color: var(--text) !important; }
+  .side-it.on { background: none !important; box-shadow: none !important; color: var(--text) !important; }
+  .side-it.on::before { display: none !important; }
+  .side-sec { margin: 20px 10px 6px !important; }
+  .side-app { background: var(--panel) !important; border: 0 !important; }
+  .side-app a.button { background: var(--panel3) !important; }
+  .side-me-btn { border: 0 !important; background: none !important; }
+  .side-me-btn:hover, .side-me-btn.on { background: var(--panel) !important; }
+  .side-ib.on { color: var(--text) !important; background: var(--panel2) !important; }
+}
+
+/* ---------- dolny pasek (telefon): płaski, na gruncie, jedna linia u góry ---------- */
+.tabbar { left: 0 !important; right: 0 !important; bottom: 0 !important; padding: 4px 8px calc(4px + env(safe-area-inset-bottom)) !important; border: 0 !important; border-top: 1px solid var(--line) !important; border-radius: 0 !important;
+  background: var(--bg) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }
+.tabbar button { color: #9a9a9a !important; background: none !important; box-shadow: none !important; font-weight: 500 !important; }
+.tabbar button.on { color: var(--text) !important; background: none !important; box-shadow: none !important; }
+html[data-theme="light"] .tabbar button { color: #6f6a64 !important; }
+html[data-theme="light"] .tabbar button.on { color: var(--text) !important; }
+.tabbar button.on svg.i { transform: none !important; }
+#app.tabbed { padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
+
+/* nagłówek podstrony na telefonie: grunt, bez rozmycia */
+@media (max-width: 1023px) {
+  header { background: var(--bg) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}
+
+/* ---------- okna, arkusze, toast, pasek zapisu ---------- */
+.np-overlay { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(0, 0, 0, .6) !important; }
+.np-panel, .suggest { background: var(--panel2) !important; box-shadow: 0 24px 60px rgba(0, 0, 0, .5) !important; } /* to, co naprawdę unosi się nad treścią */
+.toast { background: var(--text) !important; color: var(--bg) !important; border: 0 !important; backdrop-filter: none !important; box-shadow: 0 12px 30px rgba(0, 0, 0, .4) !important; }
+.bar { background: var(--panel2) !important; border: 0 !important; }
+
+/* ---------- komunikaty i zaproszenia: płasko, bez papieru ---------- */
+.hw-banner, .invite, .kh .invite, .goal-banner, .push-ask, .update-ready, .getapp, .install {
+  background: var(--panel) !important; background-image: none !important; border: 0 !important; box-shadow: none !important; color: var(--text) !important; }
+.hw-banner { box-shadow: inset 3px 0 0 var(--accent) !important; }
+.hw-banner-text small, .notice-tag { color: var(--accent-text) !important; }
+.hw-banner-text b, .hw-banner-text span { color: var(--text) !important; }
+.hw-banner::before, .hw-banner::after { display: none !important; }
+
+/* przyciski akcji strony na szerokim ekranie — biała pigułka */
+.page-action { border-radius: 999px !important; }
+.hw-go { background: var(--text) !important; color: var(--bg) !important; border-radius: 999px !important; font-weight: 600 !important; }
+.invite b, .goal-banner b { color: var(--text) !important; }
+.invite > svg.i, .goal-banner > svg.i, .push-ask svg.i { color: var(--muted) !important; }
+
+/* bez numeracji sekcji (1, 2, 3, 4) — kolejność widać po miejscu */
+.hw-step { display: none !important; }
+.hw-kicker { margin-left: 0 !important; }
+
+/* inicjały i ikony bez barwionych kwadratów: ton wyżej, ikona w szarości */
+.hw-thumb:not(img) { background: var(--panel2) !important; color: var(--muted) !important; box-shadow: none !important; font-weight: 600 !important; }
+.fact { background: var(--panel) !important; border: 0 !important; box-shadow: none !important; }
+.fact > svg.i { width: 20px !important; height: 20px !important; padding: 0 !important; background: none !important; color: var(--muted) !important; }
+.timeline .tl-ic, .pg-head .tl-ic { background: none !important; color: var(--muted) !important; }
+
+/* boczny pasek: pełna nazwa kościoła i osoby */
+@media (min-width: 1024px) {
+  body:has(#app.has-side) { padding-left: 280px !important; }
+  .side { width: 248px !important; }
+  .side-brand b { font-size: 13.5px !important; white-space: normal !important; line-height: 1.15 !important; }
+  .side-top .side-ib { width: 28px !important; height: 28px !important; }
+  .side-me-text b { font-size: 13px !important; }
+  .side-app { grid-template-columns: minmax(0, 1fr) !important; row-gap: 8px; }
+  .side-app a.button { grid-column: 1 !important; grid-row: auto !important; justify-self: start; }
+}

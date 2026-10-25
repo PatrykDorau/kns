@@ -8,6 +8,7 @@ import ImageLinkInput from './components/ImageLinkInput.vue'
 import './styles/app.css'
 import './styles/home.css'
 import './styles/ui.css'
+import './styles/taste.css' // kierunek „true-black-flat” (taste-skill): ciepła czerń, kolor tylko na danych, Inter
 
 import { startMarquee } from './utils/marquee'
 import { startAutoHideHeader } from './utils/autoHideHeader'
