@@ -1,38 +1,20 @@
-// Ruch w całej aplikacji (warstwy):
-// 1. żywe tło — kilka dużych, rozmytych plam ciepłego światła wolno dryfuje pod treścią, na nich drobne ziarno
-//    (jak film); przy przewijaniu tło przesuwa się wolniej niż treść (głębia);
-// 2. wejścia — karty, wiersze list i sekcje wjeżdżają od dołu po kolei, gdy pojawiają się na ekranie
-//    (treść jest ukrywana dopiero, gdy ten skrypt działa — bez niego wszystko widać od razu);
-// 3. światło pod kursorem — na komputerze miękka poświata podąża za myszką po karcie.
-// 4. (Motion) zakładki — zaznaczenie przesuwa się sprężyście do klikniętej zakładki (dolne menu, „Ogłoszenia / Wydawka”…);
-// 5. (Motion) paralaksa — ilustracja na karcie nabożeństwa przesuwa się wolniej niż karta przy przewijaniu.
-// Przy „ogranicz ruch” w systemie: tło stoi, bez wejść i bez poświaty.
+// Ruch w aplikacji:
+// - wejścia — karty, wiersze list i sekcje wjeżdżają od dołu po kolei, gdy pojawiają się na ekranie
+//   (treść jest ukrywana dopiero, gdy ten skrypt działa — bez niego wszystko widać od razu);
+// - (Motion) zakładki — zaznaczenie przesuwa się sprężyście do klikniętej zakładki (dolne menu, „Ogłoszenia / Wydawka”…);
+// - (Motion) paralaksa — ilustracja na karcie nabożeństwa przesuwa się wolniej niż karta przy przewijaniu.
+// Przy „ogranicz ruch” w systemie — nic z tego.
 import { animate, scroll } from 'motion'
 const REVEAL = [
   '.card', '.ann', '.ev', '.song', '.ministry', '.view-card', '.dv-card', '.kh-panel', '.hw-feature', '.hw-banner', '.hw-row',
   '.mm-card', '.person', '.goal', '.listen-card', '.more-list', '.timeline > *', '.sermon-notes', '.sv-part', '.form-sec',
   '.wide-list > *', '.hw-col', '.push-card', '.asb-row', '.inbox-item', '.giveaway', '.fact', '.login-card',
 ].join(',')
-const GLOW = 'button.card, button.ann, button.song, button.ev, .ann, .ev, .hw-row, .kh-panel, .hw-feature, .card, .view-card, .dv-card, .mm-card, .more-list button, .person, .goal'
 
 export function startMotion() {
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches
-  // 1. żywe tło
-  const amb = document.createElement('div')
-  amb.className = 'amb'
-  amb.setAttribute('aria-hidden', 'true')
-  amb.innerHTML = '<i class="amb-a"></i><i class="amb-b"></i><i class="amb-c"></i><span class="amb-grain"></span>'
-  document.body.prepend(amb)
-  if (still) { document.documentElement.classList.add('still'); return }
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-  let ticking = false
-  addEventListener('scroll', () => {
-    if (ticking) return
-    ticking = true
-    requestAnimationFrame(() => { amb.style.setProperty('--sy', String(scrollY)); ticking = false })
-  }, { passive: true })
-
-  // 2. wejścia: elementy, które pojawiają się w tej samej klatce, dostają kolejne opóźnienia
+  // wejścia: elementy, które pojawiają się w tej samej klatce, dostają kolejne opóźnienia
   document.documentElement.classList.add('rv-on')
   let batch = 0, batchTimer = 0
   const io = new IntersectionObserver(entries => {
@@ -62,7 +44,7 @@ export function startMotion() {
       .observe(app, { childList: true, subtree: true })
   }
 
-  // 4. zakładki: wskaźnik pod aktywną zakładką, przesuwany sprężyną
+  // zakładki: wskaźnik pod aktywną zakładką, przesuwany sprężyną
   const TABS: [string, string][] = [['.tabbar', 'button.on'], ['.serve-tabs', 'button[aria-selected=true]'], ['.seg', 'button.on']]
   const placed = new WeakMap<Element, HTMLElement>()
   const place = (box: HTMLElement, sel: string, jump = false) => {
@@ -84,7 +66,7 @@ export function startMotion() {
   }
   addEventListener('resize', () => { for (const [boxSel, onSel] of TABS) document.querySelectorAll(boxSel).forEach(box => placed.has(box) && place(box as HTMLElement, onSel, true)) })
 
-  // 5. paralaksa ilustracji na karcie nabożeństwa (właściwość „translate” — nie koliduje z powolnym przybliżaniem)
+  // paralaksa ilustracji na karcie nabożeństwa (właściwość „translate” — nie koliduje z powolnym przybliżaniem)
   const para = new WeakSet()
   const watchPara = (root: ParentNode) => {
     root.querySelectorAll?.('.hw-visual').forEach(el => {
@@ -97,20 +79,5 @@ export function startMotion() {
     watchTabs(document); watchPara(app)
     let queued = false // nowe zakładki i karty po zmianie widoku — najwyżej raz na klatkę
     new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; watchTabs(document); watchPara(app) }) }).observe(document.body, { childList: true, subtree: true })
-  }
-
-  // 3. światło pod kursorem (tylko mysz)
-  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    let last: HTMLElement | null = null
-    addEventListener('pointermove', e => {
-      const el = (e.target as Element)?.closest?.(GLOW) as HTMLElement | null
-      if (last && last !== el) last.classList.remove('glow-on')
-      last = el
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      el.style.setProperty('--mx', e.clientX - r.left + 'px')
-      el.style.setProperty('--my', e.clientY - r.top + 'px')
-      el.classList.add('glow-on')
-    }, { passive: true })
   }
 }
