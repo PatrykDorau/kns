@@ -108,7 +108,7 @@ export default defineComponent({
       <nav class="gx-bar" aria-label="Strona">
         <button class="gx-logo" title="Wróć na początek" @click="back">Kościół <b>Na Skale</b></button>
         <span class="gx-bar-links">
-          <a href="#nabozenstwo">Nabożeństwo</a><a href="#wydarzenia">Wydarzenia</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
+          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
         </span>
         <button class="gx-btn gx-accent gx-sm" @click="loginView = true">Zaloguj się</button>
       </nav>
@@ -116,25 +116,42 @@ export default defineComponent({
       <section id="nabozenstwo" class="gx-sec">
         <h2 class="gx-h" tabindex="-1"><span class="gx-dim">Niedziela, {{ svcTime }}</span>{{ svcPlace }}</h2>
         <p class="gx-sub">Nabożeństwo z uwielbieniem i kazaniem. Przyjdź sam, z rodziną albo z przyjaciółmi — nikt nie musi niczego umieć ani wiedzieć.</p>
-        <div class="gx-svc">
-          <div class="gx-panel gx-cd">
-            <small>Najbliższe nabożeństwo</small>
-            <b>{{ cdText || when }}</b>
-            <span>{{ when }}, {{ svcTime }}</span>
-            <div class="gx-row">
-              <a v-if="mapLink(svcPlace)" class="gx-btn gx-light" :href="mapLink(svcPlace)" target="_blank" rel="noopener">Jak dojechać</a>
-              <button class="gx-btn gx-dark" @click="addToCalendar">Dodaj do kalendarza</button>
-            </div>
-          </div>
-          <dl class="gx-facts">
-            <div v-if="svc?.sermonTitle" class="gx-panel"><dt>Kazanie</dt><dd>{{ svc.sermonTitle }}</dd></div>
-            <div v-if="svc?.passage" class="gx-panel"><dt>Fragment</dt><dd>{{ svc.passage }}</dd></div>
-            <div v-if="svc?.speaker" class="gx-panel"><dt>Mówi</dt><dd>{{ svc.speaker }}</dd></div>
-            <div class="gx-panel"><dt>Ile trwa</dt><dd>około dwóch godzin</dd></div>
-            <div class="gx-panel"><dt>Dzieci</dt><dd>są mile widziane</dd></div>
-            <div class="gx-panel"><dt>Gdzie</dt><dd>{{ svcPlace }}</dd></div>
-          </dl>
+        <div v-if="svc?.sermonTitle || svc?.speaker" class="gx-sermon">
+          <small>{{ when }} — kazanie</small>
+          <b v-if="svc.sermonTitle">„{{ svc.sermonTitle }}”</b>
+          <span v-if="svc.speaker || svc.passage">{{ [svc.speaker, svc.passage].filter(Boolean).join(' · ') }}</span>
         </div>
+        <div class="gx-row gx-center">
+          <a v-if="mapLink(svcPlace)" class="gx-btn gx-light" :href="mapLink(svcPlace)" target="_blank" rel="noopener">Jak dojechać</a>
+          <button class="gx-btn gx-dark" @click="addToCalendar">Dodaj do kalendarza</button>
+        </div>
+      </section>
+
+      <!-- kim jesteśmy: cztery wartości (ikony kreską jak góra) i kilka zdań o kościele -->
+      <section id="kim-jestesmy" class="gx-sec">
+        <h2 class="gx-h">Kim jesteśmy?</h2>
+        <p class="gx-sub">Kościół Na Skale — czyli społeczność, której tożsamość opiera się na Bogu Ojcu, Jezusie Chrystusie i Duchu Świętym.</p>
+        <ul class="gx-values">
+          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 54 C14 41 7 32 7 22 a12 12 0 0 1 25-5 a12 12 0 0 1 25 5 c0 10-7 19-25 32z" /><path d="M32 22v20M25 29h14" /></svg>Kochać Boga</li>
+          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M26 22c-6 2-9 9-8 17 1 9 4 17 10 18 6 1 8-5 7-11-1-5 2-8 4-12 2-5 0-11-5-12-3-1-6-1-8 0z" /><circle cx="25" cy="12" r="3.2" /><circle cx="32.5" cy="9.5" r="2.6" /><circle cx="38.5" cy="11" r="2.2" /><circle cx="43" cy="14.5" r="1.9" /><circle cx="45.5" cy="19.5" r="1.6" /></svg>Naśladować Jezusa</li>
+          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="30" r="9" /><path d="M32 13v-5M44 18l3.5-3.5M20 18l-3.5-3.5M49 30h5M10 30h5" /><circle cx="17" cy="38" r="6" /><circle cx="47" cy="38" r="6" /><path d="M6 56c1-6 5-10 11-10s10 4 11 10M36 56c1-6 5-10 11-10s10 4 11 10" /></svg>Kochać ludzi</li>
+          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 18c-5 0-7 4-7 9 0 4-9 8-9 17 0 8 7 13 16 13s16-5 16-13c0-9-9-13-9-17 0-5-2-9-7-9z" /><path d="M32 18c0-4 1-8 4-11" /><path d="M36 10c4-4 11-4 14-1-3 4-10 5-14 1z" /><path d="M27 34c-3 4-4 9-2 14M34 32c0 6 1 12 4 17" /></svg>Czynić uczniami</li>
+        </ul>
+        <div class="gx-about">
+          <p class="gx-panel"><b>Cieszymy się,</b> że należymy do szerszej wspólnoty Kościoła Chrześcijan Baptystów w Rzeczypospolitej Polskiej. Więcej o tej denominacji dowiesz się <a href="https://baptysci.pl" target="_blank" rel="noopener">na stronie baptysci.pl</a>.</p>
+          <p class="gx-panel"><b>Jesteśmy</b> chrześcijanami, baptystami i wspólnie tworzymy kościół, czyli wspólnotę prawdziwie wierzących ludzi. Spotykamy się, aby poznawać Boga w Jego Słowie, wspierać się w codziennym życiu i głosić Ewangelię, która jedynie ma moc zbawić.</p>
+          <div class="gx-panel gx-about-wide">
+            <p><b>Pragniemy</b> wypełniać misję daną przez Jezusa wszystkim wierzącym, która brzmi:</p>
+            <blockquote>Idźcie tedy i czyńcie uczniami wszystkie narody, chrzcząc je w imię Ojca i Syna, i Ducha Świętego, ucząc je przestrzegać wszystkiego, co wam przykazałem. A oto Ja jestem z wami po wszystkie dni aż do skończenia świata.<cite>Mt 28,19–20</cite></blockquote>
+          </div>
+          <p class="gx-panel"><b>Chcemy</b> budować Kościół, który będzie działał razem i tworzył wspólnotę prawdziwie wierzących ludzi.</p>
+        </div>
+      </section>
+
+      <!-- nasz główny werset -->
+      <section class="gx-sec gx-verse">
+        <p class="gx-verse-t"><span class="gx-dim">Rzecz ma się tak, jak z ciałem. Jest jedno, lecz członków ma wiele.</span> Wszystkie jego członki, mimo że ich wiele, stanowią jedno ciało. Podobnie z Chrystusem.</p>
+        <p class="gx-verse-ref">1 Kor 12,12 — nasz główny werset</p>
       </section>
 
       <section id="wydarzenia" class="gx-sec">
@@ -165,10 +182,6 @@ export default defineComponent({
         </div>
       </section>
 
-      <section class="gx-sec gx-quote">
-        <h2 class="gx-h"><span class="gx-dim">Kto słucha Jezusa,</span>buduje dom na skale</h2>
-        <p class="gx-sub">Pada deszcz, wieje wiatr, a dom stoi — bo stoi na skale. Stąd nasza nazwa. Według Ewangelii Mateusza 7,24–25.</p>
-      </section>
 
       <section class="gx-sec gx-join">
         <div class="gx-panel">
@@ -258,18 +271,25 @@ body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
 .gx-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .gx-center { justify-content: center; margin-top: 28px; }
 
-.gx-svc { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; margin-top: 56px; text-align: left; }
-.gx-cd { display: flex; flex-direction: column; gap: 10px; padding: 32px; }
-.gx-cd small { color: #8c8985; font-size: 15px; }
-.gx-cd b { font: 600 clamp(28px, 2.8vw, 38px)/1.1 var(--display); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
-.gx-cd span { color: #c4c1bd; font-size: 17px; }
-.gx-cd .gx-row { margin-top: auto; padding-top: 26px; }
-.gx-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
-.gx-facts div { padding: 22px 24px; }
-.gx-facts div:last-child:nth-child(odd) { grid-column: span 2; }
-.gx-facts dt { color: #8c8985; font-size: 14px; }
-.gx-facts dd { margin: 6px 0 0; font: 600 18px/1.3 var(--display); }
 
+.gx-sermon { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 680px; margin: 44px auto 0; padding: 28px 32px; border-radius: 22px; background: #181716; }
+.gx-sermon small { color: #8c8985; font-size: 15px; }
+.gx-sermon b { font: 600 clamp(24px, 2.6vw, 32px)/1.2 var(--display); letter-spacing: -.025em; text-wrap: balance; }
+.gx-sermon span { color: #c4c1bd; font-size: 17px; }
+.gx-values { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 56px 0 0; padding: 0; }
+.gx-values li { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 30px 16px 26px; font: 600 18px/1.2 var(--display); letter-spacing: -.01em; }
+.gx-values svg { width: 72px; height: 72px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gx-about { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; text-align: left; }
+.gx-about .gx-panel { margin: 0; padding: 26px 28px; font-size: 17px; line-height: 1.6; color: #c4c1bd; max-width: none; }
+.gx-about b { color: #fff; font-weight: 600; }
+.gx-about a { color: var(--accent) !important; }
+.gx-about-wide, .gx-about > :last-child { grid-column: 1 / -1; }
+.gx-about-wide p { margin: 0; max-width: none; }
+.gx-about blockquote { margin: 18px 0 0; padding: 0 0 0 22px; border-left: 2px solid var(--accent); color: #fff; font: italic 400 19px/1.55 var(--display); }
+.gx-about cite { display: block; margin-top: 10px; color: #8c8985; font: normal 500 15px/1 var(--display); }
+.gx-verse-t { max-width: 26ch; margin: 0 auto; font: 600 clamp(30px, 4.2vw, 54px)/1.12 var(--display); letter-spacing: -.035em; text-wrap: balance; }
+.gx-verse-t .gx-dim { font-weight: 600; }
+.gx-verse-ref { margin: 26px auto 0; color: var(--accent); font: 600 16px/1 var(--display); }
 .gx-evs { list-style: none; display: flex; flex-direction: column; gap: 10px; max-width: 760px; margin: 56px auto 0; padding: 0; text-align: left; }
 .gx-ev { display: grid; grid-template-columns: 110px 1fr; gap: 20px; align-items: center; padding: 20px 26px; }
 .gx-ev-date { display: flex; align-items: baseline; gap: 6px; color: var(--c, var(--accent)); font: 600 18px/1 var(--display); }
@@ -303,9 +323,12 @@ body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
   .gx-actions { width: 100%; flex-direction: column; margin-top: 28px; }
   .gx-actions .gx-btn { width: 100%; }
   .gx-bar-links { display: none; }
-  .gx-svc, .gx-facts { grid-template-columns: 1fr; }
-  .gx-facts { grid-template-columns: 1fr 1fr; }
-  .gx-cd { padding: 26px 22px; }
+  .gx-values { grid-template-columns: 1fr 1fr; }
+  .gx-values li { padding: 24px 12px 20px; font-size: 16px; }
+  .gx-values svg { width: 60px; height: 60px; }
+  .gx-about { grid-template-columns: 1fr; }
+  .gx-about .gx-panel { padding: 22px; font-size: 16px; }
+  .gx-sermon { padding: 22px; }
   .gx-ev { grid-template-columns: 74px 1fr; gap: 14px; padding: 16px 18px; }
   .gx-ev-date { flex-direction: column; gap: 2px; font-size: 15px; }
   .gx-ev-date b { font-size: 36px; }
