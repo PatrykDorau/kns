@@ -495,7 +495,15 @@ header > button { flex: none; white-space: nowrap; }
 .invite > span { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .invite small { color: var(--muted); font-size: 13px; line-height: 1.4; }
 .invite > button { flex: none; white-space: nowrap; }
-.invite-cal { margin: 4px 0 12px; }
+.invite-cal { position: sticky; bottom: 16px; z-index: 12; margin: 16px 0 0; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 12px 34px rgba(0, 0, 0, .45); }
+.invite-cal .inv-short { display: none; }
+@media (max-width: 1023px) {
+  .invite-cal { bottom: calc(74px + env(safe-area-inset-bottom)); padding: 8px 8px 8px 14px; gap: 10px; flex-wrap: nowrap !important; }
+  .invite-cal small, .invite-cal .inv-long { display: none; }
+  .invite-cal .inv-short { display: inline; }
+  .invite-cal > span b { font-size: 14px; }
+  .invite-cal > button { width: auto !important; min-height: 38px; padding: 6px 14px; }
+}
 @media (max-width: 560px) { .invite { flex-wrap: wrap; } .invite > button { width: 100%; justify-content: center; } }
 .goals-intro { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
 .goal-banner { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 14px; padding: 12px 14px; border: 1px solid rgba(232, 163, 61, .5); border-radius: 14px; background: rgba(232, 163, 61, .1); text-align: left; color: var(--text); }

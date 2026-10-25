@@ -4,17 +4,18 @@ import { computed, defineComponent, onMounted, reactive, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
 import UiSelect from '@/components/UiSelect.vue'
+import PersonSearch from '@/components/PersonSearch.vue'
 
 // Ankiety (zakładka w „Ogłoszeniach”): pastor, rada albo administrator tworzy ankietę dla grupy (wszyscy, rangi, służby);
 // adresaci dostają powiadomienie i wypełniają (do zamknięcia można poprawić). Prowadzący widzi zestawienie odpowiedzi
 // i kto jeszcze nie odpowiedział; ankieta anonimowa — bez imion przy odpowiedziach.
 const TYPES = [{ value: 'one', label: 'Jeden wybór' }, { value: 'many', label: 'Kilka wyborów' }, { value: 'scale', label: 'Skala 1–5' }, { value: 'text', label: 'Odpowiedź opisowa' }]
-const sv = reactive({ list: [], canCreate: false, loaded: false, busy: false, error: '', edit: null, draft: {}, results: null, groups: null })
+const sv = reactive({ list: [], canCreate: false, loaded: false, busy: false, error: '', edit: null, draft: {}, results: null, groups: null, people: [] })
 const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 const blankQ = () => ({ id: newId('q'), type: 'one', label: '', options: ['', ''], required: true })
 
 export default defineComponent({
-  components: { UiSelect },
+  components: { UiSelect, PersonSearch },
   setup() {
     const app = useApp()
     const cur = computed(() => sv.list.find(s => s.id === app.surveyOpen.value))
@@ -39,11 +40,12 @@ export default defineComponent({
     const back = () => { app.surveyOpen.value = ''; sv.edit = null; scrollTo(0, 0) }
 
     // tworzenie / zmiana
+    async function loadPeople() { if (!sv.people.length) try { sv.people = (await app.api.call('electionPeople')) || [] } catch { /* bez listy */ } }
     async function loadGroups() { if (!sv.groups) try { sv.groups = await app.api.call('broadcastOptions') } catch { sv.groups = { ranks: [], ministries: [] } } }
-    const newSurvey = () => { loadGroups(); sv.edit = { id: newId('a'), title: '', description: '', everyone: true, ranks: [], ministries: [], anonymous: false, closes: '', questions: [blankQ()], _new: true }; scrollTo(0, 0) }
+    const newSurvey = () => { loadGroups(); sv.edit = { id: newId('a'), title: '', description: '', everyone: true, ranks: [], ministries: [], people: [], anonymous: false, closes: '', questions: [blankQ()], _new: true }; scrollTo(0, 0) }
     const editSurvey = s => {
       loadGroups()
-      sv.edit = { id: s.id, title: s.title, description: s.description, everyone: s.everyone, ranks: [...s.ranks], ministries: [...s.ministries], anonymous: s.anonymous, closes: s.closes || '',
+      sv.edit = { id: s.id, title: s.title, description: s.description, everyone: s.everyone, ranks: [...s.ranks], ministries: [...s.ministries], people: [...(s.people || [])], anonymous: s.anonymous, closes: s.closes || '',
         questions: JSON.parse(JSON.stringify(s.questions)).map(q => ({ ...q, options: q.options || ['', ''] })), _locked: s.count > 0 }
       scrollTo(0, 0)
     }
@@ -52,12 +54,12 @@ export default defineComponent({
     const choice = q => q.type === 'one' || q.type === 'many'
     const valid = computed(() => {
       const e = sv.edit
-      return !!e && !!e.title.trim() && (e.everyone || e.ranks.length + e.ministries.length > 0) && e.questions.length > 0
+      return !!e && !!e.title.trim() && (e.everyone || e.ranks.length + e.ministries.length + e.people.length > 0) && e.questions.length > 0
         && e.questions.every(q => q.label.trim() && (!choice(q) || q.options.filter(o => o.trim()).length >= 2))
     })
     const save = () => run(async () => {
       const e = sv.edit
-      await app.api.call('surveySave', { id: e.id, title: e.title.trim(), description: e.description.trim(), everyone: e.everyone, ranks: e.everyone ? [] : e.ranks, ministries: e.everyone ? [] : e.ministries,
+      await app.api.call('surveySave', { id: e.id, title: e.title.trim(), description: e.description.trim(), everyone: e.everyone, ranks: e.everyone ? [] : e.ranks, ministries: e.everyone ? [] : e.ministries, people: e.everyone ? [] : e.people.map(x => x.id),
         anonymous: e.anonymous, closes: e.closes || '', questions: e.questions.map(q => ({ id: q.id, type: q.type, label: q.label.trim(), required: !!q.required, ...(choice(q) ? { options: q.options.map(o => o.trim()).filter(Boolean) } : {}) })) })
       const fresh = e._new
       sv.edit = null
@@ -89,9 +91,9 @@ export default defineComponent({
       const bars = (q.options || []).map((o, i) => ({ label: o, n: rs.filter(r => (Array.isArray(r.v) ? r.v.includes(i) : r.v === i)).length, who: rs.filter(r => (Array.isArray(r.v) ? r.v.includes(i) : r.v === i)).map(r => r.name).filter(Boolean) }))
       return { n: rs.length, bars, max: Math.max(1, ...bars.map(b => b.n)) }
     }
-    const audience = s => (s.everyone ? 'wszyscy członkowie' : [...(s.ranks || []).map(r => sv.groups?.ranks?.find(x => x.id === r)?.name || r), ...(s.ministries || []).map(m => 'służba ' + (sv.groups?.ministries?.find(x => x.id === m)?.name || m))].join(', '))
+    const audience = s => (s.everyone ? 'wszyscy członkowie' : [...(s.ranks || []).map(r => sv.groups?.ranks?.find(x => x.id === r)?.name || r), ...(s.ministries || []).map(m => 'służba ' + (sv.groups?.ministries?.find(x => x.id === m)?.name || m)), ...(s.people || []).map(x => x.name)].join(', '))
     const when = d => (d ? new Date(d + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'long' }) : '')
-    return { ...app, sv, TYPES, cur, open, back, newSurvey, editSurvey, toggle, moveQ, choice, valid, save, answered, canSend, pickMany, send, setStatus, remove, summary, audience, when, blankQ }
+    return { ...app, sv, loadPeople, TYPES, cur, open, back, newSurvey, editSurvey, toggle, moveQ, choice, valid, save, answered, canSend, pickMany, send, setStatus, remove, summary, audience, when, blankQ }
   },
 })
 </script>
@@ -108,15 +110,6 @@ export default defineComponent({
       <label for="svCloses">Do kiedy (opcjonalnie)</label>
       <input id="svCloses" v-model="sv.edit.closes" type="date">
       <label class="check"><input v-model="sv.edit.anonymous" type="checkbox" :disabled="sv.edit._locked">Anonimowa — wyniki bez imion</label>
-    </div>
-    <div class="form-sec">
-      <h3>Kto wypełnia</h3>
-      <label class="check"><input v-model="sv.edit.everyone" type="checkbox">Wszyscy zatwierdzeni członkowie</label>
-      <div v-if="!sv.edit.everyone" class="chips">
-        <p v-if="!sv.groups" class="note">Wczytuję grupy…</p>
-        <button v-for="r in sv.groups?.ranks || []" :key="'r' + r.id" type="button" class="chipbtn" :class="{ on: sv.edit.ranks.includes(r.id) }" :aria-pressed="sv.edit.ranks.includes(r.id)" @click="toggle('ranks', r.id)">{{ r.name }} · {{ r.count }}</button>
-        <button v-for="m in sv.groups?.ministries || []" :key="'m' + m.id" type="button" class="chipbtn" :class="{ on: sv.edit.ministries.includes(m.id) }" :aria-pressed="sv.edit.ministries.includes(m.id)" @click="toggle('ministries', m.id)">Służba: {{ m.name }} · {{ m.count }}</button>
-      </div>
     </div>
     <div class="form-sec">
       <h3>Pytania · {{ sv.edit.questions.length }}</h3>
@@ -143,6 +136,24 @@ export default defineComponent({
         </div>
       </div>
       <button type="button" class="ghost" :disabled="sv.edit._locked || sv.edit.questions.length >= 40" @click="sv.edit.questions.push(blankQ())"><svg class="i"><use href="#plus"/></svg>Dodaj pytanie</button>
+    </div>
+    <div class="form-sec">
+      <h3>Kto ją zobaczy i wypełni</h3>
+      <label class="check"><input v-model="sv.edit.everyone" type="checkbox">Wszyscy zatwierdzeni członkowie</label>
+      <template v-if="!sv.edit.everyone">
+      <label>Grupy</label>
+      <div class="chips">
+        <p v-if="!sv.groups" class="note">Wczytuję grupy…</p>
+        <button v-for="r in sv.groups?.ranks || []" :key="'r' + r.id" type="button" class="chipbtn" :class="{ on: sv.edit.ranks.includes(r.id) }" :aria-pressed="sv.edit.ranks.includes(r.id)" @click="toggle('ranks', r.id)">{{ r.name }} · {{ r.count }}</button>
+        <button v-for="m in sv.groups?.ministries || []" :key="'m' + m.id" type="button" class="chipbtn" :class="{ on: sv.edit.ministries.includes(m.id) }" :aria-pressed="sv.edit.ministries.includes(m.id)" @click="toggle('ministries', m.id)">Służba: {{ m.name }} · {{ m.count }}</button>
+      </div>
+      <label>Konkretne osoby</label>
+      <div v-if="sv.edit.people.length" class="chips">
+        <button v-for="pp in sv.edit.people" :key="pp.id" type="button" class="chipbtn on" :aria-label="'Usuń: ' + pp.name" @click="sv.edit.people = sv.edit.people.filter(x => x.id !== pp.id)">{{ pp.name }} ×</button>
+      </div>
+      <PersonSearch :people="sv.people" :exclude="sv.edit.people.map(x => x.id)" placeholder="Dodaj osobę — wpisz imię…" label="Dodaj osobę do ankiety" @focus="loadPeople" @pick="pp => sv.edit.people.push(pp)" />
+      </template>
+      <p class="form-hint"><svg class="i"><use href="#info"/></svg><span>Ankietę zobaczą i wypełnią tylko wybrane grupy i osoby (dostaną powiadomienie).</span></p>
     </div>
     <p v-if="sv.error" class="error">{{ sv.error }}</p>
     <div class="bar">

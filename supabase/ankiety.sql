@@ -1,5 +1,5 @@
 -- Ankiety i ewaluacje (zakładka „Ankiety” w „Ogłoszeniach”): pastor, rada zboru albo administrator tworzy ankietę dla wybranej
--- grupy (wszyscy członkowie albo rangi i służby), z pytaniami: tekst, jeden wybór, wiele wyborów, skala 1–5. Wybrani dostają
+-- grupy (wszyscy członkowie albo rangi, służby i konkretne osoby), z pytaniami: tekst, jeden wybór, wiele wyborów, skala 1–5. Wybrani dostają
 -- powiadomienie i wypełniają (do zamknięcia ankiety — odpowiedź można poprawić). Tworzący i prowadzący widzą zestawienie;
 -- ankieta anonimowa — bez imion przy odpowiedziach (widać tylko, ile osób odpowiedziało).
 -- Tylko przez funkcje (security definer). Uruchamiać po schema.sql, zatwierdzanie.sql, skrzynka.sql, sluzby.sql, wiadomosci.sql (można ponownie).
@@ -24,6 +24,8 @@ create table if not exists public.survey_responses (
   at timestamptz not null default now(),
   primary key (survey_id, person)
 );
+-- konkretne osoby (obok rang i służb)
+alter table public.surveys add column if not exists people uuid[] not null default '{}';
 alter table public.surveys enable row level security;
 alter table public.survey_responses enable row level security;
 revoke all on public.surveys, public.survey_responses from anon, authenticated;
@@ -34,7 +36,8 @@ language sql stable security definer set search_path = public as $$
   select coalesce(array(
     select p.id from people p, surveys s where s.id = sid and p.status = 'active' and (s.everyone or p.roles && s.ranks)
     union select mm.person from ministry_members mm, surveys s where s.id = sid and mm.status = 'active' and mm.ministry_id = any (s.ministries)
-    union select unnest(m.leader_ids) from ministries m, surveys s where s.id = sid and m.id = any (s.ministries)), '{}')
+    union select unnest(m.leader_ids) from ministries m, surveys s where s.id = sid and m.id = any (s.ministries)
+    union select p.id from people p, surveys s where s.id = sid and p.status = 'active' and p.id = any (s.people)), '{}')
 $$;
 -- prowadzi ankietę: tworzący, pastor, rada zboru, administrator
 create or replace function public.survey_can_manage(sid text) returns boolean
@@ -53,6 +56,8 @@ begin
   return jsonb_build_object('canCreate', boss, 'list', coalesce((select jsonb_agg(jsonb_build_object(
       'id', s.id, 'title', s.title, 'description', s.description, 'questions', s.questions, 'anonymous', s.anonymous,
       'status', s.status, 'closes', s.closes, 'created', s.created, 'everyone', s.everyone, 'ranks', s.ranks, 'ministries', s.ministries,
+      'people', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'name', coalesce(nullif(x.name, ''), split_part(x.email, '@', 1))) order by x.name)
+                          from people x where x.id = any (s.people)), '[]'::jsonb),
       'author', coalesce(nullif(a.name, ''), split_part(a.email, '@', 1)),
       'forMe', auth.uid() = any (survey_targets(s.id)), 'canManage', survey_can_manage(s.id),
       'answered', r.person is not null, 'myAnswers', r.answers,
@@ -78,18 +83,19 @@ begin
   if trim(coalesce(s ->> 'title', '')) = '' then raise exception 'Wpisz tytuł ankiety.'; end if;
   if jsonb_typeof(q) <> 'array' or jsonb_array_length(q) = 0 then raise exception 'Dodaj co najmniej jedno pytanie.'; end if;
   if jsonb_array_length(q) > 40 then raise exception 'Najwyżej 40 pytań.'; end if;
-  if not coalesce((s ->> 'everyone')::boolean, false) and coalesce(jsonb_array_length(s -> 'ranks'), 0) + coalesce(jsonb_array_length(s -> 'ministries'), 0) = 0 then
+  if not coalesce((s ->> 'everyone')::boolean, false) and coalesce(jsonb_array_length(s -> 'ranks'), 0) + coalesce(jsonb_array_length(s -> 'ministries'), 0) + coalesce(jsonb_array_length(s -> 'people'), 0) = 0 then
     raise exception 'Wybierz, kto ma wypełnić ankietę.';
   end if;
   if not fresh and old.questions is distinct from q and exists (select 1 from survey_responses where survey_id = sid) then
     raise exception 'Ktoś już odpowiedział — pytań nie można już zmienić (tytuł, opis i termin — tak).';
   end if;
-  insert into surveys (id, title, description, questions, everyone, ranks, ministries, anonymous, closes)
+  insert into surveys (id, title, description, questions, everyone, ranks, ministries, people, anonymous, closes)
   values (sid, trim(s ->> 'title'), coalesce(s ->> 'description', ''), q, coalesce((s ->> 'everyone')::boolean, false),
     array(select jsonb_array_elements_text(coalesce(s -> 'ranks', '[]'::jsonb))), array(select jsonb_array_elements_text(coalesce(s -> 'ministries', '[]'::jsonb))),
+    array(select x::uuid from jsonb_array_elements_text(coalesce(s -> 'people', '[]'::jsonb)) x),
     coalesce((s ->> 'anonymous')::boolean, false), nullif(s ->> 'closes', '')::date)
   on conflict (id) do update set title = excluded.title, description = excluded.description, questions = excluded.questions,
-    everyone = excluded.everyone, ranks = excluded.ranks, ministries = excluded.ministries, closes = excluded.closes,
+    everyone = excluded.everyone, ranks = excluded.ranks, ministries = excluded.ministries, people = excluded.people, closes = excluded.closes,
     -- anonimowość nie zmienia się po pierwszej odpowiedzi
     anonymous = case when exists (select 1 from survey_responses where survey_id = sid) then surveys.anonymous else excluded.anonymous end;
   if fresh then

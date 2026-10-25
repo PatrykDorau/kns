@@ -62,6 +62,13 @@ assert.equal(ok(await L.rpc('survey_board')).list.find(s => s.id === 's1').statu
 err(await M.rpc('survey_remove', { sid: 's2' }), /uprawnień/)
 ok(await P.rpc('survey_remove', { sid: 's2' }))
 assert.equal((await db.query(`select count(*)::int n from survey_responses where survey_id = 's2'`)).rows[0].n, 0)
+// konkretna osoba (Marek) obok rangi
+const marekId = (await db.query(`select id from people where email = 'marek@kns.pl'`)).rows[0].id
+ok(await P.rpc('survey_save', { s: { id: 's3', title: 'Dla Marka i liderów', questions: Q, ranks: ['lider'], people: [marekId] } }))
+assert.equal(ok(await M.rpc('survey_board')).list.find(s => s.id === 's3').forMe, true)
+assert.equal(ok(await P.rpc('survey_board')).list.find(s => s.id === 's3').people[0].name, 'Marek')
+ok(await P.rpc('survey_save', { s: { id: 's4', title: 'Tylko Marek', questions: Q, people: [marekId] } }))
+assert.equal(ok(await A.rpc('survey_board')).list.some(s => s.id === 's4'), false)
 // gość nic nie widzi
 err(await createFakeClient(db).rpc('survey_board'), /.+/)
 console.log('ankiety: OK')

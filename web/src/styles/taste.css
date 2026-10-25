@@ -227,7 +227,7 @@ button.card, button.ann, button.song, button.ev, .hw-row, .more-list button { tr
 @keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
 
 /* zakładki: wskaźnik (Motion) zamiast tła na przycisku */
-.has-ind { position: relative; }
+.has-ind:not(.tabbar) { position: relative; } /* dolne menu zostaje przyklejone (position: fixed) — wskaźnik i tak liczy się względem niego */
 .has-ind > button { position: relative; z-index: 1; }
 .tab-ind { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--text); pointer-events: none; opacity: 0; }
 .serve-tabs.has-ind button[aria-selected=true], .seg.has-ind button.on { background: none !important; }
