@@ -10,9 +10,10 @@ export default defineComponent({
   setup() {
     const app = useApp()
     const otherDate = ref('')
-    const showPast = ref(false)
+    const pastAll = ref(false) // minione widać od razu (ostatnie 8); „Starsze” — do 40
     const upcoming = computed(() => app.services.value.filter(s => s.date >= app.todayStr.value).sort((a, b) => a.date.localeCompare(b.date)))
-    const past = computed(() => app.services.value.filter(s => s.date < app.todayStr.value).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20))
+    const past = computed(() => app.services.value.filter(s => s.date < app.todayStr.value).sort((a, b) => b.date.localeCompare(a.date)).slice(0, pastAll.value ? 40 : 8))
+    const pastMore = computed(() => !pastAll.value && app.services.value.filter(s => s.date < app.todayStr.value).length > 8)
     // najbliższe 8 niedziel bez nabożeństwa
     const freeSundays = computed(() => {
       const out = [], d = new Date(app.planSunday.value + 'T12:00')
@@ -23,7 +24,7 @@ export default defineComponent({
       return out
     })
     const svcTab = ref('list') // „Nabożeństwa” / „Statystyki” (pieśni i kazania)
-    return { ...app, otherDate, showPast, upcoming, past, freeSundays, svcTab }
+    return { ...app, otherDate, pastAll, pastMore, upcoming, past, freeSundays, svcTab }
   },
 })
 </script>
@@ -64,14 +65,13 @@ export default defineComponent({
   </template>
 
   <template v-if="past.length">
-    <div class="section"><h2>Minione</h2><button class="ghost" @click="showPast = !showPast">{{ showPast ? 'Ukryj' : 'Pokaż' }}</button></div>
-    <template v-if="showPast">
-      <button v-for="s in past" :key="s.id" class="ev svc-row past" @click="open(s)">
-        <span class="when"><small>{{ wd(s.date) }}</small><b>{{ day(s.date) }}</b><small>{{ month(s.date) }}</small></span>
-        <span class="body"><b>{{ s.sermonTitle || 'Nabożeństwo' }}</b><small>{{ [s.passage, s.speaker].filter(Boolean).join(' · ') }}</small></span>
-        <svg class="i chev"><use href="#chev"/></svg>
-      </button>
-    </template>
+    <div class="section"><h2>Minione</h2></div>
+    <button v-for="s in past" :key="s.id" class="ev svc-row past" @click="open(s)">
+      <span class="when"><small>{{ wd(s.date) }}</small><b>{{ day(s.date) }}</b><small>{{ month(s.date) }}</small></span>
+      <span class="body"><b>{{ s.sermonTitle || 'Nabożeństwo' }}</b><small>{{ [s.passage, s.speaker].filter(Boolean).join(' · ') }}</small></span>
+      <svg class="i chev"><use href="#chev"/></svg>
+    </button>
+    <button v-if="pastMore" class="ghost svc-more" @click="pastAll = true">Starsze nabożeństwa<svg class="i"><use href="#down"/></svg></button>
   </template>
   </template>
 </template>

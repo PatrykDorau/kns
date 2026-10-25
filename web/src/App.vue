@@ -38,6 +38,7 @@ import ProfileView from '@/views/ProfileView.vue'
 import MoreView from '@/views/MoreView.vue'
 import HomeView from '@/views/HomeView.vue'
 import CardDeck from '@/components/CardDeck.vue'
+import GuestView from '@/views/GuestView.vue'
 import ServiceEditView from '@/views/ServiceEditView.vue'
 import PublicListen from '@/components/PublicListen.vue'
 import BandPickDialog from '@/components/dialogs/BandPickDialog.vue'
@@ -75,7 +76,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.54 · 25.10.2026'
+const VERSION = '3.55 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -183,7 +184,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -1470,6 +1471,9 @@ export default defineComponent({
     })
     // Ekran dla gości: talia nadchodzących nabożeństw i wydarzeń oraz publicznych ogłoszeń (dane z public_preview).
     const guestCat = ref('ev')
+    // logowanie: prosty ekran; od razu, gdy otwarto udostępniony link, ktoś był już zalogowany albo bez bazy (Dysk)
+    const loginView = ref(location.pathname.startsWith('/logowanie'))
+    const showLogin = computed(() => loginView.value || !!pendingLink.value?.kind || !!drive.account() || !api.enabled)
     const guestCats = computed(() => {
       if (!pub.value) return []
       const when = it => shortDate(it.date) + (it.time ? ' · ' + it.time : '')
@@ -2488,7 +2492,7 @@ export default defineComponent({
       shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, surveyOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, loginView, showLogin, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
@@ -2522,7 +2526,7 @@ export default defineComponent({
   <!-- Szeroki ekran: pasek konta na górze każdego widoku (jak w aplikacji na komputer). -->
   <AccountBar v-if="ready" />
   <!-- ekran logowania bez paska nagłówka (logo jest na środku); publiczne „Posłuchaj” — z nagłówkiem -->
-  <AppHeader v-if="ready || booting || (!booting && !embedded && (listenYt || listenSp || isChannelLink(listen.youtube)))" />
+  <AppHeader v-if="ready || booting" />
   <div v-if="toast" class="toast" role="status">{{ toast }}</div>
 
   <!-- Kamera: sygnały od operatora streamu (przez internet), z dźwiękiem w słuchawce i wibracją. -->
@@ -2609,25 +2613,13 @@ export default defineComponent({
       <section v-for="n in 3" :key="n" class="hw-col"><span class="skel boot-hh"></span><div class="skel-list"><div v-for="k in 3" :key="k" class="skel skel-row"></div></div></section>
     </div>
   </div>
+  <!-- goście (bez logowania): osobna strona z nabożeństwem, wydarzeniami i kalendarzem; logowanie — prosty ekran -->
+  <GuestView v-else-if="!ready && !showLogin" />
   <div v-else-if="!ready" class="center login-screen">
+    <button v-if="!pendingLink?.kind && !drive.account()" class="ghost login-back" @click="loginView = false"><svg class="i"><use href="#back"/></svg>Strona kościoła</button>
     <div class="login-card">
     <img src="logo.png" alt="Kościół Na Skale">
-    <div v-if="countdown" class="countdown login-cd">
-      <span v-if="countdown.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
-      <span v-else class="cd-label">Do nabożeństwa</span>
-      <span v-if="!countdown.live" class="cd-digits">
-        <template v-if="countdown.days"><b>{{ countdown.days }}</b><small>{{ countdown.days === 1 ? 'dzień' : 'dni' }}</small></template>
-        <b>{{ countdown.hours }}</b><small>godz</small><b>{{ countdown.minutes }}</b><small>min</small><b>{{ countdown.seconds }}</b><small>s</small>
-      </span>
-      <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
-    </div>
     <p v-if="pendingLink && pendingLink.kind" class="pending-note"><svg class="i"><use href="#link"/></svg>{{ LINK_LABEL[pendingLink.kind] ? 'Ktoś udostępnił Ci ' + LINK_LABEL[pendingLink.kind] : 'Otwierasz link do aplikacji' }} — po zalogowaniu od razu się otworzy.</p>
-    <!-- co daje logowanie (dla nowych osób) -->
-    <ul v-if="api.enabled && !drive.account()" class="login-perks">
-      <li><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia i wydarzenia kościoła</li>
-      <li><svg class="i"><use href="#calendar"/></svg>Kalendarz, nabożeństwa i myśli z kazania</li>
-      <li><svg class="i"><use href="#users"/></svg>Służby, dyspozycyjność i grafik</li>
-    </ul>
     <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
     <div v-if="wrongOrigin" class="origin-warn">
       <b>Ta strona jest otwarta pod innym adresem</b> ({{ origin }}) — Google nie pozwoli tu się zalogować.
@@ -2638,16 +2630,8 @@ export default defineComponent({
       {{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj przez Google' }}
     </button>
     <p v-if="drive.account()" class="note">jako {{ drive.account() }} · <button class="ghost link" :disabled="busy" @click="otherAccount">inne konto</button></p>
-    <p class="note login-note">{{ api.enabled ? 'Nowe konto czeka na zatwierdzenie przez administratora kościoła.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
+    <p class="note login-note">{{ api.enabled ? 'Dla członków kościoła. Nowe konto czeka na zatwierdzenie.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
     </div>
-    <!-- goście: pod logowaniem talia tego, co się dzieje w kościele; dalej — „Odkryj nas” (PublicListen) -->
-    <section v-if="guestDeck" class="guest-deck" aria-label="Co się dzieje w kościele">
-      <h2 class="guest-h">Co się u nas dzieje</h2>
-      <nav v-if="guestCats.length > 1" class="deck-words" aria-label="Kategoria">
-        <button v-for="c in guestCats" :key="c.id" :class="{ on: guestDeck.id === c.id }" :aria-pressed="guestDeck.id === c.id" @click="guestCat = c.id">{{ c.name }}</button>
-      </nav>
-      <CardDeck :key="guestDeck.id" :cards="guestDeck.cards" :label="guestDeck.name" />
-    </section>
   </div>
 
   <!-- lista -->
@@ -2718,7 +2702,7 @@ export default defineComponent({
   <ServiceEditView v-else />
 
   <!-- Strona dla gości (bez konta albo przed zatwierdzeniem): tylko „Posłuchaj — odkryj nas”. -->
-  <PublicListen v-if="!ready && !booting && !embedded && (listenYt || listenSp || isChannelLink(listen.youtube))" />
+  <PublicListen v-if="!ready && !booting && !embedded && !showLogin && (listenYt || listenSp || isChannelLink(listen.youtube))" />
 
 
   <!-- Skład zespołu: wybór osoby ze służby muzycznej (instrument wybiera się potem w wierszu) -->

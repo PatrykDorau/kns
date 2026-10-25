@@ -148,3 +148,8 @@
   from = "/*"
   to = "/index.html"
   status = 404
+
+[[redirects]]
+  from = "/logowanie"
+  to = "/index.html"
+  status = 200
