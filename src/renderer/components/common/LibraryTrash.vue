@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
-import { TRASH_DAYS, emptyTrash, kindLabel, label, purgeTrashAt, restoreTrash, settings } from '@/stores'
+import { TRASH_DAYS, emptyTrash, kindLabel, label, purgeTrashAt, restoreTrash, trashFor, type Lib } from '@/stores'
 
-// Kosz Biblioteki (wspólny dla Rzutnika i Studia): usunięte materiały można przywrócić przez 30 dni.
-const list = computed(() => settings.libraryTrash || [])
+// Kosz Biblioteki (każda biblioteka — Rzutnik, Stream — widzi swoje): usunięte materiały można przywrócić przez 30 dni.
+const props = defineProps<{ lib?: Lib }>()
+const list = computed(() => trashFor(props.lib || ''))
 const confirmEmpty = ref(false)
 const ago = (t: number) => { const d = Math.floor((Date.now() - t) / 86400000); return d ? d === 1 ? 'wczoraj' : d + ' dni temu' : new Date(t).toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }) }
 const left = (t: number) => Math.max(0, TRASH_DAYS - Math.floor((Date.now() - t) / 86400000))
@@ -17,7 +18,7 @@ const left = (t: number) => Math.max(0, TRASH_DAYS - Math.floor((Date.now() - t)
       <b><Icon name="trash" />Kosz <small class="muted">— usunięte materiały wracają jednym kliknięciem (przez {{ TRASH_DAYS }} dni)</small></b>
       <template v-if="list.length">
         <template v-if="confirmEmpty">
-          <button class="small del-yes" @click="emptyTrash(); confirmEmpty = false">Tak, usuń na zawsze</button>
+          <button class="small del-yes" @click="emptyTrash(lib || ''); confirmEmpty = false">Tak, usuń na zawsze</button>
           <button class="small" @click="confirmEmpty = false">Nie</button>
         </template>
         <button v-else class="small" @click="confirmEmpty = true">Opróżnij kosz</button>
@@ -28,8 +29,8 @@ const left = (t: number) => Math.max(0, TRASH_DAYS - Math.floor((Date.now() - t)
       <li v-for="(r, i) in list" :key="r.item.id + r.at">
         <Thumb :item="r.item" />
         <span class="lib-trash-meta"><b :title="label(r.item)">{{ label(r.item) }}</b><small>{{ kindLabel(r.item) }} · usunięto {{ ago(r.at) }} · zniknie za {{ left(r.at) }} dni</small></span>
-        <button class="small primary" title="Wraca do Biblioteki (także do pętli, w których był)" @click="restoreTrash(i)"><Icon name="undo" />Przywróć</button>
-        <button class="iconbtn danger" title="Usuń na zawsze (razem z plikiem)" :aria-label="'Usuń na zawsze: ' + label(r.item)" @click="purgeTrashAt(i)"><Icon name="x" /></button>
+        <button class="small primary" title="Wraca do Biblioteki (także do pętli, w których był)" @click="restoreTrash(i, lib || '')"><Icon name="undo" />Przywróć</button>
+        <button class="iconbtn danger" title="Usuń na zawsze (razem z plikiem)" :aria-label="'Usuń na zawsze: ' + label(r.item)" @click="purgeTrashAt(i, lib || '')"><Icon name="x" /></button>
       </li>
     </ul>
   </section>

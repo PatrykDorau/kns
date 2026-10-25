@@ -83,5 +83,6 @@ export interface Settings {
   deletedSongs: Record<string, number> // id → czas usunięcia
   libraryTrash?: { item: any, extras?: any[], refs?: { loop: string, i: number, entry: any }[], at: number }[] // kosz Biblioteki
   songStyle: TextStyle
+  libSplit?: boolean // biblioteki Rzutnika i Streamu rozdzielone (jednorazowe przeniesienie napisów streamu)
   sharedLayout?: number // wersja układu folderu wspólnego (przenoszenie starych zapisów)
 }

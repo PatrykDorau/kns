@@ -7,7 +7,7 @@ import { label, liveItem, liveView, loopPlaying, loopStep, lyricsNow, lyricsPart
 import { computerUser, mergeSameDay, now, nowCoarse } from './services'
 import { BAZA, api, appUpdate, busy, cloud, confirmId, frozen, frozenAt, hidden, items, liveId, liveNonce, liveStart, liveStep, loaded, notice, output, overlayUrl, previewIndex, remoteUrl, selectedId, services, settings, songIndex, songs, uid, video, volume } from './state'
 import { SYNC_EVERY, markSynced, mergeTwinSongs, pushSoon, sharedAccount, songsChanged, syncIfStale, syncShared } from './sync'
-import { purgeOldTrash } from './library'
+import { projectorGraphics, purgeOldTrash, syncAnnouncements } from './library'
 
 /* ---------- zapis ---------- */
 // Przez IPC przechodzą tylko zwykłe obiekty, nie reaktywne — stąd kopia przez JSON.
@@ -65,6 +65,14 @@ export async function init() {
   if (!settings.lyricsKey) settings.lyricsKey = uid() + uid() + uid()
   if (!settings.deviceId) settings.deviceId = uid() + uid() // ten komputer na liście rzutników
   items.value = ((await api.loadStore('library')) || []).map(migrate)
+  // Rzutnik i Stream mają od teraz osobne biblioteki: napisy dodane w Stream (wygląd napisu z paska Streamu) przechodzą do Streamu,
+  // reszta zostaje w Rzutniku.
+  if (!settings.libSplit) {
+    for (const it of items.value) if (it.type === 'text' && !it.hidden && it.fs === 9 && it.valign === 'bottom' && it.shadow && !it.countMode) it.lib = 'stream'
+    settings.libSplit = true
+  }
+  syncAnnouncements()
+  watch(projectorGraphics, syncAnnouncements)
   purgeOldTrash()
   songs.value = (await api.loadStore('songs')) || []
   services.value = (await api.loadStore('services')) || []

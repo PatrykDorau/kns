@@ -15,7 +15,7 @@ function startCountdown() {
   selected.value.target = Date.now() + Math.max(1, +selected.value.minutes || 5) * 60000
   if (selected.value.id === liveId.value) sendText()
 }
-const loopCandidates = computed(() => items.value.filter(i => i.type !== 'scene' && !i.hidden))
+const loopCandidates = computed(() => items.value.filter(i => i.type !== 'scene' && !i.hidden && !i.lib))
 const secondsLabel = ms => (ms / 1000).toLocaleString('pl', { maximumFractionDigits: 2 }) + ' s'
 
 function addToLoop(e: Event) {

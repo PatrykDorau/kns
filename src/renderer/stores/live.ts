@@ -38,7 +38,7 @@ export const label = it => {
   if (it.type === 'text') return it.text.trim().split('\n')[0] || 'Pusty tekst'
   return KIND[it.type]
 }
-export const kindLabel = it => (it.missing ? 'Nie znaleziono pliku' : it.type === 'scene' ? `Pętla · slajdów: ${it.entries.length}` : KIND[it.type])
+export const kindLabel = it => (it.missing ? 'Nie znaleziono pliku' : it.builtin === 'ann' ? (it.entries.length ? `Ogłoszenia · grafik: ${it.entries.length}` : 'Ogłoszenia · brak grafik „Pokaż na nabożeństwie”') : it.type === 'scene' ? `Pętla · slajdów: ${it.entries.length}` : KIND[it.type])
 
 /* ---------- co widać ---------- */
 // Zamienia element biblioteki na to, co rysuje Stage. Pętla i pieśń dostają gotowe slajdy,

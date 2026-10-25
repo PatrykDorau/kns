@@ -1,4 +1,4 @@
-// Media na transmisji: materiały z biblioteki (te same co w Rzutniku) — na cały ekran (scena „Media”)
+// Media na transmisji: materiały z Biblioteki Streamu (osobnej od Rzutnika) — na cały ekran (scena „Media”)
 // albo jako nakładka na kamerze/rzutniku; co jest w podglądzie i na wizji.
 import { computed, ref } from 'vue'
 import { TEXT_STYLE, items, pickFiles, uid } from '@/stores'
@@ -11,7 +11,7 @@ export const mmss = (sec: number) => Math.floor(sec / 60) + ':' + String(Math.fl
 const itemOf = (id: string) => (id ? items.value.find(x => x.id === id) || null : null)
 
 export function useStudioMedia() {
-  const mediaList = computed(() => items.value.filter(it => !it.hidden && !it.missing && ['image', 'video', 'text', 'scene'].includes(it.type)))
+  const mediaList = computed(() => items.value.filter(it => it.lib === 'stream' && !it.hidden && !it.missing && ['image', 'video', 'text', 'scene'].includes(it.type)))
   const pvFull = computed(() => (studio.preview.scene === 'media' ? itemOf(studio.preview.media) : null)) // na ekran (podgląd)
   const pvOver = computed(() => (studio.preview.ovl !== 'off' && studio.preview.scene !== 'media' ? itemOf(studio.preview.omedia) : null)) // nakładka (podgląd)
   const pgOver = computed(() => (studio.program.ovl !== 'off' && studio.program.scene !== 'media' ? itemOf(studio.program.omedia) : null))
@@ -23,14 +23,14 @@ export function useStudioMedia() {
   // dodawanie: pliki (zwraca, czy coś przybyło) albo napis — od razu jako nakładka
   async function addMediaFiles() {
     const before = new Set(items.value.map(x => x.id))
-    await pickFiles(null)
+    await pickFiles(null, 'stream')
     return items.value.some(x => !before.has(x.id) && !x.hidden)
   }
   const newText = ref('') // napis w trakcie pisania (zostaje przy zmianie zakładki)
   function addMediaText() {
     const text = newText.value.trim()
     if (!text) return
-    const it: LibraryItem = { ...TEXT_STYLE, id: uid(), type: 'text', name: text.split('\n')[0].slice(0, 40), text, fs: 9, valign: 'bottom', shadow: true }
+    const it: LibraryItem = { ...TEXT_STYLE, id: uid(), type: 'text', name: text.split('\n')[0].slice(0, 40), text, fs: 9, valign: 'bottom', shadow: true, lib: 'stream' }
     items.value.push(it); newText.value = ''
     overlayItem(it)
   }

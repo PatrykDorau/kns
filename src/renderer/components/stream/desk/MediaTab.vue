@@ -4,7 +4,7 @@ import Thumb from '@/components/common/Thumb.vue'
 import ChurchMaterials from '@/components/display/ChurchMaterials.vue'
 import LibraryTrash from '@/components/common/LibraryTrash.vue'
 import { ref } from 'vue'
-import { busy, label, settings, trashItem } from '@/stores'
+import { busy, items, label, loadServiceFiles, nearestService, prettyDate, trashFor, trashItem } from '@/stores'
 import { computed } from 'vue'
 import { ANN_MEDIA, showMediaFull, slideCandidates, studio } from '@/services/studio'
 import { overlayItem } from '@/composables/stream/ovlAsk'
@@ -22,6 +22,15 @@ const annPv = computed(() => studio.preview.scene === 'media' && studio.preview.
 const annAir = computed(() => studio.program.scene === 'media' && studio.program.media === ANN_MEDIA)
 const inUse = id => onAirIds.value.includes(id) || pvFull.value?.id === id || pvOver.value?.id === id
 async function addFiles() { if (await addMediaFiles()) deskTab.value = 'media' }
+// załączniki najbliższego nabożeństwa (prezentacja kaznodziei, zdjęcia, PDF) — do Biblioteki Streamu
+const svc = computed(() => nearestService.value)
+const svcLeft = computed(() => (svc.value?.files || []).filter(f => !items.value.some(i => i.source === svc.value.id + ':' + f.key && i.lib === 'stream')).length)
+const svcMsg = ref('')
+async function fromService() {
+  const { added, error } = await loadServiceFiles(svc.value, 'stream')
+  svcMsg.value = error || (added ? 'Dodano załączniki z nabożeństwa: ' + added + '.' : 'Załączniki tego nabożeństwa są już w Bibliotece.')
+  setTimeout(() => { svcMsg.value = '' }, 5000)
+}
 </script>
 
 <template>
@@ -30,10 +39,12 @@ async function addFiles() { if (await addMediaFiles()) deskTab.value = 'media' }
     <input v-model="newText" class="desk-media-txt" placeholder="Napis na transmisję, np. „Zbiórka na remont — BLIK 789 571 542”" aria-label="Nowy napis" @keydown.enter="addMediaText">
     <button class="small" :disabled="!newText.trim()" @click="addMediaText"><Icon name="text" />Dodaj napis</button>
     <button class="small" :aria-pressed="showMats" title="Pliki z „Materiałów” w aplikacji" @click="showMats = !showMats"><Icon name="folder" />Z materiałów</button>
-    <button class="small" :aria-pressed="showTrash" title="Usunięte materiały — można je przywrócić" @click="showTrash = !showTrash"><Icon name="trash" />Kosz<template v-if="settings.libraryTrash?.length"> ({{ settings.libraryTrash.length }})</template></button>
+    <button class="small" :disabled="!!busy || !svc?.files?.length" :title="!svc ? 'Brak zaplanowanego nabożeństwa' : !svc.files?.length ? 'Nabożeństwo ' + prettyDate(svc.date) + ' nie ma załączników' : 'Załączniki nabożeństwa ' + prettyDate(svc.date) + ' (' + svc.files.length + ') — do Biblioteki Streamu' + (svcLeft ? '' : ' (już są)')" @click="fromService"><Icon name="calendar" />Z nabożeństwa<template v-if="svcLeft"> ({{ svcLeft }})</template></button>
+    <button class="small" :aria-pressed="showTrash" title="Usunięte materiały — można je przywrócić" @click="showTrash = !showTrash"><Icon name="trash" />Kosz<template v-if="trashFor('stream').length"> ({{ trashFor('stream').length }})</template></button>
   </div>
-  <LibraryTrash v-if="showTrash" />
-  <div v-if="showMats" class="desk-mats"><ChurchMaterials action="Do mediów" @added="showMats = false" /></div>
+  <p v-if="svcMsg" class="desk-help" role="status">{{ svcMsg }}</p>
+  <LibraryTrash v-if="showTrash" lib="stream" />
+  <div v-if="showMats" class="desk-mats"><ChurchMaterials action="Do mediów" lib="stream" @added="showMats = false" /></div>
   <p class="desk-help"><b>Na ekran</b> — materiał zamiast obrazu z kamery (scena „Materiał”). <b>Nakładka</b> — na obrazie z kamery albo rzutnika: w rogu albo na całym kadrze (logo PNG, napis).</p>
   <div class="desk-media-grid">
     <div class="desk-media-it desk-media-ann" :class="{ on: annPv, live: annAir }">

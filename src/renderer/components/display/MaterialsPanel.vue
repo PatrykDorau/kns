@@ -5,8 +5,8 @@ import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import LibraryTrash from '@/components/common/LibraryTrash.vue'
 import {
-  bibleOpen, addLoop, addCountdown, addText, addWeb, addAnnouncements, currentAnnouncements, projectorGraphics, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
-  renameValue, renamingId, search, selectedId, settings, startRename, visibleItems,
+  bibleOpen, addLoop, addCountdown, addText, addWeb, commitRename, confirmId, frozenAt, goLive, hidden, kindLabel, label, liveId, moveItem, pickDeck, pickFiles, remove,
+  renameValue, renamingId, search, selectedId, startRename, trashFor, visibleItems,
 } from '@/stores'
 
 // Tryb zaznaczania: pola wyboru przy wierszach i jedno usunięcie dla wielu naraz.
@@ -48,7 +48,6 @@ function drop(it) {
     <button title="Fragment Biblii jako slajdy, np. J 3,16–21" @click="bibleOpen = true"><Icon name="book" />Biblia</button>
     <button title="Strona internetowa na rzutniku — adres, powiększenie, przewijanie" @click="addWeb"><Icon name="link" />Strona</button>
     <button @click="addLoop"><Icon name="loop" />Pętla</button>
-    <button :disabled="!projectorGraphics.length" :title="projectorGraphics.length ? 'Grafiki ogłoszeń i wydarzeń zaznaczonych „Pokaż na nabożeństwie” (' + projectorGraphics.length + ') jako pętla — przed i po nabożeństwie' : 'Brak grafik do pokazania — w ogłoszeniu (telefon albo strona) dodaj grafikę i zaznacz „Pokaż na nabożeństwie”'" @click="addAnnouncements"><Icon name="info" />Ogłoszenia<span v-if="projectorGraphics.length" class="pill">{{ projectorGraphics.length }}</span></button>
   </div>
   <div class="searchrow">
     <label class="searchbox">
@@ -56,7 +55,7 @@ function drop(it) {
       <input v-model="search.materials" type="search" placeholder="Szukaj w Bibliotece" aria-label="Szukaj w Bibliotece">
     </label>
     <button class="small" :aria-pressed="picking" title="Zaznaczanie wielu pozycji naraz" :disabled="!visibleItems.length" @click="picking ? stopPicking() : (picking = true)">{{ picking ? 'Gotowe' : 'Zaznacz' }}</button>
-    <button class="small" :aria-pressed="showTrash" title="Usunięte materiały — można je przywrócić" @click="showTrash = !showTrash"><Icon name="trash" /><template v-if="settings.libraryTrash?.length">{{ settings.libraryTrash.length }}</template></button>
+    <button class="small" :aria-pressed="showTrash" title="Usunięte materiały — można je przywrócić" @click="showTrash = !showTrash"><Icon name="trash" /><template v-if="trashFor('').length">{{ trashFor('').length }}</template></button>
   </div>
   <LibraryTrash v-if="showTrash" />
   <div v-if="picking" class="bulk">
@@ -102,7 +101,7 @@ function drop(it) {
       <span v-else class="actions">
         <button class="iconbtn" :class="{ on: renamingId === it.id }" :title="renamingId === it.id ? 'Zapisz nazwę' : 'Zmień nazwę (F2)'" :aria-label="'Zmień nazwę: ' + label(it)" :aria-pressed="renamingId === it.id"
                 @mousedown.prevent @click="renamingId === it.id ? commitRename(it) : startRename(it)"><Icon name="pencil" /></button>
-        <button class="iconbtn danger" title="Usuń" :aria-label="'Usuń: ' + label(it)" @click="confirmId = it.id"><Icon name="trash" /></button>
+        <button v-if="!it.builtin" class="iconbtn danger" title="Usuń" :aria-label="'Usuń: ' + label(it)" @click="confirmId = it.id"><Icon name="trash" /></button>
       </span>
     </li>
   </ul>

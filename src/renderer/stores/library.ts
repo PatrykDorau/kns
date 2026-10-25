@@ -2,7 +2,7 @@
 import { computed, ref, shallowRef } from 'vue'
 import { parseBibleXml, parseRef, passage, refLabel, toSlides } from '@/services/bible'
 import type { LibraryItem } from '@/types'
-import { flash, hide } from './display'
+import { hide } from './display'
 import { visibleItems, visibleSongs } from './lists'
 import { itemById, label, verses } from './live'
 import { today } from './services'
@@ -11,9 +11,13 @@ import { TEXT_STYLE, api, busy, churchAnnouncements, churchEvents, confirmId, hi
 /* ---------- pliki ---------- */
 export const BUILTIN_NOTE = 'Prezentację odtworzył wbudowany czytnik — sprawdź slajdy, bo układ i kolory mogą różnić się od oryginału. Dokładną kopię daje komputer z PowerPointem lub LibreOffice albo zapis prezentacji jako PDF.'
 
+// Rzutnik i Stream mają osobne biblioteki: materiał Streamu ma lib: 'stream'.
+export type Lib = '' | 'stream'
+export const libOf = (it: LibraryItem): Lib => it.lib || ''
+
 // Zamienia wskazane pliki na elementy biblioteki. Prezentacja (PowerPoint albo wielostronicowy PDF)
 // staje się pętlą ze slajdami przełączanymi ręcznie; pozostałe pliki — pojedynczymi materiałami.
-export async function addFiles(paths, intoLoop = null) {
+export async function addFiles(paths, intoLoop = null, lib: Lib = '') {
   if (!paths.length) return
   busy.value = 'Dodawanie plików…'
   try {
@@ -45,7 +49,8 @@ export async function addFiles(paths, intoLoop = null) {
       }
     }
 
-    const item = (f, hidden): LibraryItem => ({ id: uid(), type: f.type, name: f.name, path: f.path, fit: 'contain', loop: false, ...(hidden ? { hidden: true } : {}) })
+    const mark = lib ? { lib } : {}
+    const item = (f, hidden): LibraryItem => ({ id: uid(), type: f.type, name: f.name, path: f.path, fit: 'contain', loop: false, ...(hidden ? { hidden: true } : {}), ...mark })
     const entry = it => ({ key: uid(), ref: it.id, seconds: null })
     let last = null
     for (const part of parts) {
@@ -57,7 +62,7 @@ export async function addFiles(paths, intoLoop = null) {
         last = added.at(-1) || last
       } else if (part.deck && part.files.length > 1) {
         const slides = part.files.map(f => item(f, true))
-        const deck: LibraryItem = { id: uid(), type: 'scene', name: part.name, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false, entries: slides.map(entry) }
+        const deck: LibraryItem = { id: uid(), type: 'scene', name: part.name, seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false, entries: slides.map(entry), ...mark }
         items.value.push(...slides, deck)
         last = deck
       } else {
@@ -66,7 +71,7 @@ export async function addFiles(paths, intoLoop = null) {
         last = added.at(-1) || last
       }
     }
-    if (!intoLoop && last) { tab.value = 'materials'; selectedId.value = last.id }
+    if (!intoLoop && last && !lib) { tab.value = 'materials'; selectedId.value = last.id }
     notice.value = problem || (last ? '' : 'Tych plików nie da się wyświetlić — obsługiwane są zdjęcia, filmy, PDF i prezentacje PowerPoint.')
   } catch (e) {
     notice.value = 'Nie udało się dodać plików: ' + e.message
@@ -74,7 +79,7 @@ export async function addFiles(paths, intoLoop = null) {
     busy.value = ''
   }
 }
-export const pickFiles = async intoLoop => addFiles(await api.pickFiles(), intoLoop)
+export const pickFiles = async (intoLoop, lib: Lib = '') => addFiles(await api.pickFiles(), intoLoop, lib)
 // Prezentacja (PowerPoint lub PDF) — wchodzi jako pętla ze slajdami przełączanymi ręcznie.
 export const pickDeck = async () => addFiles(await api.pickFiles('deck'))
 
@@ -164,22 +169,21 @@ export const projectorGraphics = computed(() => [
   ...churchEvents.value.filter(e => e.projector && e.image && e.date && e.date >= today()).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
     .map((e, i) => ({ key: 'e' + e.id, name: e.title || 'Wydarzenie', image: e.image, order: '1' + String(i).padStart(3, '0') })),
 ].sort((a, b) => a.order.localeCompare(b.order)))
-// Pętla ogłoszeń: grafiki (gdy w aplikacji zaznaczono „na rzutniku”), a bez grafik — ogłoszenia jako tekst.
+// Ogłoszenia — stała pętla na górze Biblioteki Rzutnika: grafiki ogłoszeń i wydarzeń zaznaczonych „Pokaż na nabożeństwie”
+// (z wszystkimi informacjami na nich). Odświeża się sama, gdy ogłoszenia się zmienią; ustawienia pętli (czas, przejście) zostają.
 // Grafiki są w internecie — wczytujemy je od razu, żeby w trakcie pętli były już w pamięci.
-export function addAnnouncements() {
+export const ANN_LOOP = 'ann-loop'
+export function syncAnnouncements() {
   const graphics = projectorGraphics.value
-  if (graphics.length) {
-    graphics.forEach(g => { const img = new Image(); img.src = g.image })
-    const slides = graphics.map((g): LibraryItem => ({ id: uid(), type: 'image', name: g.name, path: g.image, fit: 'contain', loop: false, hidden: true }))
-    const deck: LibraryItem = { id: uid(), type: 'scene', name: 'Ogłoszenia — grafiki', seconds: 10, volume: 0.25, transition: 'fade', fadeMs: 600, auto: true,
-      entries: slides.map(it => ({ key: uid(), ref: it.id, seconds: null })) }
-    items.value.push(...slides, deck)
-    tab.value = 'materials'
-    selectedId.value = deck.id
-    return
-  }
-  // Na rzutniku tylko grafiki (z wszystkimi informacjami na nich) — bez slajdów z samym tekstem.
-  flash('Nie ma grafik do pokazania. W ogłoszeniu albo wydarzeniu dodaj grafikę i zaznacz „Pokaż na nabożeństwie”.')
+  if (!items.value.some(i => i.id === ANN_LOOP))
+    items.value.unshift({ id: ANN_LOOP, builtin: 'ann', type: 'scene', name: 'Ogłoszenia', seconds: 10, volume: 0.25, transition: 'fade', fadeMs: 600, auto: true, entries: [] })
+  const deck = items.value.find(i => i.id === ANN_LOOP)
+  const want = graphics.map(g => 'ann-' + g.key)
+  if (want.length === deck.entries.length && want.every((id, i) => deck.entries[i].ref === id && itemById(id)?.path === graphics[i].image)) return
+  graphics.forEach(g => { const img = new Image(); img.src = g.image })
+  const slides = graphics.map((g): LibraryItem => ({ id: 'ann-' + g.key, type: 'image', name: g.name, path: g.image, fit: 'contain', loop: false, hidden: true }))
+  items.value = [...items.value.filter(i => !(i.hidden && i.id.startsWith('ann-'))), ...slides]
+  deck.entries = slides.map(it => ({ key: it.id, ref: it.id, seconds: null }))
 }
 
 export function addLoop() {
@@ -216,7 +220,9 @@ export function trashItem(it) {
   for (const loop of items.value) if (loop.type === 'scene' && loop !== it) loop.entries = loop.entries.filter(e => e.ref !== it.id)
   for (const x of [it, ...extras]) { const i = items.value.indexOf(x); if (i >= 0) items.value.splice(i, 1) }
 }
-export function restoreTrash(index) {
+export function restoreTrash(index, lib: Lib = '') {
+  index = trashIndex(index, lib)
+  if (index < 0) return
   const [r] = (settings.libraryTrash || []).splice(index, 1)
   if (!r) return
   for (const x of [...(r.extras || []), r.item]) if (!itemById(x.id)) items.value.push(x)
@@ -225,8 +231,11 @@ export function restoreTrash(index) {
 }
 // usunięcie na zawsze: najpierw z kosza, potem plik (gdy nic innego z niego nie korzysta)
 function purge(r) { for (const x of [r.item, ...(r.extras || [])]) { dropFile(x.path); dropFile(x.bgImage) } }
-export function purgeTrashAt(index) { const [r] = (settings.libraryTrash || []).splice(index, 1); if (r) purge(r) }
-export function emptyTrash() { const all = (settings.libraryTrash || []).splice(0); all.forEach(purge) }
+// kosz pokazuje tylko swoją bibliotekę — numer na tej liście → numer w całym koszu
+export const trashFor = (lib: Lib) => (settings.libraryTrash || []).filter(r => (r.item.lib || '') === lib)
+function trashIndex(i: number, lib: Lib) { let n = -1; return (settings.libraryTrash || []).findIndex(r => (r.item.lib || '') === lib && ++n === i) }
+export function purgeTrashAt(index, lib: Lib = '') { index = trashIndex(index, lib); if (index < 0) return; const [r] = (settings.libraryTrash || []).splice(index, 1); if (r) purge(r) }
+export function emptyTrash(lib: Lib = '') { const all = trashFor(lib); settings.libraryTrash = (settings.libraryTrash || []).filter(r => !all.includes(r)); all.forEach(purge) }
 // przy starcie: starsze niż TRASH_DAYS dni znikają same
 export function purgeOldTrash() {
   const list = settings.libraryTrash || [], old = list.filter(r => Date.now() - r.at > TRASH_DAYS * 86400000)
@@ -236,6 +245,7 @@ export function purgeOldTrash() {
 
 export function remove(it) {
   confirmId.value = null
+  if (it.builtin) return // pętla ogłoszeń zostaje zawsze
   if (it.id === liveId.value) hide()
   const list = it.type === 'song' ? visibleSongs.value : visibleItems.value
   const at = list.indexOf(it)

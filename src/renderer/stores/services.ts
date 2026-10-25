@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import type { Service } from '@/types'
 import { flash } from './display'
-import { addFiles, addPassage, dropFile, loadBible } from './library'
+import { addFiles, addPassage, dropFile, loadBible, type Lib } from './library'
 import { serviceList } from './lists'
 import { verses } from './live'
 import { plainCopy } from './persist'
@@ -144,27 +144,34 @@ export function detachFromService(svc, i) {
 
 // Rzutnik: lista pieśni i załączniki nabożeństwa trafiają do panelu wyświetlania.
 // parts — co wczytać: pieśni (zastępują listę), załączniki (trafiają do materiałów) albo jedno i drugie.
+// Załączniki nabożeństwa do Biblioteki (Rzutnika albo Streamu — lib); już wczytane się nie dublują.
+// Zwraca { added, error }.
+export async function loadServiceFiles(svc, lib: Lib = '') {
+  const files = (svc?.files || []).filter(f => !items.value.some(i => i.source === svc.id + ':' + f.key && (i.lib || '') === lib))
+  let error = ''
+  // Przy logowaniu do Dysku Google załączniki pobierane są dopiero teraz, gdy są potrzebne.
+  if ((settings.sharedDir === 'google' || settings.sharedDir === BAZA) && files.length) {
+    busy.value = 'Pobieram załączniki nabożeństwa…'
+    const got = await api.sharedEnsure(files.map(f => f.path))
+    busy.value = ''
+    if (got.error) error = got.error
+  }
+  for (const f of files) {
+    const before = items.value.length
+    await addFiles([f.path], null, lib)
+    for (const it of items.value.slice(before)) it.source = svc.id + ':' + f.key
+  }
+  return { added: files.length, error }
+}
+
 export async function applyService(svc, parts = { songs: true, files: true }) {
   if (parts.songs) settings.service = svc.songs.filter(e => songs.value.some(x => x.id === e.songId)).map(e => ({ key: uid(), songId: e.songId }))
   settings.activeService = svc.id
   const files = parts.files ? svc.files : []
-  // Przy logowaniu do Dysku Google załączniki pobierane są dopiero teraz, gdy są potrzebne.
-  if ((settings.sharedDir === 'google' || settings.sharedDir === BAZA) && files.length) {
-    busy.value = 'Pobieram załączniki z Dysku Google…'
-    const got = await api.sharedEnsure(files.map(f => f.path))
-    busy.value = ''
-    if (got.error) flash(got.error)
-  }
-  for (const f of files) {
-    const source = svc.id + ':' + f.key
-    if (items.value.some(i => i.source === source)) continue // już wczytane wcześniej
-    const before = items.value.length
-    await addFiles([f.path])
-    for (const it of items.value.slice(before)) it.source = source
-  }
+  if (files.length) { const { error } = await loadServiceFiles(svc); if (error) flash(error) }
   // Fragment Biblii z nabożeństwa — gdy jest wczytana Biblia, trafia do materiałów jako pętla.
   let verses = false
-  if (parts.files && svc.passage?.trim() && await loadBible() && !items.value.some(i => i.source === svc.id + ':bible')) {
+  if (parts.files && svc.passage?.trim() && await loadBible() && !items.value.some(i => i.source === svc.id + ':bible' && !i.lib)) {
     verses = !addPassage(svc.passage, 2, svc.id + ':bible').error
   }
   tab.value = parts.songs ? 'songs' : 'materials'

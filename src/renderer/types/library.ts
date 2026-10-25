@@ -27,6 +27,8 @@ export interface LibraryItem extends Partial<TextStyle> {
   type: ItemType
   name: string
   hidden?: boolean // slajd prezentacji — nie pokazuje się osobno na liście
+  lib?: 'stream' // biblioteka Streamu (osobna od Rzutnika); bez pola — Rzutnik
+  builtin?: 'ann' // stała pozycja Biblioteki Rzutnika (pętla ogłoszeń) — sama się odświeża, nie da się jej usunąć
   missing?: boolean // pliku nie ma na dysku (ustawiane po wczytaniu, nie zapisywane)
   // zdjęcie, film
   path?: string
