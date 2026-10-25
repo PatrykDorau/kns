@@ -5,6 +5,7 @@ import SyncButton from '@/components/common/SyncButton.vue'
 import Brand from '@/components/common/Brand.vue'
 import Countdown from '@/components/display/Countdown.vue'
 import StreamDesk from '@/components/stream/StreamDesk.vue'
+import { reconnectCamera } from '@/services/studio'
 import { api, cameraLock, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from '@/stores'
 import { addMinutes, categoryName } from '@web/services/church'
 
@@ -200,7 +201,7 @@ onBeforeUnmount(() => {
       <span class="spacer"></span>
       <button :class="{ on: settings.camOnTop }" :aria-pressed="settings.camOnTop" title="Okno zawsze nad innymi programami (np. nad OBS)" @click="toggleOnTop"><Icon name="pin" />Zawsze na wierzchu</button>
       <button title="Małe okno z samymi kamerami — do ustawienia w OBS jako nakładka" @click="toggleOverlay"><Icon name="shrink" />Tryb nakładki</button>
-      <button @click="refresh"><Icon name="camera" />Odśwież kamery</button>
+      <button @click="cameraLock && reconnectCamera(); refresh()"><Icon name="camera" />Odśwież kamery</button>
     </header>
 
     <main class="stream wide">

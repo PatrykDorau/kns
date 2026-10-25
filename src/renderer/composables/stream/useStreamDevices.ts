@@ -1,5 +1,5 @@
 // Skąd obraz i dźwięk: tryb studio (kamera i dźwięk z przeglądarki — ATEM po USB) albo prosty (urządzenia FFmpeg).
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api, settings } from '@/stores'
 import { checkHardware, listCameras, setAudio, setCamera, studio } from '@/services/studio'
 
@@ -14,8 +14,10 @@ export function useStreamDevices() {
   async function loadStudioDevices() {
     studioDevices.value = await listCameras()
     const pick = (list: MediaDevice[], saved: string) => list.find(d => d.label === saved) || list.find(d => /blackmagic|atem/i.test(d.label)) || null
-    const cam = pick(studioDevices.value.video, settings.studioCamera) || studioDevices.value.video[0]
-    if (cam) { settings.studioCamera = cam.label; setCamera(cam.deviceId) }
+    // awaryjnie pierwsza prawdziwa kamera — nie wirtualna kamera OBS (bez działającego OBS nie daje obrazu)
+    const cam = pick(studioDevices.value.video, settings.studioCamera) || studioDevices.value.video.find(d => !/obs|virtual/i.test(d.label)) || studioDevices.value.video[0]
+    // zapamiętany wybór (np. ATEM) zostaje, nawet gdy chwilowo go nie ma — po podłączeniu wróci sam
+    if (cam) { if (!settings.studioCamera || cam.label === settings.studioCamera || /blackmagic|atem/i.test(cam.label)) settings.studioCamera = cam.label; setCamera(cam.deviceId) }
     const mic = pick(studioDevices.value.audio, settings.studioAudio)
     if (mic) { settings.studioAudio = mic.label; setAudio(mic.deviceId) }
   }
@@ -32,11 +34,21 @@ export function useStreamDevices() {
     if (!settings.streamAudio) settings.streamAudio = bm(devices.value.audio)
   }
 
+  // podłączenie/odłączenie urządzenia: gdy pojawiła się zapamiętana kamera (np. ATEM po włożeniu kabla) — przełącz na nią;
+  // działającej kamery nie ruszamy
+  async function onDeviceChange() {
+    const list = await listCameras()
+    studioDevices.value = list
+    const saved = list.video.find(d => d.label === settings.studioCamera) || list.video.find(d => /blackmagic|atem/i.test(d.label))
+    if (saved && saved.deviceId !== studio.camera) setCamera(saved.deviceId)
+  }
   onMounted(async () => {
     loadDevices()
     await checkHardware()
     loadStudioDevices()
+    navigator.mediaDevices.addEventListener('devicechange', onDeviceChange)
   })
+  onBeforeUnmount(() => navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange))
 
   return { engine, studioDevices, devices, loadDevices, loadStudioDevices, chooseCamera, chooseAudio }
 }

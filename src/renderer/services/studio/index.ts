@@ -5,7 +5,7 @@ export { differs, initLook, clearPreviewMedia, mediaPipToProgram, pipToProgram, 
 export { addCountdown, countdownLeft, setCountdown, showSlide, slideCandidates, upcomingService } from './cards'
 export { airMedia, mediaCtl, mediaSlide } from './media'
 export { setRemoteScreen } from './projector'
-export { listCameras, setCamera } from './camera'
+export { listCameras, reconnectCamera, setCamera } from './camera'
 export { audioInfo, setAudio } from './audio'
 export { addMusic, music, nextMusic, playAllMusic, playMusic, removeMusic, setMusicVolume, stopMusic, toggleMusic } from './music'
 export { checkHardware, requestKeyFrame, startEncoding, stopEncoding } from './encoder'
