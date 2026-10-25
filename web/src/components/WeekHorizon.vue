@@ -2,18 +2,20 @@
 // @ts-nocheck — stan i działania wspólne (useApp)
 import { computed, defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import KnsSky from '@/components/KnsSky.vue'
 
-// Tydzień jak horyzont (znak strony startowej): 7 dni od dziś w rzędzie, kropki — wydarzenia, a nad dniem
-// najbliższego nabożeństwa słońce z logo wschodzi tym wyżej, im bliżej do nabożeństwa (tydzień przed — przy linii,
-// w dniu nabożeństwa — wysoko). Jedyny kolor na stronie startowej; dzień z wydarzeniem otwiera je po kliknięciu.
+// Tydzień jak horyzont (znak strony startowej): nad rzędem dni góra KNS, zza której wschodzi słońce z logo —
+// tym wyżej, im bliżej do najbliższego nabożeństwa (tydzień przed — schowane za górą, w dniu nabożeństwa — nad
+// szczytem). Pod spodem 7 dni od dziś: kropki — wydarzenia, pomarańczowy — dzień nabożeństwa; klik otwiera wydarzenie.
+// Słońce to jedyny kolor na stronie startowej (dane: czas do nabożeństwa).
 export default defineComponent({
+  components: { KnsSky },
   setup() {
     const app = useApp()
     const svc = computed(() => app.nextService.value)
     const col = computed(() => (svc.value ? app.weekDays.value.findIndex(d => d.date === svc.value.date) : -1))
     const hoursLeft = computed(() => (svc.value ? (app.startsAt(svc.value) - app.now.value) / 3600000 : 0))
-    // 0 — tydzień (lub więcej) przed, 1 — nabożeństwo się zaczyna (i trwa)
-    const rise = computed(() => Math.max(0, Math.min(1, 1 - hoursLeft.value / 168)))
+    const rise = computed(() => (svc.value ? Math.max(0, Math.min(1, 1 - hoursLeft.value / 168)) : 0))
     const caption = computed(() => {
       if (!svc.value || col.value < 0) return 'Nabożeństwo — po tym tygodniu'
       const h = hoursLeft.value
@@ -31,10 +33,7 @@ export default defineComponent({
 
 <template>
   <section class="wh" aria-label="Ten tydzień">
-    <div class="wh-sky" aria-hidden="true">
-      <span v-if="col >= 0" class="wh-sun" :style="{ left: ((col + 0.5) / 7 * 100) + '%', '--rise': rise }"></span>
-      <span class="wh-line"></span>
-    </div>
+    <KnsSky class="wh-sky" :rise="rise" />
     <div class="wh-days">
       <button v-for="(d, i) in weekDays" :key="d.date" class="wh-day" :class="{ today: i === 0, svc: i === col, has: d.items.length }" :disabled="!d.items.length"
               :aria-label="d.wd + ' ' + d.n + (d.items.length ? ': ' + d.items.map(x => x.kind === 'service' ? 'Nabożeństwo' : x.title).join(', ') : ': nic')" @click="pick(d)">
@@ -48,12 +47,8 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.wh { margin: 4px 0 18px; }
-.wh-sky { position: relative; height: 70px; overflow: hidden; }
-.wh-line { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--muted); opacity: .45; }
-/* słońce: przy linii (pół schowane) tydzień przed, wysoko w dniu nabożeństwa */
-.wh-sun { position: absolute; bottom: 0; width: 34px; height: 34px; margin-left: -17px; border-radius: 50%; background: var(--accent);
-  transform: translateY(calc(50% - var(--rise) * 44px)); transition: transform .8s cubic-bezier(.2, .8, .2, 1); }
+.wh { margin: 0 0 22px; }
+.wh-sky { margin: 0 -16px; }
 .wh-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .wh-day { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 0; padding: 8px 0 6px; border: 0; border-radius: 12px; background: none !important; color: var(--faint); }
 .wh-day:disabled { opacity: 1; cursor: default; }
@@ -67,6 +62,5 @@ export default defineComponent({
 .wh-dots i.s { background: var(--accent); }
 .wh-cap { margin: 6px 0 0; font-size: 15px; color: var(--muted); }
 .wh-cap b { color: var(--text); font-weight: 600; }
-@media (min-width: 1024px) { .wh-sky { height: 84px; } .wh-sun { width: 44px; height: 44px; margin-left: -22px; transform: translateY(calc(50% - var(--rise) * 54px)); } .wh-day b { font-size: 24px; } }
-@media (prefers-reduced-motion: reduce) { .wh-sun { transition: none; } }
+@media (min-width: 1024px) { .wh-sky { margin: 0; } .wh-day b { font-size: 24px; } .wh-cap { font-size: 16px; } }
 </style>

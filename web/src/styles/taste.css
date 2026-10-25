@@ -91,7 +91,8 @@ header button.back, #app.has-side header > .back:hover { color: var(--text) !imp
 input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), textarea, select {
   background-color: var(--panel) !important; border: 1px solid var(--panel3) !important; border-radius: 14px; }
 input:focus, textarea:focus, select:focus { border-color: var(--muted) !important; box-shadow: none !important; }
-input[type=checkbox], input[type=radio] { accent-color: var(--text); }
+input[type=checkbox], input[type=radio] { accent-color: var(--text) !important; }
+html[data-theme="light"] input[type=checkbox], html[data-theme="light"] input[type=radio] { accent-color: #141210 !important; }
 /* pola wyszukiwania z ikoną w opakowaniu (.ann-search, .cal-search…): ramka na opakowaniu, pole w środku bez ramki */
 [class*="-search"]:has(> input) { background: var(--panel) !important; border: 1px solid var(--panel3) !important; border-radius: 14px !important; box-shadow: none !important; }
 [class*="-search"]:has(> input:focus) { border-color: var(--muted) !important; }
@@ -184,6 +185,23 @@ html[data-theme="light"] .tabbar button.on { color: var(--text) !important; }
 .fact { background: var(--panel) !important; border: 0 !important; box-shadow: none !important; }
 .fact > svg.i { width: 20px !important; height: 20px !important; padding: 0 !important; background: none !important; color: var(--muted) !important; }
 .timeline .tl-ic, .pg-head .tl-ic { background: none !important; color: var(--muted) !important; }
+
+/* formularze: bez numeracji sekcji, przyciski „Dodaj…” neutralne, ikony bez barwionych kółek */
+.form-sec .fs-n { display: none !important; }
+.pg-addsong { background: var(--panel2) !important; color: var(--text) !important; }
+.pc-icon, .push-card .pc-icon { background: none !important; color: var(--muted) !important; }
+.push-card.on .pc-icon { color: var(--ok-text) !important; }
+.form-hint a, .note a { color: var(--text) !important; text-decoration: underline; text-underline-offset: 2px; }
+.form-hint .i { color: var(--muted) !important; }
+/* „pin” (lider, ranga) neutralny; wyróżniony tylko na ważnych ogłoszeniach */
+.ann-tag.pin { background: var(--panel3) !important; color: var(--text) !important; }
+.ann .ann-tag.pin, .hw-banner .ann-tag.pin, .ann-view .ann-tag.pin { background: var(--accent-soft) !important; color: var(--accent-text) !important; }
+
+/* ekran logowania: niebo z górą nad kartą, karta wchodzi na linię horyzontu */
+.login-screen { padding-top: 0 !important; }
+.login-sky { margin: 0 -16px; }
+.login-screen .login-card { margin-top: -1px !important; border-radius: 0 0 24px 24px !important; }
+.login-screen .login-card > img { width: 64px !important; margin: 4px 0 2px; }
 
 /* boczny pasek: pełna nazwa kościoła i osoby */
 @media (min-width: 1024px) {
