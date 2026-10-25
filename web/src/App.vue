@@ -1281,6 +1281,7 @@ export default defineComponent({
       if (currentAnn.value && annSavedOnce.value) return ['ogloszenie', currentAnn.value.id, currentAnn.value.title]
       if (currentEvent.value && [...events.value, ...pendingEvents.value].some(x => x.id === currentEvent.value.id)) return ['wydarzenie', currentEvent.value.id, currentEvent.value.title]
       if (current.value && services.value.some(x => x.id === current.value.id)) return ['nabozenstwo', current.value.id, 'Nabożeństwo ' + pretty(current.value.date)]
+      if (song.value && !song.value.isNew && songs.value.some(x => x.id === song.value.id)) return ['piesn', song.value.id, song.value.title] // pieśń: link i kod QR
       return null
     })
     setInterval(() => { if (document.visibilityState === 'visible') loadInbox() }, 60000)
