@@ -2,9 +2,11 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent, onMounted } from 'vue'
 import { useApp } from '@/composables/useApp'
+import SermonNotes from '@/components/SermonNotes.vue'
 
 // HomeView
 export default defineComponent({
+  components: { SermonNotes },
   setup() {
     const app = useApp()
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
@@ -22,6 +24,7 @@ export default defineComponent({
       <p>Oto co dzieje się w kościele.</p>
     </div>
     <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
+    <SermonNotes v-if="notesService" :service="notesService" />
     <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts">
       <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
       <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>
@@ -175,6 +178,7 @@ export default defineComponent({
     <p>Oto co dzieje się w kościele.</p>
   </div>
   <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
+  <SermonNotes v-if="notesService" :service="notesService" />
   <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts phone-thoughts">
     <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
     <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> — {{ lastSermon.speaker }}</template></p>

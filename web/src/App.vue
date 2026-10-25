@@ -471,8 +471,9 @@ export default defineComponent({
         ...(api.enabled ? [{ title: 'Wspólnota', items: [
           { id: 'serve', icon: 'serve', name: 'Zaangażuj się' },
           ...(serve.list.some(m => m.mine === 'active' || m.leader) || canManage.value || canAsb.value ? [{ id: 'myserve', icon: 'users', name: 'Moja służba' }] : []),
-          { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '' },
-          { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '' },
+          // beta — funkcje eksperymentalne (mogą się jeszcze zmienić)
+          { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '', beta: true },
+          { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '', beta: true },
           { id: 'listen', icon: 'music', name: 'Posłuchaj' },
         ] }] : []),
         { title: 'Narzędzia', items: [
@@ -1041,8 +1042,12 @@ export default defineComponent({
     const activeAnns = computed(() => announcements.value.filter(isActive).sort((a, b) => (annIsNew(b) ? 1 : 0) - (annIsNew(a) ? 1 : 0) || (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.important ? 1 : 0) - (a.important ? 1 : 0) || byNewest(a, b)))
     const oldAnns = computed(() => announcements.value.filter(a => !isActive(a)).sort((a, b) => (b.until || '').localeCompare(a.until || '')))
     const importantAnns = computed(() => activeAnns.value.filter(a => a.important && a.audience !== 'council'))
-    // Myśli z kazania: z ostatniego nabożeństwa, które już się zaczęło — widoczne cały tydzień, do początku następnego.
-    const lastSermon = computed(() => services.value.filter(s => s.date && startsAt(s) <= now.value).sort((a, b) => startsAt(b) - startsAt(a))[0] || null)
+    // Myśli z kazania: z ostatniego nabożeństwa, które już się skończyło (2 godziny od początku) — widoczne cały tydzień,
+    // do końca następnego (nie zdradzamy kazania przed nabożeństwem).
+    const SERMON_AFTER = 2 * 3600000
+    const lastSermon = computed(() => services.value.filter(s => s.date && startsAt(s) + SERMON_AFTER <= now.value).sort((a, b) => startsAt(b) - startsAt(a))[0] || null)
+    // Notatki z kazania (#52): nabożeństwo z pytaniami od kaznodziei — na stronie głównej od godziny przed początkiem do końca dnia.
+    const notesService = computed(() => services.value.find(s => s.date && String(s.questions || '').trim() && startsAt(s) - 3600000 <= now.value && now.value < new Date(s.date + 'T23:59').getTime()) || null)
     const thoughtList = s => String(s?.thoughts || '').split('\n').map(t => t.replace(/^\s*[-•*\d.)]+\s*/, '').trim()).filter(Boolean)
     const homeAnns = computed(() => activeAnns.value.filter(a => !a.important).slice(0, 4))
     const annView = ref(false), currentAnn = ref(null), annEditing = ref(false)
@@ -2432,7 +2437,7 @@ export default defineComponent({
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
       asb, asbView, asbForm, asbPreview, canAsb, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete,
-      booting, annIsNew, newAnnCount, annQuery, annHintsOpen, shownActiveAnns, shownOldAnns, annHints, hintParts, pickHint, isActive,
+      booting, notesService, annIsNew, newAnnCount, annQuery, annHintsOpen, shownActiveAnns, shownOldAnns, annHints, hintParts, pickHint, isActive,
       ASB_KINDS, asbWhen, asbKindName, asbMissing, asbMissingCount, asbLeaderHints, asbPubUpcoming, asbPubShown, asbPubGroups,
       msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
       bulk, annFromImages,
@@ -2559,7 +2564,8 @@ export default defineComponent({
     <div class="boot-grid"><div class="skel skel-hero"></div><div class="skel skel-hero"></div></div>
     <div class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 5" :key="n" class="skel skel-row"></div></div>
   </div>
-  <div v-else-if="!ready" class="center">
+  <div v-else-if="!ready" class="center login-screen">
+    <div class="login-card">
     <img src="logo.png" alt="Kościół Na Skale">
     <div v-if="countdown" class="countdown login-cd">
       <span v-if="countdown.live" class="cd-live"><i class="cd-dot"></i>W TRAKCIE</span>
@@ -2571,14 +2577,24 @@ export default defineComponent({
       <span class="cd-when">{{ countdown.when }} · {{ countdown.place }}</span>
     </div>
     <p v-if="pendingLink && pendingLink.kind" class="pending-note"><svg class="i"><use href="#link"/></svg>{{ LINK_LABEL[pendingLink.kind] ? 'Ktoś udostępnił Ci ' + LINK_LABEL[pendingLink.kind] : 'Otwierasz link do aplikacji' }} — po zalogowaniu od razu się otworzy.</p>
-    <p class="note">{{ api.enabled ? 'Zaloguj się kontem Google. Nowe konto czeka na zatwierdzenie przez administratora kościoła.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
+    <!-- co daje logowanie (dla nowych osób) -->
+    <ul v-if="api.enabled && !drive.account()" class="login-perks">
+      <li><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia i wydarzenia kościoła</li>
+      <li><svg class="i"><use href="#calendar"/></svg>Kalendarz, nabożeństwa i myśli z kazania</li>
+      <li><svg class="i"><use href="#users"/></svg>Służby, dyspozycyjność i grafik</li>
+    </ul>
     <!-- Logowanie Google działa tylko pod adresem zarejestrowanym w Google Cloud. -->
     <div v-if="wrongOrigin" class="origin-warn">
       <b>Ta strona jest otwarta pod innym adresem</b> ({{ origin }}) — Google nie pozwoli tu się zalogować.
       <a class="button primary" :href="appUrl">Otwórz {{ appUrl.replace('https://', '') }}</a>
     </div>
-    <button class="primary" :disabled="busy" @click="start()">{{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj kontem Google' }}</button>
+    <button class="primary login-google" :disabled="busy" @click="start()">
+      <svg v-if="!busy" class="login-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
+      {{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj przez Google' }}
+    </button>
     <p v-if="drive.account()" class="note">jako {{ drive.account() }} · <button class="ghost link" :disabled="busy" @click="otherAccount">inne konto</button></p>
+    <p class="note login-note">{{ api.enabled ? 'Nowe konto czeka na zatwierdzenie przez administratora kościoła.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
+    </div>
   </div>
 
   <!-- lista -->

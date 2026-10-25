@@ -10,6 +10,7 @@ export default defineComponent({ components: { PersonSearch }, setup: () => useA
 </script>
 
 <template>
+  <p class="beta-note"><small class="beta-tag">beta</small>Funkcja eksperymentalna — może się jeszcze zmienić. Uwagi zgłoś w „Zgłoszeniach”.</p>
   <p class="goals-intro">Wybory (np. rady zboru) i głosowania na spotkaniach członkowskich. Na liście mogą być osoby i dowolne odpowiedzi; członkowie mogą też zgłaszać propozycje do wyznaczonego terminu. Głos jest zawsze <b>tajny</b>.</p>
   <p v-if="votes.error" class="error">{{ votes.error }}</p>
   <div class="section"><h2>Głosowania</h2><button v-if="votes.canRun && !votes.edit" class="small" @click="newElection"><svg class="i"><use href="#plus"/></svg>Nowe</button></div>

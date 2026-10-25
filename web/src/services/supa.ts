@@ -146,6 +146,9 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'availability') return check(await sb.rpc('availability_board')) || []
       if (action === 'availabilitySet') return check(await sb.rpc('availability_set', { mid: data.id, d: data.day, st: data.state || null }))
       if (action === 'availabilityRemind') return check(await sb.rpc('availability_remind', { mid: data.id }))
+      // grafik służby (lider): osoba na niedzielę — tak/nie; wysłanie grafiku (powiadomienia)
+      if (action === 'scheduleToggle') return check(await sb.rpc('schedule_toggle', { mid: data.id, d: data.day, who: data.person }))
+      if (action === 'schedulePublish') return check(await sb.rpc('schedule_publish', { mid: data.id }))
       if (action === 'joinMinistry') return check(await sb.rpc('ministry_join', { mid: data.id }))
       if (action === 'leaveMinistry') return check(await sb.rpc('ministry_leave', { mid: data.id }))
       if (action === 'decideMinistry') return check(await sb.rpc('ministry_decide', { mid: data.id, who: data.who, accept: !!data.accept }))

@@ -14,7 +14,7 @@ export default defineComponent({ setup: () => ({ ...useApp(), TAB_IDS }) })
     <template v-if="grp.items.some(it => !TAB_IDS.includes(it.id))">
       <h2 v-if="grp.title" class="more-sec">{{ grp.title }}</h2>
       <nav class="more-list" :aria-label="grp.title || 'Więcej'">
-        <button v-for="it in grp.items.filter(it => !TAB_IDS.includes(it.id))" :key="it.id" @click="navTo(it.id)"><svg class="i"><use :href="'#' + it.icon"/></svg><span>{{ it.name }}</span><small v-if="it.badge" class="count-pill">{{ it.badge }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
+        <button v-for="it in grp.items.filter(it => !TAB_IDS.includes(it.id))" :key="it.id" @click="navTo(it.id)"><svg class="i"><use :href="'#' + it.icon"/></svg><span>{{ it.name }}<small v-if="it.beta" class="beta-tag">beta</small></span><small v-if="it.badge" class="count-pill">{{ it.badge }}</small><small v-else></small><svg class="i chev"><use href="#chev"/></svg></button>
       </nav>
     </template>
   </template>

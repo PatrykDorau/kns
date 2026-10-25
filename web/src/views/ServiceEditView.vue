@@ -2,9 +2,10 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import SermonNotes from '@/components/SermonNotes.vue'
 
 // edycja
-export default defineComponent({ setup: () => useApp() })
+export default defineComponent({ components: { SermonNotes }, setup: () => useApp() })
 </script>
 
 <template>
@@ -21,6 +22,8 @@ export default defineComponent({ setup: () => useApp() })
     </div>
     <div class="dv-grid">
     <div class="dv-main">
+    <!-- notatki z kazania (pytania od kaznodziei) — tylko na tym urządzeniu -->
+    <SermonNotes v-if="current.questions" :service="current" />
     <template v-if="(current.program || []).length">
       <h3 class="view-h">Harmonogram</h3>
       <program-editor :items="current.program" :start="current.time || DEFAULT_TIME" readonly :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }">
@@ -76,6 +79,10 @@ export default defineComponent({ setup: () => useApp() })
           <input v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
           <label>Myśli z kazania</label>
           <thoughts-editor v-model="current.thoughts"></thoughts-editor>
+          <p class="form-hint">Myśli pokażą się wszystkim na stronie głównej dopiero po nabożeństwie (2 godziny od początku) i zostaną do kolejnego.</p>
+          <label>Pytania do notatek <small class="muted">— każde w osobnej linii</small></label>
+          <textarea v-model="current.questions" rows="3" placeholder="np. Co Bóg mówi mi przez ten fragment?&#10;Co zmienię w tym tygodniu?"></textarea>
+          <p class="form-hint">W dniu nabożeństwa (od godziny przed) każdy zobaczy je na stronie głównej z miejscem na własne notatki — zapisywane tylko na jego telefonie.</p>
         </template>
         <p v-else class="pg-sermon">{{ [current.sermonTitle, current.passage, current.speaker].filter(Boolean).join(' · ') || 'Kazanie nie jest jeszcze uzupełnione.' }}</p>
       </div>
@@ -104,6 +111,10 @@ export default defineComponent({ setup: () => useApp() })
     <input id="title" v-model="current.sermonTitle" :class="{ invalid: !current.sermonTitle.trim() }" autocomplete="off">
     <label>Myśli z kazania</label>
     <thoughts-editor v-model="current.thoughts"></thoughts-editor>
+    <p class="form-hint">Myśli pokażą się wszystkim na stronie głównej dopiero po nabożeństwie (2 godziny od początku) i zostaną do kolejnego.</p>
+    <label for="questions">Pytania do notatek <small class="muted">— każde w osobnej linii</small></label>
+    <textarea id="questions" v-model="current.questions" rows="3" placeholder="np. Co Bóg mówi mi przez ten fragment?&#10;Co zmienię w tym tygodniu?"></textarea>
+    <p class="form-hint">W dniu nabożeństwa (od godziny przed) każdy zobaczy je na stronie głównej z miejscem na własne notatki — zapisywane tylko na jego telefonie.</p>
   </template>
 
   <!-- Wybór pieśni (do punktu uwielbienia albo — bez takiego punktu — do całego nabożeństwa). -->

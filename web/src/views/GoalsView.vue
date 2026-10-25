@@ -18,6 +18,7 @@ export default defineComponent({
 </script>
 
 <template>
+  <p v-if="!goals.open && !goals.edit" class="beta-note"><small class="beta-tag">beta</small>Funkcja eksperymentalna — może się jeszcze zmienić. Uwagi zgłoś w „Zgłoszeniach”.</p>
   <details v-if="!goals.open && !goals.edit" class="goals-how"><summary><svg class="i"><use href="#info"/></svg>Jak to działa?<svg class="i mn-chev"><use href="#down"/></svg></summary><p class="goals-intro">Część swojej dziesięciny możesz przeznaczyć na wybrany cel. Deklarujesz kwotę <b>miesięcznie</b>, a po każdym miesiącu potwierdzasz, że Twoja dziesięcina wyniosła co najmniej sumę deklaracji — jeśli nie, zmniejszasz je. Twoje kwoty widzisz Ty i rada zboru, pozostali — tylko pasek postępu.</p></details>
   <p v-if="goals.error" class="error">{{ goals.error }}</p>
 

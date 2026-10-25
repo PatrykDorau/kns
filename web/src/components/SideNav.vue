@@ -18,7 +18,7 @@ export default defineComponent({ setup: () => useApp() })
     <template v-for="grp in sideNav" :key="grp.title">
       <small v-if="grp.title" class="side-sec">{{ grp.title }}</small>
       <button v-for="it in grp.items" :key="it.id" class="side-it" :class="{ on: navOn(it.id) }" :aria-current="navOn(it.id) ? 'page' : null" @click="navTo(it.id)">
-        <svg class="i"><use :href="'#' + it.icon"/></svg><span>{{ it.name }}</span><em v-if="it.badge" class="side-badge">{{ it.badge }}</em>
+        <svg class="i"><use :href="'#' + it.icon"/></svg><span>{{ it.name }}</span><small v-if="it.beta" class="beta-tag" title="Funkcja eksperymentalna — może się jeszcze zmienić">beta</small><em v-if="it.badge" class="side-badge">{{ it.badge }}</em>
       </button>
     </template>
   </nav>
