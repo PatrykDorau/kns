@@ -76,7 +76,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.57 · 25.10.2026'
+const VERSION = '3.58 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -938,9 +938,9 @@ export default defineComponent({
     const canWriteProto = kind => (kind === 'rada' ? hasFlag('council') : kind === 'material' ? canWriteMaterial() : hasFlag('protocols') || hasFlag('council'))
     const canAddProto = computed(() => !!drive.uploadProtocolFile && (canWriteProto('czlonkowskie') || canWriteProto('material')))
     const VISIBILITY = { czlonkowskie: 'Wszyscy członkowie', material: 'Wszyscy członkowie', rada: 'Tylko rada zboru' }
-    const MAT_TYPES = { protokol: 'Protokół', instrukcja: 'Instrukcja', plik: 'Plik pomocniczy' }
-    const MAT_PLURAL = { protokol: 'Protokoły', instrukcja: 'Instrukcje', plik: 'Pliki' }
-    const MAT_COLOR = { protokol: '#a98bff', instrukcja: '#3ec7b0', plik: '#6ea8ff' }
+    const MAT_TYPES = { protokol: 'Protokół', instrukcja: 'Instrukcja', plik: 'Plik pomocniczy', zdjecie: 'Zdjęcie', muzyka: 'Muzyka' }
+    const MAT_PLURAL = { protokol: 'Protokoły', instrukcja: 'Instrukcje', plik: 'Pliki', zdjecie: 'Zdjęcia', muzyka: 'Muzyka' }
+    const MAT_COLOR = { protokol: '#a98bff', instrukcja: '#3ec7b0', plik: '#6ea8ff', zdjecie: '#f2a65a', muzyka: '#e86f9a' }
     const matType = p => p?.type || (p?.kind === 'material' ? 'plik' : 'protokol')
     // Widoczność i rodzaj → kind w bazie: rada (tylko rada), czlonkowskie (protokół), material (instrukcja, plik).
     function protoAudience(v) { const p = currentProto.value; p.kind = v === 'rada' ? 'rada' : p.type === 'protokol' ? 'czlonkowskie' : 'material' }
@@ -991,7 +991,7 @@ export default defineComponent({
     function protoForEvent(ev) { loadProtocols(); newProto(ev.type === 'rada' ? 'rada' : 'czlonkowskie', ev) }
     // Limity wgrywanych plików (miejsce w darmowym planie): dokumenty 10 MB, filmy 30 MB. Za duży — okno z podpowiedzią:
     // zmniejsz (konwerter) albo wrzuć na Dysk Google i wklej link (focus — pole na link).
-    const FILE_MAX = 10 * 1048576, VIDEO_MAX = 30 * 1048576
+    const FILE_MAX = 10 * 1048576, VIDEO_MAX = 30 * 1048576, AUDIO_MAX = 25 * 1048576
     async function tooBig(f, max, focus) {
       const mbs = (f.size / 1048576).toFixed(1).replace('.', ',')
       const ok = await ask('„' + f.name + '” ma ' + mbs + ' MB — limit to ' + max / 1048576 + ' MB.\n\nMożesz go zmniejszyć: PDF — ilovepdf.com/pl/kompresuj_pdf, zdjęcia — squoosh.app, film — skróć albo wyślij na YouTube.\n\nAlbo wrzuć plik na swój Dysk Google, w „Udostępnij” ustaw „Każda osoba mająca link” i wklej tutaj link.', { title: 'Za duży plik', ok: 'Wkleję link', cancel: 'Zamknij' })
@@ -1001,8 +1001,13 @@ export default defineComponent({
       const f = e.target.files?.[0]
       e.target.value = ''
       if (!f) return
-      if (f.size > FILE_MAX) { tooBig(f, FILE_MAX, 'prLink'); return }
+      // muzyka — do 25 MB (tyle przyjmuje kosz materiałów), reszta — do 10 MB
+      const max = (f.type || '').startsWith('audio/') ? AUDIO_MAX : FILE_MAX
+      if (f.size > max) { tooBig(f, max, 'prLink'); return }
       protoFile.value = f; currentProto.value.link = ''
+      // rodzaj sam z pliku: zdjęcie / muzyka (gdy wybrano „Plik pomocniczy”)
+      const p = currentProto.value
+      if (p.type === 'plik' || !p.type) { if ((f.type || '').startsWith('image/')) p.type = 'zdjecie'; else if ((f.type || '').startsWith('audio/')) p.type = 'muzyka' }
       if (!currentProto.value.title.trim()) currentProto.value.title = f.name.replace(/\.[^.]+$/, '')
     }
     async function closeProto() {

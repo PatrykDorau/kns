@@ -1252,3 +1252,5 @@ html, body { overflow-x: clip; } /* odlatujące karty talii nie poszerzają stro
 .guest-ev .guest-ev-sub { display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .login-screen { position: relative; z-index: 1; min-height: 70vh; display: flex; flex-direction: column; justify-content: center; }
 .login-back { position: absolute; top: 4px; left: 0; }
+.ann-view .mat-photo { display: block; width: 100%; max-height: 70vh; object-fit: contain; margin: 12px 0; border-radius: 16px; background: var(--panel2); }
+.ann-view .mat-audio { display: block; width: 100%; margin: 12px 0; }

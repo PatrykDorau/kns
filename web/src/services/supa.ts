@@ -212,6 +212,9 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'prayerAdd') return check(await sb.rpc('prayer_add', { t: data.text, nm: data.name || '', ct: data.contact || '', sh: !!data.share }))
       if (action === 'prayerPray') return check(await sb.rpc('prayer_pray', { rid: data.id }))
       if (action === 'prayerStatus') return check(await sb.rpc('prayer_status', { rid: data.id, st: data.status }))
+      if (action === 'prayerFocus') return check(await sb.rpc('prayer_focus_now')) || []
+      if (action === 'prayerFocusSet') return check(await sb.rpc('prayer_focus_set', { sc: data.scope, t: data.text }))
+      if (action === 'prayerFocusRemove') return check(await sb.rpc('prayer_focus_remove', { fid: data.id }))
       if (action === 'prayerRemove') return check(await sb.rpc('prayer_remove', { rid: data.id }))
       // Ankiety (ankiety.sql)
       if (action === 'surveys') return check(await sb.rpc('survey_board'))

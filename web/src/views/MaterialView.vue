@@ -18,6 +18,9 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     <h2 class="ann-view-title">{{ currentProto.title }}</h2>
     <p class="ann-view-meta">{{ pretty(currentProto.date) }}<template v-if="currentProto.updatedBy"> · dodał(a) {{ currentProto.updatedBy }}</template></p>
     <div v-if="currentProto.note" class="ann-view-text">{{ currentProto.note }}</div>
+    <!-- zdjęcie i muzyka — od razu na stronie -->
+    <img v-if="protoUrl && (currentProto.fileType || '').startsWith('image/')" class="ann-img mat-photo" :src="protoUrl" :alt="currentProto.title">
+    <audio v-if="protoUrl && (currentProto.fileType || '').startsWith('audio/')" class="mat-audio" :src="protoUrl" controls preload="metadata"></audio>
     <a v-if="protoUrl" class="button ann-link" :href="protoUrl" target="_blank" rel="noopener"><svg class="i"><use href="#file"/></svg>Otwórz plik<small class="proto-fname">{{ currentProto.link ? (driveInfo(currentProto.link) ? 'Google Dysk' : 'link') : currentProto.fileName }}</small><svg class="i chev"><use href="#chev"/></svg></a>
     <p v-else-if="currentProto.file" class="note">Przygotowuję plik…</p>
     <!-- plik z Dysku Google: podgląd w ramce (plik zostaje na Dysku — u nas tylko link) -->
@@ -27,11 +30,11 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
   </article>
   <template v-else>
     <label for="prType">Rodzaj</label>
-    <UiSelect id="prType" v-model="currentProto.type" label="Rodzaj" :options="[...(canWriteProto('czlonkowskie') || hasCouncil ? [{ value: 'protokol', label: 'Protokół spotkania' }] : []), { value: 'instrukcja', label: 'Instrukcja (np. obsługa rzutnika)' }, { value: 'plik', label: 'Plik pomocniczy' }]" @change="protoTypeChanged" />
-    <label>Plik <span class="req">*</span> <small class="muted">(do 10 MB — większy wrzuć na Dysk Google i wklej link)</small></label>
+    <UiSelect id="prType" v-model="currentProto.type" label="Rodzaj" :options="[...(canWriteProto('czlonkowskie') || hasCouncil ? [{ value: 'protokol', label: 'Protokół spotkania' }] : []), { value: 'instrukcja', label: 'Instrukcja (np. obsługa rzutnika)' }, { value: 'plik', label: 'Plik pomocniczy' }, { value: 'zdjecie', label: 'Zdjęcie' }, { value: 'muzyka', label: 'Muzyka (np. podkład na stream)' }]" @change="protoTypeChanged" />
+    <label>Plik <span class="req">*</span> <small class="muted">(do 10 MB, muzyka do 25 MB — większy wrzuć na Dysk Google i wklej link)</small></label>
     <div class="proto-file">
       <svg class="i"><use href="#list"/></svg>
-      <span>{{ protoFile ? protoFile.name : currentProto.fileName || 'Nie wybrano pliku (PDF, Word, PowerPoint, Excel, zdjęcie)' }}</span>
+      <span>{{ protoFile ? protoFile.name : currentProto.fileName || 'Nie wybrano pliku (PDF, Word, PowerPoint, Excel, zdjęcie, muzyka)' }}</span>
       <button type="button" :disabled="busy" @click="$refs.protoFileIn.click()">{{ currentProto.file || protoFile ? 'Zmień' : 'Wybierz plik' }}</button>
     </div>
     <label for="prLink">albo link do pliku (Google Dysk)</label>
@@ -39,7 +42,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     <p v-if="currentProto.link && !isFileLink(currentProto.link)" class="error" style="margin:6px 0 0">To nie wygląda na link do pliku.</p>
     <p v-else-if="currentProto.link && !driveInfo(currentProto.link)" class="note" style="margin:6px 0 0">Link spoza Dysku Google — sprawdź, czy otwiera się innym osobom.</p>
     <p v-else-if="currentProto.link" class="note" style="margin:6px 0 0">Upewnij się, że plik na Dysku jest udostępniony „Każda osoba mająca link”.</p>
-    <input ref="protoFileIn" type="file" accept=".pdf,.doc,.docx,.odt,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,image/*" hidden @change="pickProtoFile">
+    <input ref="protoFileIn" type="file" accept=".pdf,.doc,.docx,.odt,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,image/*,audio/*,.mp3,.m4a,.wav,.ogg,.flac" hidden @change="pickProtoFile">
     <label for="prTitle">Tytuł <span class="req">*</span></label>
     <input id="prTitle" v-model="currentProto.title" :class="{ invalid: !currentProto.title.trim() }" autocomplete="off">
     <label for="prDate">{{ currentProto.type === 'protokol' ? 'Data spotkania' : 'Data' }}</label>

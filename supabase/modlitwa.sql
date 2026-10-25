@@ -106,3 +106,48 @@ revoke all on function public.prayer_leader(), public.prayer_add(text, text, tex
 -- goście (bez logowania, np. z kodu QR): grant execute on function public.prayer_add(text, text, text, boolean) to anon; — tylko po zgodzie (zapis z zewnątrz)
 grant execute on function public.prayer_add(text, text, text, boolean) to authenticated;
 grant execute on function public.prayer_leader(), public.prayer_board(), public.prayer_status(bigint, text), public.prayer_pray(bigint), public.prayer_remove(bigint) to authenticated;
+
+-- Modlitwa na dziś / na ten tydzień: starszy (pastor, rada, administrator) pisze, za co zbór modli się w tym czasie —
+-- na górze zakładki „Modlitwa”. Obowiązuje od dnia dodania do końca dnia albo tygodnia (niedziela).
+create table if not exists public.prayer_focus (
+  id bigint generated always as identity primary key,
+  scope text not null check (scope in ('day', 'week')),
+  text text not null check (length(text) between 3 and 2000),
+  starts date not null default current_date,
+  ends date not null,
+  author uuid references public.people (id) on delete set null default auth.uid(),
+  created timestamptz not null default now()
+);
+alter table public.prayer_focus enable row level security;
+revoke all on public.prayer_focus from anon, authenticated;
+
+create or replace function public.prayer_focus_set(sc text, t text) returns bigint
+language plpgsql security definer set search_path = public as $$
+declare nid bigint;
+begin
+  if not prayer_leader() then raise exception 'Modlitwę na dzień albo tydzień dodaje pastor albo rada zboru.'; end if;
+  if sc not in ('day', 'week') then raise exception 'Wybierz: na dziś albo na ten tydzień.'; end if;
+  t := trim(coalesce(t, ''));
+  if length(t) < 3 then raise exception 'Napisz treść modlitwy.'; end if;
+  -- nowa zastępuje obecną tego samego rodzaju
+  delete from prayer_focus where scope = sc and ends >= current_date;
+  insert into prayer_focus (scope, text, ends)
+  values (sc, left(t, 2000), case when sc = 'day' then current_date else current_date + ((7 - extract(isodow from current_date)::int) % 7) end)
+  returning id into nid;
+  return nid;
+end $$;
+create or replace function public.prayer_focus_remove(fid bigint) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not prayer_leader() then raise exception 'Brak uprawnień.'; end if;
+  delete from prayer_focus where id = fid;
+end $$;
+-- obecne (na dziś i na ten tydzień) — dla członków
+create or replace function public.prayer_focus_now() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select case when not is_active() then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('id', f.id, 'scope', f.scope, 'text', f.text,
+      'ends', f.ends, 'author', coalesce(nullif(p.name, ''), split_part(p.email, '@', 1), '')) order by case f.scope when 'day' then 0 else 1 end)
+    from prayer_focus f left join people p on p.id = f.author where current_date between f.starts and f.ends), '[]'::jsonb) end
+$$;
+revoke all on function public.prayer_focus_set(text, text), public.prayer_focus_remove(bigint), public.prayer_focus_now() from public, anon;
+grant execute on function public.prayer_focus_set(text, text), public.prayer_focus_remove(bigint), public.prayer_focus_now() to authenticated;
