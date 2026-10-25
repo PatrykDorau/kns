@@ -69,7 +69,7 @@ time, .cd-digits, .count-pill, .side-badge, .tabbar .count, td, .kh-num { font-v
 }
 .card .date, .kh-date { background: var(--panel2) !important; box-shadow: none !important; }
 /* zagnieżdżone panele — krok wyżej */
-.card .card, .view-card .note, .ann .ann-img-wrap, .kh-panel .kh-panel, .hw-rows, .avail-plan p, .login-perks li, .beta-note, .form-hint, .readonly { background: var(--panel2) !important; border: 0 !important; box-shadow: none !important; }
+.card .card, .view-card .note, .ann .ann-img-wrap, .kh-panel .kh-panel, .avail-plan p, .login-perks li, .beta-note, .form-hint, .readonly { background: var(--panel2) !important; border: 0 !important; box-shadow: none !important; }
 
 /* ---------- przyciski ---------- */
 button, a.button { border-color: transparent; background: var(--panel2); background-image: none; box-shadow: none; font-weight: 500; border-radius: 999px; }

@@ -61,6 +61,8 @@ async function open() {
 function later(ms: number, msg?: string) { if (msg) note = msg; retryAt = performance.now() + ms }
 
 export async function setCamera(deviceId) {
+  // ta sama kamera, obraz płynie (np. ponowne wejście w Stream w trakcie transmisji) — bez rozłączania
+  if (deviceId && deviceId === wanted && (opening || (camStream?.getVideoTracks()[0]?.readyState === 'live' && performance.now() - lastFrame < FROZEN_MS))) return
   studio.camera = deviceId || ''
   wanted = deviceId || ''
   tries = 0; retryAt = 0; note = ''

@@ -34,7 +34,8 @@ export function setScene(id) { change(l => { l.scene = id }) }
 // o potwierdzenie); wyłączenie — od razu. PIP (kamera, materiał w rogu) — najpierw na podgląd, na wizję przyciskiem
 // „Na wizję” przy PIP (albo całym „Na wizję”); wyłączenie PIP — od razu z wizji i podglądu.
 function both(fn) { fn(studio.preview); toProgram(fn) }
-const lt = v => l => { l.lowerThird = v; l[v ? 'lowerAt' : 'lowerOff'] = performance.now() }
+// wyjazd tylko tam, gdzie pasek był — schowanie z samego podglądu nie gra animacji na wizji
+const lt = v => l => { if (v) l.lowerAt = performance.now(); else if (l.lowerThird) l.lowerOff = performance.now(); l.lowerThird = v }
 export function setLowerThird(v: boolean) { both(lt(v)) }
 // tylko podgląd — nakładka czeka na potwierdzenie (ustawienia widać pod paskiem nakładek)
 export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boolean) { change(key === 'lowerThird' ? lt(v) : l => { l[key] = v }) }
