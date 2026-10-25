@@ -1191,3 +1191,15 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .login-screen .deck-text { text-align: left; }
 @media (max-width: 1023px) { .login-screen .guest-deck .deck-stack { width: min(300px, 76vw); aspect-ratio: 1; } .login-screen .guest-deck .deck-ph { font-size: 80px; } }
 .serve-tabs.ann-tabs { grid-template-columns: repeat(3, 1fr); }
+/* cele wsparcia: okienko z kwotą dziesięciny i karta bieżącego miesiąca */
+.tithe-pop { display: flex; flex-direction: column; gap: 10px; }
+.tithe-in { display: flex; align-items: center; gap: 10px; margin: 4px 0 0; }
+.tithe-in input { flex: 1; min-width: 0; font-size: 22px; font-weight: 650; text-align: right; }
+.tithe-in span { font-size: 18px; color: var(--muted); }
+.tithe-pool { margin: 0; color: var(--muted); }
+.tithe-pool b { color: var(--text); }
+.tithe-transfer summary { cursor: pointer; color: var(--muted); font-size: 13.5px; }
+.tithe-card p { margin: 8px 0; }
+.tithe-card .goal-bar { margin: 6px 0 2px; }
+.tithe-left { font-size: 14px; color: var(--muted); }
+.tithe-prev { margin: 10px 0 0 !important; font-size: 13px; }

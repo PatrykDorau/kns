@@ -224,11 +224,11 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'giveawayDrop') return check(await sb.rpc('giveaway_drop', { iid: data.item, who: data.who }))
       if (action === 'giveawayGiven') return check(await sb.rpc('giveaway_given', { iid: data.item, who: data.who, val: !!data.val }))
       if (action === 'goals') return check(await sb.rpc('goals_overview')) || []
-      if (action === 'pledgeStatus') return check(await sb.rpc('my_pledge_status')) || {}
+      if (action === 'pledgeStatus') return check(await sb.rpc('tithe_status')) || {}
+      if (action === 'titheSet') return check(await sb.rpc('tithe_set', { amt: data.amt }))
+      if (action === 'allocationSet') return check(await sb.rpc('allocation_set', { g: data.g, amt: data.amt }))
+      if (action === 'goalShareSet') return check(await sb.rpc('goal_share_set', { p: data.p }))
       if (action === 'canGoals') return !!check(await sb.rpc('can_manage_goals'))
-      if (action === 'pledgeSet') return check(await sb.rpc('pledge_set', { g: data.g, amt: data.amt }))
-      if (action === 'pledgeOnceDone') return check(await sb.rpc('pledge_once_done', { g: data.g }))
-      if (action === 'confirmMonth') return check(await sb.rpc('confirm_month', { m: data.m, amounts: data.amounts || {} }))
       if (action === 'goalPeople') return check(await sb.rpc('goal_people', { g: data.g })) || []
       if (action === 'saveGoal') {
         const g = data.goal

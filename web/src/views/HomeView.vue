@@ -23,7 +23,7 @@ export default defineComponent({
       <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
       <p>Oto co dzieje się w kościele.</p>
     </div>
-    <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
+    <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Cele wsparcia — {{ monthName(goalDue.month) }}</b><small>Podaj wpłaconą dziesięcinę i rozdziel {{ goals.status.percent }}% na cele — miesiąc zamknie się sam {{ monthEnd }}.</small></span><svg class="i chev"><use href="#chev"/></svg></button>
     <SermonNotes v-if="notesService" :service="notesService" />
     <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts">
       <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
@@ -122,7 +122,7 @@ export default defineComponent({
         </button>
         <button v-if="goalDue" class="hw-row hw-due" @click="openGoals()">
           <span class="hw-thumb"><svg class="i"><use href="#money"/></svg></span>
-          <span class="hw-row-text"><b>Potwierdź {{ monthName(goalDue.month).split(' ')[0] }}</b><small>dziesięcina co najmniej {{ zl(itemsSum(goalDue)) }}</small></span>
+          <span class="hw-row-text"><b>Cele wsparcia — {{ monthName(goalDue.month).split(' ')[0] }}</b><small>rozdziel {{ goals.status.percent }}% dziesięciny do {{ monthEnd }}</small></span>
           <svg class="i hw-arr"><use href="#chev"/></svg>
         </button>
         <button v-for="g in goals.list.filter(x => !x.closed).slice(0, 2)" :key="g.id" class="hw-row hw-goal" @click="openGoals(g.id)">
@@ -177,7 +177,7 @@ export default defineComponent({
     <h1>{{ greeting }}{{ firstName ? ', ' + firstName : '' }}</h1>
     <p>Oto co dzieje się w kościele.</p>
   </div>
-  <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Potwierdź cele wsparcia za {{ monthName(goalDue.month) }}</b><small>Czy Twoja dziesięcina wyniosła co najmniej {{ zl(itemsSum(goalDue)) }}?</small></span><svg class="i chev"><use href="#chev"/></svg></button>
+  <button v-if="goalDue" class="goal-banner" @click="openGoals()"><svg class="i"><use href="#money"/></svg><span><b>Cele wsparcia — {{ monthName(goalDue.month) }}</b><small>Podaj wpłaconą dziesięcinę i rozdziel {{ goals.status.percent }}% na cele — miesiąc zamknie się sam {{ monthEnd }}.</small></span><svg class="i chev"><use href="#chev"/></svg></button>
   <SermonNotes v-if="notesService" :service="notesService" />
   <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts phone-thoughts">
     <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>

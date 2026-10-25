@@ -75,7 +75,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.48 · 25.10.2026'
+const VERSION = '3.49 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1699,10 +1699,10 @@ export default defineComponent({
     }
 
     /* ---------- Cele wsparcia ---------- */
-    // Rada ogłasza cel (kwota, termin). Członek deklaruje, ile ze SWOJEJ dziesięciny przeznacza na cel co miesiąc,
-    // a po miesiącu potwierdza, że jego dziesięcina pokryła wszystkie deklaracje — albo je zmniejsza (cele.sql).
+    // Rada ogłasza cel (kwota, termin). Co miesiąc członek podaje, ile dziesięciny wpłacił, i część tej kwoty (procent ustala
+    // rada, domyślnie 10%) rozdziela na cele. Bez potwierdzania — do końca miesiąca można zmieniać, potem miesiąc zamyka się sam (cele3.sql).
     const goalsView = ref(false)
-    const goals = reactive({ list: [], status: { months: [], monthly: 0 }, canManage: false, busy: false, error: '', open: '', edit: null, amount: {}, people: {}, reduce: null, confirming: null, sent: false, expand: '' })
+    const goals = reactive({ list: [], status: {}, canManage: false, busy: false, error: '', open: '', edit: null, amount: {}, people: {}, ask: false, tithe: '', share: '' })
     const support = ref({}), supportEdit = reactive({ account: '', name: '', title: '', blik: '' })
     async function loadSupport() { try { support.value = (await api.call('support')) || {}; Object.assign(supportEdit, { account: '', name: '', title: '', blik: '' }, support.value) } catch { /* bez danych */ } }
     const saveSupport = () => guard(async () => { await api.call('setSupport', { ...supportEdit }); await loadSupport(); showToast('Zapisano dane do przelewu.') })
@@ -1714,60 +1714,51 @@ export default defineComponent({
     const prevMonth = computed(() => { const d = new Date(thisMonth.value + 'T12:00'); d.setMonth(d.getMonth() - 1); return localDate(d).slice(0, 7) + '-01' })
     const monthName = m => (m ? new Date(String(m).slice(0, 10) + 'T12:00').toLocaleDateString('pl', { month: 'long', year: 'numeric' }) : '')
     const monthShort = m => (m ? new Date(String(m).slice(0, 10) + 'T12:00').toLocaleDateString('pl', { month: 'short' }).replace('.', '') : '')
-    const itemsSum = m => (m?.items || []).reduce((t, it) => t + (+it.amount || 0), 0)
-    // do potwierdzenia: poprzedni miesiąc bez potwierdzenia
-    const goalDue = computed(() => (goals.status.months || []).find(m => !m.confirmed && String(m.month).slice(0, 10) < thisMonth.value && itemsSum(m) > 0) || null)
-    // po potwierdzeniu (za ten albo poprzedni miesiąc) deklaracje zamknięte do 1. dnia następnego miesiąca (cele.sql)
-    const monthLocked = computed(() => !!goals.status.locked)
-    // zaległy miesiąc najpierw — bieżący pokazuje się dopiero po nim (jedno pytanie naraz)
-    const shownMonths = computed(() => (goals.status.months || []).filter(m => m.confirmed || !goalDue.value || String(m.month).slice(0, 10) < thisMonth.value))
-    const nextMonthStart = computed(() => { const d = new Date(thisMonth.value + 'T12:00'); d.setMonth(d.getMonth() + 1); return d.toLocaleDateString('pl', { day: 'numeric', month: 'long' }) })
+    const openGoalsExist = computed(() => goals.list.some(g => !g.closed))
+    // przypomnienie na stronie startowej: od 20. dnia, gdy dziesięcina za ten miesiąc nie jest jeszcze podana
+    const goalDue = computed(() => (goals.status.month && goals.status.tithe == null && +todayStr.value.slice(8, 10) >= 20 && openGoalsExist.value ? { month: goals.status.month } : null))
+    const goalLeft = computed(() => Math.max(0, (goals.status.pool || 0) - (goals.status.used || 0)))
+    const monthEnd = computed(() => (goals.status.closes ? new Date(String(goals.status.closes).slice(0, 10) + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'long' }) : ''))
     const goalPct = g => Math.min(100, Math.round((g.confirmed / g.target) * 100) || 0)
-    const goalProjAmount = g => (g.kind === 'once' ? Math.max(g.confirmed, g.monthly) : g.months_left == null ? g.confirmed : g.confirmed + Math.max(0, g.monthly * g.months_left - g.confirmed_now))
+    const goalProjAmount = g => g.confirmed + (g.now || 0) // z przydziałami tego miesiąca (zamkną się z jego końcem)
     const goalProj = g => Math.min(100, Math.round((goalProjAmount(g) / g.target) * 100) || 0)
     async function loadGoals() {
       if (!api.enabled || !ready.value) return
       goals.busy = true; goals.error = ''
       try {
         const [list, st, can] = await Promise.all([api.call('goals'), api.call('pledgeStatus'), api.call('canGoals')])
-        goals.list = list || []; goals.status = { months: [], monthly: 0, ...(st || {}) }; goals.canManage = !!can
+        goals.list = list || []; goals.status = st || {}; goals.canManage = !!can
         for (const g of goals.list) goals.amount[g.id] = g.mine || ''
+        goals.tithe = goals.status.tithe ?? ''; goals.share = goals.status.percent || ''
       } catch (e) { goals.error = e.message || String(e) } finally { goals.busy = false }
     }
     function openGoals(id = '') {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false; asbView.value = false
-      svcListView.value = false; goalsView.value = true; goals.open = id; goals.edit = null; goals.reduce = null; scrollTo(0, 0)
+      svcListView.value = false; goalsView.value = true; goals.open = id; goals.edit = null; scrollTo(0, 0)
       loadSupport()
       return loadGoals().then(() => {
+        // najpierw okienko: ile w tym miesiącu wpłaciłeś(-aś) — dopiero potem rozdzielanie na cele
+        if (goals.status.month && goals.status.tithe == null && openGoalsExist.value) goals.ask = true
         if (id && goals.canManage) loadGoalPeople(id)
-        if (id) nextTick(() => document.querySelector('.goal.focus')?.scrollIntoView({ block: 'start' }))
       })
     }
-    const savePledge = g => guard(async () => {
-      const amt = Math.max(0, Math.round(+goals.amount[g.id] || 0))
-      await api.call('pledgeSet', { g: g.id, amt })
+    const saveTithe = () => guard(async () => {
+      const amt = Math.max(0, Math.round(+goals.tithe || 0))
+      await api.call('titheSet', { amt })
+      goals.ask = false
       await loadGoals()
-      showToast(amt ? 'Deklaracja: ' + zl(amt) + ' miesięcznie na „' + g.title + '”' : 'Wycofano deklarację')
+      showToast('Zapisano ' + zl(amt) + ' — na cele możesz rozdzielić ' + zl(goals.status.pool) + '.')
     })
-    // cel jednorazowy: potwierdzenie wpłaty (raz, ostatecznie)
-    const confirmOnce = async g => { if ((await ask('Potwierdzić wpłatę ' + zl(g.mine) + ' na „' + g.title + '”? Tego nie da się zmienić.'))) guard(async () => { await api.call('pledgeOnceDone', { g: g.id }); await loadGoals(); showToast('Dziękujemy — wpłata potwierdzona.') }) }
-    async function withdraw(g) { if ((await ask('Wycofać deklarację na „' + g.title + '”? To, co już potwierdziłeś, zostaje w zebranej kwocie.'))) { goals.amount[g.id] = 0; savePledge(g) } }
-    function startReduce(m) { goals.confirming = null; goals.reduce = { month: m.month, items: (m.items || []).map(it => ({ ...it, value: it.amount })) } }
-    // Dwa kroki: „Tak” (albo mniejsze kwoty) → przelew i ostateczne potwierdzenie (bez zmian do nowego miesiąca).
-    const reducedAmounts = () => Object.fromEntries(goals.reduce.items.map(it => [it.goal, Math.max(0, Math.min(it.amount, Math.round(+it.value || 0)))]))
-    function askConfirm(m, reduced = false) {
-      const amounts = reduced ? reducedAmounts() : {}
-      goals.confirming = { month: m.month, total: reduced ? Object.values(amounts).reduce((a, b) => a + b, 0) : itemsSum(m), amounts }
-      goals.sent = false
-      loadSupport()
+    const saveAllocation = (g, amt = Math.max(0, Math.round(+goals.amount[g.id] || 0))) => {
+      if (goals.status.tithe == null) { goals.ask = true; return }
+      return guard(async () => {
+        await api.call('allocationSet', { g: g.id, amt })
+        await loadGoals()
+        showToast(amt ? zl(amt) + ' na „' + g.title + '” w tym miesiącu' : 'Usunięto przydział na „' + g.title + '”')
+      })
     }
-    const confirmMonth = m => guard(async () => {
-      const total = await api.call('confirmMonth', { m: String(m.month).slice(0, 10), amounts: goals.confirming?.amounts || {} })
-      goals.reduce = null; goals.confirming = null; goals.sent = false; goals.expand = ''
-      await loadGoals()
-      showToast('Potwierdzono ' + monthName(m.month) + ': ' + zl(total))
-    })
+    const saveShare = () => guard(async () => { await api.call('goalShareSet', { p: Math.round(+goals.share) }); await loadGoals(); showToast('Na cele: ' + goals.status.percent + '% dziesięciny.') })
     function newGoal() { goals.edit = { id: uid(), title: '', description: '', target: '', ends: '', open: false, kind: 'monthly', image: '', closed: false, _new: true }; scrollTo(0, 0) }
     function editGoal(g) { goals.edit = { id: g.id, title: g.title, description: g.description, target: g.target, ends: g.ends ? String(g.ends).slice(0, 10) : '', open: !g.ends, kind: g.kind || 'monthly', image: g.image, closed: !!g.closed, people: g.people }; scrollTo(0, 0) }
     const saveGoal = () => guard(async () => {
@@ -1778,7 +1769,7 @@ export default defineComponent({
       await loadGoals()
       showToast('Zapisano cel.')
     })
-    const removeGoal = async g => { if ((await ask('Usunąć cel „' + g.title + '” razem z deklaracjami i potwierdzeniami? Tego nie da się cofnąć.'))) guard(async () => { await api.call('removeGoal', { id: g.id }); goals.edit = null; goals.open = ''; await loadGoals() }) }
+    const removeGoal = async g => { if ((await ask('Usunąć cel „' + g.title + '” razem z przydziałami? Tego nie da się cofnąć.'))) guard(async () => { await api.call('removeGoal', { id: g.id }); goals.edit = null; goals.open = ''; await loadGoals() }) }
     async function loadGoalPeople(id) { try { goals.people[id] = (await api.call('goalPeople', { g: id })) || [] } catch (e) { goals.error = e.message || String(e) } }
     function toggleGoalPeople(g) { if (goals.people[g.id]) delete goals.people[g.id]; else loadGoalPeople(g.id) }
     function pickGoalImage(e) {
@@ -2076,7 +2067,7 @@ export default defineComponent({
         { id: 'calendar', icon: 'calendar', name: 'Kalendarz', desc: 'Wszystkie wydarzenia', locked: false, go: 'chev' },
         ...(api.enabled ? [{ id: 'serve', icon: 'serve', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
         ...(api.enabled ? [{ id: 'listen', icon: 'music', name: 'Posłuchaj', desc: 'Kazania na YouTube i Spotify', locked: false, go: 'chev' }] : []),
-        ...(api.enabled ? [{ id: 'goals', icon: 'money', name: 'Cele wsparcia', desc: 'Część dziesięciny na wybrany cel', locked: false, go: 'chev', pill: goalDue.value ? 'Potwierdź' : '' }] : []),
+        ...(api.enabled ? [{ id: 'goals', icon: 'money', name: 'Cele wsparcia', desc: 'Część dziesięciny na wybrany cel', locked: false, go: 'chev', pill: goalDue.value ? 'Rozdziel' : '' }] : []),
         ...(api.enabled ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: canAsb.value ? 'Grafik spotkań, przypomnienia i pomysły' : 'Terminarz spotkań studenckich', locked: false, go: 'chev' }] : []),
       ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
     })
@@ -2457,8 +2448,8 @@ export default defineComponent({
       msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
       bulk, annFromImages,
       MAT_TYPES, MAT_PLURAL, MAT_COLOR, matType, protoAudience, protoTypeChanged, INSTRUMENTS, bandPick, bandPickList, openBandPick, bandAdd, bandPickFree, asbPause, asbTitle, asbCalNote, asbRemind, asbAddFile, asbAddLink, asbRemoveFile, asbOpenFile, driveInfo, isFileLink, openAsbMeeting,
-      goalsView, goals, shownMonths, zl, thisMonth, prevMonth, monthName, monthShort, itemsSum, goalDue, goalPct, goalProj, goalProjAmount, openGoals, savePledge, withdraw,
-      startReduce, askConfirm, confirmMonth, support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, monthLocked, nextMonthStart, newGoal, editGoal, saveGoal, confirmOnce, removeGoal, toggleGoalPeople, pickGoalImage,
+      goalsView, goals, zl, thisMonth, prevMonth, monthName, monthShort, goalDue, goalLeft, monthEnd, goalPct, goalProj, goalProjAmount, openGoals, saveTithe, saveAllocation, saveShare,
+      support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, surveyOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
