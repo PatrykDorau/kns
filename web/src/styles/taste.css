@@ -249,18 +249,16 @@ html[data-theme="light"] .tabbar .tab-ind { background: rgba(0, 0, 0, .06); }
   .side-app { grid-template-columns: minmax(0, 1fr) !important; row-gap: 8px; }
   .side-app a.button { grid-column: 1 !important; grid-row: auto !important; justify-self: start; }
 }
-/* tło: góra KNS z krzyżem szkicowana odręcznie (utils/backdrop.ts) — bez kolorów, ledwo widoczna pod treścią */
-.kns-backdrop { position: fixed; inset: auto 0 0 0; height: min(62vh, 560px); z-index: 0; pointer-events: none; color: var(--text); opacity: .16; }
+/* tło: szkic góry z krzyżem (utils/backdrop.ts) — sama kreska, ledwo widoczna pod treścią; kolejne kreski rysują się po kolei */
+.kns-backdrop { position: fixed; inset: auto 0 0 0; height: min(78vh, 720px); z-index: 0; pointer-events: none; overflow: hidden; color: var(--text); opacity: .2; }
 .kns-backdrop svg { width: 100%; height: 100%; overflow: visible; }
-.kns-backdrop path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 1; }
-.kns-backdrop .kb-2 { opacity: .55; }
-.kns-backdrop .kb-far { stroke-width: 1; animation: kb-draw 4.5s cubic-bezier(.5, 0, .25, 1) 1.6s forwards; }
-.kns-backdrop .kb-far.kb-2 { stroke-width: .8; opacity: .35; animation-delay: 2.6s; }
-.kns-backdrop .kb-ridge { stroke-width: 1.6; animation: kb-draw 3.4s cubic-bezier(.5, 0, .25, 1) .5s forwards; }
-.kns-backdrop .kb-ridge.kb-2 { stroke-width: 1; animation-duration: 2.6s; animation-delay: 2.4s; }
-.kns-backdrop .kb-cross { stroke-width: 2.2; animation: kb-draw .45s cubic-bezier(.6, 0, .3, 1) 4.3s forwards; }
-.kns-backdrop .kb-cross2 { animation-delay: 4.85s; }
-html[data-theme="light"] .kns-backdrop { opacity: .2; }
+.kns-backdrop path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation-name: kb-draw; animation-timing-function: cubic-bezier(.5, 0, .3, 1); animation-fill-mode: forwards; }
+.kns-backdrop .kb-2 { opacity: .45; }
+.kns-backdrop .kb-mist { opacity: .55; }
+.kns-backdrop .kb-cross { opacity: 1; }
+html[data-theme="light"] .kns-backdrop { opacity: .24; }
 @keyframes kb-draw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .kns-backdrop path { animation: none !important; stroke-dashoffset: 0; } }
+@media (max-width: 700px) { .kns-backdrop { height: 62vh; } .kns-backdrop svg { width: 190%; margin-left: -45%; } }
 @media (min-width: 1024px) { .kns-backdrop { left: 260px; } } /* obok bocznego menu */
