@@ -287,3 +287,12 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 .login-screen .pending-note { margin: 0 0 18px; font-size: 13.5px; line-height: 1.45; }
 .login-screen .login-back { font-size: 14px; font-weight: 500; color: var(--muted); }
 @media (max-width: 420px) { .login-screen .login-title { font-size: 27px; } .login-screen .login-card { padding: 28px 22px 22px !important; } }
+
+/* logowanie jako okienko nad stroną dla gości */
+.login-screen.login-pop { position: fixed; inset: 0; z-index: 60; min-height: 0; padding: 16px; justify-content: center; align-items: center; background: rgba(8, 7, 6, .62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: login-fade .25s ease-out; }
+.login-pop .login-card { animation: login-pop .35s cubic-bezier(.2, .8, .2, 1); background: #181716 !important; box-shadow: 0 30px 80px rgba(0, 0, 0, .5) !important; }
+.login-pop .login-x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; min-height: 0; padding: 0; border-radius: 999px; color: var(--muted); }
+.login-pop .login-x:hover { background: #2a2826; color: var(--text); }
+@keyframes login-fade { from { opacity: 0; } }
+@keyframes login-pop { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .login-pop, .login-pop .login-card { animation-duration: .01s; } }

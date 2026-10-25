@@ -77,7 +77,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.62 · 26.10.2026'
+const VERSION = '3.63 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1481,6 +1481,7 @@ export default defineComponent({
     const guestCat = ref('ev')
     // logowanie: prosty ekran; od razu, gdy otwarto udostępniony link, ktoś był już zalogowany albo bez bazy (Dysk)
     const loginView = ref(location.pathname.startsWith('/logowanie'))
+    window.addEventListener('keydown', e => { if (e.key === 'Escape' && loginView.value && !ready.value) loginView.value = false })
     const showLogin = computed(() => loginView.value || !!pendingLink.value?.kind || !!drive.account() || !api.enabled)
     const guestCats = computed(() => {
       if (!pub.value) return []
@@ -2548,7 +2549,7 @@ export default defineComponent({
   <!-- Komputer z Windows: pełna aplikacja (rzutnik, stream, organizacja) z GitHub Releases. -->
   <!-- Instalacja: jeden niski pasek — ikona, tytuł, „Pobierz”. -->
   <!-- Aplikacja na komputer (Windows) — w „Więcej”, nie na stronie głównej. -->
-  <div v-if="!desktop && !installed && (ready || showLogin) && !current && !currentEvent && !tplView && !currentProto && !protoView && !currentAnn && !annView" class="getapp" :class="{ help: showHelp }">
+  <div v-if="!desktop && !installed && ready && !current && !currentEvent && !tplView && !currentProto && !protoView && !currentAnn && !annView" class="getapp" :class="{ help: showHelp }">
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Zainstaluj aplikację</b></span>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
@@ -2625,10 +2626,12 @@ export default defineComponent({
     </div>
   </div>
   <!-- goście (bez logowania): osobna strona z nabożeństwem, wydarzeniami i kalendarzem; logowanie — prosty ekran -->
-  <GuestView v-else-if="!ready && !showLogin" />
-  <div v-else-if="!ready" class="center login-screen">
-    <button v-if="!pendingLink?.kind && !drive.account()" class="ghost login-back" @click="loginView = false"><svg class="i"><use href="#back"/></svg>Strona kościoła</button>
+  <template v-else-if="!ready">
+  <GuestView />
+  <!-- logowanie: okienko nad stroną dla gości (zamykane, chyba że otwarto udostępniony link albo ktoś był już zalogowany) -->
+  <div v-if="showLogin" class="login-screen login-pop" role="dialog" aria-modal="true" aria-label="Logowanie" @click.self="!pendingLink?.kind && !drive.account() && (loginView = false)">
     <div class="login-card">
+    <button v-if="!pendingLink?.kind && !drive.account()" class="ghost icon login-x" title="Zamknij" aria-label="Zamknij" @click="loginView = false"><svg class="i"><use href="#x"/></svg></button>
     <img src="logo.png" alt="Kościół Na Skale">
     <h1 class="login-title">{{ drive.account() ? 'Witaj ponownie' : 'Zaloguj się' }}</h1>
     <p class="login-lead">{{ api.enabled ? 'Ogłoszenia, kalendarz, służby i nabożeństwa — w jednym miejscu dla członków kościoła.' : 'Nabożeństwa i pieśni kościoła.' }}</p>
@@ -2646,6 +2649,7 @@ export default defineComponent({
     <p class="note login-note">{{ api.enabled ? 'Nowe konto czeka na zatwierdzenie przez administratora.' : 'Zaloguj się kontem Google, które ma dostęp do folderu „Aplikacja KNS Nabo”.' }}</p>
     </div>
   </div>
+  </template>
 
   <!-- lista -->
   <!-- baza pieśni: edycja pojedynczej pieśni -->

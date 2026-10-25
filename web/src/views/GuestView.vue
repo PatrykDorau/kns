@@ -76,12 +76,7 @@ export default defineComponent({
       timer = window.setTimeout(show, redrawBackdrop(0.42) + 150)
     })
     onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
-    // „N” w nazwie to pigułka z grafiką (ilustracje kościoła przenikają się co kilka sekund), litera wycięta w środku
-    const PILL = ['/swit.svg', '/jezioro.svg', '/pole.svg', '/noc.svg']
-    const pill = ref(0)
-    const pillTimer = window.setInterval(() => { if (!document.hidden && !open.value) pill.value = (pill.value + 1) % PILL.length }, 4200)
-    onBeforeUnmount(() => clearInterval(pillTimer))
-    return { ...app, PILL, pill, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, addToCalendar, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
+    return { ...app, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, addToCalendar, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
   },
 })
 </script>
@@ -98,7 +93,7 @@ export default defineComponent({
         </p>
         <h1 class="gx-title" aria-label="Kościół Na Skale">
           <span class="gx-in gx-dim" style="--i: 1" aria-hidden="true">Kościół</span>
-          <span class="gx-in gx-line2" style="--i: 2" aria-hidden="true"><span class="gx-n"><svg viewBox="0 0 75 72.7" aria-hidden="true"><rect width="9.6" height="72.7" /><polygon points="0,0 12.4,0 75,72.7 62.6,72.7" /></svg><span class="gx-n-pill"><img v-for="(src, i) in PILL" :key="src" :src="src" alt="" :class="{ on: i === pill }"></span></span>a Skale</span>
+          <span class="gx-in" style="--i: 2" aria-hidden="true">Na Skale</span>
         </h1>
         <p class="gx-lead gx-in" style="--i: 3">Wspólnota, która co niedzielę spotyka się, żeby słuchać Boga i być razem. Przyjdź taki, jaki jesteś.</p>
         <div class="gx-actions gx-in" style="--i: 4">
@@ -192,20 +187,20 @@ export default defineComponent({
 </template>
 
 <style>
-/* strona gościa na całą szerokość okna — bez marginesów aplikacji; góra z tła jaśniejsza i niżej (pod tytułem) */
+/* strona gościa na całą szerokość okna — bez marginesów aplikacji */
 body.guest-page { padding: 0 !important; }
 body.guest-page #app { max-width: none; padding-bottom: 0; }
 body.guest-page #app > .gx { max-width: none !important; margin: 0 !important; }
 body.guest-page:not(.guest-open) { overflow: hidden; }
-body.guest-page .kns-backdrop { height: 62svh; opacity: .55; transform: translateY(var(--gx-mid, 2svh)); transition: transform 1.1s cubic-bezier(.65, 0, .25, 1), opacity .95s; }
-/* gdy góra się narysuje — zjeżdża niżej i robi miejsce na nazwę */
-body.guest-ready .kns-backdrop { transform: translateY(var(--gx-low, 25svh)); }
+/* pierwszy ekran: góra rysuje się na cały ekran w tle; po narysowaniu przygasa, a na niej pojawia się nazwa */
+body.guest-page .kns-backdrop { height: 94svh; opacity: .6; transition: transform .95s cubic-bezier(.7, 0, .2, 1), opacity 1.2s ease; }
+body.guest-ready .kns-backdrop { opacity: .3; }
 body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
-@media (max-width: 760px) { body.guest-page { --gx-low: 6svh; --gx-mid: -14svh; } body.guest-page .kns-backdrop { height: 46svh; } }
+@media (max-width: 760px) { body.guest-page .kns-backdrop { height: 86svh; } }
 @media (prefers-reduced-motion: reduce) {
-  body.guest-page .kns-backdrop, body.guest-ready .kns-backdrop { transition: opacity .4s; transform: translateY(var(--gx-low, 25svh)); }
+  body.guest-page .kns-backdrop { transition: opacity .4s; }
   body.guest-page .kns-backdrop path { animation-name: kb-draw !important; animation-fill-mode: forwards !important; stroke-dashoffset: 1; }
-  body.guest-open .kns-backdrop { transform: translateY(var(--gx-low, 25svh)); }
+  body.guest-open .kns-backdrop { transform: none; }
 }
 </style>
 
@@ -227,27 +222,17 @@ body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
 .gx-sm { min-height: 40px; padding: 0 18px; font-size: 15px; }
 
 /* ---------- pierwszy ekran ---------- */
-.gx-intro { position: fixed; inset: 0; z-index: 5; display: flex; justify-content: center; padding: 0 var(--m); transition: transform .95s var(--ease); }
+.gx-intro { position: fixed; inset: 0; z-index: 5; display: flex; justify-content: center; align-items: center; padding: 0 var(--m); transition: transform .95s var(--ease); }
 .gx.open .gx-intro { transform: translateY(-100%); }
-.gx-intro-in { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: max(9svh, 56px); max-width: 900px; }
+.gx-intro-in { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: -4svh; max-width: 900px; }
 .gx-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 28px; }
 .gx-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #1c1b1a; font: 500 14px/1 var(--display); color: #d9d6d2; font-variant-numeric: tabular-nums; }
 .gx-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .gx-dot.live { background: #e5484d; animation: gx-pulse 1.4s ease-in-out infinite; }
 @keyframes gx-pulse { 50% { opacity: .35; } }
-/* nazwa: „Kościół” lekko i szaro, „Na Skale” ciężko i biało — „N” jako pigułka z grafiką na wysokość wersalików */
+/* nazwa: „Kościół” lekko i szaro, „Na Skale” ciężko i biało */
 .gx-title { display: flex; flex-direction: column; align-items: center; margin: 0; font: 600 clamp(58px, 9.6vw, 144px)/.94 var(--display); letter-spacing: -.055em; font-feature-settings: "ss01", "cv11"; }
 .gx-title .gx-dim { letter-spacing: -.045em; }
-.gx-line2 { display: inline-flex; align-items: baseline; }
-/* „N”: lewa i ukośna kreska jak w literze, prawa wyrasta w pigułkę z grafiką (po pojawieniu się nazwy) */
-.gx-n { position: relative; display: inline-block; width: .75em; height: .727em; margin-right: .03em; flex: none; }
-.gx-n svg { display: block; width: 100%; height: 100%; fill: currentColor; }
-.gx-n-pill { position: absolute; top: 0; right: 0; bottom: 0; width: .096em; border-radius: 999px; background: #fff; overflow: hidden; transition: width 1.1s cubic-bezier(.65, 0, .25, 1) .9s, background .4s ease 1s; }
-.gx.ready .gx-n-pill { width: .36em; background: #2a2826; }
-.gx-n-pill img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.4s ease; }
-.gx.ready .gx-n-pill img.on { opacity: 1; animation: gx-drift 8s ease-in-out infinite alternate; }
-@keyframes gx-drift { from { transform: scale(1.1); } to { transform: scale(1.3) translateY(-3%); } }
-@media (prefers-reduced-motion: reduce) { .gx-n-pill { transition: width .6s ease .5s, background .4s ease .5s; } .gx.ready .gx-n-pill img.on { animation: none; } }
 .gx-lead { margin: 26px 0 0; max-width: 36ch; font-size: 18px; line-height: 1.5; color: #c4c1bd; text-wrap: balance; }
 .gx-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
 /* wejście po narysowaniu góry: po kolei, z lekkim rozmyciem */
@@ -310,7 +295,7 @@ body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
 
 /* telefon */
 @media (max-width: 760px) {
-  .gx-intro-in { margin-top: max(7svh, 40px); }
+  .gx-intro-in { margin-top: 0; }
   .gx-chips { margin-bottom: 22px; }
   .gx-chip { font-size: 13px; padding: 7px 12px; }
   .gx-title { font-size: clamp(52px, 16vw, 80px); }
