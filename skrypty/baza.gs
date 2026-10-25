@@ -127,14 +127,14 @@ function htmlNewslettera(services, events, anns, types, tz) {
 /* ---------- zdjęcia z nabożeństw: Dysk → karta najbliższego nabożeństwa na stronie startowej ---------- */
 // Folder ze zdjęciami (lata → MM_RR → DD_MM, np. 2026 / 10_26 / 18_10). Skrypt bierze najnowszy folder, w którym są
 // zdjęcia, wgrywa do bazy (prywatny kubełek „zdjecia”, widzą tylko zatwierdzeni członkowie) do 8 pomniejszonych
-// zdjęć wybranych równo z całego folderu i zapisuje ich listę. Gdy nic się nie zmieniło — nic nie robi (to tanie sprawdzenie,
-// więc skrypt zagląda co godzinę — zdjęcia z niedzieli są w aplikacji tego samego dnia, a nie dopiero w nocy).
-// Instalacja (raz, także po zmianie tego pliku): uruchom „ustawZdjecia” (co godzinę; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
+// zdjęć wybranych równo z całego folderu, zapisuje ich listę i usuwa poprzednie. Raz dziennie (rano): nowe nabożeństwo albo
+// nowe zdjęcia — od początku folderu; bez zmian — kolejna ósemka z tego samego folderu (po obejściu całego — od nowa).
+// Instalacja (raz, także po zmianie tego pliku): uruchom „ustawZdjecia” (codziennie ok. 6:00; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
 const ZDJECIA = { folderId: '1JDHuBFv_l6QZpKc5oPcO_vBY1V60vbKs', max: 8, size: 1600 }
 
 function ustawZdjecia() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'zdjeciaNabozenstw').forEach(t => ScriptApp.deleteTrigger(t))
-  ScriptApp.newTrigger('zdjeciaNabozenstw').timeBased().everyHours(1).create()
+  ScriptApp.newTrigger('zdjeciaNabozenstw').timeBased().everyDays(1).atHour(6).inTimezone('Europe/Warsaw').create()
   zdjeciaNabozenstw()
 }
 // Najnowszy folder ze zdjęciami. Nazwy z datą: „2026”, „10_26” (miesiąc_rok), „18_10” (dzień_miesiąc) —
@@ -177,9 +177,16 @@ function zdjeciaNabozenstw() {
   const id = found.folder.getId()
   const all = found.imgs.sort((a, b) => a.getName().localeCompare(b.getName()))
   const stamp = id + ':' + all.length
-  if (props.getProperty('ZDJECIA_STAN') === stamp) return // ten sam folder, tyle samo zdjęć
-  // równo z całego folderu (np. 8 ze 120), żeby było widać różne momenty nabożeństwa
-  const pick = all.length <= ZDJECIA.max ? all : Array.from({ length: ZDJECIA.max }, (_, i) => all[Math.floor(i * all.length / ZDJECIA.max)])
+  // ten sam folder i tyle samo zdjęć — kolejna ósemka (gdy jest z czego wybierać); inaczej — od początku
+  let round = 0
+  if (props.getProperty('ZDJECIA_STAN') === stamp) {
+    if (all.length <= ZDJECIA.max) return
+    round = +(props.getProperty('ZDJECIA_RUNDA') || 0) + 1
+  }
+  // równo z całego folderu (np. 8 ze 120 — co 15.), w kolejnych dniach przesunięte o jedno zdjęcie dalej
+  const step = all.length / ZDJECIA.max
+  round = round % Math.max(1, Math.ceil(step))
+  const pick = all.length <= ZDJECIA.max ? all : Array.from({ length: ZDJECIA.max }, (_, i) => all[(Math.floor(i * step) + round) % all.length])
   const token = ScriptApp.getOAuthToken(), auth = { Authorization: 'Bearer ' + token }
   const files = []
   pick.forEach((f, i) => {
@@ -187,7 +194,7 @@ function zdjeciaNabozenstw() {
       const meta = JSON.parse(UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.getId() + '?fields=thumbnailLink&supportsAllDrives=true', { headers: auth }).getContentText())
       if (!meta.thumbnailLink) return
       const img = UrlFetchApp.fetch(meta.thumbnailLink.replace(/=s\d+(-[a-z0-9-]+)?$/i, '') + '=s' + ZDJECIA.size, { headers: auth }).getBlob()
-      const path = id + '/' + all.length + '-' + i + '.jpg' // nowa nazwa przy każdej zmianie — bez starych kopii w pamięci podręcznej
+      const path = id + '/' + all.length + '-' + round + '-' + i + '.jpg' // nowa nazwa przy każdej zmianie — bez starych kopii w pamięci podręcznej
       const res = UrlFetchApp.fetch(BAZA.url + '/storage/v1/object/zdjecia/' + path, {
         method: 'post', headers: bazaNaglowki({ 'x-upsert': 'true' }), contentType: img.getContentType() || 'image/jpeg', payload: img.getBytes(), muteHttpExceptions: true,
       })
@@ -196,7 +203,7 @@ function zdjeciaNabozenstw() {
     } catch (e) { Logger.log('Zdjęcie ' + f.getName() + ': ' + e.message) }
   })
   if (!files.length) return
-  // lista dla strony; poprzednie zdjęcia (inny folder) usuwane z bazy
+  // lista dla strony; poprzednie zdjęcia usuwane z bazy
   const value = { files, date: dataZdjec(found.path), folder: found.path.join(' / '), count: all.length, updated: new Date().toISOString() }
   const res = UrlFetchApp.fetch(BAZA.url + '/rest/v1/site_settings?on_conflict=key', {
     method: 'post', headers: bazaNaglowki({ Prefer: 'resolution=merge-duplicates' }), contentType: 'application/json',
@@ -206,6 +213,7 @@ function zdjeciaNabozenstw() {
   const old = JSON.parse(props.getProperty('ZDJECIA_PLIKI') || '[]').filter(p => files.indexOf(p) < 0)
   if (old.length) UrlFetchApp.fetch(BAZA.url + '/storage/v1/object/zdjecia', { method: 'delete', headers: bazaNaglowki(), contentType: 'application/json', payload: JSON.stringify({ prefixes: old }), muteHttpExceptions: true })
   props.setProperty('ZDJECIA_STAN', stamp)
+  props.setProperty('ZDJECIA_RUNDA', String(round))
   props.setProperty('ZDJECIA_PLIKI', JSON.stringify(files))
-  Logger.log('Zdjęcia: ' + files.length + ' z ' + value.folder)
+  Logger.log('Zdjęcia: ' + files.length + ' z ' + value.folder + (round ? ' (zestaw ' + (round + 1) + ')' : ''))
 }
