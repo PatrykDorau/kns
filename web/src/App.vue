@@ -37,6 +37,7 @@ import ListenView from '@/views/ListenView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import MoreView from '@/views/MoreView.vue'
 import HomeView from '@/views/HomeView.vue'
+import CardDeck from '@/components/CardDeck.vue'
 import ServiceEditView from '@/views/ServiceEditView.vue'
 import PublicListen from '@/components/PublicListen.vue'
 import BandPickDialog from '@/components/dialogs/BandPickDialog.vue'
@@ -74,7 +75,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.44 · 25.10.2026'
+const VERSION = '3.45 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -166,7 +167,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -1450,6 +1451,18 @@ export default defineComponent({
         ...pub.value.events.map((e, i) => ({ key: 'e' + i, date: e.date, time: e.time, place: e.place, title: e.title || name(e.type), sub: e.description, color: color(e.type) })),
       ].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
     })
+    // Ekran dla gości: talia nadchodzących nabożeństw i wydarzeń oraz publicznych ogłoszeń (dane z public_preview).
+    const guestCat = ref('ev')
+    const guestCats = computed(() => {
+      if (!pub.value) return []
+      const when = it => shortDate(it.date) + (it.time ? ' · ' + it.time : '')
+      const cats = [
+        { id: 'ev', name: 'Wydarzenia', cards: pubItems.value.slice(0, 12).map(it => ({ key: it.key, title: it.title, color: it.color, tag: when(it), sub: [it.place, it.sub].filter(Boolean).join(' · ') })) },
+        { id: 'ann', name: 'Ogłoszenia', cards: (pub.value.announcements || []).map(a => ({ key: 'a' + a.id, title: a.title, image: a.image || '', color: a.important ? 'var(--accent)' : '#f2a65a', tag: a.important ? 'Komunikat rady' : 'Ogłoszenie', sub: a.text })) },
+      ]
+      return cats.filter(c => c.cards.length)
+    })
+    const guestDeck = computed(() => guestCats.value.find(c => c.id === guestCat.value) || guestCats.value[0] || null)
     // Podgląd: najbliższe 7 dni jako kartki (jak tydzień na stronie głównej).
     const pubWeek = computed(() => Array.from({ length: 7 }, (_, i) => {
       const date = localDate(new Date(asDate(todayStr.value).getTime() + i * 86400000))
@@ -2448,7 +2461,7 @@ export default defineComponent({
       shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
@@ -2569,7 +2582,18 @@ export default defineComponent({
       <section v-for="n in 3" :key="n" class="hw-col"><span class="skel boot-hh"></span><div class="skel-list"><div v-for="k in 3" :key="k" class="skel skel-row"></div></div></section>
     </div>
   </div>
-  <div v-else-if="!ready" class="center login-screen">
+  <div v-else-if="!ready" class="center login-screen" :class="{ 'has-guest': !!guestDeck }">
+    <!-- goście: duży napis i talia tego, co się dzieje w kościele (bez logowania) -->
+    <div v-if="guestDeck" class="guest-hero">
+      <h1 class="guest-title">Kościół<br>Na Skale</h1>
+      <p>Zobacz, co się u nas dzieje — przesuń kartę w bok.</p>
+    </div>
+    <section v-if="guestDeck" class="guest-deck" aria-label="Co się dzieje w kościele">
+      <CardDeck :key="guestDeck.id" :cards="guestDeck.cards" :label="guestDeck.name" />
+      <nav v-if="guestCats.length > 1" class="deck-words" aria-label="Kategoria">
+        <button v-for="c in guestCats" :key="c.id" :class="{ on: guestDeck.id === c.id }" :aria-pressed="guestDeck.id === c.id" @click="guestCat = c.id">{{ c.name }}</button>
+      </nav>
+    </section>
     <div class="login-card">
     <img src="logo.png" alt="Kościół Na Skale">
     <div v-if="countdown" class="countdown login-cd">

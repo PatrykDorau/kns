@@ -1167,3 +1167,35 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .mm-sec.avail .avail-hint { margin: 0; font-size: 12.5px; }
 .mm-sec.avail .avail-table-wrap { margin-top: 4px; }
 .mm-sec.avail .mm-lbl { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+/* talia kart (CardDeck): obok — duże słowa do wyboru (dla kogo / kategoria) */
+.seg.ann-mode { width: 240px; max-width: 100%; }
+.seg.ann-mode button { white-space: nowrap; }
+.seg.home-mode { width: 300px; margin-bottom: -8px; }
+.ann-mode button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ann-deck { display: flex; align-items: center; justify-content: center; gap: 56px; padding: 18px 0 8px; }
+.ann-deck > .deck { width: auto; }
+.deck-words { display: flex; flex-direction: column; gap: 4px; }
+.deck-words button { padding: 2px 0; border: 0; background: none; box-shadow: none; min-height: 0; justify-content: flex-start; color: var(--faint, var(--muted)); font: 650 clamp(26px, 4vw, 40px)/1.1 var(--display); letter-spacing: -.03em; text-align: left; transition: color .2s; }
+.deck-words button:hover { color: var(--muted); }
+.deck-words button.on { color: var(--text); }
+@media (max-width: 700px) {
+  .ann-deck { flex-direction: column-reverse; gap: 16px; }
+  .deck-words { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 16px; }
+  .deck-words button { font-size: 22px; }
+}
+/* ekran dla gości: duży napis, talia wydarzeń i ogłoszeń, obok logowanie */
+.guest-hero { text-align: left; margin: 0 auto 6px; width: min(420px, 100%); }
+.guest-title { margin: 0; font: 700 clamp(48px, 13vw, 104px)/.9 var(--display); letter-spacing: -.05em; text-transform: uppercase; color: var(--text); }
+.guest-hero p { margin: 14px 0 0; color: var(--muted); font-size: 15px; }
+.guest-deck { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 26px auto 30px; }
+.guest-deck .deck-words { flex-direction: row; gap: 4px 18px; }
+.guest-deck .deck-words button { font-size: 22px; }
+@media (min-width: 1024px) {
+  .login-screen.has-guest { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "hero deck" "card deck"; align-items: start; column-gap: 56px; row-gap: 28px; max-width: 1040px; margin: 0 auto; padding-top: 56px; }
+  .has-guest .guest-hero { grid-area: hero; margin: 0; width: auto; }
+  .has-guest .login-card { grid-area: card; margin: 0; }
+  .has-guest .guest-deck { grid-area: deck; margin: 0; align-self: center; }
+}
+.login-screen .deck-img { height: auto; margin: 0; }
+.login-screen .deck-text { text-align: left; }
+@media (max-width: 1023px) { .login-screen .guest-deck .deck-stack { width: min(300px, 76vw); aspect-ratio: 1; } .login-screen .guest-deck .deck-ph { font-size: 80px; } }

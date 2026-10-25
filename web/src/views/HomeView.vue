@@ -1,17 +1,39 @@
 <script lang="ts">
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
-import { defineComponent, onMounted } from 'vue'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
 import SermonNotes from '@/components/SermonNotes.vue'
+import CardDeck from '@/components/CardDeck.vue'
+
+// „Co nowego” (zamiast kolumn, gdy wybrano „Karty” — zapamiętane na tym urządzeniu): talia z jednej kategorii naraz
+const homeMode = ref((() => { try { return localStorage.getItem('kns-home-mode') === 'cards' ? 'cards' : 'list' } catch { return 'list' } })())
+watch(homeMode, v => { try { localStorage.setItem('kns-home-mode', v) } catch { /* bez zapamiętania */ } })
 
 // HomeView
 export default defineComponent({
-  components: { SermonNotes },
+  components: { SermonNotes, CardDeck },
   setup() {
     const app = useApp()
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return app
+    const whatCat = ref('ann')
+    const gifts = ref(null) // wydawka — wczytywana dopiero, gdy potrzebna
+    const loadGifts = () => { if (gifts.value === null && app.api.enabled) { gifts.value = []; app.api.call('giveaways').then(l => { gifts.value = (l || []).filter(g => !g.closed) }, () => {}) } }
+    watch([homeMode, whatCat], () => { if (homeMode.value === 'cards' && whatCat.value === 'gift') loadGifts() }, { immediate: true })
+    const whatCats = computed(() => {
+      const t = app.todayStr.value
+      const evs = app.events.value.filter(e => e.date >= t).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))).slice(0, 15)
+      return [
+        { id: 'ann', name: 'Ogłoszenia', cards: app.boardAll.value.map(a => ({ key: a.id, title: a.title, image: a.image || '', color: a.important ? 'var(--accent)' : '#f2a65a', tag: a.important ? 'Komunikat rady' : app.annIsNew(a) ? 'Nowe' : app.shortDate(a.date), sub: a.text, go: () => app.openAnn(a) })) },
+        { id: 'ev', name: 'Wydarzenia', cards: evs.map(e => ({ key: e.id, title: e.title || app.typeOf(e.type).name, image: e.image || '', color: app.typeOf(e.type).color, tag: app.shortDate(e.date) + (e.time ? ' · ' + e.time : ''), sub: [app.typeOf(e.type).name, e.place].filter(Boolean).join(' · '), go: () => app.openEvent(e) })) },
+        ...(app.api.enabled ? [
+          { id: 'serve', name: 'Służby', cards: app.seekingAll.value.map(m => ({ key: m.id, title: m.name, color: '#7cc4a4', tag: 'szuka chętnych', sub: m.description, go: () => app.openMinistry(m) })) },
+          { id: 'gift', name: 'Wydawka', cards: (gifts.value || []).flatMap(g => g.items.filter(it => it.given < it.qty).map(it => ({ key: it.id, title: it.title || g.title, image: it.image || '', color: '#c79bf2', tag: 'za darmo', sub: [g.owner, g.place].filter(Boolean).join(' · '), go: () => { app.openAnns(); app.annTab.value = 'gift'; app.giftOpen.value = g.id } }))) },
+        ] : []),
+      ]
+    })
+    const whatDeck = computed(() => whatCats.value.find(c => c.id === whatCat.value) || whatCats.value[0])
+    return { ...app, homeMode, whatCat, whatCats, whatDeck }
   },
 })
 </script>
@@ -86,8 +108,18 @@ export default defineComponent({
       </div>
     </section>
 
+    <div class="seg ann-mode home-mode" role="group" aria-label="Widok strony startowej">
+      <button :class="{ on: homeMode === 'list' }" :aria-pressed="homeMode === 'list'" @click="homeMode = 'list'"><svg class="i"><use href="#list"/></svg>Lista</button>
+      <button :class="{ on: homeMode === 'cards' }" :aria-pressed="homeMode === 'cards'" @click="homeMode = 'cards'"><svg class="i"><use href="#image"/></svg>Co nowego</button>
+    </div>
+    <section v-if="homeMode === 'cards'" class="ann-deck what-new" aria-label="Co nowego">
+      <CardDeck :key="whatDeck.id" :cards="whatDeck.cards" :label="whatDeck.name" @open="c => c.go()"><template #empty>Na razie nic nowego.</template></CardDeck>
+      <nav class="deck-words" aria-label="Kategoria">
+        <button v-for="c in whatCats" :key="c.id" :class="{ on: whatDeck.id === c.id }" :aria-pressed="whatDeck.id === c.id" @click="whatCat = c.id">{{ c.name }}</button>
+      </nav>
+    </section>
     <!-- trzy kolumny: ogłoszenia, tydzień, wspólnota -->
-    <div class="hw-cols">
+    <div v-else class="hw-cols">
       <section class="hw-col">
         <h3 class="hw-h"><span class="hw-step">2</span>Ogłoszenia<small v-if="newAnnCount">{{ newAnnCount }} {{ newAnnCount === 1 ? 'nowe' : 'nowych' }}</small></h3>
         <button v-for="a in boardNews.slice(0, 5)" :key="a.id" class="hw-row" :class="{ fresh: annIsNew(a) }" @click="openAnn(a)">

@@ -1,8 +1,9 @@
 <script lang="ts">
 // @ts-nocheck — stan i działania wspólne (useApp)
-import { computed, defineComponent, onMounted, reactive } from 'vue'
+import { computed, defineComponent, onMounted, reactive, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
+import CardDeck from '@/components/CardDeck.vue'
 
 // Wydawka (zakładka w „Ogłoszeniach”): członkowie oddają rzeczy za darmo. Jedna wydawka (tytuł, opis, gdzie odebrać)
 // ma kilka przedmiotów, każdy ze zdjęciem i liczbą sztuk. Na każdy przedmiot osobna kolejka: pierwsze osoby (tyle, ile
@@ -11,7 +12,10 @@ import { ask } from '@/utils/ask'
 const gv = reactive({ list: [], busy: false, loaded: false, error: '', edit: null, note: '', imgBusy: '' })
 const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 const own = u => /\/ogloszenia\//.test(u || '') // zdjęcie wgrane do nas (z linku — zostaje u źródła)
+const giftMode = ref((() => { try { return localStorage.getItem('kns-gift-mode') === 'cards' ? 'cards' : 'list' } catch { return 'list' } })())
+watch(giftMode, v => { try { localStorage.setItem('kns-gift-mode', v) } catch { /* bez zapamiętania */ } })
 export default defineComponent({
+  components: { CardDeck },
   setup() {
     const app = useApp()
     const cur = computed(() => gv.list.find(g => g.id === app.giftOpen.value))
@@ -96,7 +100,16 @@ export default defineComponent({
     const mineAll = g => g.items.map(myState).filter(Boolean)
     const claimsAll = g => g.items.reduce((n, i) => n + i.count, 0)
     const itemsWord = n => n === 1 ? 'przedmiot' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'przedmioty' : 'przedmiotów'
-    return { ...app, gv, cur, open, back, newGift, editGift, addItem, removeItem, valid, save, remove, close, claim, unclaim, drop, given, pickImage, free, status, myState, cover, freeAll, mineAll, claimsAll, itemsWord }
+    // talia: każdy przedmiot z otwartych wydawek osobno (zdjęcie), „Biorę” wprost z karty
+    const deckItems = computed(() => gv.list.filter(g => !g.closed).flatMap(g => g.items.filter(it => it.given < it.qty).map(it => ({ g, it }))))
+    const deckCards = computed(() => deckItems.value.map(({ g, it }) => ({
+      key: it.id, title: it.title || g.title, image: it.image || '', color: '#7cc4a4', tag: myState(it) || status(g, it),
+      sub: [g.title !== it.title ? g.title : '', g.mine ? 'oddajesz Ty' : g.owner, g.place].filter(Boolean).join(' · '),
+      action: g.mine || it.myPos != null ? '' : free(it) > 0 ? 'Biorę' : 'Na rezerwę',
+    })))
+    const deckOpen = (c, i) => open(deckItems.value[i].g)
+    const deckTake = (c, i) => claim(deckItems.value[i].it)
+    return { ...app, gv, cur, open, back, giftMode, deckCards, deckOpen, deckTake, newGift, editGift, addItem, removeItem, valid, save, remove, close, claim, unclaim, drop, given, pickImage, free, status, myState, cover, freeAll, mineAll, claimsAll, itemsWord }
   },
 })
 </script>
@@ -211,7 +224,14 @@ export default defineComponent({
     <p v-if="gv.error" class="error">{{ gv.error }}</p>
     <div v-if="!gv.loaded" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 3" :key="n" class="skel skel-row"></div></div>
     <p v-else-if="!gv.list.length" class="note">Na razie nikt nic nie oddaje.</p>
-    <div class="goal-list">
+    <div v-if="gv.loaded && deckCards.length" class="seg ann-mode" role="group" aria-label="Widok wydawki">
+      <button :class="{ on: giftMode === 'list' }" :aria-pressed="giftMode === 'list'" @click="giftMode = 'list'"><svg class="i"><use href="#list"/></svg>Lista</button>
+      <button :class="{ on: giftMode === 'cards' }" :aria-pressed="giftMode === 'cards'" @click="giftMode = 'cards'"><svg class="i"><use href="#image"/></svg>Karty</button>
+    </div>
+    <div v-if="giftMode === 'cards' && deckCards.length" class="ann-deck">
+      <CardDeck :cards="deckCards" label="Wydawka" :busy="gv.busy" @open="deckOpen" @action="deckTake" />
+    </div>
+    <div v-else class="goal-list">
       <button v-for="g in gv.list" :key="g.id" class="goal-card gift-card" :class="{ closed: g.closed }" @click="open(g)">
         <img v-if="cover(g)" class="gcard-img" :src="cover(g)" alt="" loading="lazy">
         <span v-else class="gcard-img gcard-ic"><svg class="i"><use href="#gift"/></svg></span>
