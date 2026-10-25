@@ -3,6 +3,7 @@ import App from '@/App.vue'
 import Output from '@/Output.vue'
 import '@/styles/style.css'
 import '@web/styles/home.css' // strona startowa wspólna ze stroną w przeglądarce
+import '@/styles/taste.css' // nowy wygląd (true-black-flat, jak strona) — na końcu
 
 // Jedna aplikacja, trzy rodzaje okien: panel (wybór służby i jej widok), obraz dla rzutnika (#output)
 // oraz niewidoczne okno, które zamienia slajdy prezentacji PowerPoint na obrazy (#pptx).

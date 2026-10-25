@@ -1,0 +1,53 @@
+/* Warstwa „taste” dla aplikacji na komputer (Rzutnik, Stream, Nabożeństwa) — ten sam kierunek co strona (web/src/styles/taste.css):
+   true-black-flat — ciepła czerń, powierzchnie o krok jaśniejsze, bez obramowań, cieni, gradientów i poświat;
+   kolor (słońce z logo) tylko na danych i stanach; główny przycisk to biała „pigułka”; etykiety zwykłymi literami.
+   Ładowana na końcu (main.ts) — nadpisuje style.css. Stany na żywo / błędy (czerwień, zieleń) zostają. */
+
+:root {
+  --bg: #0e0d0c; --panel: #181716; --panel2: #201e1c; --panel3: #2a2826; --line: #262422;
+  --text: #ffffff; --muted: #b4b4b4; --faint: #949494;
+  --accent: #f6a836; --accent-soft: rgba(246, 168, 54, .13);
+  --radius: 18px;
+}
+
+/* ---------- grunt i pismo ---------- */
+body:not(.output) { background: var(--bg) !important; font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+h1, h2, h3, b, strong { font-weight: 600; }
+/* nagłówki sekcji: zwykłymi literami, bez rozstrzelenia */
+h2, .modal h4, .cd-label, .desk-opt-group > small.muted, .desk-lbl, .mgr-headrow { text-transform: none !important; letter-spacing: 0 !important; }
+h2 { font-size: 13px; color: var(--muted); }
+.panel-head h2::before { display: none; }
+
+/* ---------- powierzchnie: płasko, bez obramowań i gradientów ---------- */
+section, .desk-box, .desk-stage, .desk-ctrl, .desk-atem, .desk-svc, .desk-live, .dh, .st-card, .desk-ready, .desk-mats, .desk-cd,
+.desk-scene-panel, .desk-ovl, .cue, .shared, .modal, .mgr-scroll, .busy-tip, .desk-bc, .desk-media-it, .svc-list li, .desk-rail {
+  border-color: transparent !important; box-shadow: none !important; background-image: none !important;
+}
+.desk-stage, .desk-ctrl, .desk-atem, .desk-svc, .st-card, .desk-box, .dh { background: var(--panel) !important; }
+.desk-scene-panel, .desk-ovl, .desk-cd, .desk-live, .desk-ready, .desk-mats, .desk-media-it, .cue, .desk-bc { background: var(--panel2) !important; }
+.desk-rail { background: var(--panel) !important; }
+.dh-row > * { border-color: var(--line) !important; }
+
+/* ---------- przyciski ---------- */
+button { border-color: transparent; border-radius: 12px; }
+button:hover:not(:disabled) { background: var(--panel3); }
+/* główny: biała pigułka z czarnym tekstem (kolor zostaje dla stanów: na żywo, potwierdzenie na wizję) */
+button.primary { background: #ffffff; color: #0e0d0c; border-color: transparent; border-radius: 999px; }
+button.primary:hover:not(:disabled) { background: #e9e7e4; }
+.ovl-ask .primary { background: #e5484d; color: #fff; border-radius: 999px; }
+kbd { border-color: transparent; background: var(--panel3); }
+
+/* ---------- pola ---------- */
+input[type=number], input[type=search], input[type=date], input[type=text], input[type=url], input:not([type]), select, textarea, .searchbox {
+  border-color: transparent !important; background: var(--panel2) !important; border-radius: 12px;
+}
+.searchbox:focus-within, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid rgba(255, 255, 255, .5); outline-offset: 1px; }
+:focus-visible { outline-color: rgba(255, 255, 255, .6); }
+
+/* ---------- wybory i zakładki: zaznaczone białym tekstem na jaśniejszym tle, nie kolorem ---------- */
+.tabs button.on, .tabs button[aria-selected=true], .st-seg button.on, .seg button.on { background: var(--panel3) !important; color: var(--text) !important; border-color: transparent !important; }
+.empty { border-color: var(--line); }
+
+/* zaznaczenie na listach: jaśniejsze tło i biała krawędź (kolor tylko dla stanów — na żywo, zamrożone) */
+.row.selected, main.planner .row.selected { background: var(--panel3) !important; border-color: rgba(255, 255, 255, .28) !important; }
+.mgr-row.selected { background: var(--panel3) !important; box-shadow: inset 3px 0 #fff !important; }
