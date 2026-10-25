@@ -14,8 +14,10 @@ import { startMarquee } from './utils/marquee'
 import { startAutoHideHeader } from './utils/autoHideHeader'
 import { startViewportFix } from './utils/viewportFix'
 import { startMotion } from './utils/motion'
+import { startBackdrop } from './utils/backdrop'
 createApp(App).component('UiSelect', UiSelect).component('ImageLinkInput', ImageLinkInput).component('program-editor', ProgramEditor).component('thoughts-editor', ThoughtsEditor).mount('#app')
 startMarquee() // długie tytuły przesuwają się zamiast „…”
 startAutoHideHeader() // telefon: pasek u góry chowa się przy przewijaniu w dół
 startViewportFix() // telefon: szeroki widok po powrocie z logowania
-startMotion() // żywe tło, wejścia kart, światło pod kursorem
+startMotion() // wejścia kart, przesuwane zakładki, paralaksa
+startBackdrop() // w tle: rysująca się kreską góra KNS z krzyżem
