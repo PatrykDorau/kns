@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
-import { OVERLAYS, mediaPipToProgram, pipToProgram, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
+import { OVERLAYS, mediaPipToProgram, pipToProgram, previewOverlay, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
 import { answerLive, confirmLive, ovlAsk } from '@/composables/stream/ovlAsk'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
@@ -23,7 +23,12 @@ const pgCorner = computed(() => studio.program.ovl === 'corner' && air('media') 
 const pvFullOvl = computed(() => studio.preview.ovl === 'full' ? pvOver.value : null)
 const pgFullOvl = computed(() => studio.program.ovl === 'full' && air('media') ? pgOver.value : null)
 // włącz (z pytaniem) / wyłącz (od razu)
-const flip = (now: boolean, what: string, set: (v: boolean) => void) => (now ? set(false) : confirmLive(what, () => set(true)))
+// włączona (na wizji albo czeka na podglądzie) — wyłącz od razu; inaczej: na podgląd + pytanie „Wysłać na wizję?”
+function flip(now: boolean, what: string, set: (v: boolean) => void, key: 'lowerThird' | 'prayer' | 'endOvl') {
+  if (now) { if (ovlAsk.value?.what === what) ovlAsk.value = null; set(false); return }
+  previewOverlay(key, true)
+  confirmLive(what, () => set(true), () => previewOverlay(key, false))
+}
 const ltOn = computed(() => studio.program.lowerThird || studio.preview.lowerThird)
 const prOn = computed(() => !!(studio.program.prayer || studio.preview.prayer))
 const bnOn = computed(() => !!(studio.program.endOvl || studio.preview.endOvl))
@@ -37,13 +42,13 @@ if (settings.prayerText === undefined) settings.prayerText = 'Zachęcamy do modl
 <template>
   <div v-if="anyOverlay" class="desk-ovl">
     <small class="desk-lbl">Nakładki</small>
-    <span v-if="ovlAsk" class="ovl-ask" role="alertdialog" aria-label="Potwierdź"><Icon name="info" /><span>Wysłać na wizję: <b>{{ ovlAsk.what }}</b>?</span><button class="primary small" @click="answerLive(true)">Tak, na wizję</button><button class="small" @click="answerLive(false)">Nie</button></span>
+    <span v-if="ovlAsk" class="ovl-ask" role="alertdialog" aria-label="Potwierdź"><Icon name="info" /><span>Na podglądzie: <b>{{ ovlAsk.what }}</b> — dopasuj i wyślij na wizję?</span><button class="primary small" @click="answerLive(true)">Tak, na wizję</button><button class="small" @click="answerLive(false)">Nie</button></span>
     <button v-if="on('lyrics')" class="ovl-btn" :class="{ live: studio.program.lyricsOn && air('lyrics'), on: studio.program.lyricsOn }" :aria-pressed="studio.program.lyricsOn"
             title="Napisy pieśni — włączają się i wyłączają od razu na wizji (Kamera, Rzutnik, Materiał)" @click="toggleLyrics"><Icon name="music" />Napisy</button>
     <button v-if="on('lowerThird')" class="ovl-btn" :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird && air('lowerThird') }" :aria-pressed="studio.preview.lowerThird"
-            title="Pasek z mówcą — od razu na wizję (po potwierdzeniu), wyłączenie od razu" @click="flip(ltOn, 'pasek mówcy', setLowerThird)"><Icon name="text" />Pasek mówcy</button>
+            title="Pasek z mówcą — od razu na wizję (po potwierdzeniu), wyłączenie od razu" @click="flip(ltOn, 'pasek mówcy', setLowerThird, 'lowerThird')"><Icon name="text" />Pasek mówcy</button>
     <button v-if="on('prayer')" class="ovl-btn" :class="{ on: studio.preview.prayer, live: studio.program.prayer && air('prayer') }" :aria-pressed="!!studio.preview.prayer"
-            title="Czas modlitwy: napis u dołu obrazu — od razu na wizję (po potwierdzeniu), wyłączenie od razu" @click="flip(prOn, 'modlitwa', setPrayer)"><Icon name="heart" />Modlitwa</button>
+            title="Czas modlitwy: napis u dołu obrazu — od razu na wizję (po potwierdzeniu), wyłączenie od razu" @click="flip(prOn, 'modlitwa', setPrayer, 'prayer')"><Icon name="heart" />Modlitwa</button>
     <!-- PIP: materiał z Biblioteki w okienku w rogu -->
     <span v-if="on('media')" class="desk-ovl-media" :class="{ on: pvCorner, live: pgCorner }">
       <Icon name="layers" /><b class="desk-ovl-tag">PIP</b>
@@ -77,7 +82,7 @@ if (settings.prayerText === undefined) settings.prayerText = 'Zachęcamy do modl
         <button class="desk-send" :class="{ ready: pipPending }" :disabled="!pipPending" :title="pipPending ? 'PIP z kamerą na wizję (reszta wizji bez zmian)' : 'Ten PIP jest już na wizji'" @click="confirmLive('PIP kamera', pipToProgram)"><Icon name="play" />Na wizję</button>
       </template>
     </span>
-    <button v-if="on('end')" class="ovl-btn" :class="{ on: studio.preview.endOvl, live: studio.program.endOvl && air('end') }" :aria-pressed="!!studio.preview.endOvl" title="Baner na obrazie z kamery: napis i kod QR (podziękowanie, wsparcie, YouTube…) — wygląd ustawisz pod spodem. Od razu na wizję (po potwierdzeniu), wyłączenie od razu" @click="flip(bnOn, 'baner', setEndOverlay)"><Icon name="qr" />Baner</button>
+    <button v-if="on('end')" class="ovl-btn" :class="{ on: studio.preview.endOvl, live: studio.program.endOvl && air('end') }" :aria-pressed="!!studio.preview.endOvl" title="Baner na obrazie z kamery: napis i kod QR (podziękowanie, wsparcie, YouTube…) — wygląd ustawisz pod spodem. Od razu na wizję (po potwierdzeniu), wyłączenie od razu" @click="flip(bnOn, 'baner', setEndOverlay, 'endOvl')"><Icon name="qr" />Baner</button>
   </div>
   <div v-if="anyOverlay && on('prayer') && studio.preview.prayer" class="desk-cd desk-banner" role="group" aria-label="Modlitwa">
     <div class="desk-opt-group desk-cd-text">

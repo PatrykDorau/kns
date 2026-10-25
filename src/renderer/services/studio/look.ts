@@ -36,6 +36,9 @@ export function setScene(id) { change(l => { l.scene = id }) }
 function both(fn) { fn(studio.preview); toProgram(fn) }
 const lt = v => l => { l.lowerThird = v; l[v ? 'lowerAt' : 'lowerOff'] = performance.now() }
 export function setLowerThird(v: boolean) { both(lt(v)) }
+// tylko podgląd — nakładka czeka na potwierdzenie (ustawienia widać pod paskiem nakładek)
+export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boolean) { change(key === 'lowerThird' ? lt(v) : l => { l[key] = v }) }
+export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
 export function setPrayer(v: boolean) { both(l => { l.prayer = v }) }
 export function setEndOverlay(v: boolean) { both(l => { l.endOvl = v }) }
