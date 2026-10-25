@@ -26,9 +26,9 @@ export default defineComponent({ setup: () => useApp() })
   <button v-else-if="songView || peopleView" class="ghost back to-start" @click="songView = false; peopleView = false"><svg class="i"><use href="#back"/></svg>Więcej</button>
   <template v-else>
     <button v-if="ready && (calView || moreView)" class="ghost wide-only back to-start" @click="showServices"><svg class="i"><use href="#back"/></svg>Start</button>
-    <button v-if="ready" class="ghost" :class="{ 'narrow-only': !peopleView }" :disabled="busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
+    <button v-if="ready || booting" class="ghost" :class="{ 'narrow-only': !peopleView }" :disabled="!ready || busy || peopleBusy" aria-label="Odśwież" title="Odśwież" @click="peopleView ? loadPeople() : reload()"><svg class="i"><use href="#refresh"/></svg></button>
   </template>
-  <button v-if="ready && api.enabled && !current && !currentEvent && !currentAnn && !currentProto && !song && !tplType" class="ghost bell narrow-only" aria-label="Powiadomienia" title="Powiadomienia" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="count">{{ unread }}</span></button>
+  <button v-if="(ready || booting) && api.enabled && !current && !currentEvent && !currentAnn && !currentProto && !song && !tplType" class="ghost bell narrow-only" aria-label="Powiadomienia" title="Powiadomienia" @click="openInbox"><svg class="i"><use href="#bell"/></svg><span v-if="unread" class="count">{{ unread }}</span></button>
   <button v-if="shareTarget && shareTarget[0] !== 'nabozenstwo'" class="ghost share-btn" title="Kod QR — do pobrania i wstawienia na grafikę" aria-label="Kod QR" @click="openQr(...shareTarget)"><svg class="i"><use href="#qr"/></svg><span>QR</span></button>
   <button v-if="shareTarget" class="ghost share-btn" title="Kopiuj link — można go komuś wysłać" aria-label="Kopiuj link" @click="shareLink(...shareTarget)"><svg class="i"><use href="#link"/></svg><span>Link</span></button>
 </header>

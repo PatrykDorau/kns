@@ -205,8 +205,19 @@ img.kh-note-ic { object-fit: cover; padding: 0; }
 .skel-row { height: 62px; }
 .skel-line { height: 14px; border-radius: 7px; }
 .skel-hero { height: 170px; border-radius: 18px; }
-.boot { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 1080px; margin: 0 auto 28px; padding: 28px 16px 0; /* odstęp wewnątrz — margines „przeciekał” przez body i u góry był ciemny pasek */ box-sizing: border-box; }
-.boot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+/* szkielet strony startowej — wymiary jak prawdziwe elementy (h1, karta nabożeństwa, wiersze kolumn) */
+.boot .skel { display: block; }
+.boot-h1 { width: min(420px, 75%); height: 1.05em; }
+.boot .kh-hello p { display: flex; align-items: center; height: 20px; }
+.boot-p { width: min(200px, 50%); height: 14px; border-radius: 7px; }
+.boot-visual { min-height: 340px; border-radius: 0; }
+.boot-info { gap: 14px; }
+.boot-info .boot-h2 { width: 70%; height: 30px; border-radius: 8px; }
+.boot-info .skel-line { width: 100%; }
+.boot-cta { height: 52px; margin-top: auto; border-radius: 14px; }
+.boot-hh { width: 110px; height: 12px; margin: 0 0 14px; border-radius: 6px; }
+@media (max-width: 1250px) { .boot-visual { min-height: 260px; } }
+@media (max-width: 1023px) { .boot-visual { min-height: 230px; } }
 .kh-top2 > .kh-svc .kh-foot { margin-top: auto; }
 /* Bez komunikatów rady: karta najbliższego nabożeństwa na całą szerokość, niższa. */
 .kh-top2.solo { grid-template-columns: minmax(0, 1fr); }

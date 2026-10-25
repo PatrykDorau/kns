@@ -74,7 +74,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.43 · 25.10.2026'
+const VERSION = '3.44 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -223,7 +223,7 @@ export default defineComponent({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
-    const homeWide = computed(() => ready.value && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value && !svcListView.value)
+    const homeWide = computed(() => (ready.value || booting.value) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value && !svcListView.value)
     const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
@@ -2482,7 +2482,7 @@ export default defineComponent({
   <!-- Szeroki ekran: pasek konta na górze każdego widoku (jak w aplikacji na komputer). -->
   <AccountBar v-if="ready" />
   <!-- ekran logowania bez paska nagłówka (logo jest na środku); publiczne „Posłuchaj” — z nagłówkiem -->
-  <AppHeader v-if="ready || (!booting && !embedded && (listenYt || listenSp || isChannelLink(listen.youtube)))" />
+  <AppHeader v-if="ready || booting || (!booting && !embedded && (listenYt || listenSp || isChannelLink(listen.youtube)))" />
   <div v-if="toast" class="toast" role="status">{{ toast }}</div>
 
   <!-- Kamera: sygnały od operatora streamu (przez internet), z dźwiękiem w słuchawce i wibracją. -->
@@ -2558,11 +2558,16 @@ export default defineComponent({
       <button class="ghost" :disabled="busy" @click="logout">Wyloguj</button>
     </div>
   </div>
-  <div v-else-if="!ready && booting" class="boot" aria-busy="true" aria-label="Wczytywanie">
-    <div class="skel skel-line" style="width:min(320px,60%);height:28px"></div>
-    <div class="skel skel-line" style="width:min(220px,40%)"></div>
-    <div class="boot-grid"><div class="skel skel-hero"></div><div class="skel skel-hero"></div></div>
-    <div class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 5" :key="n" class="skel skel-row"></div></div>
+  <!-- wczytywanie: te same kontenery co strona startowa (powitanie, karta nabożeństwa, kolumny) — treść wchodzi w miejsce szkieletu -->
+  <div v-else-if="!ready && booting" class="kh kh-web boot" aria-busy="true" aria-label="Wczytywanie">
+    <div class="kh-hello"><h1><span class="skel boot-h1"></span></h1><p><span class="skel boot-p"></span></p></div>
+    <article class="hw-feature">
+      <div class="skel boot-visual"></div>
+      <div class="hw-info boot-info"><span class="skel boot-h2"></span><span class="skel boot-p"></span><span class="skel skel-line"></span><span class="skel boot-cta"></span></div>
+    </article>
+    <div class="hw-cols">
+      <section v-for="n in 3" :key="n" class="hw-col"><span class="skel boot-hh"></span><div class="skel-list"><div v-for="k in 3" :key="k" class="skel skel-row"></div></div></section>
+    </div>
   </div>
   <div v-else-if="!ready" class="center login-screen">
     <div class="login-card">
