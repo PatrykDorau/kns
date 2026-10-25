@@ -75,7 +75,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.52 · 25.10.2026'
+const VERSION = '3.53 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -83,13 +83,27 @@ const VERSION = '3.52 · 25.10.2026'
 const CUE_TEXT = { live: 'NA WIZJI', ready: 'PRZYGOTUJ SIĘ', off: 'POZA WIZJĄ' }
 const TONES = { live: [[880, 0, .14], [880, .22, .14]], ready: [[660, 0, .28]], off: [[330, 0, .55]] }
 const BUZZ = { live: [120, 80, 120], ready: [250], off: [500] }
+// sygnał na głos (synteza mowy telefonu) — po krótkim piknięciu
+const SAY = { live: 'Na wizji', ready: 'Przygotuj się', off: 'Poza wizją' }
 const cueTopic = CONFIG.cueTopic || ''
 const CUE_URL = 'https://ntfy.sh/' + cueTopic
 let phoneId = ''
 try { phoneId = localStorage.getItem('kns-phone') || ''; if (!phoneId) { phoneId = uid(); localStorage.setItem('kns-phone', phoneId) } } catch { phoneId = uid() }
 
 function createCamera() {
-  const cue = reactive({ state: 'off', net: '', online: false, sound: false })
+  const remembered = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1' } catch { return d } }
+  const cue = reactive({ state: 'off', net: '', online: false, sound: false, voice: remembered('kns-cue-voice', true) })
+  watch(() => cue.voice, v => { try { localStorage.setItem('kns-cue-voice', v ? '1' : '0') } catch { /* bez zapamiętania */ } })
+  function say(text) {
+    const tts = window.speechSynthesis
+    if (!tts || !cue.voice) return
+    tts.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'pl-PL'; u.rate = 1.05; u.volume = 1
+    const pl = tts.getVoices().find(v => /^pl/i.test(v.lang))
+    if (pl) u.voice = pl
+    tts.speak(u)
+  }
   let source = null, audio = null, wake = null, ackTimer = 0
   const seen = new Set()
   function beep(freq, at, len) {
@@ -104,6 +118,7 @@ function createCamera() {
   function signal(state) {
     if (audio) { audio.resume(); for (const t of TONES[state] || []) beep(...t) }
     if (navigator.vibrate) navigator.vibrate(BUZZ[state] || 0)
+    if (cue.sound) setTimeout(() => say(SAY[state]), state === 'live' ? 420 : 380)
   }
   // Potwierdzenie tylko ostatniego odebranego sygnału (po połączeniu przychodzi naraz kilka starszych).
   function ack(id) {
@@ -150,6 +165,7 @@ function createCamera() {
     audio = new (window.AudioContext || window.webkitAudioContext)()
     beep(660, 0, .12)
     cue.sound = true
+    say('Sygnały włączone') // pierwsze wypowiedzenie musi wyjść z dotknięcia (iPhone) — potem głos działa sam
     keepAwake()
   }
   // Po powrocie do aplikacji: ekran znów nie gaśnie, a zerwane połączenie wraca.
@@ -158,7 +174,7 @@ function createCamera() {
     keepAwake()
     if (source.readyState === EventSource.CLOSED) connect()
   }
-  return { cue, open, close, enableSound, resume }
+  return { cue, open, close, enableSound, resume, say }
 }
 // Godzina i miejsce nabożeństwa — domyślnie zawsze 12:12, Hotel Forza (tak samo jak na komputerze).
 const DEFAULT_TIME = '12:12', DEFAULT_PLACE = 'Hotel Forza'
@@ -2465,7 +2481,7 @@ export default defineComponent({
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, peopleUi, rankName, ranksShown, openRanks, cancelRanks, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushAskMode, pushLater, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
-      camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, openCamera, closeCamera, enableSound: cam.enableSound,
+      camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, cueSay: cam.say, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,
       version: VERSION, offline, showPast, coming, past, shown, logout,

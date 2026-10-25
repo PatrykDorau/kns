@@ -271,3 +271,8 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 .kns-backdrop .kb-back { opacity: .45; }
 @media (max-width: 700px) { .kns-backdrop { height: 64vh; } }
 
+/* przyciski-linki bez marginesu (np. „Wszystkie ogłoszenia”, słowa przy talii kart): bez tła po najechaniu — tło zaczynało się równo z tekstem */
+@media (hover: hover) {
+  button.hw-link:hover:not(:disabled), button.kh-link:hover:not(:disabled), button.link:hover:not(:disabled), .deck-words button:hover:not(:disabled) { background: none !important; }
+  button.hw-link:hover:not(:disabled), button.kh-link:hover:not(:disabled), button.link:hover:not(:disabled) { color: var(--text) !important; text-decoration: underline; text-underline-offset: 4px; }
+}
