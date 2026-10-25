@@ -98,7 +98,7 @@ export default defineComponent({
         </p>
         <h1 class="gx-title" aria-label="Kościół Na Skale">
           <span class="gx-in gx-dim" style="--i: 1" aria-hidden="true">Kościół</span>
-          <span class="gx-in gx-line2" style="--i: 2" aria-hidden="true"><svg class="gx-n" viewBox="0 0 128 80"><defs><mask id="gx-n-cut"><rect width="128" height="80" rx="40" fill="#fff" /><text x="64" y="71" text-anchor="middle">N</text></mask></defs><g mask="url(#gx-n-cut)"><rect width="128" height="80" fill="#2a2826" /><image v-for="(src, i) in PILL" :key="src" :href="src" width="128" height="80" preserveAspectRatio="xMidYMid slice" :class="{ on: i === pill }" /></g></svg>a Skale</span>
+          <span class="gx-in gx-line2" style="--i: 2" aria-hidden="true"><span class="gx-n"><svg viewBox="0 0 75 72.7" aria-hidden="true"><rect width="9.6" height="72.7" /><polygon points="0,0 12.4,0 75,72.7 62.6,72.7" /></svg><span class="gx-n-pill"><img v-for="(src, i) in PILL" :key="src" :src="src" alt="" :class="{ on: i === pill }"></span></span>a Skale</span>
         </h1>
         <p class="gx-lead gx-in" style="--i: 3">Wspólnota, która co niedzielę spotyka się, żeby słuchać Boga i być razem. Przyjdź taki, jaki jesteś.</p>
         <div class="gx-actions gx-in" style="--i: 4">
@@ -239,12 +239,15 @@ body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
 .gx-title { display: flex; flex-direction: column; align-items: center; margin: 0; font: 600 clamp(58px, 9.6vw, 144px)/.94 var(--display); letter-spacing: -.055em; font-feature-settings: "ss01", "cv11"; }
 .gx-title .gx-dim { letter-spacing: -.045em; }
 .gx-line2 { display: inline-flex; align-items: baseline; }
-.gx-n { width: 1.163em; height: .727em; margin-right: .035em; flex: none; align-self: baseline; transform: translateY(.005em); overflow: visible; }
-.gx-n text { font: 600 86px/1 var(--display); letter-spacing: 0; fill: #000; }
-.gx-n image { opacity: 0; transition: opacity 1.4s ease; transform-origin: 50% 50%; }
-.gx-n image.on { opacity: 1; animation: gx-drift 8s ease-in-out infinite alternate; }
-@keyframes gx-drift { from { transform: scale(1.05); } to { transform: scale(1.22) translate(-4px, 2px); } }
-@media (prefers-reduced-motion: reduce) { .gx-n image.on { animation: none; } }
+/* „N”: lewa i ukośna kreska jak w literze, prawa wyrasta w pigułkę z grafiką (po pojawieniu się nazwy) */
+.gx-n { position: relative; display: inline-block; width: .75em; height: .727em; margin-right: .03em; flex: none; }
+.gx-n svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.gx-n-pill { position: absolute; top: 0; right: 0; bottom: 0; width: .096em; border-radius: 999px; background: #fff; overflow: hidden; transition: width 1.1s cubic-bezier(.65, 0, .25, 1) .9s, background .4s ease 1s; }
+.gx.ready .gx-n-pill { width: .36em; background: #2a2826; }
+.gx-n-pill img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.4s ease; }
+.gx.ready .gx-n-pill img.on { opacity: 1; animation: gx-drift 8s ease-in-out infinite alternate; }
+@keyframes gx-drift { from { transform: scale(1.1); } to { transform: scale(1.3) translateY(-3%); } }
+@media (prefers-reduced-motion: reduce) { .gx-n-pill { transition: width .6s ease .5s, background .4s ease .5s; } .gx.ready .gx-n-pill img.on { animation: none; } }
 .gx-lead { margin: 26px 0 0; max-width: 36ch; font-size: 18px; line-height: 1.5; color: #c4c1bd; text-wrap: balance; }
 .gx-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
 /* wejście po narysowaniu góry: po kolei, z lekkim rozmyciem */
