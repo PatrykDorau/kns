@@ -35,7 +35,8 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
           <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
           <small v-else class="muted">{{ live.encoder }}</small>
         </div>
-        <DeskHealth v-if="liveOn" />
+        <!-- statystyki: w prawej kolumnie (pionowo); gdy kolumna zwinięta — tutaj, poziomo -->
+        <DeskHealth v-if="liveOn && settings.railFolded" />
         <template v-if="engine === 'studio'">
           <!-- 1. podgląd i wizja, „Na wizję”, sceny; 2. ustawienia wybranej sceny; 3. nakładki; 4. co gra na wizji; 5. źródła -->
           <DeskMonitors />
@@ -64,6 +65,7 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
       </nav>
       <div v-else key="full" class="desk-right-full">
       <button class="rail-fold" title="Zwiń kolumnę — więcej miejsca na podgląd i wizję" aria-label="Zwiń kolumnę" @click="settings.railFolded = true"><Icon name="right" /></button>
+      <DeskHealth v-if="liveOn" vertical />
       <DeskYouTube />
       <DeskSettings />
       <slot name="side" />

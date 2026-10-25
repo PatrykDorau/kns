@@ -61,6 +61,7 @@ export interface Settings {
   bannerQueue?: { id: string, style: string, color: string, title: string, sub: string, note: string, qr: string, link: string }[] // kolejka banerów (slajdy w kółko)
   bannerCycle?: boolean // przełączaj banery z kolejki w kółko
   bannerSec?: number // co ile sekund następny baner
+  healthFolded?: boolean // statystyki transmisji w prawej kolumnie — zwinięte do samej oceny
   endLook?: { bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: 'cards' | 'side' | 'center' | 'image', pic?: string }
   donateAccount: string
   donatePhone: string

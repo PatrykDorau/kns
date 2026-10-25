@@ -6,17 +6,20 @@ import { DH_ICON } from '@/composables/stream/useStreamHealth'
 
 // Stan transmisji: ogólna ocena, wysyłanie (wykres), opóźnienie, klatki, internet, YouTube, dźwięk
 // (miernik i zmiana źródła w trakcie); na dole podpowiedź przy najważniejszym problemie.
+// vertical — w prawej kolumnie, jedna pod drugą; da się zwinąć do samej oceny (settings.healthFolded).
+const props = defineProps<{ vertical?: boolean }>()
 const { live, health, liveBc, engine, studioDevices, devices, chooseAudio, switchSimpleAudio, rateHistory, sparkPoints, sparkTarget } = useDesk()
 </script>
 
 <template>
-  <div class="dh" :class="'dh-' + health.level">
+  <div class="dh" :class="['dh-' + health.level, { 'dh-vert': props.vertical, 'dh-folded': props.vertical && settings.healthFolded }]">
     <div class="dh-row">
       <div class="dh-sum">
         <i class="dh-led"></i>
         <span><b>{{ health.title }}</b><small>{{ live.time || 'łączę…' }}{{ liveBc?.viewers != null ? ' · ' + liveBc.viewers + ' ogląda' : '' }}</small></span>
+        <button v-if="props.vertical" class="icon dh-fold" :aria-expanded="!settings.healthFolded" :title="settings.healthFolded ? 'Pokaż statystyki transmisji' : 'Zwiń statystyki'" :aria-label="settings.healthFolded ? 'Pokaż statystyki' : 'Zwiń statystyki'" @click="settings.healthFolded = !settings.healthFolded">{{ settings.healthFolded ? '▾' : '▴' }}</button>
       </div>
-      <div v-for="c in health.chips" :key="c.id" class="dh-cell" :class="['s-' + (c.cls || 'none'), 'dh-' + c.id]" :title="c.tip">
+      <div v-for="c in props.vertical && settings.healthFolded ? [] : health.chips" :key="c.id" class="dh-cell" :class="['s-' + (c.cls || 'none'), 'dh-' + c.id]" :title="c.tip">
         <svg class="dh-ic" viewBox="0 0 24 24" aria-hidden="true"><path v-for="(d, k) in DH_ICON[c.id]" :key="k" :d="d" /></svg>
         <!-- dźwięk: poziom, stan i wybór źródła (zmiana także w trakcie transmisji) -->
         <span v-if="c.id === 'audio'" class="dh-txt">

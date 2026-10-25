@@ -1364,3 +1364,14 @@ select { padding-right: 36px !important; }
 .desk-bn-queue .bn-q { display: inline-flex; align-items: center; gap: 6px; }
 .desk-bn-queue .bn-q i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .desk-bn-queue .bn-cycle { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
+/* statystyki transmisji w prawej kolumnie: jedna pod drugą, zwijane */
+.dh.dh-vert { margin: 0; }
+.dh-vert .dh-row { flex-direction: column; }
+.dh-vert .dh-row > * { flex: none; border-right: 0; border-bottom: 1px solid var(--line); } /* w kolumnie podstawa flex to wysokość — bez niej */
+.dh-vert .dh-row > :last-child { border-bottom: 0; }
+.dh-vert .dh-sum { min-width: 0; }
+.dh-vert .dh-sum > span { flex: 1; min-width: 0; }
+.dh-vert .dh-cell { display: flex; align-items: center; gap: 10px; }
+.dh-vert .dh-txt { flex: 1; min-width: 0; }
+.dh-vert .dh-spark { width: 70px; flex: none; }
+.dh-fold { flex: none; width: 28px; height: 28px; padding: 0; display: grid; place-items: center; font-size: 13px; color: var(--muted); }
