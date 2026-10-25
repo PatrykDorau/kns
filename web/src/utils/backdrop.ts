@@ -124,8 +124,8 @@ export function startBackdrop(speed = 1): number {
     P(hatch(SIDE_R3, [0.6, 0.8], [10, 26], 9), 'kb-hatch kb-light', 4.4, 1.4),
     P(hatch(SIDE_R2, [-0.2, 0.98], [10, 30], 13), 'kb-hatch kb-light', 4.5, 1.8),
   ]
-  // krzyż: dwie pewne kreski z poświatą
-  const cross = `<g class="kb-cross-g">${P(line(jag([[700, 302], [700, 196]], 0.01, 2)), 'kb-cross', 5.6, 0.6)}${P(line(jag([[672, 228], [728, 228]], 0.01, 2)), 'kb-cross', 6.1, 0.4)}</g>`
+  // krzyż: dwie proste kreski (bez „ręcznego” drżenia — krzyż ma stać prosto) z poświatą
+  const cross = `<g class="kb-cross-g">${P('M700 302 L700 196', 'kb-cross', 5.6, 0.6)}${P('M672 228 L728 228', 'kb-cross', 6.1, 0.4)}</g>`
   const el = document.createElement('div')
   el.className = 'kns-backdrop'
   el.innerHTML = `<svg viewBox="-560 160 2520 840" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">${parts.join('')}${cross}</svg>`

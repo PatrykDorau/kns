@@ -49,7 +49,9 @@ export default defineComponent({
 
     // etapy: rysowanie góry → tytuł i przyciski → otwarta strona (ekran odjechał do góry)
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches
-    const ready = ref(false), open = ref(false)
+    // bez animacji (ustawienie „ogranicz ruch”) — bez czekania: góra od razu narysowana, nazwa od razu widoczna
+    const ready = ref(still), open = ref(false)
+    if (still) document.body.classList.add('guest-ready')
     const page = ref(null)
     let timer = 0
     const body = document.body.classList
@@ -72,7 +74,8 @@ export default defineComponent({
     const touchMove = e => { if (!open.value && touchY - e.touches[0].clientY > 50) discover() }
     const key = e => { if (!open.value && ['ArrowDown', 'PageDown', ' '].includes(e.key) && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); discover() } }
     onMounted(() => {
-      // góra z tła rysuje się od nowa, szybciej — to ekran wczytywania (też przy „ogranicz ruch”: sama kreska, nic się nie przesuwa)
+      if (still) return
+      // góra z tła rysuje się od nowa, szybciej — to ekran wczytywania
       timer = window.setTimeout(show, redrawBackdrop(0.42) + 150)
     })
     onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
@@ -206,15 +209,12 @@ body.guest-page #app { max-width: none; padding-bottom: 0; }
 body.guest-page #app > .gx { max-width: none !important; margin: 0 !important; }
 body.guest-page:not(.guest-open) { overflow: hidden; }
 /* pierwszy ekran: góra rysuje się na cały ekran w tle; po narysowaniu przygasa, a na niej pojawia się nazwa */
-body.guest-page .kns-backdrop { height: 94svh; opacity: .6; transition: transform .95s cubic-bezier(.7, 0, .2, 1), opacity 1.2s ease; }
+body.guest-page .kns-backdrop { height: 94svh; opacity: .6; transition: transform .95s cubic-bezier(.7, 0, .2, 1), opacity 1.2s ease, height .95s cubic-bezier(.7, 0, .2, 1); }
 body.guest-ready .kns-backdrop { opacity: .3; }
-body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
-@media (max-width: 760px) { body.guest-page .kns-backdrop { height: 86svh; } }
-@media (prefers-reduced-motion: reduce) {
-  body.guest-page .kns-backdrop { transition: opacity .4s; }
-  body.guest-page .kns-backdrop path { animation-name: kb-draw !important; animation-fill-mode: forwards !important; stroke-dashoffset: 1; }
-  body.guest-open .kns-backdrop { transform: none; }
-}
+/* po „Odkryj nas” góra zostaje w tle pod treścią (jak w aplikacji) */
+body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
+@media (max-width: 760px) { body.guest-page .kns-backdrop { height: 86svh; } body.guest-open .kns-backdrop { height: 64vh; } }
+@media (prefers-reduced-motion: reduce) { body.guest-page .kns-backdrop { transition: none; } }
 </style>
 
 <style scoped>
@@ -254,7 +254,7 @@ body.guest-open .kns-backdrop { transform: translateY(-100svh); opacity: 0; }
 
 /* ---------- strona dla gości ---------- */
 /* arkusz z treścią: jedzie od dołu razem z pierwszym ekranem, który odjeżdża do góry */
-.gx-page { position: relative; z-index: 6; min-height: 100svh; background: var(--bg); border-radius: 28px 28px 0 0; visibility: hidden; transform: translateY(100svh); pointer-events: none; transition: transform .95s var(--ease), border-radius .95s var(--ease), visibility 0s .95s; }
+.gx-page { position: relative; z-index: 6; min-height: 100svh; background: transparent; border-radius: 28px 28px 0 0; visibility: hidden; transform: translateY(100svh); pointer-events: none; transition: transform .95s var(--ease), border-radius .95s var(--ease), visibility 0s .95s; }
 .gx.open .gx-page { visibility: visible; transform: none; border-radius: 0; pointer-events: auto; transition: transform .95s var(--ease), border-radius .95s var(--ease); }
 .gx-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px var(--m); background: rgba(14, 13, 12, .82); backdrop-filter: blur(14px); }
 .gx-logo { border: 0; background: none; padding: 6px 0; color: #8c8985; font: 600 18px/1 var(--display); letter-spacing: -.02em; cursor: pointer; }
