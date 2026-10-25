@@ -84,10 +84,11 @@ const OUT_R2R: P[] = [[1800, 522], [1810, 572], [1796, 620]]
 const FAR_M_L: P[] = [[390, 520], [430, 488], [468, 508], [506, 474], [546, 500]]
 const FAR_M_R: P[] = [[820, 470], [862, 446], [900, 476], [940, 452], [988, 492], [1030, 470], [1066, 500]]
 
-export function startBackdrop() {
-  if (document.querySelector('.kns-backdrop')) return
+// speed < 1 — szybciej (strona gościa rysuje górę od nowa jako ekran wczytywania); zwraca czas rysowania w ms
+export function startBackdrop(speed = 1): number {
+  if (document.querySelector('.kns-backdrop')) return 0
   seed = 11
-  const P = (d: string, cls: string, delay: number, dur: number) => `<path class="${cls}" pathLength="1" style="animation-delay:${delay}s;animation-duration:${dur}s" d="${d}" />`
+  const P = (d: string, cls: string, delay: number, dur: number) => `<path class="${cls}" pathLength="1" style="animation-delay:${+(delay * speed).toFixed(2)}s;animation-duration:${+(dur * speed).toFixed(2)}s" d="${d}" />`
   const edge = (pts: P[], delay: number, dur: number, cls = 'kb-edge', rough = 0.16) => P(line(jag(pts, rough)), cls, delay, dur) + P(line(jag(pts, rough * 1.3)), cls + ' kb-2', delay + 0.4, dur)
   const parts = [
     // dalekie pasma w tle
@@ -129,4 +130,9 @@ export function startBackdrop() {
   el.className = 'kns-backdrop'
   el.innerHTML = `<svg viewBox="-560 160 2520 840" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">${parts.join('')}${cross}</svg>`
   document.body.prepend(el)
+  return 6500 * speed
+}
+export function redrawBackdrop(speed = 1): number {
+  document.querySelector('.kns-backdrop')?.remove()
+  return startBackdrop(speed)
 }

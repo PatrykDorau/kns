@@ -77,7 +77,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.59 · 26.10.2026'
+const VERSION = '3.60 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2548,7 +2548,7 @@ export default defineComponent({
   <!-- Komputer z Windows: pełna aplikacja (rzutnik, stream, organizacja) z GitHub Releases. -->
   <!-- Instalacja: jeden niski pasek — ikona, tytuł, „Pobierz”. -->
   <!-- Aplikacja na komputer (Windows) — w „Więcej”, nie na stronie głównej. -->
-  <div v-if="!desktop && !installed && !current && !currentEvent && !tplView && !currentProto && !protoView && !currentAnn && !annView" class="getapp" :class="{ help: showHelp }">
+  <div v-if="!desktop && !installed && (ready || showLogin) && !current && !currentEvent && !tplView && !currentProto && !protoView && !currentAnn && !annView" class="getapp" :class="{ help: showHelp }">
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Zainstaluj aplikację</b></span>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
@@ -2716,7 +2716,6 @@ export default defineComponent({
   <ServiceEditView v-else />
 
   <!-- Strona dla gości (bez konta albo przed zatwierdzeniem): tylko „Posłuchaj — odkryj nas”. -->
-  <PublicListen v-if="!ready && !booting && !embedded && !showLogin && (listenYt || listenSp || isChannelLink(listen.youtube))" />
 
 
   <!-- Skład zespołu: wybór osoby ze służby muzycznej (instrument wybiera się potem w wierszu) -->
