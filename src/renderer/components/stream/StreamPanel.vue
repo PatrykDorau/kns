@@ -6,7 +6,7 @@ import Brand from '@/components/common/Brand.vue'
 import Countdown from '@/components/display/Countdown.vue'
 import StreamDesk from '@/components/stream/StreamDesk.vue'
 import { reconnectCamera } from '@/services/studio'
-import { api, cameraLock, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from '@/stores'
+import { api, cameraLock, cloud, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from '@/stores'
 import { addMinutes, categoryName } from '@web/services/church'
 
 // Stream: podgląd wszystkich kamer podłączonych do komputera i dane nabożeństwa pod ręką.
@@ -63,6 +63,7 @@ const cueRemote = ref({ phones: 0, got: 0, error: '' })
 // Strona w sieci lokalnej nie potwierdza odbioru — jej telefony liczą się jako „mają sygnał”.
 const phones = computed(() => cueRemote.value.phones + cueClients.value)
 const got = computed(() => cueRemote.value.got + cueClients.value)
+const cuePushed = ref(null) // ostatnia wysyłka sygnału jako powiadomienia: { sent } albo { error }
 const quota = ref(null) // { used, limit, left } — darmowy limit wiadomości ntfy na dziś
 const cueState = ref('off')
 let offCue = null
@@ -77,6 +78,8 @@ async function applyCue() {
 async function sendCue(state) {
   if (!settings.cue) return
   cueState.value = state
+  // równolegle: ntfy (proces główny) i powiadomienie na telefony zapisane na sygnały (baza → /api/push)
+  cloud?.cuePush?.(state).then(r => { cuePushed.value = r?.error ? { error: r.error } : { sent: r?.sent || 0 } })
   await api.sendCue(state)
 }
 function onCueKey(e) {
@@ -249,6 +252,9 @@ onBeforeUnmount(() => {
               <span v-if="settings.cue" class="cue-clients" :class="{ none: !phones || got < phones }">
                 <template v-if="!phones">Żaden telefon nie jest połączony</template>
                 <template v-else>Telefony: {{ phones }} · {{ got === phones ? 'sygnał odebrany ✓' : 'odebrało ' + got + ' z ' + phones + '…' }}</template>
+              </span>
+              <span v-if="settings.cue && cuePushed" class="cue-clients" :class="{ none: cuePushed.error || !cuePushed.sent }" :title="cuePushed.error || 'Telefony, które na ekranie Kamera włączyły „Sygnały jako powiadomienie” (także zegarki)'">
+                {{ cuePushed.error ? 'Powiadomienie: ' + cuePushed.error : 'Powiadomienia: ' + cuePushed.sent + (cuePushed.sent === 1 ? ' telefon' : ' telefony') }}
               </span>
             </div>
             <template v-if="!settings.cueFolded">

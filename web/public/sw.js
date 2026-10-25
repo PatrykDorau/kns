@@ -1,7 +1,7 @@
 // Pozwala zainstalować stronę jako aplikację i otworzyć ją bez zasięgu (z ostatnio pobranej wersji).
 // Pliki strony: najpierw sieć (żeby zawsze była najnowsza wersja), a bez internetu — kopia.
 // Dane (Dysk Google, baza Supabase) nigdy nie są tu zapisywane — zawsze idą prosto do źródła.
-const CACHE = 'kns-nabo-v166'
+const CACHE = 'kns-nabo-v167'
 // Kod i style strony (assets/*) mają w nazwie skrót treści — zapisują się do kopii przy pierwszym wczytaniu.
 const SHELL = ['./', './index.html', './swit.svg', './pole.svg', './jezioro.svg', './noc.svg', './papier.svg', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png', './badge.png', './favicon.png', './maskable-192.png', './maskable-512.png']
 const LIBRARY = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net)\//
@@ -41,8 +41,10 @@ self.addEventListener('fetch', event => {
 self.addEventListener('push', event => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { data = { body: event.data?.text() } }
+  // sygnał kamery: własny znacznik (nowy podmienia poprzedni), wibracja według stanu (spóźnione odrzuca już serwer — ważność 30 s)
   event.waitUntil(self.registration.showNotification(data.title || 'Nabożeństwa', {
-    body: data.body || '', icon: 'icon-192.png', badge: 'badge.png', tag: 'kns-przypomnienie', renotify: true, data: { url: data.url || './' },
+    body: data.body || '', icon: 'icon-192.png', badge: 'badge.png', tag: data.tag || 'kns-przypomnienie', renotify: true, data: { url: data.url || './' },
+    ...(data.vibrate ? { vibrate: data.vibrate } : {}), ...(data.cue === 'live' ? { requireInteraction: true } : {}),
   }))
 })
 // Dotknięcie powiadomienia otwiera aplikację (albo przełącza na już otwartą).

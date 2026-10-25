@@ -11,6 +11,8 @@
 //                    (wiadomość, zgłoszenie, decyzja lidera…), także na telefony odbiorców (inbox_push_batch).
 //   POST /api/push { ministry: true, token, id } → liderzy służby, do której ta osoba właśnie się zgłosiła
 //                    (ministry_targets). Wpis w powiadomieniach w aplikacji robi sama baza — telefon to dodatek.
+//   POST /api/push { cue: true, token, state: live|ready|off } → sygnał dla kamerzysty (aplikacja na komputer, służba
+//                    techniczna) na telefony zapisane na sygnały (cue_targets); jedno podmieniane powiadomienie, ważne 30 s.
 // Zmienne środowiskowe w Netlify (Project configuration → Environment variables):
 //   VAPID_PRIVATE — klucz prywatny (z: node skrypty/klucze-powiadomien.cjs)
 //   PUSH_SECRET   — hasło, które zna tylko skrypt przypomnienia
@@ -64,10 +66,10 @@ export function encrypt(subscription, text) {
   return Buffer.concat([header, asPublic, body])
 }
 
-export async function sendPush(subscription, payload, keys) {
+export async function sendPush(subscription, payload, keys, ttl = 2 * 86400) {
   const res = await fetch(subscription.endpoint, {
     method: 'POST',
-    headers: { TTL: String(2 * 86400), Urgency: 'high', 'Content-Encoding': 'aes128gcm', 'Content-Type': 'application/octet-stream', Authorization: vapidAuth(subscription.endpoint, keys) },
+    headers: { TTL: String(ttl), Urgency: 'high', 'Content-Encoding': 'aes128gcm', 'Content-Type': 'application/octet-stream', Authorization: vapidAuth(subscription.endpoint, keys) },
     body: encrypt(subscription, JSON.stringify(payload)),
   })
   return res.status
@@ -96,6 +98,7 @@ export default async function handler(req) {
   if (data.review === true) return notify({ ...data, review: true }, keys)
   if (data.inbox === true) return inboxPush(data, keys)
   if (data.ministry === true) return notify({ ...data, ministry: true, review: false }, keys)
+  if (data.cue === true) return cuePush(data, keys)
   if (!process.env.PUSH_SECRET || !same(data.secret, process.env.PUSH_SECRET)) return json({ error: 'Brak dostępu.' }, 403)
   const payload = { title: String(data.title || 'Nabożeństwa'), body: String(data.body || ''), url: String(data.url || '/') }
   let sent = 0
@@ -131,6 +134,32 @@ async function inboxPush(data, keys) {
   }))
   if (gone.length) await rpc('forget_push_devices', { ids: gone }).catch(() => {})
   return json({ sent })
+}
+
+// Sygnał kamery: jedno powiadomienie „Kamera: …” (ten sam znacznik — nowe podmienia poprzednie), wibracja zależna od stanu.
+// Krótka ważność: sygnał, który nie doszedł w 30 s, jest już nieaktualny.
+const CUE = { live: ['NA WIZJI', [300, 120, 300, 120, 300]], ready: ['PRZYGOTUJ SIĘ', [400]], off: ['POZA WIZJĄ', [150]] }
+async function cuePush(data, keys) {
+  const token = String(data.token || ''), cue = CUE[data.state]
+  if (!token || !cue) return json({ error: 'Niepoprawny sygnał.' }, 400)
+  const rpc = (name, body) => fetch(SUPABASE.url + '/rest/v1/rpc/' + name, {
+    method: 'POST', headers: { apikey: SUPABASE.key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  const res = await rpc('cue_targets', {}).catch(() => null)
+  if (!res?.ok) return json({ error: (await res?.json().catch(() => null))?.message || 'Brak dostępu.' }, 403)
+  const devices = await res.json()
+  const payload = { title: 'Kamera: ' + cue[0], body: data.state === 'live' ? 'Jesteś na wizji.' : '', url: './#kamera', tag: 'kns-kamera', vibrate: cue[1], cue: data.state, at: Date.now() }
+  let sent = 0
+  const gone = []
+  await Promise.all(devices.map(async ({ id, subscription }) => {
+    try {
+      const status = await sendPush(subscription, payload, keys, 30)
+      if (status === 404 || status === 410) gone.push(id)
+      else if (status < 300) sent++
+    } catch { /* jeden telefon nie psuje reszty */ }
+  }))
+  if (gone.length) await rpc('forget_push_devices', { ids: gone }).catch(() => {})
+  return json({ sent, devices: devices.length })
 }
 
 // Powiadomienie do wybranych osób — wywołuje aplikacja osoby z prawem edycji (jej token logowania).

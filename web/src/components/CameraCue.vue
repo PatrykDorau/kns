@@ -29,6 +29,12 @@ export default defineComponent({
   <p class="net" :class="{ on: cue.online }">{{ cue.net }}</p>
   <div v-if="watchOpen" class="cam-watch" role="dialog" aria-label="Sygnały na zegarku">
     <b>Sygnały na zegarku i przy zablokowanym telefonie</b>
+    <template v-if="pushSupported">
+      <label class="cam-push"><input type="checkbox" :checked="cueNotify.on" :disabled="cueNotify.busy" @change="toggleCueNotify">Sygnały jako powiadomienie</label>
+      <small>Jedno powiadomienie „Kamera: …”, które zmienia się z każdym sygnałem (z wibracją) — także przy zablokowanym ekranie i na zegarku połączonym z telefonem.</small>
+      <p v-if="cueNotify.error" class="cam-push-err">{{ cueNotify.error }}</p>
+      <b class="cam-alt">Zapasowo: aplikacja ntfy</b>
+    </template>
     <ol>
       <li>Zainstaluj darmową aplikację <b>ntfy</b> na telefonie. <a class="button small" :href="store" target="_blank" rel="noopener">Pobierz ntfy</a></li>
       <li>Dodaj sygnały kamery w ntfy. <a class="button small primary" :href="subscribe">Subskrybuj sygnały</a>

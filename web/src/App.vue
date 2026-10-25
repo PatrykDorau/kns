@@ -75,7 +75,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.53 · 25.10.2026'
+const VERSION = '3.54 · 25.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -199,6 +199,7 @@ export default defineComponent({
       camera.value = true
       history.replaceState(null, '', '#kamera')
       cam.open()
+      loadCueNotify()
     }
     function closeCamera() {
       camera.value = false
@@ -2237,6 +2238,23 @@ export default defineComponent({
         if (e.auth) { ready.value = false; gate.value = '' }
       } finally { push.busy = false; clearTimeout(slowTimer); push.slow = '' }
     }
+    // Kamera: sygnały jako powiadomienie (jedno podmieniane, także przy zablokowanym ekranie i na zegarku) — kamera-push.sql
+    const cueNotify = reactive({ on: false, busy: false, error: '' })
+    async function loadCueNotify() {
+      if (!api.enabled || !drive.cuePhoneOn || !push.supported) return
+      await checkPush().catch(() => {})
+      try { cueNotify.on = push.on && await drive.cuePhoneOn(pushId) } catch { /* bez stanu */ }
+    }
+    async function toggleCueNotify() {
+      cueNotify.busy = true; cueNotify.error = ''
+      try {
+        if (cueNotify.on) { await drive.cuePhone(pushId, false); cueNotify.on = false; return }
+        if (push.needsInstall) { cueNotify.error = 'Na iPhonie: Udostępnij → „Do ekranu początkowego”, otwórz aplikację z ikony i włącz ponownie.'; return }
+        if (!push.on) await enablePush()
+        if (!push.on) { cueNotify.error = push.error || 'Zezwól na powiadomienia, żeby dostawać sygnały.'; return }
+        await drive.cuePhone(pushId, true); cueNotify.on = true
+      } catch (e) { cueNotify.error = e.message || String(e) } finally { cueNotify.busy = false }
+    }
     // Próbne powiadomienie: prawdziwa wysyłka przez serwer, tylko na ten telefon.
     async function testPush() {
       push.busy = true; push.error = ''
@@ -2481,7 +2499,7 @@ export default defineComponent({
       api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, peopleUi, rankName, ranksShown, openRanks, cancelRanks, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushAskMode, pushLater, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
-      camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, cueSay: cam.say, openCamera, closeCamera, enableSound: cam.enableSound,
+      camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, cueSay: cam.say, cueNotify, toggleCueNotify, pushSupported: push.supported, openCamera, closeCamera, enableSound: cam.enableSound,
       embedded, chromeLink,
       installed, ios, canPrompt, showHelp, install, desktop, desktopApp, hideDesktop, dismissDesktop,
       version: VERSION, offline, showPast, coming, past, shown, logout,

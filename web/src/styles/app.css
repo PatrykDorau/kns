@@ -1224,3 +1224,7 @@ html, body { overflow-x: clip; } /* odlatujące karty talii nie poszerzają stro
 .camera .cam-watch code { padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .1); }
 .camera .cam-watch-note { color: #b8b0a6; font-size: 13px; }
 .camera .cam-watch > button { align-self: flex-end; }
+.camera .cam-push { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; }
+.camera .cam-push input { width: 22px; height: 22px; }
+.camera .cam-push-err { margin: 0; color: #ff9b93; font-size: 13.5px; }
+.camera .cam-alt { margin-top: 6px; font-size: 14px; color: #b8b0a6; }

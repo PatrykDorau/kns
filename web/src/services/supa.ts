@@ -319,6 +319,9 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
     },
     // telefon przechodzi na zalogowane konto (także po zmianie konta na tym samym telefonie) — push_claim
     async savePush(id, data) { check(await sb.rpc('push_claim', { did: id, d: data })) },
+    // sygnały kamery jako powiadomienie (kamera-push.sql) — ten telefon włącza / wyłącza, sprawdza
+    async cuePhone(id, on) { return check(await sb.rpc('cue_phone_set', { did: id, turn_on: !!on })) },
+    async cuePhoneOn(id) { return !!check(await sb.rpc('cue_phone_on', { did: id })) },
     async removePush(id) { check(await sb.from('push_devices').delete().eq('id', id)) },
 
     async saveEvent(ev, base = 0, force = false) {

@@ -224,6 +224,16 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
       const out = (await res?.json().catch(() => ({}))) || {}
       return { ...(res?.ok ? out : { sent: 0 }), inApp }
     }),
+    // Sygnał kamery jako powiadomienie na telefony służby technicznej, które go włączyły (kamera-push.sql, /api/push).
+    // ntfy idzie niezależnie (proces główny) — to druga, równoległa droga. Zwraca { sent } albo { error }.
+    cuePush: (state, quiet = false) => safe(async () => {
+      if (quiet) return { sent: 0 }
+      const s = await session()
+      const res = await fetch(CLOUD.pushUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cue: true, token: s.access_token, state }) })
+      const out = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(out.error || 'Powiadomienie nie poszło (' + res.status + ').')
+      return out
+    }),
     // Powiadomienia w aplikacji (dzwonek).
     inbox: () => safe(async () => ({ list: check(await sb.from('inbox').select('id,title,body,url,created,read').order('created', { ascending: false }).range(0, 49)) || [] })),
     inboxRead: ids => safe(async () => { if (ids.length) check(await sb.from('inbox').update({ read: true }).in('id', ids)); return { ok: true } }),
