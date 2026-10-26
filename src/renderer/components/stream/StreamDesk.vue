@@ -35,8 +35,8 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
           <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
           <small v-else class="muted">{{ live.encoder }}</small>
         </div>
-        <!-- statystyki: w prawej kolumnie (pionowo); gdy kolumna zwinięta — tutaj, poziomo -->
-        <DeskHealth v-if="liveOn && settings.railFolded" />
+        <!-- statystyki: w prawej kolumnie; gdy zwinięta — pod jej przyciskami, a tu tylko podpowiedź o problemie -->
+        <DeskHealth v-if="liveOn && settings.railFolded" alert />
         <template v-if="engine === 'studio'">
           <!-- 1. podgląd i wizja, „Na wizję”, sceny; 2. ustawienia wybranej sceny; 3. nakładki; 4. co gra na wizji; 5. źródła -->
           <DeskMonitors />
@@ -62,6 +62,7 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
       <nav v-if="settings.railFolded" key="rail" class="desk-rail" aria-label="Zwinięta kolumna">
         <button class="rail-btn rail-toggle" :class="{ live: liveOn }" :title="liveOn ? 'Rozwiń kolumnę — transmisja NA ŻYWO' : 'Rozwiń kolumnę'" aria-label="Rozwiń kolumnę" @click="settings.railFolded = false"><Icon name="left" /><i v-if="liveOn" class="rail-dot"></i></button>
         <slot name="rail" :open="unrail" />
+        <DeskHealth v-if="liveOn" rail />
       </nav>
       <div v-else key="full" class="desk-right-full">
       <button class="rail-fold" title="Zwiń kolumnę — więcej miejsca na podgląd i wizję" aria-label="Zwiń kolumnę" @click="settings.railFolded = true"><Icon name="right" /></button>

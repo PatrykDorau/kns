@@ -7,12 +7,22 @@ import { DH_ICON } from '@/composables/stream/useStreamHealth'
 // Stan transmisji: ogólna ocena, wysyłanie (wykres), opóźnienie, klatki, internet, YouTube, dźwięk
 // (miernik i zmiana źródła w trakcie); na dole podpowiedź przy najważniejszym problemie.
 // vertical — w prawej kolumnie, jedna pod drugą; da się zwinąć do samej oceny (settings.healthFolded).
-const props = defineProps<{ vertical?: boolean }>()
+// rail — w zwiniętej kolumnie pod przyciskami: ikonka i wartość (opis w podpowiedzi); alert — sama podpowiedź o problemie.
+const props = defineProps<{ vertical?: boolean, rail?: boolean, alert?: boolean }>()
 const { live, health, liveBc, engine, studioDevices, devices, chooseAudio, switchSimpleAudio, rateHistory, sparkPoints, sparkTarget } = useDesk()
 </script>
 
 <template>
-  <div class="dh" :class="['dh-' + health.level, { 'dh-vert': props.vertical, 'dh-folded': props.vertical && settings.healthFolded }]">
+  <p v-if="props.alert" v-show="health.alert" class="dh-alert dh-alert-solo" :class="health.alert?.cls" role="status"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{{ health.alert?.text }}</p>
+  <div v-else-if="props.rail" class="dh-rail" :class="'dh-' + health.level" role="group" aria-label="Stan transmisji">
+    <span class="dh-rail-sum" :title="health.title + (liveBc?.viewers != null ? ' · ' + liveBc.viewers + ' ogląda' : '')"><i class="dh-led"></i><small>{{ live.time || '…' }}</small><small v-if="liveBc?.viewers != null">{{ liveBc.viewers }} ogl.</small></span>
+    <span v-for="c in health.chips" :key="c.id" class="dh-rail-cell" :class="'s-' + (c.cls || 'none')" :title="c.label + ': ' + c.value + (c.tip ? ' — ' + c.tip : '')">
+      <svg class="dh-ic" viewBox="0 0 24 24" aria-hidden="true"><path v-for="(d, k) in DH_ICON[c.id]" :key="k" :d="d" /></svg>
+      <i v-if="c.id === 'audio' && engine === 'studio'" class="dh-meter" aria-hidden="true"><i :style="{ width: Math.max(0, Math.min(100, (studio.audioDb + 60) / 60 * 100)) + '%' }"></i></i>
+      <b>{{ c.value }}</b>
+    </span>
+  </div>
+  <div v-else class="dh" :class="['dh-' + health.level, { 'dh-vert': props.vertical, 'dh-folded': props.vertical && settings.healthFolded }]">
     <div class="dh-row">
       <div class="dh-sum">
         <i class="dh-led"></i>
