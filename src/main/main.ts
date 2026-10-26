@@ -1072,6 +1072,8 @@ app.whenReady().then(() => {
   ipcMain.handle('cloud:idToken', () => viaGoogle(() => gdrive.idToken()))
   // wbudowana strona: adres i token Google tylko dla ramki z adresu kns-nabo
   ipcMain.handle('web:url', () => WEB_URL)
+  // wylogowanie: dane logowania wbudowanej strony (baza, Google) — bez nich strona nie zaloguje się sama z powrotem
+  ipcMain.handle('web:clear', () => session.fromPartition('persist:kns-web').clearStorageData({ storages: ['localstorage', 'indexdb', 'cookies'] }).then(() => true))
   ipcMain.handle('web:idToken', async e => {
     if (!isWeb(e.senderFrame?.url || '')) return null
     const r = await viaGoogle(() => gdrive.idToken())

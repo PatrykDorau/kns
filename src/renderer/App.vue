@@ -51,9 +51,18 @@ const initials = computed(() => (access.name || access.email).split(/[\s@.]+/).f
 const visibleTiles = computed(() => TILES.filter(([id]) => ready.value && canUse(id)))
 // Ekran startowy = strona kns-nabo; z jej kafelków — Rzutnik i Stream (ekrany aplikacji).
 const shell = ref(null)
-function openNative(next) { if (['display', 'stream'].includes(next)) choose(next) }
+// Rzutnik/Stream z kafelka strony: strona bywa zalogowana, a aplikacja nie (wygasłe logowanie Google) — wtedy
+// sprawdzamy dostęp jeszcze raz, w razie potrzeby prosimy o zalogowanie, a bez dostępu mówimy dlaczego (nie po cichu).
+async function openNative(next) {
+  if (!['display', 'stream'].includes(next)) return
+  if (!canUse(next)) await refreshAccess().catch(() => {})
+  if (!canUse(next) && (!access.status || googleExpired.value)) { await loginGoogle(); await refreshAccess().catch(() => {}) }
+  if (canUse(next)) choose(next)
+  else alert((next === 'display' ? 'Rzutnik' : 'Stream') + ' — ' + (accessReason(next) || 'brak dostępu') + '.' + (access.error ? ' ' + access.error : ''))
+}
 async function webLogin() { await loginGoogle(); shell.value?.reload() }
-async function webLogout() { await logoutGoogle(); shell.value?.reload() }
+// wylogowanie: aplikacja i zapamiętane logowanie strony w środku (inaczej strona od razu loguje się z powrotem)
+async function webLogout() { await logoutGoogle(); await api.webClear?.().catch(() => {}); shell.value?.reload() }
 const TILES = [
   ['display', 'monitor', 'Rzutnik', 'Pieśni, zdjęcia, filmy i teksty'],
   ['stream', 'camera', 'Stream', 'Kamery i sygnały dla kamerzysty'],

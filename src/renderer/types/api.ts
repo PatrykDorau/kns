@@ -20,6 +20,7 @@ export interface OutputState {
 
 export interface KnsApi {
   webUrl: Invoke
+  webClear?: Invoke
   // rzutnik
   getDisplays: () => Promise<DisplayInfo[]>
   onDisplays: Listen<DisplayInfo[]>
