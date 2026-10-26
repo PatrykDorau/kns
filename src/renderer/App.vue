@@ -13,6 +13,7 @@ import WebShell from '@/components/home/WebShell.vue'
 import { lyricsFeed, startLyricsFeed } from '@/services/lyricsFeed'
 import { startProjectorFeed } from '@/services/projectorFeed'
 import { followSlide, pilot, startPreacherPilot } from '@/services/preacherPilot'
+import { startProjectorMirror } from '@/services/projectorMirror'
 import { audioInfo, bannerPending, bannerToProgram, setCamera, setEndOverlay, startEncoding, stopEncoding, studio } from '@/services/studio'
 import SermonThoughts from '@/components/home/SermonThoughts.vue'
 import GuestBoard from '@/components/home/GuestBoard.vue'
@@ -31,6 +32,7 @@ onMounted(async () => {
   startLyricsFeed() // napisy na stream niezależnie od otwartego ekranu
   startProjectorFeed() // scena „Rzutnik”: to, co pokazuje rzutnik na tym komputerze
   startPreacherPilot() // pilot kaznodziei w telefonie i slajdy prezentacji w Stream
+  startProjectorMirror() // Stream na innym komputerze pokazuje ten sam materiał co rzutnik (własna kopia z Dysku)
   ready.value = true
 })
 

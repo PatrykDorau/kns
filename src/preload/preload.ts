@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('api', {
   sharedPick: invoke('shared:pick'),
   sharedSuggest: invoke('shared:suggest'),
   sharedEnsure: invoke('shared:ensure'),
+  mirrorNames: invoke('mirror:names'), mirrorUpload: invoke('mirror:upload'), mirrorFetch: invoke('mirror:fetch'), mirrorClean: invoke('mirror:clean'),
   googleLogin: invoke('google:login'),
   googleLogout: invoke('google:logout'),
   googleStatus: invoke('google:status'),

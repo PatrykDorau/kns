@@ -6,7 +6,7 @@ import LibraryTrash from '@/components/common/LibraryTrash.vue'
 import { ref } from 'vue'
 import { busy, items, label, loadServiceFiles, nearestService, prettyDate, trashFor, trashItem } from '@/stores'
 import { computed } from 'vue'
-import { ANN_MEDIA, showMediaFull, slideCandidates, studio } from '@/services/studio'
+import { ANN_MEDIA, PROJ_MEDIA, setScene, showMediaFull, showMediaOverlay, slideCandidates, studio } from '@/services/studio'
 import { overlayItem } from '@/composables/stream/ovlAsk'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
@@ -20,6 +20,10 @@ const confirmDel = ref('') // usuwanie: najpierw pytanie
 const ann = computed(() => { const all = slideCandidates(), on = all.filter(x => !studio.hidden.includes(x.id)); return { all: all.length, on: on.length, pic: on.find(x => x.image)?.image || '' } })
 const annPv = computed(() => studio.preview.scene === 'media' && studio.preview.media === ANN_MEDIA)
 const annAir = computed(() => studio.program.scene === 'media' && studio.program.media === ANN_MEDIA)
+// rzutnik w okienku na innej scenie (np. kamera z rzutnikiem w rogu)
+const projPv = computed(() => studio.preview.omedia === PROJ_MEDIA && studio.preview.ovl !== 'off')
+const projAir = computed(() => studio.program.omedia === PROJ_MEDIA && studio.program.ovl !== 'off' && studio.program.scene !== 'projector')
+const projWhat = computed(() => { const p = studio.projector; return p.kind === 'image' ? 'zdjęcie' : p.kind === 'video' ? 'film' : p.kind === 'text' ? 'tekst' : p.kind === 'loading' ? 'wczytuję…' : studio.remoteScreen ? 'obraz ekranu' : 'nic nie pokazuje' })
 const inUse = id => onAirIds.value.includes(id) || pvFull.value?.id === id || pvOver.value?.id === id
 async function addFiles() { if (await addMediaFiles()) deskTab.value = 'media' }
 // załączniki najbliższego nabożeństwa (prezentacja kaznodziei, zdjęcia, PDF) — do Biblioteki Streamu
@@ -55,6 +59,15 @@ async function fromService() {
         <button title="Które ogłoszenia i co ile sekund" @click="deskTab = 'slides'"><Icon name="gear" />Ustaw</button>
       </span>
       <em v-if="annAir">NA WIZJI</em><em v-else-if="annPv" class="pv">PODGLĄD</em>
+    </div>
+    <div class="desk-media-it desk-media-ann" :class="{ on: projPv, live: projAir }">
+      <button class="desk-media-pic" title="Rzutnik w okienku na obrazie z kamery" @click="showMediaOverlay(PROJ_MEDIA)"><span class="desk-ann-ph"><Icon name="monitor" /></span></button>
+      <span class="desk-media-meta"><b>Rzutnik</b><small>teraz: {{ projWhat }}</small></span>
+      <span class="desk-media-act">
+        <button :class="{ on: projPv }" title="Rzutnik w okienku w rogu (na kamerze) — róg i wielkość jak przy nakładce" @click="showMediaOverlay(PROJ_MEDIA)"><Icon name="layers" />W okienku</button>
+        <button title="Rzutnik na cały ekran (scena Rzutnik)" @click="setScene('projector')"><Icon name="monitor" />Na ekran</button>
+      </span>
+      <em v-if="projAir">NA WIZJI</em><em v-else-if="projPv" class="pv">PODGLĄD</em>
     </div>
     <div v-for="it in mediaList" :key="it.id" class="desk-media-it" :class="{ on: pvFull?.id === it.id || pvOver?.id === it.id, live: onAirIds.includes(it.id) }">
       <button class="desk-media-pic" :title="'Podgląd: ' + label(it)" @click="pickMedia(it)"><Thumb :item="it" /></button>

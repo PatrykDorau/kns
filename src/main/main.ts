@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, screen, dialog, protocol, powerSaveBlocker
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
+import crypto from 'node:crypto'
 import http from 'node:http'
 import { Readable } from 'node:stream'
 import { execFile } from 'node:child_process'
@@ -1079,6 +1080,33 @@ app.whenReady().then(() => {
   ipcMain.handle('cloud:mapFiles', (e, list) => viaGoogle(() => gdrive.mapFiles(list)))
   ipcMain.handle('cloud:storeFiles', (e, svc) => viaGoogle(() => gdrive.storeFiles(svc)))
   ipcMain.handle('shared:ensure', (e, paths) => viaGoogle(() => gdrive.ensureFiles(paths)))
+  // Materiały rzutnika dla Streamu na innym komputerze (folder „rzutnik-pliki” na Dysku): odcisk pliku (nazwa, rozmiar,
+  // data zmiany) jako nazwa na Dysku, wysyłanie po kolei w tle, pobieranie do pamięci podręcznej Streamu.
+  const MIRROR_NAME = /^[a-f0-9]{20}.[a-z0-9]{1,5}$/
+  ipcMain.handle('mirror:names', async (e, paths) => {
+    const out = {}
+    for (const p of Array.isArray(paths) ? paths : []) {
+      try {
+        if (typeof p !== 'string' || /^https?:/.test(p)) continue
+        const st = await fs.promises.stat(p)
+        const ext = (path.extname(p).slice(1).toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin').slice(0, 5)
+        out[p] = crypto.createHash('sha1').update(path.basename(p) + '|' + st.size + '|' + Math.round(st.mtimeMs)).digest('hex').slice(0, 20) + '.' + ext
+      } catch { /* plik zniknął */ }
+    }
+    return out
+  })
+  let mirrorQueue = Promise.resolve()
+  ipcMain.handle('mirror:upload', (e, file, name) => {
+    if (typeof file !== 'string' || !MIRROR_NAME.test(String(name)) || !fs.existsSync(file)) return { error: 'Nieprawidłowy plik.' }
+    const job = mirrorQueue.then(() => viaGoogle(() => gdrive.mirrorUpload(file, name)))
+    mirrorQueue = job.catch(() => {})
+    return job
+  })
+  ipcMain.handle('mirror:fetch', (e, name) => {
+    if (!MIRROR_NAME.test(String(name))) return { error: 'Nieprawidłowa nazwa.' }
+    return viaGoogle(() => gdrive.mirrorFetch(name, path.join(mediaDir(), 'rzutnik', name)))
+  })
+  ipcMain.handle('mirror:clean', () => viaGoogle(() => gdrive.mirrorClean(7)))
   ipcMain.handle('shared:account', (e, dir) => {
     if (dir !== GOOGLE) return sharedAccount(dir)
     const { email } = gdrive.status()

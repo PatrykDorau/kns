@@ -406,5 +406,46 @@ export default function createGoogleDrive({ serviceFolderName, safeId }) {
     return { mtime: res.modifiedTime }
   }
 
-  return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles, idToken, mapFiles, storeFiles }
+  /* ---------- wymiana materiałów: rzutnik → Stream (folder „rzutnik-pliki”) ---------- */
+  // Rzutnik wysyła pliki biblioteki (zdjęcia, filmy, slajdy prezentacji), Stream na innym komputerze pobiera je,
+  // zanim zostaną wyświetlone — przez internet przechodzi potem tylko informacja, co pokazać. Nazwa pliku to
+  // jego „odcisk” (nazwa, rozmiar, data zmiany) — ten sam plik nie jest wysyłany drugi raz.
+  let mirrorDir = ''
+  async function mirrorFolder() {
+    if (mirrorDir) return mirrorDir
+    const { root } = await folders()
+    mirrorDir = await subfolder(root, 'rzutnik-pliki') || await createFolder('rzutnik-pliki', root)
+    return mirrorDir
+  }
+  const mirrorFind = async name => (await list(`${q(await mirrorFolder())} in parents and name=${q(name)} and trashed=false`))[0] || null
+  // wysłanie strumieniem (duże filmy nie trafiają w całości do pamięci); nazwa docelowa dopiero po wysłaniu całości
+  async function mirrorUpload(file, name) {
+    if (await mirrorFind(name)) return { ok: true, had: true }
+    const dir = await mirrorFolder()
+    const size = (await fs.promises.stat(file)).size
+    const id = (await createMeta({ name: name + '.part', parents: [dir] })).id
+    const session = await call(`${UPLOAD}/files/${id}?uploadType=resumable&supportsAllDrives=true&fields=id`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Upload-Content-Type': 'application/octet-stream', 'X-Upload-Content-Length': String(size) }, body: '{}',
+    })
+    const location = session.headers.get('location')
+    await call(location, { method: 'PUT', headers: { 'Content-Length': String(size) }, body: Readable.toWeb(fs.createReadStream(file)), duplex: 'half' }, false)
+    await patchMeta(id, { name })
+    return { ok: true }
+  }
+  // pobranie do pamięci podręcznej Streamu (dest); brak pliku na Dysku — { missing }
+  async function mirrorFetch(name, dest) {
+    if (fs.existsSync(dest)) return { path: dest }
+    const f = await mirrorFind(name)
+    if (!f) return { missing: true }
+    await download(f.id, dest)
+    return { path: dest }
+  }
+  // sprzątanie: pliki starsze niż tydzień i porzucone „.part”
+  async function mirrorClean(days = 7) {
+    const dir = await mirrorFolder(), before = new Date(Date.now() - days * 864e5).toISOString()
+    for (const f of await list(`${q(dir)} in parents and modifiedTime < ${q(before)} and trashed=false`)) await call(`${API}/files/${f.id}?supportsAllDrives=true`, { method: 'DELETE' }).catch(() => {})
+    return { ok: true }
+  }
+
+  return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles, idToken, mapFiles, storeFiles, mirrorUpload, mirrorFetch, mirrorClean }
 }

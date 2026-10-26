@@ -54,6 +54,10 @@ export interface KnsApi {
   sharedPick: Invoke
   sharedSuggest: Invoke
   sharedEnsure: Invoke
+  mirrorNames: Invoke
+  mirrorUpload: Invoke
+  mirrorFetch: Invoke
+  mirrorClean: Invoke
   googleLogin: Invoke
   googleLogout: Invoke
   googleStatus: Invoke

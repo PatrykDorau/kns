@@ -13,6 +13,8 @@ import type { Look, StudioState } from '@/types'
 export const W = 1920, H = 1080
 // „Materiał” specjalny: ogłoszenia w pętli (zakładka „Ogłoszenia” — które i co ile sekund)
 export const ANN_MEDIA = '@ann'
+// „Materiał” specjalny: to, co pokazuje rzutnik (scena Rzutnik) — w okienku na innej scenie albo na cały kadr
+export const PROJ_MEDIA = '@rzutnik'
 
 export const SCENES = [
   ['camera', 'Kamera'],

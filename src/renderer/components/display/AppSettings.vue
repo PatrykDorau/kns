@@ -72,7 +72,11 @@ async function importBackup() {
             <p class="st-help">Laptop ze streamem dostaje stąd obraz rzutnika i napisy pieśni — przez internet, w dowolnej sieci. W Stream ten komputer pojawi się na liście sam.</p>
             <div class="st-card">
               <div class="st-row">
-                <span class="st-txt"><b>Obraz rzutnika</b><small>Cały ekran rzutnika (Rzutnik, PowerPoint, film — wszystko), bez dźwięku. W Stream: scena „Rzutnik”.</small></span>
+                <span class="st-txt"><b>Materiały dla Streamu (zalecane)</b><small>Stream pokazuje to samo co rzutnik — zdjęcia, filmy, prezentacje, teksty i pieśni — z własnej kopii, w pełnej jakości. Pliki idą w tle przez Dysk Google, potem przez internet tylko „co pokazać”. Lżejsze i pewniejsze niż obraz ekranu; film na Streamie bez dźwięku (dźwięk z konsoli).</small></span>
+                <input v-model="settings.mirrorStream" class="sw" type="checkbox" aria-label="Materiały dla Streamu">
+              </div>
+              <div class="st-row">
+                <span class="st-txt"><b>Obraz rzutnika</b><small>Cały ekran rzutnika (PowerPoint, strona, wszystko) — tylko na to, czego nie ma w materiałach. Bez dźwięku. W Stream: scena „Rzutnik”.</small></span>
                 <input v-model="settings.screenShare" class="sw" type="checkbox" aria-label="Udostępniaj obraz rzutnika">
               </div>
               <div v-if="settings.screenShare" class="st-row sub">
@@ -82,7 +86,7 @@ async function importBackup() {
                 <span class="st-txt"><b>Napisy pieśni</b><small>Bieżąca zwrotka — na transmisję w Stream albo do OBS (adres poniżej).</small></span>
                 <input v-model="settings.lyricsOnline" class="sw" type="checkbox" aria-label="Napisy przez internet">
               </div>
-              <div v-if="settings.lyricsOnline || settings.screenShare" class="st-stack">
+              <div v-if="settings.lyricsOnline || settings.screenShare || settings.mirrorStream" class="st-stack">
                 <span class="st-lbl">Adres tego rzutnika (dla OBS albo do wklejenia ręcznie)</span>
                 <div class="st-copy"><input :value="onlineLink" readonly aria-label="Adres napisów" @focus="($event.target as HTMLInputElement).select()"><button class="small" @click="copyLyrics(onlineLink)"><Icon :name="copied === onlineLink ? 'check' : 'copy'" />{{ copied === onlineLink ? 'Skopiowano' : 'Kopiuj' }}</button><button class="small" title="Nowy adres — stary przestanie działać (Stream przejdzie na nowy sam)" @click="newLyricsKey">Nowy klucz</button></div>
                 <span class="st-hint">Kto zna adres, widzi napisy (a z udostępnianiem — także obraz rzutnika). Nie publikuj go.</span>

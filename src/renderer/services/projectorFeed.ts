@@ -14,6 +14,7 @@ export function startProjectorFeed() {
   // tylko po zaznaczeniu „Rzutnik z tej aplikacji” (domyślnie wyłączone — rzutnik jest na drugim laptopie)
   watch([liveSlide, hidden, () => video.value.paused, () => Math.round(video.value.time || 0), () => settings.studioLocalProjector], () => {
     const v = liveSlide.value
+    if (settings.streamLyrics === 'remote' && studio.projector?.remote) return // scenę prowadzi rzutnik z innego komputera (projectorMirror)
     if (!settings.studioLocalProjector || !v || hidden.value) { studio.projector = { kind: 'none' }; return }
     if (v.type === 'image') studio.projector = { kind: 'image', url: url(v.path) }
     else if (v.type === 'video') studio.projector = { kind: 'video', url: url(v.path), playing: !video.value.paused, time: video.value.time || 0, at: Date.now() }
@@ -24,10 +25,10 @@ export function startProjectorFeed() {
   let host = '', timer = 0
   const announce = async () => {
     if (!settings.deviceId || !settings.lyricsKey) return
-    if (!(settings.lyricsOnline || settings.screenShare)) { clearInterval(timer); timer = 0; unpublishProjector(settings.deviceId); return }
+    if (!(settings.lyricsOnline || settings.screenShare || settings.mirrorStream)) { clearInterval(timer); timer = 0; unpublishProjector(settings.deviceId); return }
     host = host || (await api.hostname?.().catch(() => '')) || 'Komputer z rzutnikiem'
     publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare })
-    if (!timer) timer = window.setInterval(() => { if (settings.lyricsOnline || settings.screenShare) publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare }) }, 600000)
+    if (!timer) timer = window.setInterval(() => { if (settings.lyricsOnline || settings.screenShare || settings.mirrorStream) publishProjector({ id: settings.deviceId, name: host, key: settings.lyricsKey, screen: !!settings.screenShare }) }, 600000)
   }
   watch([() => settings.lyricsOnline, () => settings.screenShare, () => settings.lyricsKey], announce, { immediate: true })
   // laptop przy rzutniku: udostępnia ekran rzutnika (klucz — ten sam co napisy przez internet)

@@ -60,6 +60,9 @@ export interface ProjectorShown {
   playing?: boolean
   time?: number
   at?: number
+  fit?: string
+  remote?: boolean // materiał z rzutnika na innym komputerze (własna kopia Streamu)
+  missing?: boolean // pliku nie ma jeszcze na Dysku
 }
 
 export interface EndCard {

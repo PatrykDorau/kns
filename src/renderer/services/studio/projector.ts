@@ -12,12 +12,20 @@ export function setRemoteScreen(stream) {
   remoteVideo.srcObject = stream; remoteVideo.play().catch(() => {}); studio.remoteScreen = true
 }
 export function projectorFrame(t) {
-  if (studio.remoteScreen && remoteVideo?.readyState >= 2) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); fit(remoteVideo, remoteVideo.videoWidth, remoteVideo.videoHeight, 0, 0, W, H); return }
   const p = studio.projector
+  // materiał z rzutnika na innym komputerze (własna kopia) — przed obrazem ekranu; ekran tylko, gdy kopii brak
+  const mirror = p.remote && ['image', 'video', 'text'].includes(p.kind)
+  if (!mirror && studio.remoteScreen && remoteVideo?.readyState >= 2) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); fit(remoteVideo, remoteVideo.videoWidth, remoteVideo.videoHeight, 0, 0, W, H); return }
+  if (p.kind === 'loading') {
+    if (projVideo && !projVideo.paused) projVideo.pause()
+    background(t); text(p.missing ? 'Rzutnik jeszcze wysyła ten materiał…' : 'Wczytuję materiał z rzutnika…', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return
+  }
   if (p.kind === 'image' && p.url) { const im = img(p.url); if (im) { fullImage(im); return } }
   if (p.kind === 'video' && p.url) {
     if (!projVideo) { projVideo = document.createElement('video'); projVideo.crossOrigin = 'anonymous'; projVideo.playsInline = true; connectMedia(projVideo) }
     if (projVideo.dataset.src !== p.url) { projVideo.dataset.src = p.url; projVideo.src = p.url }
+    // kopia filmu z innego komputera — bez dźwięku (dźwięk filmu przychodzi z konsoli)
+    projVideo.muted = !!p.remote; projVideo.volume = p.remote ? 0 : 1
     // zgranie z rzutnikiem: czas i pauza
     const want = (p.time || 0) + (p.playing ? (Date.now() - (p.at || Date.now())) / 1000 : 0)
     if (projVideo.readyState >= 1 && Math.abs(projVideo.currentTime - want) > 0.6) projVideo.currentTime = want
