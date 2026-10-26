@@ -77,7 +77,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.68 · 26.10.2026'
+const VERSION = '3.69 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1479,9 +1479,9 @@ export default defineComponent({
     })
     // Ekran dla gości: talia nadchodzących nabożeństw i wydarzeń oraz publicznych ogłoszeń (dane z public_preview).
     const guestCat = ref('ev')
-    // logowanie: okienko nad stroną dla gości — samo otwiera się tylko przy wejściu linkiem do podstrony (lub /logowanie)
-    // (nie przy zwykłym odświeżeniu strony głównej); zawsze da się je zamknąć (zapamiętany link i tak otworzy się po zalogowaniu)
-    const loginView = ref(location.pathname !== '/')
+    // logowanie: okienko nad stroną dla gości — samo otwiera się tylko pod adresem /logowanie (nie po odświeżeniu ani przy
+    // linku do podstrony — ten i tak otworzy się po zalogowaniu); zawsze da się je zamknąć
+    const loginView = ref(location.pathname.startsWith('/logowanie'))
     window.addEventListener('keydown', e => { if (e.key === 'Escape' && loginView.value && !ready.value) loginView.value = false })
     const showLogin = computed(() => loginView.value || !api.enabled)
     const guestCats = computed(() => {

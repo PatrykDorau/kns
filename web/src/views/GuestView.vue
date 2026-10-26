@@ -34,6 +34,11 @@ export default defineComponent({
       }
       return out
     })
+    // ASB (spotkania studenckie): terminarz na następny miesiąc (publiczny — asb_public)
+    const MONTHS = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień']
+    const asbMonth = computed(() => { const [y, m] = app.todayStr.value.split('-').map(Number); return m === 12 ? (y + 1) + '-01' : y + '-' + String(m + 1).padStart(2, '0') })
+    const asbNextMonth = computed(() => (app.asb.pub || []).filter(m => m.date.startsWith(asbMonth.value)))
+    const asbMonthName = computed(() => MONTHS[+asbMonth.value.slice(5) - 1])
     const anns = computed(() => (app.pub.value?.announcements || []).slice(0, 4))
     // „Dodaj do kalendarza” — plik .ics z najbliższym nabożeństwem
     function addToCalendar() {
@@ -92,12 +97,17 @@ export default defineComponent({
     onBeforeUnmount(() => { removeEventListener('scroll', onScroll); removeEventListener('wheel', pageWheel); removeEventListener('touchstart', pageTouchStart); removeEventListener('touchmove', pageTouchMove) })
     const key = e => { if (!open.value && ['ArrowDown', 'PageDown', ' '].includes(e.key) && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); discover() } }
     onMounted(() => {
+      if (location.pathname.startsWith('/asb')) {
+        show(); discover()
+        setTimeout(() => document.getElementById('asb-terminarz')?.scrollIntoView({ block: 'start' }), 1200)
+        return
+      }
       if (still) return
       // góra z tła rysuje się od nowa, szybciej — to ekran wczytywania
       timer = window.setTimeout(show, redrawBackdrop(0.42) + 150)
     })
     onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
-    return { ...app, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, addToCalendar, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
+    return { ...app, asbNextMonth, asbMonthName, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, addToCalendar, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
   },
 })
 </script>
@@ -129,7 +139,7 @@ export default defineComponent({
       <nav class="gx-bar" aria-label="Strona">
         <button class="gx-logo" title="Wróć na początek" @click="back">Kościół <b>Na Skale</b></button>
         <span class="gx-bar-links">
-          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
+          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="asbNextMonth.length" href="#asb-terminarz">ASB</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
         </span>
         <button class="gx-btn gx-accent gx-sm" @click="loginView = true">Zaloguj się</button>
       </nav>
@@ -161,36 +171,49 @@ export default defineComponent({
           <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="30" r="9" /><path d="M32 13v-5M44 18l3.5-3.5M20 18l-3.5-3.5M49 30h5M10 30h5" /><circle cx="17" cy="38" r="6" /><circle cx="47" cy="38" r="6" /><path d="M6 56c1-6 5-10 11-10s10 4 11 10M36 56c1-6 5-10 11-10s10 4 11 10" /></svg>Kochać ludzi</li>
           <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 18c-5 0-7 4-7 9 0 4-9 8-9 17 0 8 7 13 16 13s16-5 16-13c0-9-9-13-9-17 0-5-2-9-7-9z" /><path d="M32 18c0-4 1-8 4-11" /><path d="M36 10c4-4 11-4 14-1-3 4-10 5-14 1z" /><path d="M27 34c-3 4-4 9-2 14M34 32c0 6 1 12 4 17" /></svg>Czynić uczniami</li>
         </ul>
-        <figure class="gx-mission gx-panel">
-          <figcaption>Nasza misja</figcaption>
-          <blockquote>Idźcie tedy i czyńcie uczniami wszystkie narody, chrzcząc je w imię Ojca i Syna, i Ducha Świętego, ucząc je przestrzegać wszystkiego, co wam przykazałem.</blockquote>
-          <cite>Mt 28,19–20</cite>
-        </figure>
       </section>
 
 
       <section id="wydarzenia" class="gx-sec">
         <h2 class="gx-h"><span class="gx-dim">Co się</span>u nas dzieje</h2>
         <p class="gx-sub">Spotkania otwarte dla każdego — przyjdź, nawet jeśli jeszcze nikogo nie znasz.</p>
-        <ol class="gx-evs">
-          <li v-for="e in events" :key="e.key" class="gx-ev gx-panel" :style="{ '--c': e.color }">
-            <span class="gx-ev-date"><b>{{ day(e.date) }}</b>{{ month(e.date) }}</span>
-            <span class="gx-ev-body"><b>{{ e.title }}</b><small>{{ wd(e.date) }}{{ e.time ? ', ' + e.time : '' }}{{ e.place ? ' · ' + e.place : '' }}</small><span v-if="e.sub">{{ e.sub }}</span></span>
+        <div class="gx-news" :class="{ solo: !anns.length }">
+          <div class="gx-col">
+            <h3 class="gx-col-h">Wydarzenia</h3>
+            <ol class="gx-evs">
+              <li v-for="e in events" :key="e.key" class="gx-ev gx-panel" :style="{ '--c': e.color }">
+                <span class="gx-ev-date"><b>{{ day(e.date) }}</b>{{ month(e.date) }}</span>
+                <span class="gx-ev-body"><b>{{ e.title }}</b><small>{{ wd(e.date) }}{{ e.time ? ', ' + e.time : '' }}{{ e.place ? ' · ' + e.place : '' }}</small><span v-if="e.sub">{{ e.sub }}</span></span>
+              </li>
+            </ol>
+          </div>
+          <div v-if="anns.length" class="gx-col">
+            <h3 class="gx-col-h">Ogłoszenia</h3>
+            <div class="gx-anns">
+              <article v-for="a in anns" :key="a.id" class="gx-ann gx-panel">
+                <img v-if="a.image" :src="a.image" :alt="a.title" loading="lazy">
+                <div><h4>{{ a.title }}</h4><p>{{ a.text }}</p></div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ASB: spotkania studenckie w przyszłym miesiącu -->
+      <section v-if="asbNextMonth.length" id="asb-terminarz" class="gx-sec">
+        <h2 class="gx-h"><span class="gx-dim">ASB</span>{{ asbMonthName }}</h2>
+        <p class="gx-sub">Terminarz spotkań studenckich na {{ asbMonthName }}.</p>
+        <ol class="gx-evs gx-asb">
+          <li v-for="m in asbNextMonth" :key="m.id" class="gx-ev gx-panel">
+            <span class="gx-ev-date"><b>{{ day(m.date) }}</b>{{ month(m.date) }}</span>
+            <span class="gx-ev-body"><b>{{ m.topic || 'Spotkanie ASB' }}</b><small>{{ [wd(m.date), m.time, m.place].filter(Boolean).join(' · ') }}</small><span v-if="m.kind && m.kind !== 'cykliczne'" class="gx-asb-kind">{{ asbKindName(m.kind) }}</span></span>
           </li>
         </ol>
-        <div v-if="anns.length" class="gx-anns">
-          <article v-for="a in anns" :key="a.id" class="gx-ann gx-panel">
-            <img v-if="a.image" :src="a.image" :alt="a.title" loading="lazy">
-            <h3>{{ a.title }}</h3>
-            <p>{{ a.text }}</p>
-          </article>
-        </div>
       </section>
 
       <section v-if="listenYt || listenSp" id="posluchaj" class="gx-sec">
         <h2 class="gx-h"><span class="gx-dim">Kazania,</span>kiedy chcesz</h2>
         <p class="gx-sub">{{ listenLatest ? 'Najnowsze: ' + listenLatest.title : 'Nagrania nabożeństw i kazań — w domu, w drodze, na spacerze.' }}</p>
-        <div v-if="listenYt" class="gx-video"><iframe :src="listenYt" title="Najnowsze kazanie — YouTube" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>
         <div class="gx-row gx-center">
           <a v-if="listen.youtubeMore || listen.youtube" class="gx-btn gx-light" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a>
           <a v-if="listen.spotify" class="gx-btn gx-dark" :href="listen.spotify" target="_blank" rel="noopener">Spotify</a>
@@ -222,11 +245,11 @@ body.guest-page #app > .gx { max-width: none !important; margin: 0 !important; }
 body.guest-page:not(.guest-open), html:has(body.guest-page:not(.guest-open)) { overflow: hidden; }
 body.guest-page.hdr-hide .gx-bar { transform: translateY(-100%); }
 /* pierwszy ekran: góra rysuje się na cały ekran w tle; po narysowaniu przygasa, a na niej pojawia się nazwa */
-body.guest-page .kns-backdrop { height: 94svh; opacity: .6; transition: transform .95s cubic-bezier(.7, 0, .2, 1), opacity 1.2s ease, height .95s cubic-bezier(.7, 0, .2, 1); }
+body.guest-page .kns-backdrop { height: 94svh; opacity: .6; transition: transform .95s cubic-bezier(.7, 0, .2, 1), opacity 1.2s ease; }
 body.guest-ready .kns-backdrop { opacity: .3; }
 /* po „Odkryj nas” góra zostaje w tle pod treścią (jak w aplikacji) */
-body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
-@media (max-width: 760px) { body.guest-page .kns-backdrop { height: 86svh; } body.guest-open .kns-backdrop { height: 64vh; } }
+body.guest-open .kns-backdrop { opacity: .22; }
+@media (max-width: 760px) { body.guest-page .kns-backdrop { height: 86svh; } }
 @media (prefers-reduced-motion: reduce) { body.guest-page .kns-backdrop { transition: none; } }
 </style>
 
@@ -250,6 +273,10 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 /* ---------- pierwszy ekran ---------- */
 .gx-intro { position: fixed; inset: 0; z-index: 5; display: flex; justify-content: center; align-items: center; padding: 0 var(--m); transition: transform .95s var(--ease); }
 .gx.open .gx-intro { transform: translateY(-100%); }
+.gx-intro-in { transition: opacity .45s ease; }
+.gx.open .gx-intro-in { opacity: 0; }
+.gx-page > * { transition: opacity .5s ease .45s; }
+.gx:not(.open) .gx-page > * { opacity: 0; transition-delay: 0s; }
 .gx-intro-in { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: -4svh; max-width: 900px; }
 .gx-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 28px; }
 .gx-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #1c1b1a; font: 500 14px/1 var(--display); color: #d9d6d2; font-variant-numeric: tabular-nums; }
@@ -271,7 +298,8 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 .gx-page { position: relative; z-index: 6; min-height: 100svh; background: transparent; border-radius: 28px 28px 0 0; visibility: hidden; transform: translateY(100svh); pointer-events: none; transition: transform .95s var(--ease), border-radius .95s var(--ease), visibility 0s .95s; }
 .gx.open .gx-page { visibility: visible; transform: none; border-radius: 0; pointer-events: auto; transition: transform .95s var(--ease), border-radius .95s var(--ease); }
 /* pasek: chowa się przy przewijaniu w dół, wraca przy przewijaniu w górę (hdr-hide — utils/autoHideHeader.ts) */
-.gx-bar { transition: transform .3s ease; }
+.gx-bar { transition: transform .3s ease, opacity .5s ease .45s; }
+.gx:not(.open) .gx-bar { transition-delay: 0s; }
 .gx-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px var(--m); background: rgba(14, 13, 12, .82); backdrop-filter: blur(14px); }
 .gx-logo { border: 0; background: none; padding: 6px 0; color: #8c8985; font: 600 18px/1 var(--display); letter-spacing: -.02em; cursor: pointer; }
 .gx-logo b { color: #fff; font-weight: 600; }
@@ -295,16 +323,20 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 /* kim jesteśmy: tekst po lewej, cztery wartości 2×2 po prawej, misja pod spodem */
 .gx-who { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 64px; align-items: center; text-align: left; }
 .gx-who .gx-sub { margin-left: 0; }
+.gx-who .gx-h { font-size: clamp(38px, 4.4vw, 60px); }
 .gx-who-p { margin: 18px 0 0; max-width: 52ch; color: #c4c1bd; font-size: 17px; line-height: 1.6; }
 .gx-who-p a { color: var(--accent) !important; text-underline-offset: 3px; }
 .gx-values { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; padding: 0; }
 .gx-values li { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; font: 600 18px/1.2 var(--display); letter-spacing: -.01em; }
 .gx-values svg { width: 52px; height: 52px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.gx-mission { grid-column: 1 / -1; display: grid; grid-template-columns: 160px 1fr; gap: 6px 32px; margin: 52px 0 0; padding: 30px 32px; }
-.gx-mission figcaption { color: var(--accent); font: 600 15px/1.5 var(--display); }
-.gx-mission blockquote { margin: 0; font: 500 clamp(19px, 1.7vw, 23px)/1.45 var(--display); letter-spacing: -.01em; text-wrap: pretty; }
-.gx-mission cite { grid-column: 2; color: #8c8985; font: normal 500 15px/1 var(--display); }
-.gx-evs { list-style: none; display: flex; flex-direction: column; gap: 10px; max-width: 760px; margin: 56px auto 0; padding: 0; text-align: left; }
+/* co się dzieje: wydarzenia i ogłoszenia w dwóch podpisanych kolumnach (bez ogłoszeń — same wydarzenia na środku) */
+.gx-news { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 56px; text-align: left; }
+.gx-news.solo { grid-template-columns: minmax(0, 760px); justify-content: center; }
+.gx-col { min-width: 0; }
+.gx-col-h { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid #2a2826; color: #8c8985; font: 600 15px/1 var(--display); }
+.gx-evs { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; }
+.gx-asb { max-width: 760px; margin: 56px auto 0; text-align: left; }
+.gx-ev-body .gx-asb-kind { align-self: flex-start; margin-top: 4px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft, rgba(246, 168, 54, .13)); color: var(--accent); font: 600 13px/1 var(--display); }
 .gx-ev { display: grid; grid-template-columns: 110px 1fr; gap: 20px; align-items: center; padding: 20px 26px; }
 .gx-ev-date { display: flex; align-items: baseline; gap: 6px; color: var(--c, var(--accent)); font: 600 18px/1 var(--display); }
 .gx-ev-date b { font: 650 48px/1 var(--display); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
@@ -312,14 +344,13 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 .gx-ev-body b { font: 600 20px/1.25 var(--display); }
 .gx-ev-body small { color: #a9a6a2; font-size: 15px; }
 .gx-ev-body span { color: #c4c1bd; font-size: 15px; }
-.gx-anns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 40px; text-align: left; }
-.gx-ann { overflow: hidden; padding-bottom: 22px; }
-.gx-ann img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
-.gx-ann h3 { margin: 18px 22px 0; font: 600 20px/1.25 var(--display); }
-.gx-ann p { margin: 8px 22px 0; color: #c4c1bd; font-size: 16px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.gx-anns { display: flex; flex-direction: column; gap: 10px; }
+.gx-ann { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start; padding: 18px; }
+.gx-ann:not(:has(img)) { grid-template-columns: 1fr; }
+.gx-ann img { display: block; width: 104px; aspect-ratio: 1; object-fit: cover; border-radius: 14px; }
+.gx-ann h4 { margin: 2px 0 0; font: 600 18px/1.3 var(--display); }
+.gx-ann p { margin: 6px 0 0; color: #c4c1bd; font-size: 15px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-.gx-video { margin-top: 48px; border-radius: 22px; overflow: hidden; background: #181716; aspect-ratio: 16 / 9; }
-.gx-video iframe { display: block; width: 100%; height: 100%; border: 0; }
 
 .gx-join .gx-panel { display: flex; flex-direction: column; align-items: center; padding: clamp(40px, 6vw, 72px) var(--m); background: radial-gradient(600px 280px at 50% 120%, rgba(246, 168, 54, .16), transparent 70%), #181716; }
 .gx-join .gx-btn { margin-top: 30px; }
@@ -329,6 +360,9 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 
 /* telefon */
 @media (max-width: 760px) {
+  .gx-news { grid-template-columns: 1fr; gap: 36px; }
+  .gx-ann { gap: 14px; padding: 14px; }
+  .gx-ann img { width: 76px; border-radius: 12px; }
   .gx-intro-in { margin-top: 0; }
   .gx-chips { margin-bottom: 22px; }
   .gx-chip { font-size: 13px; padding: 7px 12px; }
@@ -341,8 +375,6 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
   .gx-who-text { margin-bottom: 28px; }
   .gx-values li { padding: 20px; font-size: 16px; }
   .gx-values svg { width: 44px; height: 44px; }
-  .gx-mission { grid-template-columns: 1fr; margin-top: 28px; padding: 24px 22px; }
-  .gx-mission cite { grid-column: 1; margin-top: 6px; }
   .gx-sermon { padding: 22px; }
   .gx-ev { grid-template-columns: 74px 1fr; gap: 14px; padding: 16px 18px; }
   .gx-ev-date { flex-direction: column; gap: 2px; font-size: 15px; }
