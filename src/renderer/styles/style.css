@@ -1417,3 +1417,8 @@ select { padding-right: 36px !important; }
 }
 .desk-layout-btn { display: inline-flex; align-items: center; gap: 6px; }
 .desk-layout-btn svg { width: 15px; height: 15px; }
+
+/* ATEM jako sekcja prawej kolumny */
+.desk-atem-state { display: block; margin-top: 4px; }
+.desk-atem-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.desk-atem-row .desk-ip { flex: 1; min-width: 0; width: auto; }

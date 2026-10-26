@@ -52,7 +52,6 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
         </div>
         <p v-if="engine === 'studio' && studio.error" class="note bad">{{ studio.error }}</p>
       </section>
-      <DeskAtem />
       </div>
 
       <!-- Prawa kolumna: YouTube, ustawienia nadawania i (ze Stream) sygnały dla kamerzysty — sekcje zwijane -->
@@ -70,6 +69,7 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
       <DeskHealth v-if="liveOn" vertical />
       <DeskYouTube />
       <DeskSettings />
+      <DeskAtem />
       <slot name="side" />
       </div>
       </Transition>

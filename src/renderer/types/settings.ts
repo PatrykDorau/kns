@@ -26,6 +26,7 @@ export interface Settings {
   // pulpit streamu
   atemAddress: string
   atemDirect: boolean
+  atemFolded?: boolean // ATEM w prawej kolumnie zwinięty
   ytPrivacy: string
   streamVideo: string
   streamAudio: string

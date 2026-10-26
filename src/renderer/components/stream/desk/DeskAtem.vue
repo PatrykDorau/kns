@@ -1,18 +1,23 @@
 <script setup lang="ts">
+import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 
-// ATEM: przełączanie kamer z aplikacji (opcjonalnie, kabel sieciowy).
+// ATEM: przełączanie kamer z aplikacji (opcjonalnie, kabel sieciowy) — sekcja w prawej kolumnie, zwijana.
 const { atem, address, atemError, connecting, cameras, others, connect, disconnect, run, pick } = useDesk()
 </script>
 
 <template>
-  <section class="desk-atem">
+  <section class="desk-ctrl desk-atem" :class="{ folded: settings.atemFolded }">
     <div class="desk-head">
-      <h2>ATEM</h2>
+      <button class="desk-fold" :aria-expanded="!settings.atemFolded" :title="settings.atemFolded ? 'Rozwiń' : 'Zwiń'" @click="settings.atemFolded = !settings.atemFolded"><Icon :name="settings.atemFolded ? 'right' : 'down'" /></button>
+      <h2 class="desk-fold-title" @click="settings.atemFolded = !settings.atemFolded">ATEM</h2>
       <span class="desk-dot" :class="atem.connected ? 'ok' : connecting ? 'wait' : 'off'"></span>
-      <small class="muted">{{ atem.connected ? (atem.model || 'połączono') + ' · ' + atem.address : connecting ? 'łączę z ' + atem.address + '… (sprawdź kabel sieciowy i adres)' : 'przełączanie kamer z aplikacji — niepołączony' }}</small>
       <span class="spacer"></span>
+    </div>
+    <template v-if="!settings.atemFolded">
+    <small class="muted desk-atem-state">{{ atem.connected ? (atem.model || 'połączono') + ' · ' + atem.address : connecting ? 'łączę z ' + atem.address + '… (sprawdź kabel sieciowy i adres)' : 'przełączanie kamer z aplikacji — niepołączony' }}</small>
+    <div class="desk-atem-row">
       <template v-if="atem.connected || connecting">
         <label class="check" title="Kliknięcie kamery od razu wysyła ją na wizję (bez podglądu)"><input v-model="settings.atemDirect" type="checkbox"> Od razu na wizję</label>
         <button class="small" @click="disconnect">Rozłącz</button>
@@ -44,5 +49,6 @@ const { atem, address, atemError, connecting, cameras, others, connect, disconne
         <button class="desk-auto" title="Płynne przejście podglądu na wizję" @click="run('auto')">AUTO</button>
       </div>
     </div>
+    </template>
   </section>
 </template>
