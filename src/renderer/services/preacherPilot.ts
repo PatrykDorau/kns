@@ -32,6 +32,7 @@ function thumb(path): Promise<string> {
   if (!path) return Promise.resolve('')
   if (!thumbs.has(path)) thumbs.set(path, new Promise(resolve => {
     const im = new Image()
+    im.crossOrigin = 'anonymous' // bez tego obraz z media:// „brudzi” płótno i miniatury nie da się zapisać (czarny podgląd w telefonie)
     im.onload = () => {
       const w = 480, h = Math.round(w * im.naturalHeight / Math.max(1, im.naturalWidth))
       const c = document.createElement('canvas'); c.width = w; c.height = Math.min(h, 640)
