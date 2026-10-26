@@ -78,7 +78,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.94 · 26.10.2026'
+const VERSION = '3.95 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2261,7 +2261,7 @@ export default defineComponent({
         await drive.savePush(pushId, pushRecord(sub))
         push.on = true; pushAsk.value = false
         try { localStorage.setItem('kns-push', 'on') } catch { /* tryb prywatny */ }
-        reg.showNotification('Powiadomienia włączone', { body: isOrganizer.value ? 'Dam znać, jeśli na niedzielę czegoś brakuje. Termin przypomnienia zmienisz w aplikacji.' : 'Wiadomości od liderów, głosowania, zapisy i przypomnienia przyjdą na ten telefon.', icon: 'icon-192.png', badge: 'badge.png' })
+        reg.showNotification('Powiadomienia włączone', { body: isOrganizer.value ? 'Dam znać, jeśli na niedzielę czegoś brakuje. Termin przypomnienia zmienisz w aplikacji.' : 'Wiadomości od liderów, przypomnienia, informacje o ogłoszeniach i wydarzeniach przyjdą na ten telefon.', icon: 'icon-192.png', badge: 'badge.png' })
       } catch (e) {
         // Brave (i niektóre przeglądarki) domyślnie wyłącza usługę powiadomień — wtedy zapis kończy się tym błędem.
         const brave = !!navigator.brave
