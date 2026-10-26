@@ -376,21 +376,37 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 .hm-tk-body .hm-prep.bad { color: #ff8f6b; } .hm-tk-body .hm-prep.ok { color: #5fd38d; }
 .hm-tk-body .hm-acts { margin-top: 10px; }
 .hm-acts .hm-role { margin: 0 !important; }
-/* zdjęcia z ostatniego nabożeństwa */
-.hm-photos .kh-panel-h { margin-bottom: 10px; }
-.hm-ph-row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; scrollbar-width: thin; }
-.hm-ph { flex: none; width: 168px; aspect-ratio: 4 / 3; min-height: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: var(--panel2) !important; scroll-snap-align: start; }
-.hm-ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s ease; }
+/* ostatnia niedziela: myśli z kazania obok mozaiki zdjęć (duże + dwa małe, na trzecim „+N”) */
+.kh-web .hm-last.has-ph { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.kh-web .hm-last.has-ph:not(.kh-thoughts) { grid-template-columns: 1fr; gap: 12px; }
+.hm-last .kh-th-list { grid-template-columns: 1fr; }
+.hm-mosaic { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; height: 240px; }
+.hm-mosaic.n1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.hm-mosaic.n2 { grid-template-rows: 1fr; }
+.hm-mosaic .hm-ph:first-child { grid-row: 1 / -1; }
+.hm-ph { position: relative; min-height: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: var(--panel2) !important; }
+.hm-ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
 .hm-ph:hover img { transform: scale(1.05); }
-.hm-lb { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 56px 16px; background: rgba(8, 7, 6, .92); outline: none; }
-.hm-lb img { max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain; }
-.hm-lb-x, .hm-lb-a { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; min-height: 0; padding: 0; border-radius: 50%; background: rgba(255, 255, 255, .12) !important; color: #fff; }
-.hm-lb-x { top: 14px; right: 14px; } .hm-lb-a.prev { left: 14px; top: 50%; } .hm-lb-a.next { right: 14px; top: 50%; }
-.hm-lb-n { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: #ddd; font-size: 14px; }
+.hm-more { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 9, 8, .55); color: #fff; font: 600 22px/1 var(--display); }
+/* relacja: zdjęcia na cały ekran, pasek postępu u góry */
+.hm-story { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: #050504; outline: none; }
+.hm-story img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+.hm-st-bars { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 2; display: flex; gap: 4px; }
+.hm-st-bars i { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .28); overflow: hidden; }
+.hm-st-bars i.done { background: #fff; }
+.hm-st-bars b { display: block; width: 0; height: 100%; background: #fff; }
+.hm-st-bars b.run { animation: hm-story 5s linear forwards; }
+@keyframes hm-story { to { width: 100%; } }
+.hm-st-top { position: absolute; top: 24px; left: 16px; right: 12px; z-index: 2; display: flex; align-items: center; gap: 10px; color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
+.hm-st-top b { font: 600 15px/1 var(--display); }
+.hm-st-top small { color: #ddd; font-size: 13px; }
+.hm-st-x { margin-left: auto; display: grid; place-items: center; width: 40px; height: 40px; min-height: 0; padding: 0; border-radius: 50%; background: rgba(255, 255, 255, .14) !important; color: #fff; }
+.hm-st-tap { position: absolute; top: 70px; bottom: 0; width: 35%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none !important; cursor: pointer; }
+.hm-st-tap.prev { left: 0; } .hm-st-tap.next { right: 0; width: 65%; }
 @media (max-width: 760px) {
   .hm-stub { width: 104px; padding: 18px 8px; }
   .hm-stub b { font-size: 44px; }
   .hm-tk-body { padding: 18px 16px; }
-  .hm-ph { width: 136px; }
-  .hm-lb-a { top: auto !important; bottom: 10px; }
+  .kh-web .hm-last.has-ph { grid-template-columns: 1fr; }
+  .hm-mosaic { height: 200px; }
 }

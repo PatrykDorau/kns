@@ -56,13 +56,26 @@ export default defineComponent({
     // miesiąc w dopełniaczu („listopada”) do biletu
     const monthOf = d => app.asDate(d).toLocaleDateString('pl', { day: 'numeric', month: 'long' }).replace(/^\d+\s*/, '')
     // powiększenie zdjęcia
-    const lb = ref(null)
-    const lbStep = d => { const n = app.HERO_ART.value.length; if (n) lb.value = (lb.value + d + n) % n }
-    watch(lb, v => { if (v !== null) setTimeout(() => document.querySelector('.hm-lb')?.focus(), 0) })
-    const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-thoughts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const lb = ref(null), lbPaused = ref(false)
+    const hasThoughts = computed(() => !!(app.lastSermon.value && app.thoughtList(app.lastSermon.value).length))
+    const hasPhotos = computed(() => !!(app.heroIsPhoto.value && app.HERO_ART.value.length))
+    // relacja: dalej co 5 s (koniec — zamknij), wstecz na pierwszym — zostaje; przytrzymanie wstrzymuje
+    let lbTimer = 0
+    function lbStep(d) {
+      const n = app.HERO_ART.value.length, v = lb.value + d
+      lb.value = v >= n ? null : Math.max(0, v)
+    }
+    const STORY_MS = 5000
+    function lbArm() { clearTimeout(lbTimer); if (lb.value !== null && !lbPaused.value) lbTimer = window.setTimeout(() => lbStep(1), STORY_MS) }
+    watch([lb, lbPaused], ([v], [old]) => {
+      lbArm()
+      if (v !== null && old === null) setTimeout(() => document.querySelector('.hm-story')?.focus(), 0)
+      document.body.classList.toggle('locked', v !== null)
+    })
+    const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, lbStep }
+    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, lbStep, lbPaused, hasThoughts, hasPhotos }
   },
 })
 </script>
@@ -85,27 +98,31 @@ export default defineComponent({
 
     <SermonNotes v-if="notesService" :service="notesService" />
 
-    <!-- myśli z kazania: na samej górze, żeby każdy szybko je dostał -->
-    <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts hm-thoughts">
-      <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
-      <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> · {{ lastSermon.speaker }}</template></p>
-      <ul class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
-      <a v-if="recording" class="hm-pill" :href="recording" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Nagranie kazania</a>
-    </section>
-
-    <!-- zdjęcia z ostatniego nabożeństwa (skrypt zdjęć) — pasek przewijany w bok, kliknięcie powiększa -->
-    <section v-if="heroIsPhoto && HERO_ART.length" class="hm-photos" aria-label="Zdjęcia z ostatniego nabożeństwa">
-      <div class="kh-panel-h"><h2>Zdjęcia z ostatniego nabożeństwa</h2><span v-if="photos?.date" class="kh-muted">{{ shortDate(photos.date) }}</span></div>
-      <div class="hm-ph-row">
-        <button v-for="(u, i) in HERO_ART" :key="u" class="hm-ph" :aria-label="'Zdjęcie ' + (i + 1) + ' z ' + HERO_ART.length" @click="lb = i"><img :src="u" alt="" loading="lazy"></button>
+    <!-- ostatnia niedziela: myśli z kazania (na samej górze, żeby każdy szybko je dostał) i mozaika zdjęć -->
+    <section v-if="hasThoughts || hasPhotos" class="kh-panel hm-last" :class="{ 'kh-thoughts': hasThoughts, 'has-ph': hasPhotos }">
+      <div class="hm-last-text">
+        <div class="kh-panel-h"><h2>{{ hasThoughts ? 'Myśli z kazania' : 'Ostatnia niedziela' }}</h2><span class="kh-muted">{{ shortDate(hasThoughts ? lastSermon.date : photos?.date || '') }}</span><span class="kh-spacer"></span><button v-if="hasThoughts && canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
+        <template v-if="hasThoughts">
+          <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> · {{ lastSermon.speaker }}</template></p>
+          <ul class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
+        </template>
+        <p v-else class="kh-th-sermon">Zdjęcia z nabożeństwa. Kliknij, żeby obejrzeć wszystkie.</p>
+        <a v-if="recording" class="hm-pill" :href="recording" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Nagranie kazania</a>
+      </div>
+      <div v-if="hasPhotos" class="hm-mosaic" :class="'n' + Math.min(HERO_ART.length, 3)">
+        <button v-for="(u, i) in HERO_ART.slice(0, 3)" :key="u" class="hm-ph" :aria-label="'Zdjęcie ' + (i + 1) + ' z ' + HERO_ART.length" @click="lb = i">
+          <img :src="u" alt="" loading="lazy">
+          <span v-if="i === 2 && HERO_ART.length > 3" class="hm-more">+{{ HERO_ART.length - 3 }}</span>
+        </button>
       </div>
     </section>
-    <div v-if="lb !== null" class="hm-lb" role="dialog" aria-modal="true" aria-label="Zdjęcie" tabindex="-1" @click.self="lb = null" @keydown.esc="lb = null" @keydown.left="lbStep(-1)" @keydown.right="lbStep(1)">
-      <img :src="HERO_ART[lb]" alt="">
-      <button class="hm-lb-x" aria-label="Zamknij" @click="lb = null"><svg class="i"><use href="#x"/></svg></button>
-      <button class="hm-lb-a prev" aria-label="Poprzednie" @click="lbStep(-1)"><svg class="i"><use href="#back"/></svg></button>
-      <button class="hm-lb-a next" aria-label="Następne" @click="lbStep(1)"><svg class="i"><use href="#chev"/></svg></button>
-      <span class="hm-lb-n">{{ lb + 1 }} / {{ HERO_ART.length }}</span>
+    <!-- zdjęcia na cały ekran jak relacja: pasek postępu, same przechodzą dalej; stuknięcie w lewą/prawą część — wstecz/dalej -->
+    <div v-if="lb !== null" class="hm-story" role="dialog" aria-modal="true" aria-label="Zdjęcia z ostatniego nabożeństwa" tabindex="-1" @keydown.esc="lb = null" @keydown.left="lbStep(-1)" @keydown.right="lbStep(1)">
+      <div class="hm-st-bars"><i v-for="(u, i) in HERO_ART" :key="u" :class="{ done: i < lb }"><b v-if="i === lb" :key="'b' + lb" :class="{ run: !lbPaused }"></b></i></div>
+      <div class="hm-st-top"><b>Ostatnia niedziela</b><small v-if="photos?.date">{{ shortDate(photos.date) }}</small><button class="hm-st-x" aria-label="Zamknij" @click="lb = null"><svg class="i"><use href="#x"/></svg></button></div>
+      <img :src="HERO_ART[lb]" alt="" @pointerdown="lbPaused = true" @pointerup="lbPaused = false" @pointerleave="lbPaused = false">
+      <button class="hm-st-tap prev" aria-label="Poprzednie zdjęcie" @click="lbStep(-1)"></button>
+      <button class="hm-st-tap next" aria-label="Następne zdjęcie" @click="lbStep(1)"></button>
     </div>
 
     <!-- 1. Dla Ciebie: to, co czeka właśnie na tę osobę -->
