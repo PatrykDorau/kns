@@ -67,9 +67,10 @@ const cuePushed = ref(null) // ostatnia wysyłka sygnału jako powiadomienia: { 
 const quota = ref(null) // { used, limit, left } — darmowy limit wiadomości ntfy na dziś
 const cueState = ref('off')
 let offCue = null
-async function applyCue() {
+// announce — zmiana przez operatora (telefony dostają ciche „poza wizją”); przy otwarciu Streamu bez wysyłania
+async function applyCue(announce = true) {
   if (!settings.cueToken) settings.cueToken = uid()
-  const res = await api.setCue(settings.cue, settings.cueToken)
+  const res = await api.setCue(settings.cue, settings.cueToken, announce)
   cueUrl.value = res.url || ''
   cueError.value = res.error || ''
   cueState.value = 'off'
@@ -168,7 +169,7 @@ onMounted(() => {
   const offQuota = api.onCueQuota(q => { quota.value = q })
   offCue = () => { offClients(); offRemote(); offQuota() }
   window.addEventListener('keydown', onCueKey)
-  if (settings.cue) applyCue()
+  if (settings.cue) applyCue(false)
   if (settings.camOnTop) api.setOnTop(true)
   refresh()
   navigator.mediaDevices.addEventListener('devicechange', refresh)
@@ -235,7 +236,7 @@ onBeforeUnmount(() => {
             <div class="cue-head">
               <button class="desk-fold" :aria-expanded="!settings.cueFolded" :title="settings.cueFolded ? 'Rozwiń' : 'Zwiń'" @click="settings.cueFolded = !settings.cueFolded"><Icon :name="settings.cueFolded ? 'right' : 'down'" /></button>
               <h2 class="desk-fold-title" @click="settings.cueFolded = !settings.cueFolded">Sygnały dla kamerzysty</h2>
-              <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue"> Włączone</label>
+              <label class="check"><input v-model="settings.cue" type="checkbox" @change="applyCue()"> Włączone</label>
               <!-- Instrukcja dla kamerzysty — tylko po najechaniu (albo kliknięciu) na ikonkę. -->
               <span class="cue-info" tabindex="0" aria-label="Jak połączyć telefon kamerzysty">
                 <Icon name="info" />

@@ -70,6 +70,9 @@ const api = demo ? createDemoApi() : useSupa ? drive.api : createApi(CFG, drive)
 const MEMBER_KEY = 'kns-member'
 const isMember = email => { try { return !!email && localStorage.getItem(MEMBER_KEY) === email } catch { return false } }
 const memberEmail = () => { try { return localStorage.getItem(MEMBER_KEY) || '' } catch { return '' } }
+// Czy w przeglądarce jest zapisana sesja bazy (sb-…-auth-token; w trybie testowym 'fake-session') — bez niej
+// po odświeżeniu będzie strona dla gości, więc szkielet strony głównej tylko by mignął.
+const savedSession = () => { try { return Object.keys(localStorage).some(k => /^sb-.+-auth-token$/.test(k) || k === 'fake-session') } catch { return false } }
 const setMember = email => { try { email ? localStorage.setItem(MEMBER_KEY, email) : localStorage.removeItem(MEMBER_KEY) } catch { /* tryb prywatny */ } }
 const plain = s => String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l')
 const localDate = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
@@ -190,7 +193,7 @@ export default defineComponent({
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
-    const booting = ref(!demo && !!clientId && !!memberEmail())
+    const booting = ref(!demo && !!clientId && !!memberEmail() && (!api.enabled || savedSession()))
     const services = ref([]), songs = ref([])
     const svcListView = ref(false) // lista nabożeństw (zaplanowane, wolne niedziele, minione)
     const current = ref(null), saved = ref(''), query = ref(''), picking = ref(false), confirmDelete = ref(false)

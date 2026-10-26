@@ -1,6 +1,6 @@
 <script lang="ts">
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
-import { defineComponent } from 'vue'
+import { defineComponent, onBeforeUnmount, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { useSwipe } from '@/utils/swipe'
 
@@ -8,8 +8,19 @@ import { useSwipe } from '@/utils/swipe'
 export default defineComponent({
   setup() {
     const app = useApp()
+    // zaproszenie przypięte u dołu: dopóki lista jest pod nim — sam przycisk (nie zasłania wydarzeń);
+    // pełny pasek wjeżdża, gdy dojedziemy do końca (znacznik za zaproszeniem widać na ekranie)
+    const inviteEnd = ref(null), inviteStuck = ref(false)
+    let io = null
+    watch(inviteEnd, el => {
+      io?.disconnect(); io = null
+      if (!el) return
+      io = new IntersectionObserver(([e]) => { inviteStuck.value = !e.isIntersecting })
+      io.observe(el)
+    }, { flush: 'post' })
+    onBeforeUnmount(() => io?.disconnect())
     // miesiąc idzie za palcem; strzałki — to samo przejście
-    return { ...app, ...useSwipe(() => app.shiftMonth(1), () => app.shiftMonth(-1), { target: '.cal-grid' }) }
+    return { ...app, inviteEnd, inviteStuck, ...useSwipe(() => app.shiftMonth(1), () => app.shiftMonth(-1), { target: '.cal-grid' }) }
   },
 })
 </script>
@@ -60,6 +71,7 @@ export default defineComponent({
     <!-- nowe wydarzenie: przycisk w przypiętym zaproszeniu poniżej -->
     <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg>Dodaj do swojego kalendarza</button>
   </div>
-  <!-- zaproszenie: przypięte u dołu ekranu, zawsze widoczne (na telefonie skrócone, nad dolnym menu) -->
-  <div v-if="canSubmit" class="invite invite-cal"><svg class="i"><use href="#users"/></svg><span><b><span class="inv-long">Zaproś kościół na swoje wydarzenie</span><span class="inv-short">Zaproś na swoje wydarzenie</span></b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg><span class="inv-long">{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</span><span class="inv-short">{{ canEdit || canReview ? 'Dodaj' : 'Zgłoś' }}</span></button></div>
+  <!-- zaproszenie: przypięte u dołu ekranu jako sam przycisk; na końcu listy — pełny pasek -->
+  <div v-if="canSubmit" class="invite invite-cal" :class="{ stuck: inviteStuck }"><svg class="i"><use href="#users"/></svg><span><b><span class="inv-long">Zaproś kościół na swoje wydarzenie</span><span class="inv-short">Zaproś na swoje wydarzenie</span></b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg><span class="inv-long">{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</span><span class="inv-short">{{ canEdit || canReview ? 'Dodaj' : 'Zgłoś' }}</span></button></div>
+  <div v-if="canSubmit" ref="inviteEnd" class="invite-end" aria-hidden="true"></div>
 </template>

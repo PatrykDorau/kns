@@ -687,12 +687,14 @@ function sendCue(state) {
   for (const res of cue.clients) res.write('data: ' + JSON.stringify({ state }) + '\n\n')
   return cue.clients.size
 }
-function setCue(on, token) {
-  // Włączenie i wyłączenie ustawia telefony na „poza wizją” bez sygnału dźwiękowego.
+function setCue(on, token, announce = true) {
+  // Włączenie i wyłączenie przez operatora ustawia telefony na „poza wizją” bez sygnału dźwiękowego.
+  // announce=false — samo otwarcie Streamu (sygnały już były włączone): nic nie wysyłamy, żeby w ntfy
+  // nie pojawiały się „poza wizją” bez powodu.
   const wasOn = !!relay
   watchRelay(on && !!token)
-  if (on && token) relayCue('off', true)
-  else if (wasOn) relayCue('off', true)
+  if (announce && on && token) relayCue('off', true)
+  else if (announce && wasOn) relayCue('off', true)
   return new Promise(resolve => {
     if (cue) {
       clearInterval(cue.beat)
@@ -1212,7 +1214,7 @@ app.whenReady().then(() => {
   setupUpdates()
   ipcMain.handle('window:onTop', (e, on) => { if (control && !control.isDestroyed()) control.setAlwaysOnTop(!!on, 'floating') })
   ipcMain.handle('app:user', () => { try { return os.userInfo().username + ' (' + os.hostname() + ')' } catch { return os.hostname() } })
-  ipcMain.handle('cue:set', (e, on, token) => setCue(on, token))
+  ipcMain.handle('cue:set', (e, on, token, announce) => setCue(on, token, announce !== false))
   ipcMain.handle('cue:send', (e, state) => sendCue(state))
 
   ipcMain.on('remote:state', (e, state) => { remoteState = state })
