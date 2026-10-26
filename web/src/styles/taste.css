@@ -354,3 +354,5 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 /* wiersze (ogłoszenia, tydzień, wspólnota): hover jako zaokrąglone tło zamiast prostokąta */
 .kh-web .hw-row { border-radius: 14px; transition: background-color .15s, transform .25s cubic-bezier(.2, .8, .2, 1); }
 @media (hover: hover) { .kh-web .hw-row:hover { background: var(--panel2) !important; border-bottom-color: transparent; transform: none; } }
+/* „Dla Ciebie”: tytuł do dwóch linii zamiast ucinania */
+.hm-for-it .hw-row-text b { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: clip; }

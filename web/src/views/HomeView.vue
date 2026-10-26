@@ -34,8 +34,8 @@ export default defineComponent({
     const forYou = computed(() => {
       const out = [], byDay = {}
       for (const x of myDuties.value) (byDay[x.day] ||= []).push(x.name)
-      for (const [d, names] of Object.entries(byDay)) out.push({ key: 'g' + d, icon: 'serve', title: 'Jesteś w grafiku: ' + [...new Set(names)].join(', '), sub: dutyDay(d), go: () => app.openServe('mine') })
-      for (const x of avMissing.value) out.push({ key: 'a' + x.name, icon: 'calendar', title: 'Podaj dyspozycyjność: ' + x.name, sub: x.n === 1 ? 'brakuje 1 niedzieli' : 'brakuje ' + x.n + ' niedziel', go: () => app.openServe('mine') })
+      for (const [d, names] of Object.entries(byDay)) out.push({ key: 'g' + d, icon: 'serve', title: [...new Set(names)].join(', '), sub: 'Jesteś w grafiku · ' + dutyDay(d), go: () => app.openServe('mine') })
+      for (const x of avMissing.value) out.push({ key: 'a' + x.name, icon: 'calendar', title: x.name, sub: 'Podaj dyspozycyjność · ' + (x.n === 1 ? 'brakuje 1 niedzieli' : 'brakuje ' + x.n + ' niedziel'), go: () => app.openServe('mine') })
       for (const v of (app.votes.list || []).filter(x => x.status === 'voting' && !x.voted)) out.push({ key: 'v' + v.id, icon: 'check', title: 'Głosowanie: ' + v.title, sub: 'oddaj tajny głos', go: () => app.goToVote(v) })
       for (const sv of mine.surveys.filter(x => x.status === 'open' && !x.answered)) out.push({ key: 's' + sv.id, icon: 'list', title: 'Ankieta: ' + sv.title, sub: sv.closes ? 'odpowiedz do ' + app.shortDate(sv.closes) : 'czeka na Twoją odpowiedź', go: () => { app.openAnns(); app.annTab.value = 'survey'; app.surveyOpen.value = sv.id } })
       if (app.goalDue.value) out.push({ key: 'goal', icon: 'money', title: 'Cele wsparcia: ' + app.monthName(app.goalDue.value.month).split(' ')[0], sub: 'podaj kwotę i rozdziel ' + app.goals.status.percent + '% do ' + app.monthEnd.value, go: () => app.openGoals() })
