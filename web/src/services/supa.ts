@@ -293,8 +293,9 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       await new Promise(() => {}) // czekamy na przejście do Facebooka
     },
     // Logowanie przyciskiem Google na stronie: bilet Google → baza (okno Google pokazuje adres strony, nie bazy)
-    async signInToken(token) {
-      const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token })
+    // nonce — surowy kod jednorazowy (Google dostał jego skrót SHA-256); baza sprawdza, że pasują
+    async signInToken(token, nonce = '') {
+      const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token, ...(nonce ? { nonce } : {}) })
       if (error) throw toError(error)
       session = data?.session || null
     },

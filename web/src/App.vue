@@ -78,7 +78,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.95 · 26.10.2026'
+const VERSION = '3.96 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1496,14 +1496,18 @@ export default defineComponent({
     // Bilet Google trafia do bazy (jak w aplikacji na komputer); gdy coś nie wyjdzie — zwykłe logowanie przez bazę.
     // gisOn: 'wait' — miejsce na przycisk zarezerwowane (okienko nie skacze), 'on' — przycisk Google, 'off' — zwykły przycisk
     const gisBtn = ref(null), gisOn = ref(useSupa && !window.knsDesktop && !!clientId ? 'wait' : 'off')
-    function renderGis(tries = 0) {
+    async function renderGis(tries = 0) {
       const g = window.google?.accounts?.id, el = gisBtn.value
       if (gisOn.value === 'off' || !drive.signInToken || !showLogin.value) { gisOn.value = 'off'; return }
       if (!g || !el) { if (tries < 20) setTimeout(() => renderGis(tries + 1), 250); else gisOn.value = 'off'; return }
+      // kod jednorazowy: Google wpisuje do biletu jego skrót, baza dostaje surowy (bez tego bywa błąd „nonce”)
+      const raw = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('')
+      const hashed = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)).then(h => Array.from(new Uint8Array(h), b => b.toString(16).padStart(2, '0')).join(''))
       g.initialize({
+        nonce: hashed,
         client_id: clientId, ux_mode: 'popup', use_fedcm_for_button: true, // bez login_hint — Google pokazuje listę zapamiętanych kont
         callback: r => guard(async () => {
-          try { await drive.signInToken(r.credential) } catch { gisOn.value = 'off'; return start() }
+          try { await drive.signInToken(r.credential, raw) } catch { gisOn.value = 'off'; return start() }
           await enter()
         }),
       })
