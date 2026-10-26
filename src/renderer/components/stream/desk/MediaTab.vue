@@ -21,6 +21,8 @@ const ann = computed(() => { const all = slideCandidates(), on = all.filter(x =>
 const annPv = computed(() => studio.preview.scene === 'media' && studio.preview.media === ANN_MEDIA)
 const annAir = computed(() => studio.program.scene === 'media' && studio.program.media === ANN_MEDIA)
 // rzutnik w okienku na innej scenie (np. kamera z rzutnikiem w rogu)
+const projFull = computed(() => studio.preview.scene === 'projector')
+const projFullAir = computed(() => studio.program.scene === 'projector')
 const projPv = computed(() => studio.preview.omedia === PROJ_MEDIA && studio.preview.ovl !== 'off')
 const projAir = computed(() => studio.program.omedia === PROJ_MEDIA && studio.program.ovl !== 'off' && studio.program.scene !== 'projector')
 const projWhat = computed(() => { const p = studio.projector; return p.kind === 'image' ? 'zdjęcie' : p.kind === 'video' ? 'film' : p.kind === 'text' ? 'tekst' : p.kind === 'loading' ? 'wczytuję…' : studio.remoteScreen ? 'obraz ekranu' : 'nic nie pokazuje' })
@@ -60,14 +62,14 @@ async function fromService() {
       </span>
       <em v-if="annAir">NA WIZJI</em><em v-else-if="annPv" class="pv">PODGLĄD</em>
     </div>
-    <div class="desk-media-it desk-media-ann" :class="{ on: projPv, live: projAir }">
-      <button class="desk-media-pic" title="Rzutnik w okienku na obrazie z kamery" @click="showMediaOverlay(PROJ_MEDIA)"><span class="desk-ann-ph"><Icon name="monitor" /></span></button>
+    <div class="desk-media-it desk-media-ann" :class="{ on: projPv || projFull, live: projAir || projFullAir }">
+      <button class="desk-media-pic" title="Podgląd: Rzutnik na cały ekran" @click="setScene('projector')"><span class="desk-ann-ph"><Icon name="monitor" /></span></button>
       <span class="desk-media-meta"><b>Rzutnik</b><small>teraz: {{ projWhat }}</small></span>
       <span class="desk-media-act">
-        <button :class="{ on: projPv }" :aria-pressed="projPv" :title="projPv ? 'Zdejmij rzutnik z okienka' : 'Rzutnik w okienku w rogu (na kamerze) — róg i wielkość jak przy nakładce'" @click="projPv ? setOverlayMode('off') : showMediaOverlay(PROJ_MEDIA)"><Icon name="layers" />{{ projPv ? 'Zdejmij okienko' : 'W okienku' }}</button>
-        <button title="Rzutnik na cały ekran (scena Rzutnik)" @click="setScene('projector')"><Icon name="monitor" />Na ekran</button>
+        <button :class="{ on: projFull }" title="Rzutnik na cały ekran (scena Rzutnik)" @click="setScene('projector')"><Icon name="monitor" />Na ekran</button>
+        <button :class="{ on: projPv }" :aria-pressed="projPv" :title="projPv ? 'Zdejmij rzutnik z okienka' : 'PIP: rzutnik w okienku w rogu — najpierw na podglądzie'" @click="projPv ? setOverlayMode('off') : showMediaOverlay(PROJ_MEDIA)"><Icon name="layers" />Nakładka</button>
       </span>
-      <em v-if="projAir">NA WIZJI</em><em v-else-if="projPv" class="pv">PODGLĄD</em>
+      <em v-if="projAir || projFullAir">NA WIZJI</em><em v-else-if="projPv || projFull" class="pv">PODGLĄD</em>
     </div>
     <div v-for="it in mediaList" :key="it.id" class="desk-media-it" :class="{ on: pvFull?.id === it.id || pvOver?.id === it.id, live: onAirIds.includes(it.id) }">
       <button class="desk-media-pic" :title="'Podgląd: ' + label(it)" @click="pickMedia(it)"><Thumb :item="it" /></button>
@@ -76,7 +78,7 @@ async function fromService() {
       <span class="desk-media-meta"><b :title="label(it)">{{ label(it) }}</b><small>{{ mediaKind(it) }}<template v-if="it.type === 'scene'"> · {{ (it.entries || []).length }} slajdów</template></small></span>
       <span class="desk-media-act">
         <button :class="{ on: pvFull?.id === it.id }" title="Na cały ekran (scena Media)" @click="showMediaFull(it.id)"><Icon name="monitor" />Na ekran</button>
-        <button :class="{ on: pvOver?.id === it.id }" :title="it.type === 'text' ? 'Napis na całym kadrze — od razu na wizję (po potwierdzeniu)' : 'PIP: w okienku w rogu — najpierw na podglądzie'" @click="overlayItem(it)"><Icon name="layers" />Nakładka</button>
+        <button :class="{ on: pvOver?.id === it.id }" :title="it.type === 'text' ? 'Napis na całym kadrze — od razu na wizję (po potwierdzeniu)' : 'PIP: w okienku w rogu — najpierw na podglądzie'" @click="pvOver?.id === it.id ? setOverlayMode('off') : overlayItem(it)"><Icon name="layers" />Nakładka</button>
       </span>
       <label v-if="it.type === 'scene'" class="desk-media-auto" title="Slajdy zmieniają się same, gdy prezentacja jest na wizji">
         <input type="checkbox" :checked="!!it.mAuto" @change="it.mAuto = ($event.target as HTMLInputElement).checked"> same co
