@@ -51,4 +51,5 @@ export const publishProjector = row => (cloud ? cloud.publishProjector(row) : Pr
 export const unpublishProjector = id => (cloud ? cloud.unpublishProjector(id) : Promise.resolve({}))
 export const loadProjectors = () => (cloud ? cloud.projectors() : Promise.resolve([]))
 export const screenSignal = (key, onMsg) => (cloud ? cloud.signal(key, onMsg) : null) // obraz rzutnika przez sieć
+export const liveChannel = (prefix, key, onMsg) => (cloud ? cloud.signal(key, onMsg, prefix) : null) // pilot kaznodziei, slajdy dla Stream
 export const lyricsLink = key => (cloud ? cloud.lyricsLink(key) : 'connecting') // napisy pieśni na przezroczystym tle (źródło „Przeglądarka” w OBS)

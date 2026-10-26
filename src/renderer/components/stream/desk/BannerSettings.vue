@@ -22,7 +22,7 @@ const editing = ref('')
 const copyB = () => JSON.parse(JSON.stringify({ style: b.style, color: b.color, title: b.title, sub: b.sub, note: b.note, qr: b.qr, link: b.link }))
 watch(b, () => { const q = settings.bannerQueue.find(x => x.id === editing.value); if (q) Object.assign(q, copyB()) }, { deep: true })
 function addToQueue() { const item = { id: uid(), ...copyB() }; settings.bannerQueue.push(item); editing.value = item.id }
-function editQueued(item) { editing.value = item.id; Object.assign(b, { ...BANNER_DEFAULT, ...item, id: undefined }); delete b.id }
+function editQueued(item) { editing.value = item.id; Object.assign(b, { ...BANNER_DEFAULT, ...item, id: undefined }); delete (b as any).id }
 function dropQueued(item) { settings.bannerQueue = settings.bannerQueue.filter(x => x !== item); if (editing.value === item.id) editing.value = '' }
 function moveQueued(i, d) { const l = settings.bannerQueue, [x] = l.splice(i, 1); l.splice(i + d, 0, x) }
 </script>

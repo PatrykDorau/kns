@@ -100,12 +100,13 @@ export function createCloud(api, sb = createClient(CLOUD.url, CLOUD.key, {
   // bezpośrednio między komputerami. Zerwany kanał otwiera się sam.
   // Każdy kanał ma własne połączenie z serwerem — nadawanie i odbiór w jednej aplikacji (test na jednym komputerze)
   // nie gryzą się (ten sam kanał na jednym połączeniu serwer zamyka, a własnych wiadomości nie odsyła).
-  function signal(key, onMsg) {
+  // prefix — rodzaj kanału: „ekran” (obraz rzutnika), „pilot” (pilot kaznodziei), „slajdy” (numer slajdu dla Stream)
+  function signal(key, onMsg, prefix = 'ekran') {
     const rt = typeof window === 'undefined' ? sb : createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
     let ch = null, ok = false, closed = false, retry = 0, timer: ReturnType<typeof setTimeout> | 0 = 0
     const queue = []
     const open = () => {
-      const c = rt.channel('ekran-' + key, { config: { broadcast: { self: false } } })
+      const c = rt.channel(prefix + '-' + key, { config: { broadcast: { self: false } } })
       ch = c; ok = false
       c.on('broadcast', { event: 'm' }, ({ payload }) => { if (!closed && payload) onMsg(payload) })
       c.subscribe(status => {

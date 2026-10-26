@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e0d0c">
+<title>Pilot kaznodziei — Kościół Na Skale</title>
+<!-- Pilot kaznodziei: telefon przełącza slajdy prezentacji na rzutniku (aplikacja na komputer). Adres z kodu QR przy
+     prezentacji: /pilot?k=KLUCZ (klucz sesji — nowy przy każdym uruchomieniu aplikacji). Wszystko idzie kanałem na żywo
+     bazy (bez zapisu w bazie, bez logowania), więc telefon i komputer mogą być w różnych sieciach — wystarczy internet.
+     Rzutnik odsyła bieżący i następny slajd (podgląd), numer i nazwę prezentacji. -->
+<style>
+  :root { --bg: #0e0d0c; --panel: #181716; --panel2: #201e1c; --text: #fff; --muted: #a8a49f; --accent: #f6a836; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 16px/1.4 Inter, system-ui, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { display: flex; flex-direction: column; gap: 12px; height: 100dvh; padding: calc(12px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom)); user-select: none; overscroll-behavior: none; }
+  header { display: flex; align-items: center; gap: 10px; }
+  header b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+  #st { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--panel2); color: var(--muted); font-size: 13px; }
+  #st i { width: 8px; height: 8px; border-radius: 50%; background: #e5484d; }
+  #st.ok i { background: #5fd38d; }
+  #clock { flex: none; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+  #now { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; border-radius: 18px; background: #000; overflow: hidden; }
+  #now img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  #now .msg { padding: 24px; text-align: center; color: var(--muted); }
+  #now .black { position: absolute; inset: 0; display: none; place-items: center; background: rgba(0, 0, 0, .78); color: #fff; font-weight: 600; }
+  #now.hidden .black { display: grid; }
+  #n { position: absolute; left: 10px; bottom: 10px; padding: 5px 10px; border-radius: 999px; background: rgba(0, 0, 0, .7); font: 700 15px/1 system-ui; font-variant-numeric: tabular-nums; }
+  .row { display: flex; gap: 10px; align-items: stretch; }
+  #nextBox { flex: none; width: 34%; display: flex; flex-direction: column; gap: 4px; }
+  #nextBox small { color: var(--muted); font-size: 12px; }
+  #next { flex: 1; min-height: 64px; display: grid; place-items: center; border-radius: 12px; background: #000; overflow: hidden; color: var(--muted); font-size: 12px; }
+  #next img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  #black { flex: 1; border: 0; border-radius: 14px; background: var(--panel2); color: var(--text); font-family: inherit; font-weight: 600; font-size: 16px; line-height: 1.2; }
+  #black.on { background: #3a1b1c; color: #ff8c8f; }
+  .btns { flex: none; display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; height: 26dvh; min-height: 120px; }
+  .btns button { border: 0; border-radius: 22px; font-family: inherit; font-weight: 700; font-size: 22px; line-height: 1; color: var(--text); background: var(--panel2); touch-action: manipulation; }
+  .btns #go { background: var(--accent); color: #1a1208; font-size: 26px; }
+  .btns button:active { transform: scale(.97); filter: brightness(1.15); }
+  button:disabled { opacity: .45; }
+  #help { display: none; margin: auto; max-width: 420px; padding: 22px; border-radius: 18px; background: var(--panel); }
+  #help b { color: var(--accent); }
+  body.nokey > :not(#help) { display: none; }
+  body.nokey #help { display: block; }
+</style>
+</head>
+<body>
+<header><span id="st"><i></i><span id="stt">Łączenie…</span></span><b id="title">Pilot kaznodziei</b><span id="clock">0:00</span></header>
+<div id="now"><div class="msg" id="msg">Czekam na prezentację na rzutniku…</div><span id="n" hidden></span><div class="black">Ekran wygaszony</div></div>
+<div class="row">
+  <div id="nextBox"><small>Następny</small><div id="next">—</div></div>
+  <button id="black">Wygaś ekran</button>
+</div>
+<div class="btns"><button id="back" aria-label="Poprzedni slajd">‹ Wstecz</button><button id="go" aria-label="Następny slajd">Dalej ›</button></div>
+<div id="help"><p><b>Pilot kaznodziei</b></p><p>Zeskanuj kod QR z aplikacji rzutnika: przy prezentacji → „Pilot dla kaznodziei (kod QR)”.</p></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+  const key = (new URLSearchParams(location.search).get('k') || '').replace(/[^\w-]/g, '')
+  if (!key) document.body.classList.add('nokey')
+  const $ = id => document.getElementById(id)
+  const sb = supabase.createClient('https://igkjlgdpvgdeqfqctnnf.supabase.co', 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI', { auth: { persistSession: false, autoRefreshToken: false } })
+  let ch = null, ok = false, last = 0, retry = 0, state = null, started = 0
+  const status = (good, text) => { $('st').classList.toggle('ok', good); $('stt').textContent = text }
+  function send(m) { if (ok) ch.send({ type: 'broadcast', event: 'm', payload: m }).catch(() => {}) }
+  function cmd(c) { if (!started) started = Date.now(); send({ t: 'cmd', c }); if (navigator.vibrate) navigator.vibrate(12) }
+  function render(s) {
+    state = s; last = Date.now()
+    status(true, 'Połączono')
+    const has = s.total > 0
+    $('title').textContent = has ? s.title : 'Pilot kaznodziei'
+    $('msg').hidden = has
+    $('msg').textContent = 'Na rzutniku nie ma teraz prezentacji. Poproś technika o wyświetlenie prezentacji.'
+    const now = $('now'); now.querySelector('img')?.remove()
+    if (has && s.img) { const im = new Image(); im.src = s.img; im.alt = 'Slajd ' + s.n; now.prepend(im) }
+    $('n').hidden = !has; $('n').textContent = s.n + ' / ' + s.total
+    now.classList.toggle('hidden', !!s.hidden)
+    $('black').classList.toggle('on', !!s.hidden); $('black').textContent = s.hidden ? 'Pokaż ekran' : 'Wygaś ekran'
+    const nx = $('next'); nx.innerHTML = ''
+    if (has && s.next) { const im = new Image(); im.src = s.next; im.alt = 'Następny slajd'; nx.append(im) } else nx.textContent = has && s.n >= s.total ? 'koniec' : '—'
+    $('back').disabled = !has || s.n <= 1; $('go').disabled = !has || s.n >= s.total; $('black').disabled = !has
+  }
+  function open() {
+    const c = sb.channel('pilot-' + key, { config: { broadcast: { self: false } } })
+    ch = c; ok = false
+    c.on('broadcast', { event: 'm' }, ({ payload }) => { if (payload?.t === 'state') render(payload) })
+    c.subscribe(s => {
+      if (ch !== c) return
+      if (s === 'SUBSCRIBED') { ok = true; retry = 0; status(false, 'Szukam komputera…'); send({ t: 'hello' }) }
+      else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') {
+        ok = false; status(false, 'Brak internetu — łączę…')
+        setTimeout(() => { const old = ch; open(); sb.removeChannel(old).catch(() => {}) }, Math.min(15000, 1000 * 2 ** retry++))
+      }
+    })
+  }
+  if (key) {
+    open()
+    // co 10 s pytamy o stan; bez odpowiedzi przez 25 s — komputer nie odpowiada
+    setInterval(() => { send({ t: 'hello' }); if (ok && Date.now() - last > 25000) status(false, last ? 'Komputer nie odpowiada' : 'Szukam komputera…') }, 10000)
+    $('go').onclick = () => cmd('next'); $('back').onclick = () => cmd('prev'); $('black').onclick = () => cmd('black')
+    // przesunięcie palcem po slajdzie: w lewo — dalej, w prawo — wstecz
+    let sx = 0
+    $('now').addEventListener('touchstart', e => { sx = e.touches[0].clientX }, { passive: true })
+    $('now').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 60) cmd(dx < 0 ? 'next' : 'prev') }, { passive: true })
+    // zegar od pierwszego przełączenia
+    setInterval(() => { if (!started) return; const s = Math.floor((Date.now() - started) / 1000); $('clock').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') }, 1000)
+    // ekran telefonu nie gaśnie w trakcie kazania
+    const wake = () => navigator.wakeLock?.request('screen').catch(() => {})
+    wake(); document.addEventListener('visibilitychange', () => { if (!document.hidden) { wake(); send({ t: 'hello' }) } })
+  }
+</script>
+</body>
+</html>

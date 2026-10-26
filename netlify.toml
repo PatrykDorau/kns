@@ -117,6 +117,12 @@
   to = "/napisy.html"
   status = 200
 
+# pilot kaznodziei (telefon) — przełącza slajdy prezentacji na rzutniku
+[[redirects]]
+  from = "/pilot"
+  to = "/pilot.html"
+  status = 200
+
 [[redirects]]
   from = "/materialy"
   to = "/index.html"

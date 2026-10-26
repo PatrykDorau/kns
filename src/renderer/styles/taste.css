@@ -51,3 +51,9 @@ input[type=number], input[type=search], input[type=date], input[type=text], inpu
 /* zaznaczenie na listach: jaśniejsze tło i biała krawędź (kolor tylko dla stanów — na żywo, zamrożone) */
 .row.selected, main.planner .row.selected { background: var(--panel3) !important; border-color: rgba(255, 255, 255, .28) !important; }
 .mgr-row.selected { background: var(--panel3) !important; box-shadow: inset 3px 0 #fff !important; }
+
+/* pilot kaznodziei: kod QR przy prezentacji */
+.pilot-box { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.pilot-qr { width: 200px; max-width: 100%; align-self: center; padding: 10px; border-radius: 14px; background: #fff; }
+.pilot-qr svg { display: block; width: 100%; height: auto; }
+.pilot-box .note.ok { color: #5fd38d; }
