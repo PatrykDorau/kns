@@ -107,6 +107,13 @@
     // ekran telefonu nie gaśnie w trakcie kazania
     const wake = () => navigator.wakeLock?.request('screen').catch(() => {})
     wake(); document.addEventListener('visibilitychange', () => { if (!document.hidden) { wake(); send({ t: 'hello' }) } })
+    // wyjście tylko po potwierdzeniu: „wstecz” (gest albo przycisk telefonu) pyta, zamknięcie karty — pytanie przeglądarki
+    history.pushState({ pilot: 1 }, '')
+    addEventListener('popstate', () => {
+      if (confirm('Zamknąć pilota? Slajdy przestaną się przełączać z telefonu.')) history.back()
+      else history.pushState({ pilot: 1 }, '')
+    })
+    addEventListener('beforeunload', e => { e.preventDefault(); e.returnValue = '' })
   }
 </script>
 </body>

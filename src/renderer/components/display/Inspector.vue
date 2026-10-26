@@ -22,6 +22,9 @@ const pilotOpen = ref(false)
 const pilotQr = computed(() => { if (!pilot.url) return ''; const q = qrcode(0, 'M'); q.addData(pilot.url); q.make(); return q.createSvgTag({ cellSize: 6, margin: 3, scalable: true }) })
 const phoneOn = computed(() => pilot.phones && Date.now() - pilot.seen < 120000)
 function showPilot() { openPilot(); pilotOpen.value = !pilotOpen.value }
+// adres pilota do wysłania (np. komunikatorem), gdy kaznodzieja nie skanuje kodu
+const pilotCopied = ref(false)
+function copyPilot() { navigator.clipboard.writeText(pilot.url).then(() => { pilotCopied.value = true; setTimeout(() => { pilotCopied.value = false }, 2000) }).catch(() => {}) }
 const loopCandidates = computed(() => items.value.filter(i => i.type !== 'scene' && !i.hidden && !i.lib))
 const secondsLabel = ms => (ms / 1000).toLocaleString('pl', { maximumFractionDigits: 2 }) + ' s'
 
@@ -117,6 +120,7 @@ function dropEntry(i) {
       <button class="wide" @click="showPilot"><Icon name="qr" />{{ pilotOpen ? 'Schowaj kod pilota' : 'Pilot dla kaznodziei (kod QR)' }}</button>
       <template v-if="pilotOpen">
         <div class="pilot-qr" v-html="pilotQr"></div>
+        <div class="pilot-url"><input :value="pilot.url" readonly aria-label="Adres pilota" @focus="($event.target as HTMLInputElement).select()"><button class="small" @click="copyPilot">{{ pilotCopied ? 'Skopiowano' : 'Kopiuj' }}</button></div>
         <p class="note">Kaznodzieja skanuje kod telefonem i sam przełącza slajdy — także z innej sieci (wystarczy internet). Kod działa do zamknięcia aplikacji. Najpierw wyświetl prezentację na rzutniku.</p>
         <p class="note" :class="{ ok: phoneOn }">{{ phoneOn ? 'Telefon połączony.' : 'Telefon jeszcze się nie połączył.' }}</p>
       </template>

@@ -57,3 +57,5 @@ input[type=number], input[type=search], input[type=date], input[type=text], inpu
 .pilot-qr { width: 200px; max-width: 100%; align-self: center; padding: 10px; border-radius: 14px; background: #fff; }
 .pilot-qr svg { display: block; width: 100%; height: auto; }
 .pilot-box .note.ok { color: #5fd38d; }
+.pilot-url { display: flex; gap: 6px; }
+.pilot-url input { flex: 1; min-width: 0; font-size: 12px; }
