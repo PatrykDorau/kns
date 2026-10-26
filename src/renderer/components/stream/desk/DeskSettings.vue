@@ -3,7 +3,7 @@ import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { lyricsKey } from '@/services/lyricsFeed'
 import { remote as remoteScreen } from '@/services/screenShare'
-import { studio } from '@/services/studio'
+import { setDirect, studio } from '@/services/studio'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { ago } from '@/composables/stream/useProjectorList'
 
@@ -13,6 +13,7 @@ const {
   otherProjectors, pickedProjector, pickProjector, refreshProjectors, manualKey,
 } = useDesk()
 function chooseProjector(id: string) { if (id) pickProjector(id); else manualKey.value = true }
+function direct(v: boolean) { settings.studioDirect = v; setDirect(v) }
 </script>
 
 <template>
@@ -42,6 +43,10 @@ function chooseProjector(id: string) { if (id) pickProjector(id); else manualKey
             <label>Obraz<select v-model="settings.streamVideo" :disabled="liveOn"><option v-if="!devices.video.length && !devices.screens.length" value="">— brak —</option><option v-for="d in devices.video" :key="d" :value="d">{{ d }}</option><optgroup v-if="devices.screens.length" label="Ekran (na próbę, bez ATEM)"><option v-for="d in devices.screens" :key="d.value" :value="d.value">{{ d.label }}</option></optgroup></select></label>
             <label>Dźwięk<select v-model="settings.streamAudio" :disabled="liveOn"><option value="">bez dźwięku</option><option v-for="d in devices.audio" :key="d" :value="d">{{ d }}</option></select></label>
           </template>
+        </div>
+        <div v-if="engine === 'studio'" class="st-row">
+          <span class="st-txt"><b>Od razu na wizję</b><small>Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube.</small></span>
+          <input :checked="studio.direct" class="sw" type="checkbox" aria-label="Od razu na wizję" @change="direct(($event.target as HTMLInputElement).checked)">
         </div>
         <p v-if="liveOn" class="st-hint" style="padding-bottom:10px">Źródło dźwięku zmienisz w trakcie na pasku stanu nad podglądem.</p>
         <p v-if="engine === 'simple' && !devices.video.length && !String(settings.streamVideo).startsWith('screen:')" class="note bad">Nie widzę obrazu z ATEM — podłącz mikser po USB-C i <button class="linkbtn" @click="loadDevices">odśwież listę</button>.</p>

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { settings } from '@/stores'
-import { SCENES, differs, music, previewCanvas, setDirect, setFps, setScene, stopMusic, studio, studioCanvas, take } from '@/services/studio'
+import { differs, music, previewCanvas, setFps, stopMusic, studio, studioCanvas, take } from '@/services/studio'
 import Icon from '@/components/common/Icon.vue'
 import MusicEq from './MusicEq.vue'
 import { SCENE_NAME } from '@/composables/stream/useStreamDesk'
 
-// Studio: podgląd i wizja (płótna rysowane przez moduł studio), „Na wizję” i przyciski scen.
+// Studio: podgląd i wizja (płótna rysowane przez moduł studio) i „Na wizję”; „Od razu na wizję” — w Ustawieniach nadawania.
 const stageEl = ref<HTMLElement | null>(null)
 const pvEl = ref<HTMLElement | null>(null)
 watch(stageEl, el => { if (el) { setFps(settings.streamFps); el.appendChild(studioCanvas()) } }, { flush: 'post' })
@@ -14,7 +14,6 @@ watch(pvEl, el => { if (el) el.appendChild(previewCanvas()) }, { flush: 'post' }
 
 const pending = computed(() => !studio.direct && differs())
 const musicName = computed(() => settings.musicList.find(x => x.id === music.current)?.name || '')
-function direct(v: boolean) { settings.studioDirect = v; setDirect(v) }
 
 // Przewinięte niżej (ustawienia, biblioteka): podgląd i wizja przypinają się pomniejszone u góry, przy prawej krawędzi
 // pulpitu — wciąż widać, co idzie na YouTube. Miejsce po nich zostaje (bez skoku treści); przewinięcie w górę — wracają.
@@ -66,11 +65,6 @@ onBeforeUnmount(() => { io?.disconnect(); removeEventListener('resize', place) }
     <small class="muted">{{ studio.direct ? 'Zmiany idą od razu na wizję' : pending ? 'Podgląd różni się od wizji — sprawdź i kliknij „Na wizję”' : 'Podgląd = wizja' }}</small>
     <span class="spacer"></span>
     <span v-if="music.playing" class="desk-music-pill" :title="'Podkład: ' + musicName"><MusicEq /><span>{{ musicName }}</span><button class="small" @click="stopMusic(3)">Wycisz</button></span>
-    <label class="check" title="Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube"><input :checked="studio.direct" type="checkbox" @change="direct(($event.target as HTMLInputElement).checked)"> Od razu na wizję</label>
   </div>
-  </div>
-  <div class="desk-scenes" role="group" aria-label="Sceny transmisji">
-    <small class="desk-lbl desk-scenes-lbl">Sceny</small>
-    <button v-for="[id, name] in SCENES" :key="id" :class="{ on: studio.preview.scene === id, live: studio.program.scene === id }" :aria-pressed="studio.preview.scene === id" :title="studio.program.scene === id ? 'Na wizji' : ''" @click="setScene(id)">{{ name }}</button>
   </div>
 </template>

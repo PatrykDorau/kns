@@ -1403,18 +1403,47 @@ select { padding-right: 36px !important; }
 /* układ „kolumna” (szeroki ekran): podgląd i wizja jedna pod drugą w lewej kolumnie (35%), zawsze widoczne;
    sceny, nakładki i biblioteka obok; prawa kolumna (YouTube, ustawienia) wysuwa się jako nakładka nad ustawieniami */
 @media (min-width: 1000px) {
-  .desk.cols .desk-stage { display: grid; grid-template-columns: minmax(280px, 35%) minmax(0, 1fr); column-gap: 16px; align-items: start; }
+  /* przewija się tylko prawa część; podgląd i wizja stoją w miejscu */
+  main.stream > section:first-child:has(.desk.cols) { overflow: hidden; display: flex; flex-direction: column; }
+  .desk.cols { flex: 1; min-height: 0; margin-bottom: 0; }
+  .desk.cols .desk-main { flex: 1; min-height: 0; height: 100%; grid-template-columns: minmax(0, 1fr) 58px; }
+  .desk.cols .desk-left { height: 100%; min-height: 0; }
+  .desk.cols .desk-stage { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 35%) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); column-gap: 20px; padding: 14px 16px; }
   .desk.cols .desk-stage > * { grid-column: 2; }
-  .desk.cols .desk-stage > .desk-mons-col { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; }
-  .desk.cols .studio-mons { grid-template-columns: 1fr; gap: 12px; }
-  .desk.cols .desk-take { flex-direction: column; align-items: stretch; }
-  .desk.cols .desk-take .desk-take-btn { width: 100%; }
+  .desk.cols .desk-stage > .desk-stage-head { grid-row: 1; }
+  .desk.cols .desk-stage > .dh-alert-solo { grid-row: 2; }
+  .desk.cols .desk-stage > .desk-mons-col { grid-column: 1; grid-row: 1 / -1; min-height: 0; overflow-y: auto; padding-right: 18px; border-right: 1px solid var(--line); }
+  .desk.cols .desk-stage-rest { grid-row: 3; min-height: 0; overflow-y: auto; padding: 2px 6px 16px 2px; }
+  .desk.cols .studio-mons { grid-template-columns: 1fr; gap: 14px; }
+  .desk.cols .desk-take { flex-direction: column; align-items: stretch; gap: 6px; margin-top: 14px; }
+  .desk.cols .desk-take .desk-take-btn { width: 100%; padding: 12px; }
+  .desk.cols .desk-take .spacer { display: none; }
   .desk.cols .desk-scenes { margin-top: 0; }
-  .desk.cols .desk-main { grid-template-columns: minmax(0, 1fr) 58px; }
   .desk.cols .desk-right:not(.rail) .desk-right-full { position: fixed; z-index: 60; top: 70px; right: 16px; bottom: 16px; width: min(400px, 90vw); overflow-y: auto; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: -18px 0 50px rgba(0, 0, 0, .55); animation: desk-drawer .2s ease-out; }
   .desk.cols .desk-right:not(.rail) .desk-right-full > * { flex-shrink: 0; } /* stała wysokość — sekcje się nie ściskają, panel się przewija */
   @keyframes desk-drawer { from { opacity: 0; transform: translateX(24px); } }
 }
+/* pulpit studia: wyraźne odstępy między częściami, ramki przycisków i pól (bez nich wszystko się zlewało) */
+.desk-stage-rest { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.desk.cols .desk-stage-rest { margin-top: 0; }
+.desk-stage-rest > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.desk-stage-rest .desk-scene-panel, .desk-stage-rest .desk-ovl, .desk-stage-rest .desk-cd { border: 1px solid var(--line) !important; border-radius: 12px; }
+.desk-stage-rest .desk-ovl { padding: 10px 12px; gap: 8px 10px; }
+.desk-stage-rest button:not(.desk-media-pic):not([role=tab]):not(.linkbtn):not(.desk-take-btn):not(.primary) { border: 1px solid var(--line); }
+.desk-stage-rest button:not(.desk-media-pic):not([role=tab]):not(.linkbtn):not(.desk-take-btn):not(.primary):hover:not(:disabled) { border-color: color-mix(in srgb, var(--text) 30%, var(--line)); }
+.desk-stage-rest button.on:not([role=tab]) { border-color: var(--accent) !important; }
+.desk-stage-rest button.live:not([role=tab]) { border-color: #e5484d !important; }
+.desk-stage-rest input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), .desk-stage-rest select, .desk-stage-rest textarea { border: 1px solid var(--line) !important; border-radius: 8px; background: var(--bg) !important; padding: 6px 10px; }
+.desk-stage-rest input:focus, .desk-stage-rest select:focus, .desk-stage-rest textarea:focus { outline: none; border-color: var(--accent) !important; }
+/* podgląd i wizja w kolumnie mieszczą się w oknie (bez przewijania lewej kolumny) */
+@media (min-width: 1000px) {
+  .desk.cols .mon-scr, .desk.cols .desk-take { width: min(100%, calc((100vh - 320px) / 2 * 16 / 9)); }
+  .desk.cols .desk-mons-col { overflow: hidden; }
+  /* sceny zawsze pod ręką: przypięte u góry przewijanej części */
+  .desk.cols .desk-stage-rest > .desk-scenes { position: sticky; top: -2px; z-index: 5; padding: 2px 0 10px; background: var(--panel); }
+}
+.desk-stage-rest .desk-opt-group, .desk-stage-rest .desk-cd > div { gap: 8px; }
+.desk-layout-btn { border: 1px solid var(--line); }
 .desk-layout-btn { display: inline-flex; align-items: center; gap: 6px; }
 .desk-layout-btn svg { width: 15px; height: 15px; }
 
