@@ -425,6 +425,9 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
     searchFiles: text => withFiles(() => files.searchFiles(text)),
     attachFromDrive: (svc, file, onProgress) => withFiles(() => files.attachFromDrive(svc, file, onProgress)),
     attachFromPhone: (svc, blob, onProgress) => withFiles(() => files.attachFromPhone(svc, blob, onProgress)),
+    // dostęp do Dysku prosto z kliknięcia (okno Google otwarte później, po wyborze pliku, przeglądarka blokuje)
+    filesReady: () => !!files?.hasDrive(),
+    connectFiles: () => (files ? files.signIn(false, 'drive') : Promise.reject(new Error('Załączniki nie są dostępne.'))),
 
     // Jednorazowo (administrator): wszystko z plików na Dysku Google do bazy. Rekord, który w bazie jest
     // nowszy niż na Dysku, zostaje. Zwraca liczby przeniesionych rzeczy.

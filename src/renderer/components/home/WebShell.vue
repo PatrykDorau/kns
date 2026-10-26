@@ -27,7 +27,8 @@ defineExpose({ reload: () => { if (failed.value) retry(); else wv.value?.reload(
 
 <template>
   <div class="web-shell">
-    <webview v-if="url && !failed" ref="wv" :src="url" partition="persist:kns-web" class="web-view"></webview>
+    <!-- allowpopups: okno logowania Google (Dysk); które okna wolno otworzyć, decyduje proces główny -->
+    <webview v-if="url && !failed" ref="wv" :src="url" partition="persist:kns-web" allowpopups="true" class="web-view"></webview>
     <div v-if="url && !failed && loading" class="web-loading" aria-busy="true"><span class="spinner" aria-hidden="true"></span></div>
     <template v-if="failed">
       <div v-if="url" class="web-offline" role="status">Bez połączenia ze stroną — wersja uproszczona. <button class="small" @click="retry">Spróbuj ponownie</button></div>

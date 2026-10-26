@@ -860,7 +860,12 @@ app.on('web-contents-created', (_e, contents) => {
     contents.on('will-navigate', (e, url) => { if (!/^https?:\/\//i.test(url)) e.preventDefault() })
     return
   }
-  contents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' } })
+  // okno Google (dostęp do Dysku dla załączników) — w aplikacji, bo strona czeka na odpowiedź z tego okna; reszta w przeglądarce
+  contents.setWindowOpenHandler(({ url }) => {
+    if (/^https:\/\/accounts\.google\.com\//.test(url)) return { action: 'allow', overrideBrowserWindowOptions: { width: 500, height: 650, autoHideMenuBar: true, webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true } } }
+    if (/^https:\/\//.test(url)) shell.openExternal(url)
+    return { action: 'deny' }
+  })
   contents.on('will-navigate', (e, url) => { if (!isWeb(url)) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url) } })
 })
 const iconFile = path.join(__dirname, '..', '..', 'build', 'icon.png')

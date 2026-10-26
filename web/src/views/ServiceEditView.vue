@@ -170,7 +170,7 @@ export default defineComponent({ components: { SermonNotes }, setup: () => useAp
     <div class="progress"><i :style="{ width: Math.round(progress * 100) + '%' }"></i></div>
   </template>
   <div class="attach">
-    <button :disabled="!!uploading || offline" @click="$refs.phoneFile.click()"><svg class="i"><use href="#clip"/></svg>Z urządzenia</button>
+    <button :disabled="!!uploading || offline" @click="pickPhoneFile($refs.phoneFile)"><svg class="i"><use href="#clip"/></svg>Z urządzenia</button>
     <button :disabled="!!uploading || offline" @click="openPicker"><svg class="i"><use href="#drive"/></svg>Z Dysku Google</button>
   </div>
   <input ref="phoneFile" type="file" multiple :accept="ACCEPT" hidden @change="fromPhone">

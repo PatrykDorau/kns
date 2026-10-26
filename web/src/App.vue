@@ -78,7 +78,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.96 · 26.10.2026'
+const VERSION = '3.97 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -662,6 +662,17 @@ export default defineComponent({
         if (e.auth) { ready.value = false; current.value = null }
       } finally { uploading.value = '' }
     }
+    // Najpierw dostęp do Dysku (okno Google musi się otworzyć od razu po kliknięciu), potem wybór pliku.
+    async function connectFiles() {
+      if (!drive.filesReady || drive.filesReady()) return true
+      try { await drive.connectFiles(); return true } catch (e) { error.value = e.message || String(e); return false }
+    }
+    async function pickPhoneFile(input) {
+      const quick = drive.filesReady ? drive.filesReady() : true
+      if (!(await connectFiles())) return
+      if (!quick) status.value = 'Połączono z Dyskiem Google — wybierz plik'
+      input?.click() // po logowaniu przeglądarka może już nie otworzyć okna wyboru — wtedy wystarczy kliknąć jeszcze raz
+    }
     async function fromPhone(e) {
       const chosen = [...e.target.files]
       e.target.value = ''
@@ -678,7 +689,7 @@ export default defineComponent({
       try { pickFound.value = await drive.searchFiles(pickQuery.value) } catch (e) { error.value = e.message; picker.value = false } finally { pickBusy.value = false }
     }
     function searchSoon() { clearTimeout(searchTimer); searchTimer = setTimeout(searchFiles, 350) }
-    function openPicker() { picker.value = true; pickQuery.value = ''; searchFiles() }
+    async function openPicker() { if (!(await connectFiles())) return; picker.value = true; pickQuery.value = ''; searchFiles() }
     async function fromDrive(f) {
       picker.value = false
       const svc = current.value
@@ -2557,7 +2568,7 @@ export default defineComponent({
       pretty, day, month, weekday, missing, upcoming, songTitle, firstLine, inBase, chosen, lines,
       start, otherAccount, appUrl, origin, wrongOrigin, reload, open, create, fix, back, addSong, move, save, remove,
       showServices, songView, song, songQuery, songResults, songDirty, slideCount, numberTaken, openSongs, openSong, newSong, closeSong, saveSong, deleteSong,
-      KIND, ACCEPT, fileType, uploading, progress, fromPhone, picker, pickQuery, pickFound, pickBusy, openPicker, searchSoon, fromDrive,
+      KIND, ACCEPT, fileType, uploading, progress, fromPhone, pickPhoneFile, picker, pickQuery, pickFound, pickBusy, openPicker, searchSoon, fromDrive,
     })
   },
 })
