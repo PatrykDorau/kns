@@ -2,13 +2,15 @@
 // albo jako nakładka na kamerze/rzutniku; co jest w podglądzie i na wizji.
 import { computed, ref } from 'vue'
 import { TEXT_STYLE, items, pickFiles, uid } from '@/stores'
-import { airMedia, mediaSlide, showMediaFull, studio } from '@/services/studio'
+import { PROJ_MEDIA, airMedia, mediaSlide, showMediaFull, studio } from '@/services/studio'
 import { overlayItem } from './ovlAsk'
 import type { LibraryItem } from '@/types'
 
 export const mediaKind = (it: LibraryItem) => ({ image: 'Zdjęcie', video: 'Film', text: 'Napis', scene: 'Prezentacja' })[it.type] || ''
 export const mmss = (sec: number) => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0')
-const itemOf = (id: string) => (id ? items.value.find(x => x.id === id) || null : null)
+// „Rzutnik w okienku” to nie materiał z Biblioteki — do pulpitu jako zastępczy element (nazwa, wyłączanie)
+const PROJ_ITEM = { id: PROJ_MEDIA, type: 'projector', name: 'Rzutnik' } as unknown as LibraryItem
+const itemOf = (id: string) => (id === PROJ_MEDIA ? PROJ_ITEM : id ? items.value.find(x => x.id === id) || null : null)
 
 export function useStudioMedia() {
   const mediaList = computed(() => items.value.filter(it => it.lib === 'stream' && !it.hidden && !it.missing && ['image', 'video', 'text', 'scene'].includes(it.type)))

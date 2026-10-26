@@ -1264,7 +1264,7 @@ main.stream > section:first-child { overflow-y: auto; }
 /* Studio — nowy układ: sceny z ustawieniami pod spodem, nakładki, źródła w zakładkach */
 .desk-scenes { position: relative; }
 .desk-scenes-lbl { display: none; }
-.desk-scene-panel { margin: -2px 0 10px; padding: 10px 12px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; background: var(--panel2); }
+.desk-scene-panel { margin: 12px 0 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); }
 .desk-scene-panel .desk-help { margin-top: 0; }
 .desk-scene-panel > :last-child { margin-bottom: 0; }
 .desk-sources { margin-top: 12px; }

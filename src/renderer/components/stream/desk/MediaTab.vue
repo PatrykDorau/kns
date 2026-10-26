@@ -6,7 +6,7 @@ import LibraryTrash from '@/components/common/LibraryTrash.vue'
 import { ref } from 'vue'
 import { busy, items, label, loadServiceFiles, nearestService, prettyDate, trashFor, trashItem } from '@/stores'
 import { computed } from 'vue'
-import { ANN_MEDIA, PROJ_MEDIA, setScene, showMediaFull, showMediaOverlay, slideCandidates, studio } from '@/services/studio'
+import { ANN_MEDIA, PROJ_MEDIA, setOverlayMode, setScene, showMediaFull, showMediaOverlay, slideCandidates, studio } from '@/services/studio'
 import { overlayItem } from '@/composables/stream/ovlAsk'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
@@ -64,7 +64,7 @@ async function fromService() {
       <button class="desk-media-pic" title="Rzutnik w okienku na obrazie z kamery" @click="showMediaOverlay(PROJ_MEDIA)"><span class="desk-ann-ph"><Icon name="monitor" /></span></button>
       <span class="desk-media-meta"><b>Rzutnik</b><small>teraz: {{ projWhat }}</small></span>
       <span class="desk-media-act">
-        <button :class="{ on: projPv }" title="Rzutnik w okienku w rogu (na kamerze) — róg i wielkość jak przy nakładce" @click="showMediaOverlay(PROJ_MEDIA)"><Icon name="layers" />W okienku</button>
+        <button :class="{ on: projPv }" :aria-pressed="projPv" :title="projPv ? 'Zdejmij rzutnik z okienka' : 'Rzutnik w okienku w rogu (na kamerze) — róg i wielkość jak przy nakładce'" @click="projPv ? setOverlayMode('off') : showMediaOverlay(PROJ_MEDIA)"><Icon name="layers" />{{ projPv ? 'Zdejmij okienko' : 'W okienku' }}</button>
         <button title="Rzutnik na cały ekran (scena Rzutnik)" @click="setScene('projector')"><Icon name="monitor" />Na ekran</button>
       </span>
       <em v-if="projAir">NA WIZJI</em><em v-else-if="projPv" class="pv">PODGLĄD</em>
