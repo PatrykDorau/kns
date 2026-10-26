@@ -158,7 +158,7 @@ export default defineComponent({
 
       <section id="nabozenstwo" class="gx-sec">
         <h2 class="gx-h" tabindex="-1"><span class="gx-dim">Niedziela, {{ svcTime }}</span>{{ svcPlace }}</h2>
-        <p class="gx-sub">Śpiewamy, słuchamy Słowa i spędzamy razem czas. Przyjdź sam, z rodziną albo z przyjaciółmi. Nie trzeba być idealnym ani niczego wiedzieć, żeby do nas przyjść. Przyjdź taki, jaki jesteś.</p>
+        <p class="gx-sub">Śpiewamy, słuchamy Słowa i spędzamy razem czas. Przyjdź sam, z rodziną albo z przyjaciółmi. Nie trzeba być idealnym ani niczego wiedzieć. Przyjdź taki, jaki jesteś.</p>
         <div class="gx-pills">
           <p class="gx-en"><i class="gx-live"></i>Nabożeństwa transmitujemy na żywo na <a v-if="listen.youtubeMore || listen.youtube" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a><template v-else>YouTube</template>.</p>
           <p class="gx-en" lang="en"><b>EN</b>Our services are translated into English.</p>
