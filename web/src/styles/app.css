@@ -1262,3 +1262,5 @@ html, body { overflow-x: clip; } /* odlatujące karty talii nie poszerzają stro
 /* dyspozycyjność: obwódka „w grafiku” nie jest ucinana przez przewijany pasek; zablokowany termin */
 .avail-days { padding: 3px 3px 10px !important; }
 .avail-day.locked { cursor: not-allowed; }
+.listen-music { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
+.listen-music b { margin-right: 6px; }

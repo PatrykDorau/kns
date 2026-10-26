@@ -151,7 +151,7 @@ export default defineComponent({
       <nav class="gx-bar" aria-label="Strona">
         <button class="gx-logo" title="Wróć na początek" @click="back">Kościół <b>Na Skale</b></button>
         <span class="gx-bar-links">
-          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="asbNextMonth.length" href="#asb-terminarz">ASB</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
+          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="asbNextMonth.length" href="#asb-terminarz">ASB</a><a v-if="listenYt || listenSp || listen.musicYoutube || listen.musicSpotify" href="#posluchaj">Posłuchaj</a>
         </span>
         <button class="gx-btn gx-accent gx-sm" @click="loginView = true">Zaloguj się</button>
       </nav>
@@ -227,12 +227,24 @@ export default defineComponent({
         </ol>
       </section>
 
-      <section v-if="listenYt || listenSp" id="posluchaj" class="gx-sec">
-        <h2 class="gx-h"><span class="gx-dim">Kazania,</span>kiedy chcesz</h2>
-        <p class="gx-sub">{{ listenLatest ? 'Najnowsze: ' + listenLatest.title : 'Nagrania nabożeństw i kazań — w domu, w drodze, na spacerze.' }}</p>
-        <div class="gx-row gx-center">
-          <a v-if="listen.youtubeMore || listen.youtube" class="gx-btn gx-light" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a>
-          <a v-if="listen.spotify" class="gx-btn gx-dark" :href="listen.spotify" target="_blank" rel="noopener">Spotify</a>
+      <section v-if="listenYt || listenSp || listen.musicYoutube || listen.musicSpotify" id="posluchaj" class="gx-sec">
+        <h2 class="gx-h"><span class="gx-dim">Kazania i muzyka,</span>kiedy zechcesz</h2>
+        <p class="gx-sub">{{ listenLatest ? 'Najnowsze kazanie: ' + listenLatest.title : 'Nagrania kazań i nasza muzyka — w domu, w drodze, na spacerze.' }}</p>
+        <div class="gx-listen">
+          <div v-if="listen.youtubeMore || listen.youtube || listen.spotify" class="gx-listen-g">
+            <h3 class="gx-col-h">Kazania</h3>
+            <div class="gx-row">
+              <a v-if="listen.youtubeMore || listen.youtube" class="gx-btn gx-light" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a>
+              <a v-if="listen.spotify" class="gx-btn gx-dark" :href="listen.spotify" target="_blank" rel="noopener">Spotify</a>
+            </div>
+          </div>
+          <div v-if="listen.musicYoutube || listen.musicSpotify" class="gx-listen-g">
+            <h3 class="gx-col-h">KNS Music</h3>
+            <div class="gx-row">
+              <a v-if="listen.musicYoutube" class="gx-btn gx-light" :href="listen.musicYoutube" target="_blank" rel="noopener">YouTube</a>
+              <a v-if="listen.musicSpotify" class="gx-btn gx-dark" :href="listen.musicSpotify" target="_blank" rel="noopener">Spotify</a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -352,8 +364,8 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-trail-line { position: absolute; left: 0; top: 0; width: 100%; height: 260px; overflow: visible; }
 .gx-trail-line path { fill: none; stroke: #5d5955; stroke-width: 2; stroke-dasharray: .006 .01; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .gx-values { position: relative; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; }
-.gx-values li { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: calc(150px - var(--k) * 50px); }
-.gx-stop { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 9px var(--bg); }
+.gx-values li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: calc(150px - var(--k) * 50px); }
+.gx-stop { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: #0e0d0c; box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 9px #0e0d0c; }
 .gx-stop svg { width: 42px; height: 42px; fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .gx-values small { margin-top: 18px; color: #8c8985; font: 600 13px/1 var(--display); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
 .gx-values b { margin-top: 8px; font: 600 20px/1.2 var(--display); letter-spacing: -.015em; }
@@ -369,6 +381,9 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-news.solo { grid-template-columns: minmax(0, 760px); justify-content: center; }
 .gx-col { min-width: 0; }
 .gx-col-h { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid #2a2826; color: #8c8985; font: 600 15px/1 var(--display); }
+.gx-listen { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px 64px; margin-top: 44px; }
+.gx-listen-g { min-width: 220px; text-align: left; }
+.gx-listen-g .gx-col-h { margin-bottom: 14px; }
 .gx-evs { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; }
 .gx-asb { max-width: 760px; margin: 56px auto 0; text-align: left; }
 .gx-ev-body .gx-asb-kind { align-self: flex-start; margin-top: 4px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft, rgba(246, 168, 54, .13)); color: var(--accent); font: 600 13px/1 var(--display); }
@@ -411,9 +426,9 @@ body.guest-open .kns-backdrop { opacity: .22; }
   .gx-trail { height: auto; margin-top: 40px; }
   .gx-trail-line { display: none; }
   .gx-values { grid-template-columns: 1fr; gap: 26px; }
-  .gx-values::before { content: ''; position: absolute; left: 30px; top: 30px; bottom: 30px; border-left: 2px dashed #4a4744; }
+  .gx-values::before { content: ''; position: absolute; left: 30px; top: 30px; bottom: 30px; z-index: 0; border-left: 2px dashed #4a4744; }
   .gx-values li { display: grid; grid-template-columns: 60px 1fr; grid-template-rows: auto auto; column-gap: 18px; align-items: center; text-align: left; margin-top: 0; }
-  .gx-stop { grid-row: 1 / 3; width: 60px; height: 60px; box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 6px var(--bg); }
+  .gx-stop { grid-row: 1 / 3; width: 60px; height: 60px; box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 6px #0e0d0c; }
   .gx-stop svg { width: 34px; height: 34px; }
   .gx-values small { margin: 0; align-self: end; }
   .gx-values b { margin-top: 4px; align-self: start; font-size: 18px; }

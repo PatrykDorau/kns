@@ -77,7 +77,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.72 · 26.10.2026'
+const VERSION = '3.73 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -2000,7 +2000,7 @@ export default defineComponent({
 
     /* ---------- Posłuchaj ---------- */
     const listen = ref({}), listenView = ref(false)
-    const listenEdit = reactive({ youtube: '', youtubeMore: '', spotify: '' })
+    const listenEdit = reactive({ youtube: '', youtubeMore: '', spotify: '', musicYoutube: '', musicSpotify: '' })
     // Adres kanału (np. …/@nazwa) → zawsze najnowszy film (funkcja na serwerze czyta kanał RSS YouTube);
     // konkretny film albo playlista — bez zmian. Spotify: odtwarzacz podcastu sam zaczyna od najnowszego odcinka.
     const listenLatest = ref(null)
@@ -2018,7 +2018,7 @@ export default defineComponent({
     const listenSp = computed(() => spotifyEmbed(listen.value.spotify))
     async function loadListen() {
       if (!api.enabled) return
-      try { listen.value = (await api.call('listen')) || {}; Object.assign(listenEdit, { youtube: '', youtubeMore: '', spotify: '' }, listen.value); loadLatest() } catch { /* dodatek */ }
+      try { listen.value = (await api.call('listen')) || {}; Object.assign(listenEdit, { youtube: '', youtubeMore: '', spotify: '', musicYoutube: '', musicSpotify: '' }, listen.value); loadLatest() } catch { /* dodatek */ }
     }
     function openListen() {
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
