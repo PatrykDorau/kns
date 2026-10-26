@@ -286,6 +286,12 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (error) throw toError(error)
       await new Promise(() => {}) // czekamy na przejście do Google
     },
+    // Logowanie przyciskiem Google na stronie: bilet Google → baza (okno Google pokazuje adres strony, nie bazy)
+    async signInToken(token) {
+      const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token })
+      if (error) throw toError(error)
+      session = data?.session || null
+    },
     forget() { session = null; sb.auth.signOut({ scope: 'local' }).catch(() => {}) },
     signOut() { session = null; sb.auth.signOut({ scope: 'local' }).catch(() => {}); files?.signOut(); desk?.logout() },
 

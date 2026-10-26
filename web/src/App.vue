@@ -77,7 +77,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.87 · 26.10.2026'
+const VERSION = '3.88 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1484,6 +1484,25 @@ export default defineComponent({
     const loginView = ref(location.pathname.startsWith('/logowanie'))
     window.addEventListener('keydown', e => { if (e.key === 'Escape' && loginView.value && !ready.value) loginView.value = false })
     const showLogin = computed(() => loginView.value || !api.enabled)
+    // Przycisk Google (Google Identity Services) w okienku logowania: okno Google pokazuje adres strony zamiast adresu bazy.
+    // Bilet Google trafia do bazy (jak w aplikacji na komputer); gdy coś nie wyjdzie — zwykłe logowanie przez bazę.
+    const gisBtn = ref(null), gisOn = ref(false)
+    function renderGis(tries = 0) {
+      const g = window.google?.accounts?.id, el = gisBtn.value
+      if (!useSupa || window.knsDesktop || !clientId || !drive.signInToken || !showLogin.value) return
+      if (!g || !el) { if (tries < 20) setTimeout(() => renderGis(tries + 1), 250); return }
+      g.initialize({
+        client_id: clientId, ux_mode: 'popup', use_fedcm_for_button: true, login_hint: drive.account() || undefined,
+        callback: r => guard(async () => {
+          try { await drive.signInToken(r.credential) } catch { gisOn.value = false; return start() }
+          await enter()
+        }),
+      })
+      el.innerHTML = ''
+      g.renderButton(el, { type: 'standard', theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', locale: 'pl', width: Math.min(Math.max((el.parentElement?.clientWidth || 0) - 56, 240), 400) })
+      gisOn.value = true
+    }
+    watch(showLogin, v => { if (v) nextTick(() => renderGis()) }, { immediate: true })
     const guestCats = computed(() => {
       if (!pub.value) return []
       const when = it => shortDate(it.date) + (it.time ? ' · ' + it.time : '')
@@ -2505,7 +2524,7 @@ export default defineComponent({
       shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, surveyOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, loginView, showLogin, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, loginView, showLogin, gisBtn, gisOn, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
@@ -2550,14 +2569,14 @@ export default defineComponent({
   <!-- Komputer z Windows: pełna aplikacja (rzutnik, stream, organizacja) z GitHub Releases. -->
   <!-- Instalacja: jeden niski pasek — ikona, tytuł, „Pobierz”. -->
   <!-- Aplikacja na komputer (Windows) — w „Więcej”, nie na stronie głównej. -->
-  <div v-if="!desktop && !installed && ready && !current && !currentEvent && !tplView && !currentProto && !protoView && !currentAnn && !annView" class="getapp" :class="{ help: showHelp }">
+  <!-- Tylko gdy da się zainstalować jednym dotknięciem (Chrome zaproponował instalację) albo na iPhonie (tam inaczej się nie da). -->
+  <div v-if="!desktop && !installed && (canPrompt || ios) && ready && !current && !currentEvent && !tplView && !currentProto && !protoView && !currentAnn && !annView" class="getapp" :class="{ help: showHelp }">
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Zainstaluj aplikację</b></span>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
     <!-- Instrukcja tylko wtedy, gdy instalacja jednym dotknięciem nie jest możliwa. -->
     <div v-if="showHelp" class="ga-help">
       <template v-if="ios">Na iPhonie w Safari: dotknij <b>≡</b> albo <b>⋯</b> obok adresu strony (w starszym Safari — kwadrat ze strzałką na dole) → <b>Udostępnij</b> → przewiń w dół → <b>Do ekranu początkowego</b> → <b>Dodaj</b>.</template>
-      <template v-else>Przeglądarka jeszcze nie pozwala na instalację jednym dotknięciem. Otwórz tę stronę w Chrome, odczekaj chwilę i dotknij „Pobierz” ponownie (albo menu ⋮ → „Zainstaluj aplikację”).</template>
     </div>
   </div>
   <p v-if="desktopMode" class="desktop-mode">Telefon wyświetla tę stronę jako „wersję na komputer” — dlatego wszystko jest drobne. W Chrome: menu ⋮ → odznacz „Wersja na komputer”.</p>
@@ -2642,7 +2661,8 @@ export default defineComponent({
       <b>Ta strona jest otwarta pod innym adresem</b> ({{ origin }}) — Google nie pozwoli tu się zalogować.
       <a class="button primary" :href="appUrl">Otwórz {{ appUrl.replace('https://', '') }}</a>
     </div>
-    <button class="primary login-google" :disabled="busy" @click="start()">
+    <div v-show="gisOn && !busy" ref="gisBtn" class="login-gis"></div>
+    <button v-if="!gisOn || busy" class="primary login-google" :disabled="busy" @click="start()">
       <svg v-if="!busy" class="login-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
       {{ busy ? 'Wczytuję…' : drive.account() ? 'Zaloguj ponownie' : 'Zaloguj przez Google' }}
     </button>
