@@ -30,6 +30,8 @@ export const CONFIG: Record<string, any> = {
   // Baza danych Supabase (konta, rangi i wszystkie dane aplikacji). Gdy wpisana — zamiast plików JSON na Dysku
   // i zamiast serwera kont (apiUrl). Klucz „publishable” jest publiczny; dostępu pilnują reguły w bazie.
   supabaseUrl: 'https://igkjlgdpvgdeqfqctnnf.supabase.co',
+  // Logowanie przez Facebooka — włączyć (true) dopiero po skonfigurowaniu dostawcy Facebook w Supabase.
+  facebook: false,
   supabaseKey: 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI',
 
   // Protokoły: osobne foldery na Dysku konta kościoła (tworzy je i udostępnia serwer według rang).

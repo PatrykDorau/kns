@@ -25,6 +25,7 @@ export default defineComponent({
     <!-- nagłówek: nazwa, lider, wiadomość do służby -->
     <div class="mn-head mm-head"><span class="mn-ic"><svg class="i"><use href="#users"/></svg></span><b>{{ m.name }}</b><span v-if="m.leader" class="ann-tag pin">lider</span>
       <span class="mm-spacer"></span>
+      <button v-if="m.lead" class="icon mm-msg" title="Dodaj osobę do służby" aria-label="Dodaj osobę do służby" :disabled="busy" @click="openAddPerson(m)"><svg class="i"><use href="#plus"/></svg></button>
       <button v-if="m.leader || (m.lead && canMsg)" class="icon mm-msg" title="Wiadomość do całej służby" aria-label="Wiadomość do służby" @click="openMsg({ ministries: [m.id] })"><svg class="i"><use href="#megaphone"/></svg></button>
     </div>
 

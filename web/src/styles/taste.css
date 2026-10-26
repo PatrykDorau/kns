@@ -421,3 +421,10 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 /* powiadomienia: wiersze na tle okna (bez ciemniejszego tła karty), hover zaokrąglony */
 .np-panel .inbox-item { background: transparent !important; box-shadow: none !important; border-radius: 12px; border-bottom-color: var(--line) !important; }
 @media (hover: hover) { .np-panel .inbox-item:hover:not(:disabled) { background: var(--panel3) !important; border-bottom-color: transparent !important; } }
+/* służby: etykiety przy nazwie („Szukamy chętnych”, „lider”) w jednej linii */
+.mn-head .ann-tag { flex: none; white-space: nowrap; }
+.mn-head > b { min-width: 0; }
+/* logowanie przez Facebooka (gdy włączone w config.ts) */
+.login-fb { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 50px; margin-top: 10px; border: 0; border-radius: 999px; background: #1877f2 !important; color: #fff; font: 600 15.5px/1 var(--display); }
+.login-fb:hover:not(:disabled) { background: #166fe5 !important; }
+.login-fb svg { width: 20px; height: 20px; }

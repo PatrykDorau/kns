@@ -286,6 +286,12 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (error) throw toError(error)
       await new Promise(() => {}) // czekamy na przejście do Google
     },
+    // Logowanie przez Facebooka (dostawca włączony w Supabase: Authentication → Providers → Facebook)
+    async signInFacebook() {
+      const { error } = await sb.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo: location.origin + '/', scopes: 'email' } })
+      if (error) throw toError(error)
+      await new Promise(() => {}) // czekamy na przejście do Facebooka
+    },
     // Logowanie przyciskiem Google na stronie: bilet Google → baza (okno Google pokazuje adres strony, nie bazy)
     async signInToken(token) {
       const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token })
