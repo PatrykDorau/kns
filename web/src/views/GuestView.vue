@@ -158,7 +158,8 @@ export default defineComponent({
 
       <section id="nabozenstwo" class="gx-sec">
         <h2 class="gx-h" tabindex="-1"><span class="gx-dim">Niedziela, {{ svcTime }}</span>{{ svcPlace }}</h2>
-        <p class="gx-sub">Nabożeństwo z uwielbieniem i kazaniem. Przyjdź sam, z rodziną albo z przyjaciółmi — nikt nie musi niczego umieć ani wiedzieć.</p>
+        <p class="gx-sub">Śpiewamy, słuchamy Słowa i spędzamy razem czas. Przyjdź sam, z rodziną albo z przyjaciółmi. Nie trzeba być idealnym ani niczego wiedzieć, żeby do nas przyjść. Przyjdź taki, jaki jesteś.</p>
+        <p class="gx-en" lang="en"><b>EN</b>Our services are translated into English and streamed live on <a v-if="listen.youtubeMore || listen.youtube" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a><template v-else>YouTube</template>.</p>
         <div v-if="svc?.sermonTitle || svc?.speaker" class="gx-sermon">
           <small>{{ when }} — kazanie</small>
           <b v-if="svc.sermonTitle">„{{ svc.sermonTitle }}”</b>
@@ -175,7 +176,7 @@ export default defineComponent({
         <div class="gx-who-text">
           <h2 class="gx-h">Kim jesteśmy?</h2>
           <p class="gx-sub">Kościół Na Skale to społeczność, której tożsamość opiera się na Bogu Ojcu, Jezusie Chrystusie i Duchu Świętym.</p>
-          <p class="gx-who-p">Jesteśmy chrześcijanami, <a href="https://baptysci.pl" target="_blank" rel="noopener">baptystami</a>, i razem tworzymy kościół — wspólnotę wierzących ludzi. Spotykamy się, żeby poznawać Boga w Jego Słowie, wspierać się w codziennym życiu i głosić Ewangelię, która jedynie ma moc zbawić. Chcemy budować Kościół, który działa razem.</p>
+          <p class="gx-who-p">Jesteśmy chrześcijanami, <a href="https://baptysci.pl" target="_blank" rel="noopener">baptystami</a>, i razem tworzymy kościół, czyli wspólnotę wierzących ludzi. Spotykamy się, żeby poznawać Boga w Jego Słowie, wspierać się w codziennym życiu i głosić Ewangelię, która jedynie ma moc zbawić. Chcemy budować Kościół, który działa razem.</p>
         </div>
         <!-- cztery wartości jako przystanki na szlaku pod górę (szlak i ikony rysują się kreską po przewinięciu) -->
         <div ref="trail" class="gx-trail" :class="{ drawn: trailDrawn }">
@@ -336,6 +337,9 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-center { justify-content: center; margin-top: 28px; }
 
 
+.gx-en { display: inline-flex; align-items: center; gap: 10px; margin: 22px auto 0; padding: 8px 16px 8px 8px; border-radius: 999px; background: #1c1b1a; color: #d9d6d2; font-size: 15px; line-height: 1.4; }
+.gx-en b { padding: 4px 8px; border-radius: 999px; background: var(--accent); color: #1a1208; font: 700 12px/1 var(--display); letter-spacing: .04em; }
+.gx-en a { color: #fff !important; text-underline-offset: 3px; }
 .gx-sermon { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 680px; margin: 44px auto 0; padding: 28px 32px; border-radius: 22px; background: #181716; }
 .gx-sermon small { color: #8c8985; font-size: 15px; }
 .gx-sermon b { font: 600 clamp(24px, 2.6vw, 32px)/1.2 var(--display); letter-spacing: -.025em; text-wrap: balance; }
