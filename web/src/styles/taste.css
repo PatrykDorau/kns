@@ -414,7 +414,7 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 .hm-story .hm-st-tap, .hm-story .hm-st-tap:hover:not(:disabled), .hm-story .hm-st-tap:active { background: transparent !important; box-shadow: none !important; transform: none !important; outline: none; }
 .hm-story .hm-st-tap.prev:hover { cursor: w-resize; } .hm-story .hm-st-tap.next:hover { cursor: e-resize; }
 /* przycisk Google (Google Identity Services) w okienku logowania */
-.login-gis { display: flex; justify-content: center; width: 100%; min-height: 44px; }
+.login-gis { display: flex; align-items: center; justify-content: center; width: 100%; height: 50px; } /* stała wysokość — okienko nie skacze, gdy wczytuje się przycisk Google */
 /* przycisk Google w ramce: jasny schemat kolorów — inaczej przeglądarka daje ramce białe tło (ciemna strona ≠ jasna ramka) */
 .login-gis, .login-gis iframe { color-scheme: light; }
 .login-gis iframe { background: transparent !important; }
