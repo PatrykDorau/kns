@@ -53,10 +53,16 @@ export default defineComponent({
     const openCard = c => { const a = app.boardNews.value.find(x => x.id === c.key); if (a) app.openAnn(a) }
     // „Kazanie”: trwające nabożeństwo (albo to z pytaniami do kazania), a poza tym ostatnie
     const sermonService = computed(() => (app.countdown.value?.live && app.nextService.value) || app.notesService.value || app.lastSermon.value || null)
+    // miesiąc w dopełniaczu („listopada”) do biletu
+    const monthOf = d => app.asDate(d).toLocaleDateString('pl', { day: 'numeric', month: 'long' }).replace(/^\d+\s*/, '')
+    // powiększenie zdjęcia
+    const lb = ref(null)
+    const lbStep = d => { const n = app.HERO_ART.value.length; if (n) lb.value = (lb.value + d + n) % n }
+    watch(lb, v => { if (v !== null) setTimeout(() => document.querySelector('.hm-lb')?.focus(), 0) })
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-thoughts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService }
+    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, lbStep }
   },
 })
 </script>
@@ -87,6 +93,21 @@ export default defineComponent({
       <a v-if="recording" class="hm-pill" :href="recording" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Nagranie kazania</a>
     </section>
 
+    <!-- zdjęcia z ostatniego nabożeństwa (skrypt zdjęć) — pasek przewijany w bok, kliknięcie powiększa -->
+    <section v-if="heroIsPhoto && HERO_ART.length" class="hm-photos" aria-label="Zdjęcia z ostatniego nabożeństwa">
+      <div class="kh-panel-h"><h2>Zdjęcia z ostatniego nabożeństwa</h2><span v-if="photos?.date" class="kh-muted">{{ shortDate(photos.date) }}</span></div>
+      <div class="hm-ph-row">
+        <button v-for="(u, i) in HERO_ART" :key="u" class="hm-ph" :aria-label="'Zdjęcie ' + (i + 1) + ' z ' + HERO_ART.length" @click="lb = i"><img :src="u" alt="" loading="lazy"></button>
+      </div>
+    </section>
+    <div v-if="lb !== null" class="hm-lb" role="dialog" aria-modal="true" aria-label="Zdjęcie" tabindex="-1" @click.self="lb = null" @keydown.esc="lb = null" @keydown.left="lbStep(-1)" @keydown.right="lbStep(1)">
+      <img :src="HERO_ART[lb]" alt="">
+      <button class="hm-lb-x" aria-label="Zamknij" @click="lb = null"><svg class="i"><use href="#x"/></svg></button>
+      <button class="hm-lb-a prev" aria-label="Poprzednie" @click="lbStep(-1)"><svg class="i"><use href="#back"/></svg></button>
+      <button class="hm-lb-a next" aria-label="Następne" @click="lbStep(1)"><svg class="i"><use href="#chev"/></svg></button>
+      <span class="hm-lb-n">{{ lb + 1 }} / {{ HERO_ART.length }}</span>
+    </div>
+
     <!-- 1. Dla Ciebie: to, co czeka właśnie na tę osobę -->
     <section v-if="api.enabled" class="hm-sec hm-for">
       <h3 class="hw-h"><span class="hw-step">1</span>Dla Ciebie<small v-if="forYou.length">{{ forYou.length }}</small></h3>
@@ -110,45 +131,42 @@ export default defineComponent({
     <!-- 2. najbliższe nabożeństwo: przed (rola, skróty), w trakcie (transmisja, notatki) -->
     <section class="hm-sec">
       <h3 class="hw-h"><span class="hw-step">2</span>{{ countdown?.live ? 'Teraz' : 'Najbliższe nabożeństwo' }}</h3>
-      <article v-if="nextService || canEdit" class="hw-feature" :class="{ 'hm-live': countdown?.live }">
-        <div class="hw-visual">
-          <span v-for="(a, i) in HERO_ART" :key="a" class="hw-art" :class="{ on: i === heroArt, photo: heroIsPhoto }" :style="heroIsPhoto ? { '--img': 'url(' + a + ')' } : { backgroundImage: 'url(' + a + ')' }" aria-hidden="true"></span>
-          <span class="hw-nav">
-            <button type="button" class="hw-arrow" aria-label="Poprzedni obraz" @click.stop="heroStep(-1)"><svg class="i"><use href="#back"/></svg></button>
-            <span class="hw-dots" aria-hidden="true"><i v-for="(a, i) in HERO_ART" :key="a" :class="{ on: i === heroArt }"></i></span>
-            <button type="button" class="hw-arrow" aria-label="Następny obraz" @click.stop="heroStep(1)"><svg class="i"><use href="#chev"/></svg></button>
-          </span>
-          <template v-if="nextService">
-            <div class="hw-date"><b>{{ asDate(nextService.date).getDate() }}</b><span>{{ asDate(nextService.date).toLocaleDateString('pl', { month: 'long' }) }}<small>{{ asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) }}</small></span></div>
-            <span class="hw-until" :class="{ live: countdown?.live }"><i></i>{{ countdown?.live ? 'Trwa teraz' : untilText }}</span>
-          </template>
-          <div v-else class="hw-date hw-date-empty"><span>Termin wkrótce<small>zaplanuj nabożeństwo obok</small></span></div>
+      <!-- bilet: data w odcinku, obok temat i szczegóły -->
+      <article v-if="nextService" class="hm-ticket" :class="{ live: countdown?.live }">
+        <div class="hm-stub">
+          <small>{{ asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) }}</small>
+          <b>{{ asDate(nextService.date).getDate() }}</b>
+          <span>{{ monthOf(nextService.date) }}</span>
+          <em>{{ nextService.time || DEFAULT_TIME }}</em>
         </div>
-        <div class="hw-info">
-          <template v-if="nextService">
-            <h2>{{ nextService.sermonTitle || 'Nabożeństwo' }}</h2>
-            <p>{{ [nextService.passage, nextService.speaker].filter(Boolean).join(' · ') || 'Temat kazania pojawi się wkrótce.' }}</p>
-            <p v-if="roleOn(nextService.date).length" class="hm-role"><svg class="i"><use href="#serve"/></svg>Twoja służba: <b>{{ roleOn(nextService.date).join(', ') }}</b></p>
-            <dl class="hw-rows">
-              <div><dt>Godzina</dt><dd>{{ nextService.time || DEFAULT_TIME }}</dd></div>
-              <div><dt>Miejsce</dt><dd>{{ nextService.place || DEFAULT_PLACE }}</dd></div>
-              <div v-if="(nextService.songs || []).length"><dt>Pieśni</dt><dd>{{ nextService.songs.length }}</dd></div>
-              <div v-if="canEdit"><dt>Przygotowanie</dt><dd :class="missing(nextService).length ? 'bad' : 'ok'">{{ missing(nextService).length ? 'brakuje: ' + missing(nextService).join(', ') : 'komplet' }}</dd></div>
-            </dl>
-            <div class="hm-acts">
-              <a v-if="countdown?.live && streamLink" class="button primary hw-cta" :href="streamLink" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Oglądaj transmisję</a>
-              <button v-if="countdown?.live && notesService" class="hm-pill" @click="toNotes"><svg class="i"><use href="#book"/></svg>Notatki i pytania</button>
-              <button :class="countdown?.live ? 'hm-pill' : 'primary hw-cta'" @click="open(nextService)">{{ canEdit && missing(nextService).length ? 'Uzupełnij nabożeństwo' : 'Zobacz nabożeństwo' }}<svg class="i"><use href="#chev"/></svg></button>
-            </div>
-          </template>
-          <template v-else>
-            <h2>Jeszcze nie zaplanowane</h2>
-            <p>Następne nabożeństwo czeka na wypełnienie: dodaj datę, kazanie i pieśni.</p>
-            <button class="primary hw-cta" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(planSunday) }}</button>
-          </template>
+        <div class="hm-tk-body">
+          <span class="hm-tk-kick"><i v-if="countdown?.live" class="hm-dot"></i>{{ countdown?.live ? 'Trwa teraz' : 'Najbliższe nabożeństwo · ' + untilText }}</span>
+          <h3>{{ nextService.sermonTitle || 'Nabożeństwo' }}</h3>
+          <p>{{ [nextService.passage, nextService.speaker, nextService.place || DEFAULT_PLACE].filter(Boolean).join(' · ') }}</p>
+          <p v-if="canEdit" class="hm-prep" :class="missing(nextService).length ? 'bad' : 'ok'">{{ missing(nextService).length ? 'Brakuje: ' + missing(nextService).join(', ') : 'Przygotowanie: komplet' }}</p>
+          <div class="hm-acts">
+            <a v-if="countdown?.live && streamLink" class="button primary" :href="streamLink" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Oglądaj transmisję</a>
+            <button v-if="countdown?.live && notesService" class="hm-pill" @click="toNotes"><svg class="i"><use href="#book"/></svg>Notatki i pytania</button>
+            <button class="hm-pill" @click="open(nextService)">{{ canEdit && missing(nextService).length ? 'Uzupełnij nabożeństwo' : 'Zobacz nabożeństwo' }}<svg class="i"><use href="#chev"/></svg></button>
+            <span v-if="roleOn(nextService.date).length" class="hm-role"><svg class="i"><use href="#serve"/></svg>Twoja służba: <b>{{ roleOn(nextService.date).join(', ') }}</b></span>
+          </div>
         </div>
       </article>
-      <!-- bez zaplanowanego nabożeństwa (członek): krótka karta zamiast dużej ilustracji -->
+      <article v-else-if="canEdit" class="hm-ticket">
+        <div class="hm-stub">
+          <small>niedziela</small>
+          <b>{{ asDate(planSunday).getDate() }}</b>
+          <span>{{ monthOf(planSunday) }}</span>
+          <em>{{ DEFAULT_TIME }}</em>
+        </div>
+        <div class="hm-tk-body">
+          <span class="hm-tk-kick">Jeszcze nie zaplanowane</span>
+          <h3>Następne nabożeństwo</h3>
+          <p>Dodaj datę, kazanie i pieśni.</p>
+          <div class="hm-acts"><button class="hm-pill" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(planSunday) }}</button></div>
+        </div>
+      </article>
+      <!-- bez zaplanowanego nabożeństwa (członek) -->
       <div v-else class="hm-none-svc">
         <b>Niedziela, {{ shortDate(planSunday) }}, {{ DEFAULT_TIME }}</b>
         <span>{{ DEFAULT_PLACE }} · szczegóły pojawią się wkrótce</span>

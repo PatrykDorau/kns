@@ -356,3 +356,41 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 @media (hover: hover) { .kh-web .hw-row:hover { background: var(--panel2) !important; border-bottom-color: transparent; transform: none; } }
 /* „Dla Ciebie”: tytuł do dwóch linii zamiast ucinania */
 .hm-for-it .hw-row-text b { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: clip; }
+/* najbliższe nabożeństwo jako bilet: data w odcinku (przerywana linia), obok temat i szczegóły */
+.hm-ticket { display: flex; border-radius: 22px; background: var(--panel); overflow: hidden; }
+.hm-ticket.live { box-shadow: inset 0 0 0 1.5px rgba(229, 72, 77, .6); }
+.hm-stub { position: relative; flex: none; width: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 22px 12px; border-right: 2px dashed #3a3734; }
+.hm-stub::before, .hm-stub::after { content: ''; position: absolute; right: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); }
+.hm-stub::before { top: -10px; } .hm-stub::after { bottom: -10px; }
+.hm-stub small { color: var(--muted); font-size: 13px; }
+.hm-stub b { font: 600 56px/1 var(--display); letter-spacing: -.04em; }
+.hm-stub span { font: 500 15px/1.2 var(--display); }
+.hm-stub em { margin-top: 10px; padding: 5px 12px; border-radius: 999px; background: var(--panel2); font: 600 14px/1 var(--display); font-style: normal; font-variant-numeric: tabular-nums; }
+.hm-tk-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 22px 26px; }
+.hm-tk-kick { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font: 600 13px/1.3 var(--display); }
+.hm-ticket.live .hm-tk-kick { color: #ff6b6f; }
+.hm-dot { width: 8px; height: 8px; border-radius: 50%; background: #e5484d; animation: hm-pulse 1.4s ease-in-out infinite; }
+@keyframes hm-pulse { 50% { opacity: .35; } }
+.hm-tk-body h3 { margin: 2px 0 0; font: 600 clamp(20px, 2.2vw, 26px)/1.2 var(--display); letter-spacing: -.02em; }
+.hm-tk-body p { margin: 0; color: var(--muted); font-size: 15px; }
+.hm-tk-body .hm-prep.bad { color: #ff8f6b; } .hm-tk-body .hm-prep.ok { color: #5fd38d; }
+.hm-tk-body .hm-acts { margin-top: 10px; }
+.hm-acts .hm-role { margin: 0 !important; }
+/* zdjęcia z ostatniego nabożeństwa */
+.hm-photos .kh-panel-h { margin-bottom: 10px; }
+.hm-ph-row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; scrollbar-width: thin; }
+.hm-ph { flex: none; width: 168px; aspect-ratio: 4 / 3; min-height: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: var(--panel2) !important; scroll-snap-align: start; }
+.hm-ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s ease; }
+.hm-ph:hover img { transform: scale(1.05); }
+.hm-lb { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 56px 16px; background: rgba(8, 7, 6, .92); outline: none; }
+.hm-lb img { max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain; }
+.hm-lb-x, .hm-lb-a { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; min-height: 0; padding: 0; border-radius: 50%; background: rgba(255, 255, 255, .12) !important; color: #fff; }
+.hm-lb-x { top: 14px; right: 14px; } .hm-lb-a.prev { left: 14px; top: 50%; } .hm-lb-a.next { right: 14px; top: 50%; }
+.hm-lb-n { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: #ddd; font-size: 14px; }
+@media (max-width: 760px) {
+  .hm-stub { width: 104px; padding: 18px 8px; }
+  .hm-stub b { font-size: 44px; }
+  .hm-tk-body { padding: 18px 16px; }
+  .hm-ph { width: 136px; }
+  .hm-lb-a { top: auto !important; bottom: 10px; }
+}
