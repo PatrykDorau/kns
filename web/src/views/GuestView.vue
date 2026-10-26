@@ -238,10 +238,11 @@ export default defineComponent({
               <a v-if="listen.spotify" class="gx-btn gx-dark" :href="listen.spotify" target="_blank" rel="noopener">Spotify</a>
             </div>
           </div>
-          <div v-if="listen.musicYoutube || listen.musicSpotify" class="gx-listen-g">
+          <div v-if="listen.musicSpotify || listen.musicYoutube" class="gx-listen-g">
             <h3 class="gx-col-h">KNS Music</h3>
             <div class="gx-row">
-              <a v-if="listen.musicYoutube" class="gx-btn gx-light" :href="listen.musicYoutube" target="_blank" rel="noopener">YouTube</a>
+              <!-- KNS Music jest na tym samym kanale YouTube co kazania (albo na osobnej playliście, jeśli ustawiona) -->
+              <a v-if="(listen.musicYoutube || listen.youtubeMore || listen.youtube)" class="gx-btn gx-light" :href="(listen.musicYoutube || listen.youtubeMore || listen.youtube)" target="_blank" rel="noopener">YouTube</a>
               <a v-if="listen.musicSpotify" class="gx-btn gx-dark" :href="listen.musicSpotify" target="_blank" rel="noopener">Spotify</a>
             </div>
           </div>
