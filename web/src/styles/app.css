@@ -499,8 +499,10 @@ header > button { flex: none; white-space: nowrap; }
 .invite-cal .inv-short { display: none; }
 /* podwieszone nad listą: sam przycisk w prawym rogu — nie zasłania wydarzeń */
 .invite-cal { transition: background .25s, border-color .25s, box-shadow .25s, padding .25s; }
-.invite.invite-cal.stuck { pointer-events: none; justify-content: flex-end; padding: 0; border-color: transparent !important; background: transparent !important; box-shadow: none !important; } /* !important — styl „płasko” (taste.css) wymusza tło zaproszeń */
-.invite-cal.stuck > .i, .invite-cal.stuck > span { display: none !important; }
+.invite.invite-cal.stuck { pointer-events: none; border-color: transparent !important; background: transparent !important; box-shadow: none !important; } /* !important — styl „płasko” (taste.css) wymusza tło zaproszeń */
+/* tekst tylko niewidoczny — wysokość paska się nie zmienia (inaczej przy końcu listy pasek migał: rozwinięcie przesuwało znacznik końca) */
+.invite-cal > .i, .invite-cal > span { transition: opacity .2s; }
+.invite-cal.stuck > .i, .invite-cal.stuck > span { opacity: 0; visibility: hidden; }
 .invite-cal.stuck > button { pointer-events: auto; box-shadow: 0 10px 28px rgba(0, 0, 0, .5); }
 .invite-end { height: 1px; }
 @media (max-width: 1023px) {
