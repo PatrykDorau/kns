@@ -625,3 +625,14 @@ html[data-theme="light"] .ann-tag.imp { color: #a3402a; }
   .wide-list > * { margin: 0 !important; height: 100%; }
   .wide-list > .note { grid-column: 1 / -1; }
 }
+
+/* komputer: edycja (nabożeństwa, wydarzenia, ogłoszenia…) z tym samym nagłówkiem-okruszkami i na tej samej lewej krawędzi
+   co podgląd — przejście podgląd ↔ edycja nie przesuwa nagłówka */
+@media (min-width: 1024px) {
+  html { scrollbar-gutter: stable; } /* pasek przewijania nie przesuwa strony między krótkim i długim widokiem */
+  #app.has-side.editing > header { max-width: 1120px !important; padding-bottom: 6px; }
+  #app.has-side.editing > header > .back { flex-basis: auto; }
+  #app.has-side.editing > header h1 { flex: 1; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important; color: var(--muted); }
+  #app.has-side.editing > header:has(.back) h1::before { content: '/'; margin: 0 8px 0 2px; opacity: .5; }
+  #app.has-side.editing:not(:has(.svc-view, .ann-view)) > :not(.kh-bar):not(header):not(.version):not(.sheet):not(.kh-modal):not(.side) { margin-left: max(0px, calc((100% - 1120px) / 2)) !important; margin-right: auto !important; }
+}

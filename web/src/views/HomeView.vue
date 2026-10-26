@@ -77,16 +77,10 @@ export default defineComponent({
 
     <SermonNotes v-if="notesService" :service="notesService" />
 
-    <!-- myśli z kazania: wyróżnione, żeby każdy szybko je dostał -->
+    <!-- myśli z kazania: na samej górze, żeby każdy szybko je dostał -->
     <section v-if="lastSermon && thoughtList(lastSermon).length" class="kh-panel kh-thoughts hm-thoughts">
-      <div class="hm-thoughts-h">
-        <span class="hm-badge">Myśli z kazania</span>
-        <span class="kh-muted">{{ shortDate(lastSermon.date) }}</span>
-        <span class="kh-spacer"></span>
-        <button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button>
-      </div>
-      <h2 class="hm-thoughts-t">{{ lastSermon.sermonTitle || 'Kazanie' }}</h2>
-      <p class="kh-th-sermon">{{ [lastSermon.passage, lastSermon.speaker].filter(Boolean).join(' · ') }}</p>
+      <div class="kh-panel-h"><h2>Myśli z kazania</h2><span class="kh-muted">{{ shortDate(lastSermon.date) }}</span><span class="kh-spacer"></span><button v-if="canEdit" class="kh-link" @click="open(lastSermon)">Edytuj</button></div>
+      <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> · {{ lastSermon.speaker }}</template></p>
       <ul class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
       <a v-if="recording" class="hm-pill" :href="recording" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Nagranie kazania</a>
     </section>

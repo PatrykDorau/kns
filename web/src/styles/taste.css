@@ -302,23 +302,18 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 .hm-dim { color: #8c8985; font-weight: 400; }
 .hm-quick { display: none; }
 /* numer sekcji w pomarańczowym kółku i tytuł dużą literą — sekcje łatwo odróżnić */
-.kh-web .hw-h .hw-step { display: inline-grid !important; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: var(--accent); color: #1a1208; font: 700 13px/1 var(--display); }
 .kh-web .hw-h { gap: 12px; margin: 0 0 14px !important; font: 600 21px/1.2 var(--display) !important; letter-spacing: -.015em !important; text-transform: none !important; color: var(--text) !important; }
 .kh-web .hw-h small { font: 500 13px/1 var(--display); color: var(--muted); }
 .kh-web .hw-h small + .hm-seg { margin-left: 10px; }
+/* numer sekcji: kółko z obwódką (jak wcześniej); sekcje 1–2 z tą samą kreską i odstępem co kolumny 3–5 */
+.kh-web .hw-h .hw-step { display: inline-grid !important; }
+.kh-web .hm-sec { border-top: 1px solid var(--edge-hi, #2a2826); padding-top: 18px; }
 /* Dla Ciebie */
-.hm-for { padding: 20px 22px; border-radius: 22px; background: var(--panel); }
 .hm-for-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
 .hm-for-it { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 0; padding: 14px 16px; border-radius: 16px; background: var(--panel2) !important; text-align: left; }
 .hm-for-it:hover { background: var(--panel3) !important; }
 .hm-for-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
 .hm-calm { margin: 0; color: var(--muted); font-size: 15px; }
-/* myśli z kazania — wyróżnione */
-.kh-web .hm-thoughts { padding: 22px 24px !important; border-radius: 22px !important; background: #1d1710 !important; box-shadow: inset 0 0 0 1.5px rgba(246, 168, 54, .45) !important; }
-.hm-thoughts-h { display: flex; align-items: center; gap: 10px; }
-.hm-badge { padding: 7px 13px; border-radius: 999px; background: var(--accent); color: #1a1208; font: 700 13px/1 var(--display); }
-.hm-thoughts-t { margin: 16px 0 4px; font: 600 clamp(22px, 2.4vw, 30px)/1.15 var(--display); letter-spacing: -.025em; }
-.hm-thoughts .kh-th-list li { font-size: 17px; line-height: 1.5; }
 .hm-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; margin-top: 14px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--panel3) !important; color: var(--text) !important; font: 600 14px/1 var(--display); text-decoration: none; }
 .hm-pill:hover { background: #34312e !important; }
 /* nabożeństwo: moja służba, transmisja w trakcie */
@@ -353,7 +348,9 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
   .hm-quick svg.i { width: 16px !important; height: 16px !important; color: var(--accent); }
   .kh-web .hw-cols { gap: 14px !important; }
   .kh-web .hw-col { padding: 18px 16px !important; border-top: 0 !important; border-radius: 22px; background: var(--panel); }
-  .hm-for { padding: 18px 16px; }
+  .kh-web .hm-sec { padding: 18px 16px; border-top: 0; border-radius: 22px; background: var(--panel); }
   .hm-for-list { grid-template-columns: 1fr; }
-  .kh-web .hm-thoughts { padding: 20px 18px !important; }
 }
+/* wiersze (ogłoszenia, tydzień, wspólnota): hover jako zaokrąglone tło zamiast prostokąta */
+.kh-web .hw-row { border-radius: 14px; transition: background-color .15s, transform .25s cubic-bezier(.2, .8, .2, 1); }
+@media (hover: hover) { .kh-web .hw-row:hover { background: var(--panel2) !important; border-bottom-color: transparent; transform: none; } }
