@@ -167,10 +167,13 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
   const mapBroadcast = b => ({ id: b.id, title: b.snippet?.title || '', description: b.snippet?.description || '', start: b.snippet?.scheduledStartTime || '',
     status: b.status?.lifeCycleStatus || '', privacy: b.status?.privacyStatus || '', streamId: b.contentDetails?.boundStreamId || '', url: 'https://youtu.be/' + b.id,
     autoStart: !!b.contentDetails?.enableAutoStart, monitor: !!b.contentDetails?.monitorStream?.enableMonitorStream })
-  // Zaplanowane i trwające transmisje kanału (najbliższe na górze).
+  // Zaplanowane i trwające transmisje kanału (najbliższe na górze). Osobno „nadchodzące” i „trwające” — lista „mine”
+  // zwraca też zakończone i po 25 pozycjach ucinała zaplanowane.
   async function broadcasts() {
-    const items = (await call('GET', '/liveBroadcasts?part=id,snippet,status,contentDetails&mine=true&maxResults=25')).items || []
-    return items.map(mapBroadcast).filter(b => ['created', 'ready', 'testStarting', 'testing', 'liveStarting', 'live'].includes(b.status))
+    const get = st => call('GET', '/liveBroadcasts?part=id,snippet,status,contentDetails&broadcastType=all&maxResults=50&broadcastStatus=' + st).then(r => r.items || [])
+    const [up, on] = await Promise.all([get('upcoming'), get('active')])
+    const items: any[] = [...on, ...up].filter((b, i, a) => a.findIndex(x => x.id === b.id) === i)
+    return items.map(b => ({ ...mapBroadcast(b), viewers: 0 })).filter(b => ['created', 'ready', 'testStarting', 'testing', 'liveStarting', 'live'].includes(b.status))
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
   }
   // Nowa transmisja od razu połączona ze stałym kluczem; sama startuje, gdy przyjdzie obraz, i kończy się po nim.

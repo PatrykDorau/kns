@@ -35,7 +35,12 @@ const server = http.createServer(async (req, res) => {
     broadcasts.push(x); return send(x)
   }
   if (p === '/liveBroadcasts/bind') { const x = broadcasts.find(b => b.id === url.searchParams.get('id')); x.contentDetails.boundStreamId = url.searchParams.get('streamId'); x.status.lifeCycleStatus = 'ready'; return send(x) }
-  if (p === '/liveBroadcasts' && req.method === 'GET') return send({ items: broadcasts })
+  if (p === '/liveBroadcasts' && req.method === 'GET') {
+    // jak YouTube: broadcastStatus=upcoming|active filtruje, inaczej (mine=true) wszystkie, najstarsze pierwsze, do maxResults
+    const st = url.searchParams.get('broadcastStatus'), max = +(url.searchParams.get('maxResults') || 5)
+    const of = { upcoming: ['created', 'ready', 'testStarting', 'testing'], active: ['liveStarting', 'live'] }[st]
+    return send({ items: broadcasts.filter(b => !of || of.includes(b.status.lifeCycleStatus)).slice(0, max) })
+  }
   if (p === '/liveBroadcasts' && req.method === 'PUT') { const b = JSON.parse(body); const x = broadcasts.find(y => y.id === b.id); Object.assign(x.snippet, b.snippet); return send(x) }
   if (p === '/liveBroadcasts/transition') { const x = broadcasts.find(b => b.id === url.searchParams.get('id')); x.status.lifeCycleStatus = 'complete'; return send(x) }
   send({ error: { message: 'nie ma ' + p } }, 404)
@@ -69,6 +74,11 @@ server.listen(0, '127.0.0.1', async () => {
     assert.equal((await yt2.updateBroadcast({ ...b, title: 'Nowy tytuł' })).title, 'Nowy tytuł')
     assert.equal((await yt2.endBroadcast(b.id)).status, 'complete')
     assert.equal((await yt2.broadcasts()).length, 0) // zakończone znikają z listy
+    // dużo zakończonych na kanale + zaplanowane w YouTube Studio: wszystkie zaplanowane na liście, najbliższa pierwsza
+    for (let i = 0; i < 30; i++) broadcasts.push({ id: 'old' + i, snippet: { title: 'Stara ' + i, scheduledStartTime: '2026-01-01T10:00:00Z' }, status: { lifeCycleStatus: 'complete' }, contentDetails: {} })
+    broadcasts.push({ id: 'P2', snippet: { title: 'Wieczór uwielbienia', scheduledStartTime: '2026-11-05T17:00:00Z' }, status: { lifeCycleStatus: 'created', privacyStatus: 'public' }, contentDetails: { boundStreamId: 'inny' } })
+    broadcasts.push({ id: 'P1', snippet: { title: 'Nabożeństwo 1.11', scheduledStartTime: '2026-11-01T09:00:00Z' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' }, contentDetails: {} })
+    assert.deepEqual((await yt2.broadcasts()).map(x => x.id), ['P1', 'P2'])
     await assert.rejects(yt2.createBroadcast({ title: 'x', start: '2026-10-25T10:00:00Z', privacy: 'zly' }), /nie są włączone transmisje na żywo/)
     yt2.logout()
     assert.equal(yt2.status().loggedIn, false)

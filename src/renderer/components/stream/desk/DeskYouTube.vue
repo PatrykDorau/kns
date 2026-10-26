@@ -29,7 +29,15 @@ const {
     <!-- zwinięte: zostaje tylko start albo koniec transmisji -->
     <template v-if="settings.ytFolded && yt.loggedIn">
       <button v-if="liveOn" class="desk-stop" @click="stopLive">■ Zakończ transmisję</button>
-      <button v-else class="desk-golive" :disabled="ytBusy || (engine === 'simple' && !settings.streamVideo)" @click="goLive"><i></i>Rozpocznij: {{ nextTitle }}</button>
+      <template v-else>
+        <label v-if="upcoming.length" class="desk-field">Transmisja
+          <select v-model="chosenId">
+            <option v-for="b in upcoming" :key="b.id" :value="b.id">{{ b.title }}{{ when(b) ? ' — ' + when(b) : '' }}</option>
+            <option value="new">Nowa: „{{ newTitle }}”</option>
+          </select>
+        </label>
+        <button class="desk-golive" :disabled="ytBusy || (engine === 'simple' && !settings.streamVideo)" @click="goLive"><i></i>Rozpocznij: {{ nextTitle }}</button>
+      </template>
     </template>
     <template v-else-if="!yt.loggedIn">
       <p class="note">Połącz aplikację z kanałem kościoła — w przeglądarce wybierz konto (albo konto marki) kanału.</p>
@@ -49,7 +57,7 @@ const {
         <div class="desk-ready" aria-label="Gotowość">
           <button v-for="r in readiness" :key="r.k" :title="'Ustawienia nadawania — ' + r.k" @click="openCfg"><i :class="r.cls"></i><b>{{ r.k }}</b><span>{{ r.v }}</span></button>
         </div>
-        <button class="desk-golive" :disabled="ytBusy || (engine === 'simple' && !settings.streamVideo)" @click="goLive"><i></i>Rozpocznij transmisję</button>
+        <button class="desk-golive" :disabled="ytBusy || (engine === 'simple' && !settings.streamVideo)" @click="goLive"><i></i>Rozpocznij: {{ nextTitle }}</button>
         <p v-if="liveError" class="note bad">{{ liveError }}</p>
       </template>
       <template v-else>
