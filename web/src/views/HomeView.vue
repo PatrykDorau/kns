@@ -51,10 +51,12 @@ export default defineComponent({
     watch(annMode, v => { try { localStorage.setItem('kns-ann-mode', v) } catch { /* bez zapamiętania */ } })
     const deckCards = computed(() => app.boardNews.value.map(a => ({ key: a.id, title: a.title, image: a.image || '', color: 'var(--accent)', tag: app.annIsNew(a) ? 'Nowe' : app.AUDIENCE[a.audience] || 'Ogłoszenie', sub: a.text || app.shortDate(a.date) })))
     const openCard = c => { const a = app.boardNews.value.find(x => x.id === c.key); if (a) app.openAnn(a) }
+    // „Kazanie”: trwające nabożeństwo (albo to z pytaniami do kazania), a poza tym ostatnie
+    const sermonService = computed(() => (app.countdown.value?.live && app.nextService.value) || app.notesService.value || app.lastSermon.value || null)
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-thoughts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes }
+    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService }
   },
 })
 </script>
@@ -69,9 +71,9 @@ export default defineComponent({
 
     <!-- telefon: najczęstsze rzeczy pod kciukiem -->
     <nav class="hm-quick" aria-label="Skróty">
-      <button v-if="notesService || (lastSermon && thoughtList(lastSermon).length)" @click="toNotes"><svg class="i"><use href="#book"/></svg>Notatki</button>
+      <button v-if="sermonService" @click="open(sermonService)"><svg class="i"><use href="#book"/></svg>Kazanie</button>
       <button @click="openPray"><svg class="i"><use href="#heart"/></svg>Modlitwa</button>
-      <button @click="openListen"><svg class="i"><use href="#music"/></svg>Posłuchaj</button>
+      <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia</button>
       <button @click="openServe('mine')"><svg class="i"><use href="#serve"/></svg>Grafik</button>
     </nav>
 

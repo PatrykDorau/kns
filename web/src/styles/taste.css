@@ -340,15 +340,15 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 .hm-focus { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; min-height: 0; margin-bottom: 8px; padding: 16px 18px; border-radius: 16px; background: var(--panel2) !important; box-shadow: inset 3px 0 var(--accent) !important; text-align: left; }
 .hm-focus small { color: var(--accent); font: 600 13px/1 var(--display); }
 .hm-focus span { font-size: 15px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-/* telefon: skróty pod kciukiem; każda sekcja to osobny panel */
+/* telefon: skróty pod kciukiem */
 @media (max-width: 1023px) {
   .hm-quick { display: flex; gap: 8px; overflow-x: auto; margin: -4px -16px 0; padding: 0 16px 2px; scrollbar-width: none; }
   .hm-quick::-webkit-scrollbar { display: none; }
   .hm-quick button { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 999px; background: var(--panel2) !important; font: 500 14px/1 var(--display); }
   .hm-quick svg.i { width: 16px !important; height: 16px !important; color: var(--accent); }
-  .kh-web .hw-cols { gap: 14px !important; }
-  .kh-web .hw-col { padding: 18px 16px !important; border-top: 0 !important; border-radius: 22px; background: var(--panel); }
-  .kh-web .hm-sec { padding: 18px 16px; border-top: 0; border-radius: 22px; background: var(--panel); }
+  /* sekcje przezroczyste (widać górę w tle) — oddziela je kreska, odstęp i duży tytuł z numerem */
+  .kh-web .hw-col { padding-top: 20px !important; }
+  .kh-web .hw-cols { gap: 28px !important; }
   .hm-for-list { grid-template-columns: 1fr; }
 }
 /* wiersze (ogłoszenia, tydzień, wspólnota): hover jako zaokrąglone tło zamiast prostokąta */
