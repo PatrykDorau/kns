@@ -55,7 +55,10 @@ export function useStreamHealth(youtube: YouTube, bc: Broadcast, dev: StreamDevi
     else chips.push({ id: 'lag', label: 'Tempo', value: L.speed || '—', cls: slow ? 'warn' : 'ok', tip: 'Poniżej 1x — komputer albo internet nie nadąża.' })
     // klatki
     const lost = (L.drop || 0) + (L.skipped || 0) + (engine.value === 'studio' ? studio.skipped : 0)
-    chips.push({ id: 'fps', label: 'Klatki', value: (L.fps || 0) + '/s' + (lost > 10 ? ' · zgubione ' + lost : ''), cls: lost > 50 ? 'warn' : 'ok', tip: 'Klatki na sekundę; zgubione: pominięte przez kartę graficzną albo przy zatkanym internecie.' })
+    // procent zgubionych: wobec klatek, które powinny wyjść od startu (czas transmisji × ustawione klatki na sekundę)
+    const secs = String(L.time || '').split(':').reduce((t, x) => t * 60 + (+x || 0), 0), expected = secs * (+settings.streamFps || 30)
+    const lostPct = expected ? Math.min(100, (lost / expected) * 100) : 0
+    chips.push({ id: 'fps', label: 'Klatki', value: (L.fps || 0) + '/s · ' + lostPct.toLocaleString('pl', { maximumFractionDigits: lostPct < 1 ? 2 : 1 }) + '% zgub.', cls: lostPct > 5 ? 'bad' : lostPct > 1 ? 'warn' : 'ok', tip: 'Klatki na sekundę; zgubione: ' + lost + ' (' + lostPct.toLocaleString('pl', { maximumFractionDigits: 2 }) + '% od startu) — pominięte przez kartę graficzną albo przy zatkanym internecie. Do 1% niezauważalne.' })
     // internet
     chips.push({ id: 'net', label: 'Internet', value: !online.value ? 'brak' : L.stalled ? 'stoi' : slow ? 'wolny' : 'OK', cls: !online.value || L.stalled ? 'bad' : slow ? 'warn' : 'ok' })
     // YouTube
