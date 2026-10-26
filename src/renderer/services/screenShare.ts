@@ -23,9 +23,13 @@ async function txOffer(id) {
   const pc = new RTCPeerConnection({ iceServers: ICE })
   tx.peers.set(id, pc)
   for (const tr of tx.stream.getTracks()) {
-    if (tr.kind === 'video') tr.contentHint = 'detail' // napisy i slajdy ostre (ruch filmu i tak płynny)
+    if (tr.kind === 'video') tr.contentHint = 'detail' // napisy i slajdy ostre
     const sender = pc.addTrack(tr, tx.stream)
-    if (tr.kind === 'video') { const p = sender.getParameters(); p.encodings = [{ ...(p.encodings?.[0] || {}), maxBitrate: 8_000_000, maxFramerate: 30 }]; sender.setParameters(p).catch(() => {}) }
+    if (tr.kind === 'video') {
+      const p = sender.getParameters(); p.encodings = [{ ...(p.encodings?.[0] || {}), maxBitrate: 8_000_000, maxFramerate: 30 }]
+      // przy zmianie slajdu (cały obraz naraz) płynność ważniejsza niż ostrość — inaczej koder gubi klatki i przejście się wlecze
+      sender.setParameters(p).then(() => { const q = sender.getParameters() as any; q.degradationPreference = 'maintain-framerate'; return sender.setParameters(q) }).catch(() => {})
+    }
   }
   pc.onicecandidate = e => { if (e.candidate) tx?.sig.send({ t: 'ice', to: id, c: e.candidate.toJSON() }) }
   pc.onconnectionstatechange = () => { txCount(); if (['failed', 'closed'].includes(pc.connectionState)) { pc.close(); if (tx?.peers.get(id) === pc) tx.peers.delete(id); txCount() } }

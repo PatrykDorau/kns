@@ -1391,3 +1391,11 @@ select { padding-right: 36px !important; }
 .dh-rail-cell.s-bad .dh-ic { stroke: #ff6b70; }
 .dh-rail-cell.s-bad b { color: #ff6b70; }
 .dh-alert-solo { margin: 0 0 10px; border: 0; border-radius: 10px; }
+
+/* przewinięte niżej: podgląd i wizja przypięte pomniejszone u góry (DeskMonitors) */
+.studio-mons.docked { position: fixed; z-index: 40; gap: 8px; padding: 8px 10px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: 0 14px 40px rgba(0, 0, 0, .55); animation: mons-dock .18s ease-out; }
+.studio-mons.docked .mon figcaption { margin-bottom: 3px; font-size: 10.5px; }
+.studio-mons.docked .mon-scr { border-width: 2px; }
+.mons-dock-bar { grid-column: 1 / -1; display: flex; gap: 6px; }
+.mons-dock-bar .desk-take-btn { flex: 1; padding: 6px 10px; font-size: 13px; }
+@keyframes mons-dock { from { opacity: 0; transform: translateY(-8px); } }

@@ -5,6 +5,7 @@ import { background, fit, fullImage, g, img, text } from './paint'
 import { connectMedia } from './audio'
 
 let projVideo: HTMLVideoElement = null, remoteVideo: HTMLVideoElement = null
+let lastImage: HTMLImageElement = null // poprzedni slajd — zostaje, dopóki nowy się wczytuje (bez mignięcia pustej planszy)
 // Obraz rzutnika z innego komputera (WebRTC) — null, gdy połączenie zerwane.
 export function setRemoteScreen(stream) {
   if (!stream) { if (remoteVideo) remoteVideo.srcObject = null; studio.remoteScreen = false; return }
@@ -20,7 +21,7 @@ export function projectorFrame(t) {
     if (projVideo && !projVideo.paused) projVideo.pause()
     background(t); text(p.missing ? 'Rzutnik jeszcze wysyła ten materiał…' : 'Wczytuję materiał z rzutnika…', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return
   }
-  if (p.kind === 'image' && p.url) { const im = img(p.url); if (im) { fullImage(im); return } }
+  if (p.kind === 'image' && p.url) { const im = img(p.url) || lastImage; if (im) { lastImage = im; fullImage(im); return } }
   if (p.kind === 'video' && p.url) {
     if (!projVideo) { projVideo = document.createElement('video'); projVideo.crossOrigin = 'anonymous'; projVideo.playsInline = true; connectMedia(projVideo) }
     if (projVideo.dataset.src !== p.url) { projVideo.dataset.src = p.url; projVideo.src = p.url }
