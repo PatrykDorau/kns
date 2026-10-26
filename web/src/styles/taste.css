@@ -415,3 +415,6 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 .hm-story .hm-st-tap.prev:hover { cursor: w-resize; } .hm-story .hm-st-tap.next:hover { cursor: e-resize; }
 /* przycisk Google (Google Identity Services) w okienku logowania */
 .login-gis { display: flex; justify-content: center; width: 100%; min-height: 44px; }
+/* przycisk Google w ramce: jasny schemat kolorów — inaczej przeglądarka daje ramce białe tło (ciemna strona ≠ jasna ramka) */
+.login-gis, .login-gis iframe { color-scheme: light; }
+.login-gis iframe { background: transparent !important; }

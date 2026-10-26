@@ -281,6 +281,11 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 24px; border: 0; border-radius: 999px; font: 600 16px/1 var(--display); white-space: nowrap; text-decoration: none; cursor: pointer; transition: transform .15s, background .15s, box-shadow .2s; }
 .gx-btn:active { transform: scale(.97); }
 .gx .gx-accent { background: var(--accent); color: #1a1208; box-shadow: 0 0 0 1px rgba(246, 168, 54, .4), 0 8px 40px rgba(246, 168, 54, .32); }
+/* hover z !important — ogólny hover przycisków (taste.css) nadpisywał kolory szarym tłem */
+.gx .gx-btn.gx-accent:hover:not(:disabled) { background: #f8b752 !important; }
+.gx .gx-btn.gx-dark:hover:not(:disabled) { background: #262422 !important; }
+.gx .gx-panel .gx-btn.gx-dark:hover:not(:disabled) { background: #34312e !important; }
+.gx .gx-btn.gx-light:hover:not(:disabled) { background: #e9e7e4 !important; }
 .gx .gx-accent:hover { background: #f8b752; box-shadow: 0 0 0 1px rgba(246, 168, 54, .5), 0 8px 48px rgba(246, 168, 54, .45); }
 .gx .gx-dark { background: #1c1b1a; color: #fff; }
 .gx .gx-dark:hover { background: #262422; }

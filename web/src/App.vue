@@ -39,6 +39,7 @@ import MoreView from '@/views/MoreView.vue'
 import HomeView from '@/views/HomeView.vue'
 import CardDeck from '@/components/CardDeck.vue'
 import GuestView from '@/views/GuestView.vue'
+import IosInstall from '@/components/IosInstall.vue'
 import Prayers from '@/components/Prayers.vue'
 import ServiceEditView from '@/views/ServiceEditView.vue'
 import PublicListen from '@/components/PublicListen.vue'
@@ -77,7 +78,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.88 · 26.10.2026'
+const VERSION = '3.89 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -185,7 +186,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, Prayers, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, IosInstall, Prayers, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -2188,7 +2189,7 @@ export default defineComponent({
     addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvent = e; canPrompt.value = true; if (!matchMedia('(display-mode: standalone)').matches) installed.value = false })
     addEventListener('appinstalled', markInstalled)
     async function install() {
-      if (!promptEvent) { showHelp.value = true; return }
+      if (ios || !promptEvent) { showHelp.value = true; return } // iPhone: tylko podpowiedź (instalacji jednym dotknięciem Apple nie pozwala)
       promptEvent.prompt()
       const choice = await promptEvent.userChoice
       if (choice.outcome === 'accepted') markInstalled()
@@ -2574,20 +2575,18 @@ export default defineComponent({
     <img src="icon-192.png" alt="">
     <span class="ga-text"><b>Zainstaluj aplikację</b></span>
     <button class="primary" @click="install"><svg class="i"><use href="#download"/></svg>Pobierz</button>
-    <!-- Instrukcja tylko wtedy, gdy instalacja jednym dotknięciem nie jest możliwa. -->
-    <div v-if="showHelp" class="ga-help">
-      <template v-if="ios">Na iPhonie w Safari: dotknij <b>≡</b> albo <b>⋯</b> obok adresu strony (w starszym Safari — kwadrat ze strzałką na dole) → <b>Udostępnij</b> → przewiń w dół → <b>Do ekranu początkowego</b> → <b>Dodaj</b>.</template>
-    </div>
   </div>
+  <!-- iPhone: podpowiedź krok po kroku (instalacji jednym dotknięciem Apple nie pozwala) -->
+  <IosInstall v-if="showHelp && ios" />
   <p v-if="desktopMode" class="desktop-mode">Telefon wyświetla tę stronę jako „wersję na komputer” — dlatego wszystko jest drobne. W Chrome: menu ⋮ → odznacz „Wersja na komputer”.</p>
   <div v-if="drive.demo" class="demo">Tryb pokazowy — dane są tylko w tej przeglądarce</div>
   <!-- powiadomienia na telefonie: domyślnie włączone — jedno dotknięcie (telefon wymaga zgody) -->
   <div v-if="ready && pushAsk && !push.on" class="push-ask" role="region" aria-label="Powiadomienia">
     <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
-    <span v-if="pushAskMode === 'install'" class="pa-text"><b>Powiadomienia na iPhonie</b><small>Najpierw dodaj aplikację do ekranu: w Safari <b>Udostępnij</b> → <b>Do ekranu początkowego</b>, otwórz ją z ekranu i włącz powiadomienia.</small></span>
+    <span v-if="pushAskMode === 'install'" class="pa-text"><b>Powiadomienia na iPhonie</b><small>Najpierw dodaj aplikację do ekranu, otwórz ją z ekranu i włącz powiadomienia.</small></span>
     <span v-else-if="pushAskMode === 'browser'" class="pa-text"><b>Powiadomienia</b><small>Ta przeglądarka ({{ push.otherBrowser }}) ich nie obsługuje — otwórz stronę w Chrome.</small></span>
     <span v-else class="pa-text"><b>Włącz powiadomienia na tym urządzeniu</b><small>Wiadomości od liderów, głosowania, zapisy i przypomnienia — od razu, także gdy aplikacja jest zamknięta. Wyłączysz je w Mój profil.</small></span>
-    <span class="pa-btns"><button class="ghost" @click="pushLater">Nie teraz</button><a v-if="pushAskMode === 'browser'" class="button primary" :href="chromeLink">Otwórz w Chrome</a><button v-else-if="pushAskMode === 'enable'" class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button></span>
+    <span class="pa-btns"><button class="ghost" @click="pushLater">Nie teraz</button><a v-if="pushAskMode === 'browser'" class="button primary" :href="chromeLink">Otwórz w Chrome</a><button v-else-if="pushAskMode === 'install'" class="primary" @click="showHelp = true">Pokaż jak</button><button v-else-if="pushAskMode === 'enable'" class="primary" :disabled="push.busy" @click="enablePush">{{ push.busy ? 'Włączam…' : 'Włącz' }}</button></span>
     <small v-if="push.error" class="pa-err">{{ push.error }}</small>
   </div>
   <div v-if="updateReady" class="update-ready" role="status"><svg class="i"><use href="#refresh"/></svg><span>Jest nowa wersja aplikacji.</span><button class="primary small" @click="reloadPage">Odśwież</button></div>
