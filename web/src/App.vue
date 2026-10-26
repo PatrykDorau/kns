@@ -78,7 +78,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '3.92 · 26.10.2026'
+const VERSION = '3.93 · 26.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1499,7 +1499,7 @@ export default defineComponent({
       if (gisOn.value === 'off' || !drive.signInToken || !showLogin.value) { gisOn.value = 'off'; return }
       if (!g || !el) { if (tries < 20) setTimeout(() => renderGis(tries + 1), 250); else gisOn.value = 'off'; return }
       g.initialize({
-        client_id: clientId, ux_mode: 'popup', use_fedcm_for_button: true, login_hint: drive.account() || undefined,
+        client_id: clientId, ux_mode: 'popup', use_fedcm_for_button: true, // bez login_hint — Google pokazuje listę zapamiętanych kont
         callback: r => guard(async () => {
           try { await drive.signInToken(r.credential) } catch { gisOn.value = 'off'; return start() }
           await enter()
