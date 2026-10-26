@@ -410,3 +410,6 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
   .kh-web .hm-last.has-ph { grid-template-columns: 1fr; }
   .hm-mosaic { height: 200px; }
 }
+/* relacja: niewidoczne pola „wstecz/dalej” bez tła po najechaniu (ogólny hover przycisków zasłaniał zdjęcie) */
+.hm-story .hm-st-tap, .hm-story .hm-st-tap:hover:not(:disabled), .hm-story .hm-st-tap:active { background: transparent !important; box-shadow: none !important; transform: none !important; outline: none; }
+.hm-story .hm-st-tap.prev:hover { cursor: w-resize; } .hm-story .hm-st-tap.next:hover { cursor: e-resize; }
