@@ -57,21 +57,39 @@ export default defineComponent({
     const body = document.body.classList
     body.add('guest-page')
     function show() { clearTimeout(timer); ready.value = true; body.add('guest-ready') }
+    let switchedAt = 0 // przerwa po przejściu — rozpęd kółka/palca nie przełącza od razu z powrotem
+    const settled = () => performance.now() - switchedAt > 700
     function discover() {
       if (!ready.value) { show(); return }
+      switchedAt = performance.now()
       open.value = true; body.add('guest-open')
-      window.scrollTo(0, 0)
+      window.scrollTo(0, 0); topAt = performance.now()
       setTimeout(() => page.value?.querySelector('h2')?.focus({ preventScroll: true }), still ? 0 : 900)
     }
     function back() {
+      switchedAt = performance.now()
       window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' })
-      setTimeout(() => { open.value = false; body.remove('guest-open') }, still ? 0 : 250)
+      setTimeout(() => { open.value = false; body.remove('guest-open', 'hdr-hide'); window.scrollTo(0, 0) }, still ? 0 : 250)
     }
     // przewinięcie / przesunięcie palcem w górę na pierwszym ekranie — jak „Odkryj nas”
-    function wheel(e) { if (!open.value && e.deltaY > 12) discover() }
+    function wheel(e) { if (!open.value && e.deltaY > 12 && settled()) discover() }
     let touchY = 0
     const touchStart = e => { touchY = e.touches[0].clientY }
-    const touchMove = e => { if (!open.value && touchY - e.touches[0].clientY > 50) discover() }
+    const touchMove = e => { if (!open.value && touchY - e.touches[0].clientY > 50 && settled()) discover() }
+    // na samej górze treści przewinięcie / przeciągnięcie w górę wraca na ekran startowy
+    // (tylko gdy strona już chwilę stała na górze — żeby rozpęd przewijania nie wyrzucał na start)
+    let topAt = 0
+    const onScroll = () => { topAt = scrollY <= 0 ? (topAt || performance.now()) : 0 }
+    const atTop = () => open.value && scrollY <= 0 && topAt && performance.now() - topAt > 350 && settled()
+    const pageWheel = e => { if (e.deltaY < -12 && atTop()) back() }
+    let pageTouch = null
+    const pageTouchStart = e => { pageTouch = atTop() ? e.touches[0].clientY : null }
+    const pageTouchMove = e => { if (pageTouch != null && e.touches[0].clientY - pageTouch > 70) { pageTouch = null; back() } }
+    addEventListener('scroll', onScroll, { passive: true })
+    addEventListener('wheel', pageWheel, { passive: true })
+    addEventListener('touchstart', pageTouchStart, { passive: true })
+    addEventListener('touchmove', pageTouchMove, { passive: true })
+    onBeforeUnmount(() => { removeEventListener('scroll', onScroll); removeEventListener('wheel', pageWheel); removeEventListener('touchstart', pageTouchStart); removeEventListener('touchmove', pageTouchMove) })
     const key = e => { if (!open.value && ['ArrowDown', 'PageDown', ' '].includes(e.key) && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); discover() } }
     onMounted(() => {
       if (still) return
@@ -201,7 +219,8 @@ export default defineComponent({
 body.guest-page { padding: 0 !important; }
 body.guest-page #app { max-width: none; padding-bottom: 0; }
 body.guest-page #app > .gx { max-width: none !important; margin: 0 !important; }
-body.guest-page:not(.guest-open) { overflow: hidden; }
+body.guest-page:not(.guest-open), html:has(body.guest-page:not(.guest-open)) { overflow: hidden; }
+body.guest-page.hdr-hide .gx-bar { transform: translateY(-100%); }
 /* pierwszy ekran: góra rysuje się na cały ekran w tle; po narysowaniu przygasa, a na niej pojawia się nazwa */
 body.guest-page .kns-backdrop { height: 94svh; opacity: .6; transition: transform .95s cubic-bezier(.7, 0, .2, 1), opacity 1.2s ease, height .95s cubic-bezier(.7, 0, .2, 1); }
 body.guest-ready .kns-backdrop { opacity: .3; }
@@ -251,6 +270,8 @@ body.guest-open .kns-backdrop { height: min(80vh, 760px); opacity: .22; }
 /* arkusz z treścią: jedzie od dołu razem z pierwszym ekranem, który odjeżdża do góry */
 .gx-page { position: relative; z-index: 6; min-height: 100svh; background: transparent; border-radius: 28px 28px 0 0; visibility: hidden; transform: translateY(100svh); pointer-events: none; transition: transform .95s var(--ease), border-radius .95s var(--ease), visibility 0s .95s; }
 .gx.open .gx-page { visibility: visible; transform: none; border-radius: 0; pointer-events: auto; transition: transform .95s var(--ease), border-radius .95s var(--ease); }
+/* pasek: chowa się przy przewijaniu w dół, wraca przy przewijaniu w górę (hdr-hide — utils/autoHideHeader.ts) */
+.gx-bar { transition: transform .3s ease; }
 .gx-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px var(--m); background: rgba(14, 13, 12, .82); backdrop-filter: blur(14px); }
 .gx-logo { border: 0; background: none; padding: 6px 0; color: #8c8985; font: 600 18px/1 var(--display); letter-spacing: -.02em; cursor: pointer; }
 .gx-logo b { color: #fff; font-weight: 600; }
