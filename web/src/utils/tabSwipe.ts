@@ -26,13 +26,14 @@ export function startTabSwipe(current: () => number, go: (i: number) => void, co
     if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2) return
     const i = current() + (dx < 0 ? 1 : -1)
     if (i < 0 || i >= count) return
-    const app = document.getElementById('app')
-    app?.classList.remove('tab-in-l', 'tab-in-r')
     go(i)
-    if (app && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      void app.offsetWidth
-      app.classList.add(dx < 0 ? 'tab-in-l' : 'tab-in-r')
-      setTimeout(() => app.classList.remove('tab-in-l', 'tab-in-r'), 360)
-    }
+    // nowy widok lekko wjeżdża z boku — przez Web Animations (bez podmiany animacji CSS: zdjęcie klasy odpalało
+    // od nowa zwykłe pojawianie się nagłówka i treści, tytuł „mrugał” drugi raz); nagłówek stoi w miejscu
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const from = dx < 0 ? 36 : -36
+    requestAnimationFrame(() => {
+      for (const el of document.querySelectorAll('#app > :not(header):not(.tabbar):not(.side):not(.toast)'))
+        (el as HTMLElement).animate([{ opacity: 0.4, transform: `translateX(${from}px)` }, { opacity: 1, transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' })
+    })
   }, { passive: true })
 }
