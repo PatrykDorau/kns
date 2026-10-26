@@ -55,6 +55,15 @@ export default defineComponent({
     // etapy: rysowanie góry → tytuł i przyciski → otwarta strona (ekran odjechał do góry)
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches
     // bez animacji (ustawienie „ogranicz ruch”) — bez czekania: góra od razu narysowana, nazwa od razu widoczna
+    // szlak wartości rysuje się, gdy wjedzie na ekran
+    const trail = ref(null), trailDrawn = ref(still)
+    let io = null
+    onMounted(() => {
+      if (still || !trail.value) return
+      io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { trailDrawn.value = true; io.disconnect() } }, { threshold: 0.35 })
+      io.observe(trail.value)
+    })
+    onBeforeUnmount(() => io?.disconnect())
     const ready = ref(still), open = ref(false)
     if (still) document.body.classList.add('guest-ready')
     const page = ref(null)
@@ -107,7 +116,7 @@ export default defineComponent({
       timer = window.setTimeout(show, redrawBackdrop(0.42) + 150)
     })
     onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
-    return { ...app, asbNextMonth, asbMonthName, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, addToCalendar, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
+    return { ...app, trail, trailDrawn, asbNextMonth, asbMonthName, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, addToCalendar, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
   },
 })
 </script>
@@ -165,12 +174,16 @@ export default defineComponent({
           <p class="gx-sub">Kościół Na Skale to społeczność, której tożsamość opiera się na Bogu Ojcu, Jezusie Chrystusie i Duchu Świętym.</p>
           <p class="gx-who-p">Jesteśmy chrześcijanami, <a href="https://baptysci.pl" target="_blank" rel="noopener">baptystami</a>, i razem tworzymy kościół — wspólnotę wierzących ludzi. Spotykamy się, żeby poznawać Boga w Jego Słowie, wspierać się w codziennym życiu i głosić Ewangelię, która jedynie ma moc zbawić. Chcemy budować Kościół, który działa razem.</p>
         </div>
-        <ul class="gx-values">
-          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 54 C14 41 7 32 7 22 a12 12 0 0 1 25-5 a12 12 0 0 1 25 5 c0 10-7 19-25 32z" /><path d="M32 22v20M25 29h14" /></svg>Kochać Boga</li>
-          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M26 22c-6 2-9 9-8 17 1 9 4 17 10 18 6 1 8-5 7-11-1-5 2-8 4-12 2-5 0-11-5-12-3-1-6-1-8 0z" /><circle cx="25" cy="12" r="3.2" /><circle cx="32.5" cy="9.5" r="2.6" /><circle cx="38.5" cy="11" r="2.2" /><circle cx="43" cy="14.5" r="1.9" /><circle cx="45.5" cy="19.5" r="1.6" /></svg>Naśladować Jezusa</li>
-          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="30" r="9" /><path d="M32 13v-5M44 18l3.5-3.5M20 18l-3.5-3.5M49 30h5M10 30h5" /><circle cx="17" cy="38" r="6" /><circle cx="47" cy="38" r="6" /><path d="M6 56c1-6 5-10 11-10s10 4 11 10M36 56c1-6 5-10 11-10s10 4 11 10" /></svg>Kochać ludzi</li>
-          <li class="gx-panel"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 18c-5 0-7 4-7 9 0 4-9 8-9 17 0 8 7 13 16 13s16-5 16-13c0-9-9-13-9-17 0-5-2-9-7-9z" /><path d="M32 18c0-4 1-8 4-11" /><path d="M36 10c4-4 11-4 14-1-3 4-10 5-14 1z" /><path d="M27 34c-3 4-4 9-2 14M34 32c0 6 1 12 4 17" /></svg>Czynić uczniami</li>
-        </ul>
+        <!-- cztery wartości jako przystanki na szlaku pod górę (szlak i ikony rysują się kreską po przewinięciu) -->
+        <div ref="trail" class="gx-trail" :class="{ drawn: trailDrawn }">
+          <svg class="gx-trail-line" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M0 250 C 50 240, 80 190, 125 186 S 300 140, 375 136 S 560 92, 625 86 S 800 40, 875 36 S 965 18, 1000 8" /></svg>
+          <ol class="gx-values">
+            <li style="--k: 0"><span class="gx-stop"><svg viewBox="0 0 64 64" aria-hidden="true"><path pathLength="1" d="M32 54 C14 41 7 32 7 22 a12 12 0 0 1 25-5 a12 12 0 0 1 25 5 c0 10-7 19-25 32z" /><path pathLength="1" d="M32 22v20M25 29h14" /></svg></span><small>01</small><b>Kochać Boga</b></li>
+            <li style="--k: 1"><span class="gx-stop"><svg viewBox="0 0 64 64" aria-hidden="true"><path pathLength="1" d="M26 22c-6 2-9 9-8 17 1 9 4 17 10 18 6 1 8-5 7-11-1-5 2-8 4-12 2-5 0-11-5-12-3-1-6-1-8 0z" /><circle pathLength="1" cx="25" cy="12" r="3.2" /><circle pathLength="1" cx="32.5" cy="9.5" r="2.6" /><circle pathLength="1" cx="38.5" cy="11" r="2.2" /><circle pathLength="1" cx="43" cy="14.5" r="1.9" /><circle pathLength="1" cx="45.5" cy="19.5" r="1.6" /></svg></span><small>02</small><b>Naśladować Jezusa</b></li>
+            <li style="--k: 2"><span class="gx-stop"><svg viewBox="0 0 64 64" aria-hidden="true"><circle pathLength="1" cx="32" cy="30" r="9" /><path pathLength="1" d="M32 13v-5M44 18l3.5-3.5M20 18l-3.5-3.5M49 30h5M10 30h5" /><circle pathLength="1" cx="17" cy="38" r="6" /><circle pathLength="1" cx="47" cy="38" r="6" /><path pathLength="1" d="M6 56c1-6 5-10 11-10s10 4 11 10M36 56c1-6 5-10 11-10s10 4 11 10" /></svg></span><small>03</small><b>Kochać ludzi</b></li>
+            <li style="--k: 3"><span class="gx-stop"><svg viewBox="0 0 64 64" aria-hidden="true"><path pathLength="1" d="M32 18c-5 0-7 4-7 9 0 4-9 8-9 17 0 8 7 13 16 13s16-5 16-13c0-9-9-13-9-17 0-5-2-9-7-9z" /><path pathLength="1" d="M32 18c0-4 1-8 4-11" /><path pathLength="1" d="M36 10c4-4 11-4 14-1-3 4-10 5-14 1z" /><path pathLength="1" d="M27 34c-3 4-4 9-2 14M34 32c0 6 1 12 4 17" /></svg></span><small>04</small><b>Czynić uczniami</b></li>
+          </ol>
+        </div>
       </section>
 
 
@@ -321,14 +334,31 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-sermon b { font: 600 clamp(24px, 2.6vw, 32px)/1.2 var(--display); letter-spacing: -.025em; text-wrap: balance; }
 .gx-sermon span { color: #c4c1bd; font-size: 17px; }
 /* kim jesteśmy: tekst po lewej, cztery wartości 2×2 po prawej, misja pod spodem */
-.gx-who { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 64px; align-items: center; text-align: left; }
+.gx-who { text-align: left; }
+.gx-who-text { display: grid; grid-template-columns: 1fr 1fr; gap: 0 64px; align-items: start; }
+.gx-who-text .gx-sub, .gx-who-text .gx-who-p { margin-top: 22px; }
+.gx-who-text .gx-h { grid-column: 1 / -1; }
 .gx-who .gx-sub { margin-left: 0; }
 .gx-who .gx-h { font-size: clamp(38px, 4.4vw, 60px); }
 .gx-who-p { margin: 18px 0 0; max-width: 52ch; color: #c4c1bd; font-size: 17px; line-height: 1.6; }
 .gx-who-p a { color: var(--accent) !important; text-underline-offset: 3px; }
-.gx-values { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; padding: 0; }
-.gx-values li { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; font: 600 18px/1.2 var(--display); letter-spacing: -.01em; }
-.gx-values svg { width: 52px; height: 52px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* szlak: przerywana ścieżka pnie się w prawo, wartości to przystanki (coraz wyżej) */
+.gx-trail { position: relative; height: 330px; margin-top: 56px; }
+.gx-trail-line { position: absolute; left: 0; top: 0; width: 100%; height: 260px; overflow: visible; }
+.gx-trail-line path { fill: none; stroke: #5d5955; stroke-width: 2; stroke-dasharray: .006 .01; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.gx-values { position: relative; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; }
+.gx-values li { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: calc(150px - var(--k) * 50px); }
+.gx-stop { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 9px var(--bg); }
+.gx-stop svg { width: 42px; height: 42px; fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.gx-values small { margin-top: 18px; color: #8c8985; font: 600 13px/1 var(--display); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.gx-values b { margin-top: 8px; font: 600 20px/1.2 var(--display); letter-spacing: -.015em; }
+/* rysowanie: szlak odsłania się kreską (maska), przystanki pojawiają się po kolei, ikony rysują się jak góra */
+.gx-trail-line { clip-path: inset(0 100% 0 0); transition: clip-path 1.6s cubic-bezier(.5, 0, .3, 1); }
+.gx-trail.drawn .gx-trail-line { clip-path: inset(0 0 0 0); }
+.gx-values li { opacity: 0; transform: translateY(10px); transition: opacity .5s ease, transform .6s cubic-bezier(.2, .7, .2, 1); transition-delay: calc(.25s + var(--k) * .35s); }
+.gx-trail.drawn .gx-values li { opacity: 1; transform: none; }
+.gx-stop svg * { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.1s ease; transition-delay: calc(.45s + var(--k) * .35s); }
+.gx-trail.drawn .gx-stop svg * { stroke-dashoffset: 0; }
 /* co się dzieje: wydarzenia i ogłoszenia w dwóch podpisanych kolumnach (bez ogłoszeń — same wydarzenia na środku) */
 .gx-news { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 56px; text-align: left; }
 .gx-news.solo { grid-template-columns: minmax(0, 760px); justify-content: center; }
@@ -371,10 +401,17 @@ body.guest-open .kns-backdrop { opacity: .22; }
   .gx-actions { width: 100%; flex-direction: column; margin-top: 28px; }
   .gx-actions .gx-btn { width: 100%; }
   .gx-bar-links { display: none; }
-  .gx-who { grid-template-columns: 1fr; gap: 12px; }
-  .gx-who-text { margin-bottom: 28px; }
-  .gx-values li { padding: 20px; font-size: 16px; }
-  .gx-values svg { width: 44px; height: 44px; }
+  .gx-who-text { grid-template-columns: 1fr; }
+  /* telefon: szlak pionowy po lewej, przystanki jeden pod drugim */
+  .gx-trail { height: auto; margin-top: 40px; }
+  .gx-trail-line { display: none; }
+  .gx-values { grid-template-columns: 1fr; gap: 26px; }
+  .gx-values::before { content: ''; position: absolute; left: 30px; top: 30px; bottom: 30px; border-left: 2px dashed #4a4744; }
+  .gx-values li { display: grid; grid-template-columns: 60px 1fr; grid-template-rows: auto auto; column-gap: 18px; align-items: center; text-align: left; margin-top: 0; }
+  .gx-stop { grid-row: 1 / 3; width: 60px; height: 60px; box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 6px var(--bg); }
+  .gx-stop svg { width: 34px; height: 34px; }
+  .gx-values small { margin: 0; align-self: end; }
+  .gx-values b { margin-top: 4px; align-self: start; font-size: 18px; }
   .gx-sermon { padding: 22px; }
   .gx-ev { grid-template-columns: 74px 1fr; gap: 14px; padding: 16px 18px; }
   .gx-ev-date { flex-direction: column; gap: 2px; font-size: 15px; }
