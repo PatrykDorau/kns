@@ -29,8 +29,8 @@ function scan() {
   })
 }
 
+// Także przy „ogranicz ruch” (np. wyłączone efekty animacji w Windows): bez tego długiego tytułu nie da się przeczytać.
 export function startMarquee() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true, characterData: true })
   addEventListener('resize', scan)
   document.fonts?.ready.then(scan)
