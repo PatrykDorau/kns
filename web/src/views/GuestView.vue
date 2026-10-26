@@ -322,6 +322,8 @@ body.guest-open .kns-backdrop { opacity: .22; }
 
 .gx-sec { max-width: 1080px; margin: 0 auto; padding: clamp(80px, 12vw, 150px) var(--m) 0; scroll-margin-top: 40px; text-align: center; }
 .gx-h { display: flex; flex-direction: column; margin: 0; font: 600 clamp(40px, 6vw, 76px)/1 var(--display); letter-spacing: -.045em; outline: none; text-wrap: balance; }
+/* nagłówek dostaje fokus po „Odkryj nas” (dla czytników ekranu) — bez ramki fokusu (globalne :focus-visible ma !important) */
+.gx .gx-h:focus, .gx .gx-h:focus-visible { outline: none !important; box-shadow: none !important; }
 .gx-h-sm { font-size: clamp(34px, 4.4vw, 56px); }
 .gx-sub { max-width: 52ch; margin: 22px auto 0; font-size: 18px; line-height: 1.55; color: #c4c1bd; text-wrap: pretty; }
 .gx-panel { border-radius: 22px; background: #181716; }
