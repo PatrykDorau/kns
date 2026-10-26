@@ -40,17 +40,20 @@ export default defineComponent({
     const asbNextMonth = computed(() => (app.asb.pub || []).filter(m => m.date.startsWith(asbMonth.value)))
     const asbMonthName = computed(() => MONTHS[+asbMonth.value.slice(5) - 1])
     const anns = computed(() => (app.pub.value?.announcements || []).slice(0, 4))
-    // „Dodaj do kalendarza” — plik .ics z najbliższym nabożeństwem
-    function addToCalendar() {
+    // „Dodaj do kalendarza” — link Kalendarza Google z wypełnionym nabożeństwem (bez pobierania pliku)
+    const calLink = computed(() => {
       const d = svcDate.value.replace(/-/g, ''), t = svcTime.value.replace(':', '')
       const end = String(+t.slice(0, 2) + 2).padStart(2, '0') + t.slice(2)
-      const title = 'Nabożeństwo — Kościół Na Skale' + (svc.value?.sermonTitle ? ': ' + svc.value.sermonTitle : '')
-      const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//KNS//PL', 'BEGIN:VEVENT', 'UID:' + d + '@kns-nabo', 'DTSTART;TZID=Europe/Warsaw:' + d + 'T' + t + '00',
-        'DTEND;TZID=Europe/Warsaw:' + d + 'T' + end + '00', 'SUMMARY:' + title, 'LOCATION:' + svcPlace.value, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' })); a.download = 'nabozenstwo-kns.ics'; a.click()
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000)
-    }
+      const q = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: 'Nabożeństwo — Kościół Na Skale' + (svc.value?.sermonTitle ? ': ' + svc.value.sermonTitle : ''),
+        dates: d + 'T' + t + '00/' + d + 'T' + end + '00',
+        ctz: 'Europe/Warsaw',
+        location: svcPlace.value,
+        details: [svc.value?.speaker && 'Kazanie: ' + svc.value.speaker, svc.value?.passage, location.origin].filter(Boolean).join('\n'),
+      })
+      return 'https://calendar.google.com/calendar/render?' + q
+    })
 
     // etapy: rysowanie góry → tytuł i przyciski → otwarta strona (ekran odjechał do góry)
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -116,7 +119,7 @@ export default defineComponent({
       timer = window.setTimeout(show, redrawBackdrop(0.42) + 150)
     })
     onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
-    return { ...app, trail, trailDrawn, asbNextMonth, asbMonthName, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, addToCalendar, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
+    return { ...app, trail, trailDrawn, asbNextMonth, asbMonthName, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, calLink, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
   },
 })
 </script>
@@ -163,7 +166,7 @@ export default defineComponent({
         </div>
         <div class="gx-row gx-center">
           <a v-if="mapLink(svcPlace)" class="gx-btn gx-light" :href="mapLink(svcPlace)" target="_blank" rel="noopener">Jak dojechać</a>
-          <button class="gx-btn gx-dark" @click="addToCalendar">Dodaj do kalendarza</button>
+          <a class="gx-btn gx-dark" :href="calLink" target="_blank" rel="noopener">Dodaj do kalendarza</a>
         </div>
       </section>
 
