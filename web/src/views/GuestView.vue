@@ -135,7 +135,7 @@ export default defineComponent({
           <span class="gx-chip">{{ svcPlace }}</span>
         </p>
         <h1 class="gx-title" aria-label="Kościół Na Skale">
-          <span class="gx-in gx-dim" style="--i: 1" aria-hidden="true">Kościół</span>
+          <span class="gx-in gx-dim" style="--i: 1" aria-hidden="true">K<img class="gx-o" src="/znak.png" width="192" height="192" alt="">ściół</span>
           <span class="gx-in" style="--i: 2" aria-hidden="true">Na Skale</span>
         </h1>
         <blockquote class="gx-lead gx-in" style="--i: 3">Rzecz ma się tak, jak z ciałem. Jest jedno, lecz członków ma wiele. Wszystkie jego członki, mimo że ich wiele, stanowią jedno ciało. Podobnie z Chrystusem.<cite>1 Kor 12,12</cite></blockquote>
@@ -151,7 +151,7 @@ export default defineComponent({
       <nav class="gx-bar" aria-label="Strona">
         <button class="gx-logo" title="Wróć na początek" @click="back">Kościół <b>Na Skale</b></button>
         <span class="gx-bar-links">
-          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="asbNextMonth.length" href="#asb-terminarz">ASB</a><a v-if="listenYt || listenSp || listen.musicYoutube || listen.musicSpotify" href="#posluchaj">Posłuchaj</a>
+          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="asbNextMonth.length" href="#asb-terminarz">ASB</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
         </span>
         <button class="gx-btn gx-accent gx-sm" @click="loginView = true">Zaloguj się</button>
       </nav>
@@ -227,25 +227,12 @@ export default defineComponent({
         </ol>
       </section>
 
-      <section v-if="listenYt || listenSp || listen.musicYoutube || listen.musicSpotify" id="posluchaj" class="gx-sec">
+      <section v-if="listenYt || listenSp" id="posluchaj" class="gx-sec">
         <h2 class="gx-h"><span class="gx-dim">Kazania i muzyka,</span>kiedy zechcesz</h2>
         <p class="gx-sub">{{ listenLatest ? 'Najnowsze kazanie: ' + listenLatest.title : 'Nagrania kazań i nasza muzyka — w domu, w drodze, na spacerze.' }}</p>
-        <div class="gx-listen">
-          <div v-if="listen.youtubeMore || listen.youtube || listen.spotify" class="gx-listen-g">
-            <h3 class="gx-col-h">Kazania</h3>
-            <div class="gx-row">
-              <a v-if="listen.youtubeMore || listen.youtube" class="gx-btn gx-light" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a>
-              <a v-if="listen.spotify" class="gx-btn gx-dark" :href="listen.spotify" target="_blank" rel="noopener">Spotify</a>
-            </div>
-          </div>
-          <div v-if="listen.musicSpotify || listen.musicYoutube" class="gx-listen-g">
-            <h3 class="gx-col-h">KNS Music</h3>
-            <div class="gx-row">
-              <!-- KNS Music jest na tym samym kanale YouTube co kazania (albo na osobnej playliście, jeśli ustawiona) -->
-              <a v-if="(listen.musicYoutube || listen.youtubeMore || listen.youtube)" class="gx-btn gx-light" :href="(listen.musicYoutube || listen.youtubeMore || listen.youtube)" target="_blank" rel="noopener">YouTube</a>
-              <a v-if="listen.musicSpotify" class="gx-btn gx-dark" :href="listen.musicSpotify" target="_blank" rel="noopener">Spotify</a>
-            </div>
-          </div>
+        <div class="gx-row gx-center">
+          <a v-if="listen.youtubeMore || listen.youtube" class="gx-btn gx-light" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a>
+          <a v-if="listen.spotify" class="gx-btn gx-dark" :href="listen.spotify" target="_blank" rel="noopener">Spotify</a>
         </div>
       </section>
 
@@ -315,6 +302,8 @@ body.guest-open .kns-backdrop { opacity: .22; }
 /* nazwa: „Kościół” lekko i szaro, „Na Skale” ciężko i biało */
 .gx-title { display: flex; flex-direction: column; align-items: center; margin: 0; font: 600 clamp(58px, 9.6vw, 144px)/.94 var(--display); letter-spacing: -.055em; font-feature-settings: "ss01", "cv11"; }
 .gx-title .gx-dim { letter-spacing: -.045em; }
+/* „o” w „Kościół” to znak kościoła (koło z górą) — na wysokość małych liter, na linii pisma */
+.gx-o { display: inline-block; width: .6em; height: .6em; margin: 0 .005em 0 .025em; vertical-align: -.045em; }
 .gx-lead cite { display: block; margin-top: 12px; color: var(--accent); font: normal 600 15px/1 var(--display); }
 .gx-lead { margin: 26px 0 0; max-width: 44ch; font-size: 18px; line-height: 1.5; color: #c4c1bd; text-wrap: balance; }
 .gx-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
@@ -382,9 +371,6 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-news.solo { grid-template-columns: minmax(0, 760px); justify-content: center; }
 .gx-col { min-width: 0; }
 .gx-col-h { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid #2a2826; color: #8c8985; font: 600 15px/1 var(--display); }
-.gx-listen { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px 64px; margin-top: 44px; }
-.gx-listen-g { min-width: 220px; text-align: left; }
-.gx-listen-g .gx-col-h { margin-bottom: 14px; }
 .gx-evs { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; }
 .gx-asb { max-width: 760px; margin: 56px auto 0; text-align: left; }
 .gx-ev-body .gx-asb-kind { align-self: flex-start; margin-top: 4px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft, rgba(246, 168, 54, .13)); color: var(--accent); font: 600 13px/1 var(--display); }
