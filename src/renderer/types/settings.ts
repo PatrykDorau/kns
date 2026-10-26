@@ -50,6 +50,7 @@ export interface Settings {
   cueFolded: boolean
   svcFolded: boolean
   railFolded: boolean
+  deskLayout?: 'classic' | 'cols' // studio: podgląd i wizja nad ustawieniami albo w kolumnie po lewej
   donateInit: boolean
   studioHidden: string[]
   studioSlideSec: number

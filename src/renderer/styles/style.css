@@ -1399,3 +1399,21 @@ select { padding-right: 36px !important; }
 .mons-dock-bar { grid-column: 1 / -1; display: flex; gap: 6px; }
 .mons-dock-bar .desk-take-btn { flex: 1; padding: 6px 10px; font-size: 13px; }
 @keyframes mons-dock { from { opacity: 0; transform: translateY(-8px); } }
+
+/* układ „kolumna” (szeroki ekran): podgląd i wizja jedna pod drugą w lewej kolumnie (35%), zawsze widoczne;
+   sceny, nakładki i biblioteka obok; prawa kolumna (YouTube, ustawienia) wysuwa się jako nakładka nad ustawieniami */
+@media (min-width: 1000px) {
+  .desk.cols .desk-stage { display: grid; grid-template-columns: minmax(280px, 35%) minmax(0, 1fr); column-gap: 16px; align-items: start; }
+  .desk.cols .desk-stage > * { grid-column: 2; }
+  .desk.cols .desk-stage > .desk-mons-col { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; }
+  .desk.cols .studio-mons { grid-template-columns: 1fr; gap: 12px; }
+  .desk.cols .desk-take { flex-direction: column; align-items: stretch; }
+  .desk.cols .desk-take .desk-take-btn { width: 100%; }
+  .desk.cols .desk-scenes { margin-top: 0; }
+  .desk.cols .desk-main { grid-template-columns: minmax(0, 1fr) 58px; }
+  .desk.cols .desk-right:not(.rail) .desk-right-full { position: fixed; z-index: 60; top: 70px; right: 16px; bottom: 16px; width: min(400px, 90vw); overflow-y: auto; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: -18px 0 50px rgba(0, 0, 0, .55); animation: desk-drawer .2s ease-out; }
+  .desk.cols .desk-right:not(.rail) .desk-right-full > * { flex-shrink: 0; } /* stała wysokość — sekcje się nie ściskają, panel się przewija */
+  @keyframes desk-drawer { from { opacity: 0; transform: translateX(24px); } }
+}
+.desk-layout-btn { display: inline-flex; align-items: center; gap: 6px; }
+.desk-layout-btn svg { width: 15px; height: 15px; }

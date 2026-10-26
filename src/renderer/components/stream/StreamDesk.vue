@@ -22,7 +22,7 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
 </script>
 
 <template>
-  <div class="desk">
+  <div class="desk" :class="{ cols: settings.deskLayout === 'cols' && engine === 'studio' }">
     <div class="desk-main">
       <div class="desk-left">
       <!-- Podgląd: przed startem obraz z kamer (ATEM po USB), w trakcie — dokładnie to, co widzą widzowie -->
@@ -34,6 +34,7 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
           <span class="spacer"></span>
           <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
           <small v-else class="muted">{{ live.encoder }}</small>
+          <button v-if="engine === 'studio'" class="small desk-layout-btn" :title="settings.deskLayout === 'cols' ? 'Układ: podgląd i wizja nad ustawieniami' : 'Układ: podgląd i wizja w kolumnie po lewej, ustawienia obok'" @click="settings.deskLayout = settings.deskLayout === 'cols' ? 'classic' : 'cols'"><Icon name="grid" />{{ settings.deskLayout === 'cols' ? 'Układ: kolumna' : 'Układ: klasyczny' }}</button>
         </div>
         <!-- statystyki: w prawej kolumnie; gdy zwinięta — pod jej przyciskami, a tu tylko podpowiedź o problemie -->
         <DeskHealth v-if="liveOn && settings.railFolded" alert />

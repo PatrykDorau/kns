@@ -31,7 +31,7 @@ onMounted(() => {
   scroller = scrollParent(slot.value)
   io = new IntersectionObserver(([e]) => {
     const above = e.boundingClientRect.top < (e.rootBounds?.top ?? 0)
-    const want = above && e.intersectionRatio < 0.35
+    const want = above && e.intersectionRatio < 0.35 && settings.deskLayout !== 'cols' // w kolumnie i tak zawsze widać
     if (want && !docked.value) { slotH.value = slot.value?.offsetHeight || 0; place() }
     docked.value = want
   }, { root: scroller, threshold: [0, 0.35, 0.6, 1] })
@@ -42,6 +42,8 @@ onBeforeUnmount(() => { io?.disconnect(); removeEventListener('resize', place) }
 </script>
 
 <template>
+  <!-- podgląd, wizja i „Na wizję” razem — w układzie „kolumna” to lewa kolumna -->
+  <div class="desk-mons-col">
   <div ref="slot" class="mons-slot" :style="docked ? { height: slotH + 'px' } : null">
   <div class="studio-mons" :class="{ single: studio.direct, docked }" :style="docked ? { top: dockAt.top + 'px', right: dockAt.right + 'px', width: dockAt.width + 'px' } : null">
     <figure v-if="!studio.direct" class="mon pvw">
@@ -65,6 +67,7 @@ onBeforeUnmount(() => { io?.disconnect(); removeEventListener('resize', place) }
     <span class="spacer"></span>
     <span v-if="music.playing" class="desk-music-pill" :title="'Podkład: ' + musicName"><MusicEq /><span>{{ musicName }}</span><button class="small" @click="stopMusic(3)">Wycisz</button></span>
     <label class="check" title="Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube"><input :checked="studio.direct" type="checkbox" @change="direct(($event.target as HTMLInputElement).checked)"> Od razu na wizję</label>
+  </div>
   </div>
   <div class="desk-scenes" role="group" aria-label="Sceny transmisji">
     <small class="desk-lbl desk-scenes-lbl">Sceny</small>
