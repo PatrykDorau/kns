@@ -418,3 +418,6 @@ html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
 /* przycisk Google w ramce: jasny schemat kolorów — inaczej przeglądarka daje ramce białe tło (ciemna strona ≠ jasna ramka) */
 .login-gis, .login-gis iframe { color-scheme: light; }
 .login-gis iframe { background: transparent !important; }
+/* powiadomienia: wiersze na tle okna (bez ciemniejszego tła karty), hover zaokrąglony */
+.np-panel .inbox-item { background: transparent !important; box-shadow: none !important; border-radius: 12px; border-bottom-color: var(--line) !important; }
+@media (hover: hover) { .np-panel .inbox-item:hover:not(:disabled) { background: var(--panel3) !important; border-bottom-color: transparent !important; } }

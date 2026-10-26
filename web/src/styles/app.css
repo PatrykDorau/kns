@@ -1149,9 +1149,9 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .goals-how > summary .mn-chev { width: 16px; height: 16px; transition: transform .2s; }
 .goals-how[open] > summary .mn-chev { transform: rotate(180deg); }
 .goals-how .goals-intro { margin: 6px 0 4px; }
-.goal-list { display: grid; gap: 10px; margin-bottom: 14px; }
-@media (min-width: 900px) { .goal-list { grid-template-columns: 1fr 1fr; } }
-.goal-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); text-align: left; justify-content: flex-start; font-weight: 400; }
+.goal-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 14px; } /* minmax(0) — długi tytuł nie rozpycha karty poza ekran */
+@media (min-width: 900px) { .goal-list { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.goal-card { min-width: 0; display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); text-align: left; justify-content: flex-start; font-weight: 400; }
 .goal-card:hover { border-color: var(--accent); }
 .goal-card.closed { opacity: .65; }
 .gcard-img { flex: none; width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }

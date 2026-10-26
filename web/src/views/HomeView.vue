@@ -56,7 +56,11 @@ export default defineComponent({
     // miesiąc w dopełniaczu („listopada”) do biletu
     const monthOf = d => app.asDate(d).toLocaleDateString('pl', { day: 'numeric', month: 'long' }).replace(/^\d+\s*/, '')
     // powiększenie zdjęcia
-    const lb = ref(null), lbPaused = ref(false)
+    // lb — zdjęcie, do którego przechodzimy; shown — to, które już widać (zmienia się, gdy następne się wczyta,
+    // więc pasek postępu nie wyprzedza zdjęcia); po otwarciu wszystkie wczytują się z wyprzedzeniem
+    const lb = ref(null), shown = ref(0), lbPaused = ref(false)
+    const pre = new Map()
+    const preload = u => { if (!pre.has(u)) { const im = new Image(); im.decoding = 'async'; im.src = u; pre.set(u, im) } return pre.get(u) }
     const hasThoughts = computed(() => !!(app.lastSermon.value && app.thoughtList(app.lastSermon.value).length))
     const hasPhotos = computed(() => !!(app.heroIsPhoto.value && app.HERO_ART.value.length))
     // relacja: dalej co 5 s (koniec — zamknij), wstecz na pierwszym — zostaje; przytrzymanie wstrzymuje
@@ -66,16 +70,26 @@ export default defineComponent({
       lb.value = v >= n ? null : Math.max(0, v)
     }
     const STORY_MS = 5000
-    function lbArm() { clearTimeout(lbTimer); if (lb.value !== null && !lbPaused.value) lbTimer = window.setTimeout(() => lbStep(1), STORY_MS) }
-    watch([lb, lbPaused], ([v], [old]) => {
-      lbArm()
-      if (v !== null && old === null) setTimeout(() => document.querySelector('.hm-story')?.focus(), 0)
-      document.body.classList.toggle('locked', v !== null)
+    function lbArm() { clearTimeout(lbTimer); if (lb.value !== null && shown.value === lb.value && !lbPaused.value) lbTimer = window.setTimeout(() => lbStep(1), STORY_MS) }
+    watch(lb, (v, old) => {
+      if (v === null) {
+        clearTimeout(lbTimer); document.body.classList.remove('locked')
+        // odblokowanie strony telefon bierze za przewinięcie — górny pasek wraca (też po spóźnionym zdarzeniu przewinięcia)
+        const show = () => document.body.classList.remove('hdr-hide')
+        show(); setTimeout(show, 120); setTimeout(show, 400)
+        return
+      }
+      if (old === null) { shown.value = v; app.HERO_ART.value.forEach(preload); setTimeout(() => document.querySelector('.hm-story')?.focus(), 0); document.body.classList.add('locked') }
+      const im = preload(app.HERO_ART.value[v])
+      const show = () => { if (lb.value !== v) return; shown.value = v; lbArm() }
+      if (im.complete && im.naturalWidth) show()
+      else { clearTimeout(lbTimer); im.decode().then(show, show) }
     })
+    watch(lbPaused, lbArm)
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, lbStep, lbPaused, hasThoughts, hasPhotos }
+    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, hasThoughts, hasPhotos }
   },
 })
 </script>
@@ -118,9 +132,9 @@ export default defineComponent({
     </section>
     <!-- zdjęcia na cały ekran jak relacja: pasek postępu, same przechodzą dalej; stuknięcie w lewą/prawą część — wstecz/dalej -->
     <div v-if="lb !== null" class="hm-story" role="dialog" aria-modal="true" aria-label="Zdjęcia z ostatniego nabożeństwa" tabindex="-1" @keydown.esc="lb = null" @keydown.left="lbStep(-1)" @keydown.right="lbStep(1)">
-      <div class="hm-st-bars"><i v-for="(u, i) in HERO_ART" :key="u" :class="{ done: i < lb }"><b v-if="i === lb" :key="'b' + lb" :class="{ run: !lbPaused }"></b></i></div>
+      <div class="hm-st-bars"><i v-for="(u, i) in HERO_ART" :key="u" :class="{ done: i < shown }"><b v-if="i === shown" :key="'b' + shown" :class="{ run: !lbPaused && shown === lb }"></b></i></div>
       <div class="hm-st-top"><b>Ostatnia niedziela</b><small v-if="photos?.date">{{ shortDate(photos.date) }}</small><button class="hm-st-x" aria-label="Zamknij" @click="lb = null"><svg class="i"><use href="#x"/></svg></button></div>
-      <img :src="HERO_ART[lb]" alt="" @pointerdown="lbPaused = true" @pointerup="lbPaused = false" @pointerleave="lbPaused = false">
+      <img :src="HERO_ART[shown]" alt="" @pointerdown="lbPaused = true" @pointerup="lbPaused = false" @pointerleave="lbPaused = false">
       <button class="hm-st-tap prev" aria-label="Poprzednie zdjęcie" @click="lbStep(-1)"></button>
       <button class="hm-st-tap next" aria-label="Następne zdjęcie" @click="lbStep(1)"></button>
     </div>
