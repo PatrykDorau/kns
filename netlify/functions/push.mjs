@@ -90,7 +90,7 @@ export default async function handler(req) {
   if (data.test === true) {
     if (!data.subscription?.endpoint || !data.subscription?.keys) return json({ error: 'Brak danych telefonu.' }, 400)
     const status = await sendPush(data.subscription, {
-      title: 'Nabożeństwo — próba', body: 'Tak wygląda przypomnienie. W piątek wieczorem przyjdzie takie, jeśli na niedzielę czegoś brakuje.', url: '/',
+      title: 'Kościół Na Skale — próba', body: 'Tak wyglądają powiadomienia z aplikacji na tym telefonie.', url: '/',
     }, keys).catch(() => 0)
     return json(status && status < 300 ? { sent: 1 } : { sent: 0, error: status === 404 || status === 410 ? 'Ten telefon nie jest już zapisany — wyłącz i włącz powiadomienia.' : 'Serwer powiadomień nie przyjął wiadomości.' })
   }

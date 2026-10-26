@@ -30,14 +30,14 @@ export default defineComponent({ setup: () => useApp() })
       <span class="pc-icon"><svg class="i"><use href="#bell"/></svg></span>
       <div class="pc-text">
         <b>Powiadomienia na tym urządzeniu {{ push.on ? '— włączone' : '' }}</b>
-        <p v-if="push.on">Na ten telefon przychodzi wszystko z dzwonka: wiadomości od liderów, zgłoszenia, decyzje w służbach<template v-if="canEdit">, a także przypomnienie, gdy na niedzielę czegoś brakuje</template>.</p>
+        <p v-if="push.on">Na ten telefon przychodzi wszystko z dzwonka: wiadomości od liderów, zgłoszenia, decyzje w służbach<template v-if="isOrganizer">, a także przypomnienie, gdy na niedzielę czegoś brakuje</template>.</p>
         <p v-else-if="push.otherBrowser">Ta przeglądarka ({{ push.otherBrowser }}) nie obsługuje powiadomień. Otwórz stronę w <b>Chrome</b> i zainstaluj aplikację stamtąd (menu ⋮ → „Zainstaluj aplikację”).</p>
         <p v-else-if="push.needsInstall">Na iPhonie najpierw zainstaluj aplikację (przycisk „Pobierz” wyżej) i otwórz ją z ekranu głównego.</p>
         <p v-else-if="push.denied">Powiadomienia są zablokowane w ustawieniach telefonu dla tej strony — odblokuj je tam i spróbuj ponownie.</p>
         <p v-else>Powiadomienia w aplikacji (dzwonek) są zawsze włączone. Włącz, żeby przychodziły też na ten telefon.</p>
       </div>
     </div>
-    <div v-if="push.on && canEdit" class="pc-when">
+    <div v-if="push.on && isOrganizer" class="pc-when">
       <span class="pc-label">Przypomnienie o brakach — kiedy</span>
       <div class="pc-row">
         <UiSelect v-model="push.day" compact label="Dzień przypomnienia" :disabled="push.busy" :options="DAYS.map((name, i) => ({ value: i, label: name }))" @change="saveSchedule" />
