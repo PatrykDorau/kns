@@ -124,7 +124,7 @@ const initial = (c: DeckCard) => (c.title || '?').trim()[0]?.toUpperCase()
 .deck-img { flex: 1; min-height: 0; width: 100%; object-fit: cover; pointer-events: none; }
 .deck-ph { flex: 1; display: grid; place-items: center; background: var(--c); color: rgba(0, 0, 0, .55); font: 700 120px/1 var(--display); letter-spacing: -.04em; }
 .deck-text { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px 18px; background: var(--panel2, #1f1f1f); }
-.deck-text b { font: 650 19px/1.2 var(--display); color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.deck-text b { font: 650 19px/1.2 var(--display); color: var(--text); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* jedna linia — długi tytuł płynie (utils/marquee.ts) */
 .deck-text small { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .deck-tag { align-self: flex-start; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); font-size: 11.5px; font-weight: 650; }
 .deck-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; border-radius: 24px; border: 1px dashed var(--line); color: var(--muted); text-align: center; padding: 20px; }

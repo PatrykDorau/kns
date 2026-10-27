@@ -1,18 +1,32 @@
 <script lang="ts">
 // @ts-nocheck — stan i działania wspólne (useApp)
-import { computed, defineComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import { defineComponent, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useApp } from '@/composables/useApp'
 
 // iPhone: instalacji jednym dotknięciem nie da się zrobić (Apple nie pozwala stronom), więc zamiast akapitu tekstu —
 // okno od dołu z trzema krokami po kolei (podświetlany krok, obrazki tego, co dotknąć) i strzałką do paska Safari.
-// W Chrome / Firefoxie / Edge na iPhonie przycisk Udostępnij jest przy adresie u góry; w Messengerze, Facebooku itp.
-// najpierw trzeba otworzyć stronę w Safari.
+// Gdzie jest „Udostępnij”, zależy od przeglądarki i wersji — strzałka wskazuje ten przycisk (place niżej).
+// W Messengerze, Facebooku itp. najpierw trzeba otworzyć stronę w Safari.
 const UA = navigator.userAgent
+const iPad = /iPad/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1)
+const safariVer = +(UA.match(/Version\/(\d+)/)?.[1] || 0)
+// where: bottom (środek dolnego paska), bottom-right, top-right; first — co dotknąć najpierw; hint — dopisek
+function place() {
+  if (/CriOS/.test(UA)) return { where: 'top-right', first: 'Dotknij <b>Udostępnij</b> przy adresie strony', hint: 'Jeśli adres masz na dole — przycisk jest na dole, przy adresie.' }
+  if (/FxiOS/.test(UA)) return { where: 'bottom-right', first: 'Dotknij menu <b>≡</b> w prawym dolnym rogu, potem <b>Udostępnij</b>', hint: '' }
+  if (/EdgiOS/.test(UA)) return { where: 'bottom-right', first: 'Dotknij <b>⋯</b> w prawym dolnym rogu, potem <b>Udostępnij</b>', hint: '' }
+  if (/OPiOS|GSA\/|YaBrowser|DuckDuckGo/.test(UA)) return { where: 'top-right', first: 'Otwórz menu przeglądarki i dotknij <b>Udostępnij</b>', hint: 'Najprościej: otwórz tę stronę w Safari.' }
+  if (iPad) return { where: 'top-right', first: 'Dotknij <b>Udostępnij</b> w prawym górnym rogu', hint: '' }
+  // Safari 26 (iOS 26): na dole pasek adresu, „Udostępnij” schowane w „⋯” obok niego
+  if (safariVer >= 26) return { where: 'bottom-right', first: 'Dotknij <b>⋯</b> w prawym dolnym rogu, potem <b>Udostępnij</b>', hint: 'Pasek adresu masz u góry? Wtedy <b>⋯</b> jest u góry, przy adresie.' }
+  // Safari 15–18: Udostępnij na środku dolnego paska
+  return { where: 'bottom', first: 'Dotknij <b>Udostępnij</b> na środku dolnego paska Safari', hint: '' }
+}
 export default defineComponent({
   setup() {
     const app = useApp()
     const inApp = /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|Snapchat|TikTok/i.test(UA)
-    const other = /CriOS|FxiOS|EdgiOS|OPiOS/i.test(UA) // inna przeglądarka niż Safari — Udostępnij przy adresie u góry
+    const nav = place()
     const step = ref(0)
     let timer = 0
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -20,8 +34,7 @@ export default defineComponent({
     onBeforeUnmount(() => clearInterval(timer))
     const close = () => { app.showHelp.value = false }
     const pick = i => { step.value = i; clearInterval(timer) }
-    const arrowUp = computed(() => other)
-    return { inApp, other, step, close, pick, arrowUp }
+    return { inApp, nav, step, close, pick }
   },
 })
 </script>
@@ -43,7 +56,7 @@ export default defineComponent({
       <ol v-else class="ios-steps">
         <li :class="{ on: step === 0 }" @click="pick(0)">
           <span class="ios-n">1</span>
-          <span class="ios-t">Dotknij <b>Udostępnij</b>{{ other ? ' przy adresie strony u góry' : ' na pasku Safari' }}<small v-if="!other">(w nowym Safari najpierw <b>⋯</b>)</small></span>
+          <span class="ios-t"><span v-html="nav.first"></span><small v-if="nav.hint" v-html="nav.hint"></small></span>
           <span class="ios-pic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg></span>
         </li>
         <li :class="{ on: step === 1 }" @click="pick(1)">
@@ -58,8 +71,8 @@ export default defineComponent({
         </li>
       </ol>
     </div>
-    <!-- strzałka do paska Safari (dół) albo do adresu (góra, inne przeglądarki) -->
-    <span v-if="!inApp && step === 0" class="ios-arrow" :class="{ up: arrowUp }" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg></span>
+    <!-- strzałka do przycisku z kroku 1 (miejsce zależy od przeglądarki i wersji) -->
+    <span v-if="!inApp && step === 0" class="ios-arrow" :class="nav.where" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg></span>
   </div>
 </template>
 
@@ -81,7 +94,8 @@ h2 { margin: 12px 0 0; font: 600 22px/1.2 var(--display); letter-spacing: -.02em
 .ios-pic .i { width: 22px; height: 22px; }
 .ios-add { font-size: 15px; }
 .ios-arrow { position: fixed; left: 50%; bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 91; width: 40px; height: 40px; margin-left: -20px; color: var(--accent); animation: ios-bob 1.1s ease-in-out infinite; }
-.ios-arrow.up { top: 6px; bottom: auto; transform: rotate(180deg); animation-name: ios-bob-up; }
+.ios-arrow.bottom-right { left: auto; right: 14px; margin-left: 0; }
+.ios-arrow.top-right { top: 6px; bottom: auto; left: auto; right: 14px; margin-left: 0; transform: rotate(180deg); animation-name: ios-bob-up; }
 .ios-arrow svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 @keyframes ios-fade { from { opacity: 0; } }
 @keyframes ios-up { from { opacity: 0; transform: translateY(30px); } }

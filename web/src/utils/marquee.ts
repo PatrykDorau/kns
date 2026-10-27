@@ -3,7 +3,7 @@
 // Działa samo dla elementów z listy TITLES, które się nie mieszczą.
 const TITLES = [
   '.ev .body b', '.card .title', '.le-title', '.week-title', '.kh-ann-text b', '.kh-ann-t', '.hw-row-text b',
-  'header h1', '.vote-ev-list button b', '.inbox-item b', '.ann b', '.bug-head b',
+  'header h1', '.vote-ev-list button b', '.inbox-item b', '.ann b', '.bug-head b', '.deck-text b',
 ].join(', ')
 const SPEED = 40 // px na sekundę
 const GAP = 48 // px odstępu między końcem tytułu a jego kopią
