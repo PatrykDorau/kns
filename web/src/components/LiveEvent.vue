@@ -2,12 +2,14 @@
 // @ts-nocheck — stan i działania wspólne (useApp)
 import { defineComponent, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
+import CheckinBox from '@/components/CheckinBox.vue'
 
 // „Trwa teraz”: małe okienko w rogu (na każdej stronie) z wydarzeniem, które właśnie się odbywa — po rozwinięciu
 // szybkie zameldowanie (spotkania), głosowania podpięte pod to spotkanie i szczegóły. Zamknięte (×) nie wraca
 // przy tym wydarzeniu (zapamiętane na urządzeniu).
 const KEY = 'kns-live-closed'
 export default defineComponent({
+  components: { CheckinBox },
   setup() {
     const app = useApp()
     const open = ref(false)
@@ -37,10 +39,7 @@ export default defineComponent({
         <small class="le-meta">{{ typeOf(liveEvent.type).name }}<template v-if="liveEvent.time"> · {{ timeRange(liveEvent) }}</template><template v-if="liveEvent.place"> · {{ liveEvent.place }}</template></small>
         <small v-if="attendance[liveEvent.id]" class="le-count"><svg class="i"><use href="#users"/></svg>{{ attendance[liveEvent.id].count }} z {{ attendance[liveEvent.id].members }} członków</small>
         <div class="le-act">
-          <template v-if="canCheckIn(liveEvent)">
-            <button v-if="!attendance[liveEvent.id]?.me" class="primary" :disabled="checkinBusy" @click="checkIn(liveEvent)"><svg class="i"><use href="#check"/></svg>{{ checkinBusy ? 'Melduję…' : 'Zamelduj się' }}</button>
-            <span v-else class="le-in"><svg class="i"><use href="#check"/></svg>Jesteś zameldowany(a)</span>
-          </template>
+          <CheckinBox :ev="liveEvent" compact />
           <button v-for="v in liveVotes" :key="v.id" :class="{ primary: v.status === 'voting' && !canCheckIn(liveEvent) }" @click="goToVote(v); open = false">
             <svg class="i"><use href="#list"/></svg>{{ v.status === 'voting' ? 'Głosuj: ' : '' }}{{ v.title }}
           </button>

@@ -97,7 +97,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.02 · 26.10.2026'
+const VERSION = '4.03 · 27.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1960,9 +1960,20 @@ export default defineComponent({
       if (!isMeeting(ev) || !api.enabled) return
       try { attendance[ev.id] = await api.call('attendance', { id: ev.id }) } catch { /* bez stanu obecności */ }
     }
+    // Spotkanie członkowskie: meldowanie z kodem podanym na miejscu przez radę (obecnosc-kod.sql); rada — bez kodu.
+    const checkinCode = reactive({}) // id spotkania → wpisany kod
+    const checkinMsg = reactive({}) // id spotkania → komunikat o złym kodzie
+    const needsCode = ev => ev?.type === 'czlonkowskie' && !votes.canRun
+    const codeReset = ev => guard(async () => { await api.call('codeReset', { id: ev.id }); await loadAttendance(ev); toast.value = 'Odblokowano meldowanie'; setTimeout(() => { toast.value = '' }, 2500) })
     async function checkIn(ev, on = true) {
-      checkinBusy.value = true
-      try { await api.call('checkin', { id: ev.id, on }); await loadAttendance(ev); toast.value = on ? 'Zameldowano — dziękujemy!' : 'Wycofano zameldowanie'; setTimeout(() => { toast.value = '' }, 2500) }
+      checkinBusy.value = true; checkinMsg[ev.id] = ''
+      try {
+        const n = await api.call('checkin', { id: ev.id, on, code: on ? checkinCode[ev.id] || '' : '' })
+        if (n === -1) { checkinMsg[ev.id] = 'Nieprawidłowy kod spotkania — sprawdź kod podany na sali.'; return }
+        if (n === -2) { checkinMsg[ev.id] = 'Za dużo błędnych kodów — poproś kogoś z rady o odblokowanie (ma przycisk przy kodzie spotkania).'; return }
+        checkinCode[ev.id] = ''
+        await loadAttendance(ev); toast.value = on ? 'Zameldowano — dziękujemy!' : 'Wycofano zameldowanie'; setTimeout(() => { toast.value = '' }, 2500)
+      }
       catch (e) { error.value = e.message } finally { checkinBusy.value = false }
     }
     const liveVotes = computed(() => (liveEvent.value ? votes.list.filter(v => v.event_id === liveEvent.value.id && v.status !== 'closed') : []))
@@ -2559,7 +2570,7 @@ export default defineComponent({
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      prayView, openPray, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,

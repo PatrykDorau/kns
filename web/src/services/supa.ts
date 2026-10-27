@@ -187,7 +187,8 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'bugsList') return { list: check(await sb.rpc('bugs_list')) || [], backlog: !!check(await sb.rpc('can_backlog')) }
       if (action === 'bugUpdate') return check(await sb.rpc('bug_update', { bid: data.id, st: data.status ?? null, who: data.assignee || null, nt: data.note ?? null, unassign: !!data.unassign }))
       if (action === 'backlogPeople') return check(await sb.rpc('backlog_people')) || []
-      if (action === 'checkin') return check(await sb.rpc('event_checkin', { eid: data.id, on_: data.on !== false }))
+      if (action === 'checkin') return check(await sb.rpc('event_checkin', { eid: data.id, on_: data.on !== false, code: data.code || null }))
+      if (action === 'codeReset') return check(await sb.rpc('event_code_reset', { eid: data.id }))
       if (action === 'attendance') return check(await sb.rpc('event_attendance_info', { eid: data.id }))
       if (action === 'electionVote') return check(await sb.rpc('election_vote', { e: data.e, choices: data.choices }))
       if (action === 'electionRemove') return check(await sb.rpc('election_remove', { e: data.e }))

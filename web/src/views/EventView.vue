@@ -3,9 +3,10 @@
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
 import MinistryPicker from '@/components/MinistryPicker.vue'
+import CheckinBox from '@/components/CheckinBox.vue'
 
 // EventView
-export default defineComponent({ components: { MinistryPicker }, setup: () => useApp() })
+export default defineComponent({ components: { MinistryPicker, CheckinBox }, setup: () => useApp() })
 </script>
 
 <template>
@@ -34,11 +35,8 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
       <h3 class="view-h">Obecność</h3>
       <div class="ev-attend">
         <span class="ea-count"><b>{{ attendance[currentEvent.id]?.count ?? '…' }}</b><small>z {{ attendance[currentEvent.id]?.members ?? '…' }} członków zameldowało się</small></span>
-        <template v-if="canCheckIn(currentEvent)">
-          <button v-if="!attendance[currentEvent.id]?.me" class="primary" :disabled="checkinBusy" @click="checkIn(currentEvent)"><svg class="i"><use href="#check"/></svg>Zamelduj się</button>
-          <button v-else class="ghost" :disabled="checkinBusy" @click="checkIn(currentEvent, false)">Wycofaj zameldowanie</button>
-        </template>
-        <small v-else-if="!attendance[currentEvent.id]?.me" class="muted">Zameldować się można w dniu spotkania.</small>
+        <CheckinBox :ev="currentEvent" />
+        <small v-if="!canCheckIn(currentEvent) && !attendance[currentEvent.id]?.me" class="muted">Zameldować się można w dniu spotkania.</small>
         <details v-if="attendance[currentEvent.id]?.names?.length" class="ea-names"><summary>Kto był ({{ attendance[currentEvent.id].names.length }})</summary><p>{{ attendance[currentEvent.id].names.join(', ') }}</p></details>
       </div>
     </template>
