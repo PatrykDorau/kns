@@ -4,9 +4,10 @@ import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
 import MinistryPicker from '@/components/MinistryPicker.vue'
 import CheckinBox from '@/components/CheckinBox.vue'
+import EventPosts from '@/components/EventPosts.vue'
 
 // EventView
-export default defineComponent({ components: { MinistryPicker, CheckinBox }, setup: () => useApp() })
+export default defineComponent({ components: { MinistryPicker, CheckinBox, EventPosts }, setup: () => useApp() })
 </script>
 
 <template>
@@ -31,6 +32,8 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox }, set
       <h3 class="view-h">Program</h3>
       <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" readonly></program-editor>
     </template>
+    <!-- wpisy pod wydarzeniem (tylko zapisane wydarzenia w bazie) -->
+    <EventPosts v-if="api.enabled && events.some(e => e.id === currentEvent.id)" :ev="currentEvent" />
     <template v-if="isMeeting(currentEvent) && api.enabled && (attendance[currentEvent.id] || canCheckIn(currentEvent))">
       <h3 class="view-h">Obecność</h3>
       <div class="ev-attend">

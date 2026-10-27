@@ -188,6 +188,12 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'bugUpdate') return check(await sb.rpc('bug_update', { bid: data.id, st: data.status ?? null, who: data.assignee || null, nt: data.note ?? null, unassign: !!data.unassign }))
       if (action === 'backlogPeople') return check(await sb.rpc('backlog_people')) || []
       if (action === 'checkin') return check(await sb.rpc('event_checkin', { eid: data.id, on_: data.on !== false, code: data.code || null }))
+      // wpisy pod wydarzeniem i osoby zarządzające (wydarzenia-wpisy.sql)
+      if (action === 'eventFeed') return check(await sb.rpc('event_feed', { eid: data.id }))
+      if (action === 'eventPostAdd') return check(await sb.rpc('event_post_add', { eid: data.id, body: data.text }))
+      if (action === 'eventPostRemove') return check(await sb.rpc('event_post_remove', { pid: data.id }))
+      if (action === 'eventManagerSet') return check(await sb.rpc('event_manager_set', { eid: data.id, pid: data.person, on_: data.on !== false }))
+      if (action === 'eventManagerCandidates') return check(await sb.rpc('event_manager_candidates', { eid: data.id }))
       if (action === 'codeReset') return check(await sb.rpc('event_code_reset', { eid: data.id }))
       if (action === 'attendance') return check(await sb.rpc('event_attendance_info', { eid: data.id }))
       if (action === 'electionVote') return check(await sb.rpc('election_vote', { e: data.e, choices: data.choices }))
