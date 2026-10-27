@@ -160,7 +160,8 @@ export default defineComponent({
         <h2 class="gx-h" tabindex="-1"><span class="gx-dim">Niedziela, {{ svcTime }}</span>{{ svcPlace }}</h2>
         <p class="gx-sub">Śpiewamy, słuchamy Słowa i spędzamy razem czas. Przyjdź sam, z rodziną albo z przyjaciółmi. Nie trzeba być idealnym ani niczego wiedzieć. Przyjdź taki, jaki jesteś.</p>
         <div class="gx-pills">
-          <p class="gx-en"><i class="gx-live"></i>Transmisja na żywo na <a v-if="listen.youtubeMore || listen.youtube" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a><template v-else>YouTube</template>.</p>
+          <!-- jeden kawałek tekstu: pigułka układa dzieci z odstępem, więc „na”, „YouTube” i kropka nie mogą być osobno -->
+          <p class="gx-en gx-en-plain"><span>Transmisja na żywo na <a v-if="listen.youtubeMore || listen.youtube" :href="listen.youtubeMore || listen.youtube" target="_blank" rel="noopener">YouTube</a><template v-else>YouTube</template></span></p>
           <p class="gx-en" lang="en"><b>EN</b>Our services are translated into English.</p>
         </div>
         <div v-if="svc?.sermonTitle || svc?.speaker" class="gx-sermon">
@@ -346,12 +347,13 @@ body.guest-open .kns-backdrop { opacity: .22; }
 
 
 .gx-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 22px; }
-.gx-live { flex: none; width: 8px; height: 8px; margin: 0 2px 0 6px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 4px rgba(229, 72, 77, .2); }
 .gx-en { display: inline-flex; align-items: center; gap: 10px; margin: 0; padding: 8px 16px 8px 8px; border-radius: 999px; background: #1c1b1a; color: #d9d6d2; font-size: 15px; line-height: 1.4; }
 .gx-en { text-align: left; }
 .gx-en b { flex: none; padding: 4px 8px; border-radius: 999px; background: var(--accent); color: #1a1208; font: 700 12px/1 var(--display); letter-spacing: .04em; }
 .gx-en a { color: #fff !important; text-underline-offset: 3px; }
-.gx-sermon { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 680px; margin: 44px auto 0; padding: 28px 32px; border-radius: 22px; background: #181716; }
+.gx-en.gx-en-plain { padding-left: 16px; }
+/* najbliższe kazanie: sam tekst na tle strony, bez kontenera */
+.gx-sermon { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 680px; margin: 40px auto 0; text-align: center; }
 .gx-sermon small { color: #8c8985; font-size: 15px; }
 .gx-sermon b { font: 600 clamp(24px, 2.6vw, 32px)/1.2 var(--display); letter-spacing: -.025em; text-wrap: balance; }
 .gx-sermon span { color: #c4c1bd; font-size: 17px; }
@@ -436,7 +438,6 @@ body.guest-open .kns-backdrop { opacity: .22; }
   .gx-stop svg { width: 34px; height: 34px; }
   .gx-values small { margin: 0; align-self: end; }
   .gx-values b { margin-top: 4px; align-self: start; font-size: 18px; }
-  .gx-sermon { padding: 22px; }
   .gx-ev { grid-template-columns: 74px 1fr; gap: 14px; padding: 16px 18px; }
   .gx-ev-date { flex-direction: column; gap: 2px; font-size: 15px; }
   .gx-ev-date b { font-size: 36px; }
