@@ -7,7 +7,7 @@ import { ask } from '@/utils/ask'
 // Modlitwa (zakładka w „Ogłoszeniach”): prośba o modlitwę — z podpisem albo anonimowo, z kontaktem dla prowadzących,
 // za zgodą — także na liście zboru. Członkowie widzą prośby pokazane zborowi i swoje, „Modlę się” liczy modlących się.
 // Prowadzący (pastor, rada, administrator) widzą wszystkie i decydują, które pokazać (modlitwa.sql).
-const pr = reactive({ focus: [], focusEdit: null, list: [], leader: false, loaded: false, busy: false, error: '', form: { text: '', name: '', contact: '', share: false }, sent: false })
+const pr = reactive({ focus: [], focusEdit: null, list: [], leader: false, loaded: false, busy: false, error: '', form: { text: '', name: '', contact: '', share: false }, sent: false, open: false })
 export default defineComponent({
   setup() {
     const app = useApp()
@@ -25,7 +25,7 @@ export default defineComponent({
     }
     const send = () => run(async () => {
       await app.api.call('prayerAdd', { ...pr.form })
-      pr.form.text = ''; pr.form.contact = ''; pr.sent = true
+      pr.form.text = ''; pr.form.contact = ''; pr.sent = true; pr.open = false
     }, 'Prośba zapisana — będziemy się modlić.')
     const pray = q => run(() => app.api.call('prayerPray', { id: q.id }))
     const setStatus = (q, st) => run(() => app.api.call('prayerStatus', { id: q.id, status: st }), st === 'shown' ? 'Prośba jest na liście zboru.' : st === 'done' ? 'Prośba zakończona.' : 'Prośba tylko dla prowadzących.')
@@ -65,8 +65,9 @@ export default defineComponent({
     <div class="bar"><button class="primary" :disabled="pr.busy || pr.focusEdit.text.trim().length < 3" @click="saveFocus">Zapisz</button><button :disabled="pr.busy" @click="pr.focusEdit = null">Anuluj</button></div>
   </section>
 
-  <!-- nowa prośba -->
-  <section class="pr-form form-sec">
+  <!-- nowa prośba: formularz dopiero po kliknięciu -->
+  <div v-if="!pr.open" class="pr-add"><button class="primary" @click="pr.open = true"><svg class="i"><use href="#plus"/></svg>Dodaj prośbę modlitewną</button></div>
+  <section v-else class="pr-form form-sec">
     <h3>Prośba o modlitwę</h3>
     <p class="form-hint"><svg class="i"><use href="#heart"/></svg><span>Napisz, w czym możemy się za Ciebie modlić. Prośbę przeczytają pastor i rada zboru{{ pr.form.share ? ' — i zobaczy ją cały zbór' : '' }}.</span></p>
     <textarea v-model="pr.form.text" class="short" maxlength="1500" placeholder="np. o zdrowie dla mamy, o nową pracę…" aria-label="Treść prośby"></textarea>
@@ -76,9 +77,10 @@ export default defineComponent({
     </div>
     <label class="check"><input v-model="pr.form.share" type="checkbox">Mogą się za mnie modlić wszyscy — pokaż prośbę na liście zboru</label>
     <p v-if="pr.error" class="error">{{ pr.error }}</p>
-    <div class="bar"><button class="primary" :disabled="pr.busy || pr.form.text.trim().length < 3" @click="send"><svg class="i"><use href="#heart"/></svg>Wyślij prośbę</button></div>
+    <div class="bar"><button class="primary" :disabled="pr.busy || pr.form.text.trim().length < 3" @click="send"><svg class="i"><use href="#heart"/></svg>Wyślij prośbę</button><button :disabled="pr.busy" @click="pr.open = false">Anuluj</button></div>
   </section>
 
+  <p v-if="!pr.open && pr.error" class="error">{{ pr.error }}</p>
   <!-- lista -->
   <div class="section"><h2>{{ pr.leader ? 'Prośby' : 'Lista modlitewna' }}</h2></div>
   <div v-if="!pr.loaded" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 3" :key="n" class="skel skel-row"></div></div>
@@ -108,6 +110,7 @@ export default defineComponent({
 
 <style scoped>
 .pr-form textarea { margin-top: 10px; }
+.pr-add { margin: 4px 0 16px; }
 .pr-text { margin: 6px 0 2px; white-space: pre-wrap; font-size: 15.5px; line-height: 1.5; }
 .pr-by { color: var(--muted); font-size: 13px; }
 .pr-act { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }

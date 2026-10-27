@@ -1118,7 +1118,11 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .svc-row.past { opacity: .7; }
 .svc-row .tag.svc-miss { color: var(--accent-text); }
 .svc-row .tag.svc-ok { color: var(--ok-text); }
-.svc-free { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+/* wolne niedziele: cztery małe kafelki z datą w jednym rzędzie (także na telefonie) */
+.svc-free { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-width: 480px; margin-bottom: 12px; }
+.svc-free-day { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 8px 4px; border-radius: 14px; line-height: 1.15; }
+.svc-free-day b { font-size: 20px; }
+.svc-free-day small { color: var(--muted); font-size: 11.5px; }
 .svc-other .row { display: flex; gap: 8px; }
 .svc-other .row input { flex: 1; min-width: 0; }
 .svc-other .row button { flex: none; }

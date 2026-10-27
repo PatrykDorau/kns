@@ -14,10 +14,10 @@ export default defineComponent({
     const upcoming = computed(() => app.services.value.filter(s => s.date >= app.todayStr.value).sort((a, b) => a.date.localeCompare(b.date)))
     const past = computed(() => app.services.value.filter(s => s.date < app.todayStr.value).sort((a, b) => b.date.localeCompare(a.date)).slice(0, pastAll.value ? 40 : 8))
     const pastMore = computed(() => !pastAll.value && app.services.value.filter(s => s.date < app.todayStr.value).length > 8)
-    // najbliższe 8 niedziel bez nabożeństwa
+    // najbliższe 4 niedziele bez nabożeństwa (dalsze — „Inny termin”)
     const freeSundays = computed(() => {
       const out = [], d = new Date(app.planSunday.value + 'T12:00')
-      for (let i = 0; i < 26 && out.length < 8; i++, d.setDate(d.getDate() + 7)) {
+      for (let i = 0; i < 26 && out.length < 4; i++, d.setDate(d.getDate() + 7)) {
         const day = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
         if (!app.services.value.some(s => s.date === day)) out.push(day)
       }
@@ -52,7 +52,7 @@ export default defineComponent({
   <template v-if="canEdit">
     <div class="section"><h2>Zaplanuj</h2></div>
     <div class="svc-free">
-      <button v-for="d in freeSundays" :key="d" class="chipbtn" @click="create(d)"><svg class="i"><use href="#plus"/></svg>{{ wd(d) }} {{ shortDate(d) }}</button>
+      <button v-for="d in freeSundays" :key="d" class="svc-free-day" :title="'Zaplanuj nabożeństwo: ' + pretty(d)" @click="create(d)"><small>{{ wd(d) }}</small><b>{{ day(d) }}</b><small>{{ month(d) }}</small></button>
     </div>
     <div class="svc-other">
       <label for="svcOther">Inny termin</label>
