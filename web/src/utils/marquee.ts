@@ -9,6 +9,7 @@ const SPEED = 40 // px na sekundę
 const GAP = 48 // px odstępu między końcem tytułu a jego kopią
 const START = 1000 // ms przed pierwszym ruchem — żeby dało się przeczytać początek
 const running = new WeakMap<HTMLElement, Animation>()
+const born = new Map<string, number>() // tytuł → kiedy pierwszy raz zaczął płynąć (czas dokumentu)
 
 const seen = new WeakMap<HTMLElement, string>() // tekst i szerokość z ostatniego pomiaru — bez zmian nic nie ruszamy (animacja trwa)
 function update(el: HTMLElement) {
@@ -24,7 +25,13 @@ function update(el: HTMLElement) {
   el.classList.add('mq')
   // jeden obieg = tytuł + odstęp; na końcu kopia stoi dokładnie tam, gdzie zaczynał oryginał — pętla bez szwu
   const lap = full + GAP
-  running.set(el, el.animate([{ textIndent: '0px' }, { textIndent: -lap + 'px' }], { duration: lap / SPEED * 1000, delay: START, iterations: Infinity, easing: 'linear' }))
+  const anim = el.animate([{ textIndent: '0px' }, { textIndent: -lap + 'px' }], { duration: lap / SPEED * 1000, iterations: Infinity, easing: 'linear' })
+  // zegar od pierwszego pokazania tego tytułu: ponowny pomiar albo przerysowany element jedzie dalej z tego samego
+  // miejsca (inaczej częste przerysowania na telefonie zostawiały tytuł w miejscu, w ciągłym „czekaniu na start”)
+  const text = el.dataset.mq, now = Number(document.timeline.currentTime) || performance.now()
+  if (!born.has(text)) born.set(text, now)
+  anim.startTime = born.get(text) + START
+  running.set(el, anim)
 }
 
 let queued = false
