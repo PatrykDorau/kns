@@ -50,6 +50,8 @@ export function createFakeClient(db, user = null) {
       select(cols = '*') { if (q.op === 'select') q.cols = cols; return b },
       eq(col, val) { q.where.push(['eq', col, val]); return b },
       in(col, vals) { q.where.push(['in', col, vals]); return b },
+      lt(col, val) { q.where.push(['cmp', col, val, '<']); return b },
+      gte(col, val) { q.where.push(['cmp', col, val, '>=']); return b },
       or(expr) { q.where.push(['or', expr]); return b },
       order(col, opts) { q.order = col; q.desc = opts?.ascending === false; return b },
       range(a, z) { q.range = [a, z]; return b },
@@ -61,6 +63,7 @@ export function createFakeClient(db, user = null) {
     const where = params => {
       const parts = q.where.map(w => {
         if (w[0] === 'eq') return `${ident(w[1])} = ${lit(w[2], params)}`
+        if (w[0] === 'cmp') return `${ident(w[1])} ${w[3]} ${lit(w[2], params)}`
         if (w[0] === 'in') { params.push(w[2]); return `${ident(w[1])} = any($${params.length})` }
         // or('date.gte.2026-01-01,date.is.null')
         return '(' + w[1].split(',').map(c => {

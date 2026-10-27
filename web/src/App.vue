@@ -1,55 +1,71 @@
 <script lang="ts">
 // @ts-nocheck — kod przeniesiony 1:1 z dawnego index.html; typy dochodzą stopniowo (podział na widoki i composables)
-import { computed, defineComponent, nextTick, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, nextTick, reactive, ref, watch, watchEffect } from 'vue'
 import { CONFIG } from '@/services/config'
 import { provideApp } from '@/composables/useApp'
-import BugsView from '@/views/BugsView.vue'
-import BugReportDialog from '@/components/dialogs/BugReportDialog.vue'
+// Rzadziej otwierane widoki i okna — osobne pliki, pobierane przy pierwszym otwarciu (mniej kodu na start).
+// Po starcie pobierają się w tle (są potem od razu i bez internetu); gdy po nowym wydaniu starego pliku już nie ma —
+// jednorazowe odświeżenie strony.
+const lazyLoaders = []
+function lazy(loader) {
+  lazyLoaders.push(loader)
+  return defineAsyncComponent({
+    loader,
+    onError(err, retry, fail) {
+      let again = false
+      try { again = !sessionStorage.getItem('kns-lazy-reload'); sessionStorage.setItem('kns-lazy-reload', '1') } catch { /* tryb prywatny */ }
+      if (again) location.reload(); else fail()
+    },
+  })
+}
+const prefetchViews = () => { for (const f of lazyLoaders) f().catch(() => {}) }
+const BugsView = lazy(() => import('@/views/BugsView.vue'))
+const BugReportDialog = lazy(() => import('@/components/dialogs/BugReportDialog.vue'))
 import SideNav from '@/components/SideNav.vue'
 import AccountBar from '@/components/AccountBar.vue'
 import AppHeader from '@/components/AppHeader.vue'
-import CameraCue from '@/components/CameraCue.vue'
-import SongEditView from '@/views/SongEditView.vue'
-import AnnouncementView from '@/views/AnnouncementView.vue'
-import AnnouncementsView from '@/views/AnnouncementsView.vue'
-import MaterialView from '@/views/MaterialView.vue'
-import MaterialsView from '@/views/MaterialsView.vue'
-import EventView from '@/views/EventView.vue'
-import TemplateView from '@/views/TemplateView.vue'
-import TemplatesView from '@/views/TemplatesView.vue'
-import CalendarView from '@/views/CalendarView.vue'
-import PeopleView from '@/views/PeopleView.vue'
-import SongsView from '@/views/SongsView.vue'
-import GoogleCalendarView from '@/views/GoogleCalendarView.vue'
-import ServeView from '@/views/ServeView.vue'
+const CameraCue = lazy(() => import('@/components/CameraCue.vue'))
+const SongEditView = lazy(() => import('@/views/SongEditView.vue'))
+const AnnouncementView = lazy(() => import('@/views/AnnouncementView.vue'))
+const AnnouncementsView = lazy(() => import('@/views/AnnouncementsView.vue'))
+const MaterialView = lazy(() => import('@/views/MaterialView.vue'))
+const MaterialsView = lazy(() => import('@/views/MaterialsView.vue'))
+const EventView = lazy(() => import('@/views/EventView.vue'))
+const TemplateView = lazy(() => import('@/views/TemplateView.vue'))
+const TemplatesView = lazy(() => import('@/views/TemplatesView.vue'))
+const CalendarView = lazy(() => import('@/views/CalendarView.vue'))
+const PeopleView = lazy(() => import('@/views/PeopleView.vue'))
+const SongsView = lazy(() => import('@/views/SongsView.vue'))
+const GoogleCalendarView = lazy(() => import('@/views/GoogleCalendarView.vue'))
+const ServeView = lazy(() => import('@/views/ServeView.vue'))
 import AsbPublicView from '@/views/AsbPublicView.vue'
-import AsbView from '@/views/AsbView.vue'
-import VotesView from '@/views/VotesView.vue'
+const AsbView = lazy(() => import('@/views/AsbView.vue'))
+const VotesView = lazy(() => import('@/views/VotesView.vue'))
 import AskDialog from '@/components/dialogs/AskDialog.vue'
 import { ask } from '@/utils/ask'
 import { startUpdateCheck, updateReady } from '@/utils/updateCheck'
 import { startTabSwipe } from '@/utils/tabSwipe'
-import ServicesView from '@/views/ServicesView.vue'
-import AsbPreviewDialog from '@/components/dialogs/AsbPreviewDialog.vue'
+const ServicesView = lazy(() => import('@/views/ServicesView.vue'))
+const AsbPreviewDialog = lazy(() => import('@/components/dialogs/AsbPreviewDialog.vue'))
 import LiveEvent from '@/components/LiveEvent.vue'
-import GoalsView from '@/views/GoalsView.vue'
-import ListenView from '@/views/ListenView.vue'
-import ProfileView from '@/views/ProfileView.vue'
-import MoreView from '@/views/MoreView.vue'
+const GoalsView = lazy(() => import('@/views/GoalsView.vue'))
+const ListenView = lazy(() => import('@/views/ListenView.vue'))
+const ProfileView = lazy(() => import('@/views/ProfileView.vue'))
+const MoreView = lazy(() => import('@/views/MoreView.vue'))
 import HomeView from '@/views/HomeView.vue'
 import CardDeck from '@/components/CardDeck.vue'
 import GuestView from '@/views/GuestView.vue'
 import IosInstall from '@/components/IosInstall.vue'
-import Prayers from '@/components/Prayers.vue'
-import ServiceEditView from '@/views/ServiceEditView.vue'
+const Prayers = lazy(() => import('@/components/Prayers.vue'))
+const ServiceEditView = lazy(() => import('@/views/ServiceEditView.vue'))
 import PublicListen from '@/components/PublicListen.vue'
-import BandPickDialog from '@/components/dialogs/BandPickDialog.vue'
-import AddPersonDialog from '@/components/dialogs/AddPersonDialog.vue'
-import QrDialog from '@/components/dialogs/QrDialog.vue'
-import MessageDialog from '@/components/dialogs/MessageDialog.vue'
-import AsbMeetingDialog from '@/components/dialogs/AsbMeetingDialog.vue'
-import InboxDialog from '@/components/dialogs/InboxDialog.vue'
-import MinistryDialog from '@/components/dialogs/MinistryDialog.vue'
+const BandPickDialog = lazy(() => import('@/components/dialogs/BandPickDialog.vue'))
+const AddPersonDialog = lazy(() => import('@/components/dialogs/AddPersonDialog.vue'))
+const QrDialog = lazy(() => import('@/components/dialogs/QrDialog.vue'))
+const MessageDialog = lazy(() => import('@/components/dialogs/MessageDialog.vue'))
+const AsbMeetingDialog = lazy(() => import('@/components/dialogs/AsbMeetingDialog.vue'))
+const InboxDialog = lazy(() => import('@/components/dialogs/InboxDialog.vue'))
+const MinistryDialog = lazy(() => import('@/components/dialogs/MinistryDialog.vue'))
 import TabBar from '@/components/TabBar.vue'
 import { ACCEPT, createDemo, createDrive, fileType, uid } from '@/services/drive'
 import { createApi, createDemoApi } from '@/services/api'
@@ -310,12 +326,19 @@ export default defineComponent({
     }
     const recheck = () => guard(enter)
     const continueToDrive = () => guard(async () => { await drive.signIn(false, 'drive'); await enter() })
+    let restLoaded = Promise.resolve() // pieśni i starsze nabożeństwa (fetchAll → loadRest)
     const fetchAll = async () => {
       const data = await drive.load()
       services.value = data.services.map(s => withBand({ band: '', notes: '', songs: [], files: [], ...s }))
       // Terminy na odliczanie przed zalogowaniem (ekran logowania).
       try { localStorage.setItem('kns-times', JSON.stringify(services.value.filter(s => s.date >= today()).map(({ date, time, place }) => ({ date, time, place })))) } catch { /* tryb prywatny */ }
-      songs.value = data.songs
+      if (data.songs) songs.value = data.songs
+      // reszta (pieśni, starsze nabożeństwa) — w tle, po pokazaniu strony
+      if (drive.loadRest) restLoaded = drive.loadRest().then(rest => {
+        songs.value = rest.songs
+        const have = new Set(services.value.map(s => s.id))
+        services.value = [...services.value, ...rest.services.filter(s => !have.has(s.id)).map(s => withBand({ band: '', notes: '', songs: [], files: [], ...s }))]
+      }).catch(e => { error.value = e.message || String(e) })
       const allEvents = (data.events || []).map(e => ({ type: 'inne', title: '', time: '', place: '', description: '', program: [], ...e }))
       events.value = allEvents.filter(e => e.status !== 'pending'); pendingEvents.value = allEvents.filter(e => e.status === 'pending')
       types.value = mergeTypes(data.templates); typesBase = data.templatesUpdated || 0
@@ -1506,6 +1529,8 @@ export default defineComponent({
     const startFb = () => guard(async () => { await drive.signInFacebook() })
     // po zalogowaniu zawsze od góry strony głównej (przewinięta strona gościa nie zostawia pozycji)
     watch(ready, ok => { if (ok) window.scrollTo(0, 0) })
+    // widoki z osobnych plików — w tle, gdy przeglądarka ma wolną chwilę po pokazaniu strony
+    watch(ready, ok => { if (ok) setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 1)))(prefetchViews), 1500) }, { once: true })
     // Przycisk Google (Google Identity Services) w okienku logowania: okno Google pokazuje adres strony zamiast adresu bazy.
     // Bilet Google trafia do bazy (jak w aplikacji na komputer); gdy coś nie wyjdzie — zwykłe logowanie przez bazę.
     // gisOn: 'wait' — miejsce na przycisk zarezerwowane (okienko nie skacze), 'on' — przycisk Google, 'off' — zwykły przycisk
@@ -2448,7 +2473,8 @@ export default defineComponent({
           const e = [...events.value, ...pendingEvents.value].find(x => x.id === id)
           if (e) { calView.value = true; openEvent(e); if (edit && eventEditable.value) eventEditing.value = true } else if (id !== 'nowe') { openCalendar(); error.value = 'Nie znaleziono tego wydarzenia — mogło zostać usunięte albo nie masz do niego dostępu.' } else openCalendar()
         } else if (view === 'nabozenstwo') {
-          const sv = services.value.find(x => x.id === id)
+          let sv = services.value.find(x => x.id === id)
+          if (!sv) { await restLoaded; sv = services.value.find(x => x.id === id) } // starsze — dociągane w tle
           if (sv) { open(sv); if (edit && canEdit.value) svcEditing.value = true }
         } else if (view === 'ogloszenia') openAnns()
         else if (view === 'wydawka') { openAnns(); annTab.value = 'gift'; giftOpen.value = id }
@@ -2467,7 +2493,7 @@ export default defineComponent({
         else if (view === 'zgloszenia') openBugs()
         else if (view === 'profil') openProfile()
         else if (view === 'wiecej') openMore()
-        else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); const sg = view === 'piesn' && songs.value.find(x => x.id === id); if (sg) openSong(sg) }
+        else if (view === 'piesni' || view === 'piesn') { moreView.value = true; openSongs(); if (view === 'piesn') { await restLoaded; const sg = songs.value.find(x => x.id === id); if (sg) openSong(sg) } }
         else if (view === 'osoby') { moreView.value = true; if (canManage.value) openPeople() }
         else if (['protokoly', 'protokol', 'materialy', 'material'].includes(view)) {
           moreView.value = true; openProtocols()

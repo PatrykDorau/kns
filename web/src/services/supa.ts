@@ -302,21 +302,30 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
     forget() { session = null; sb.auth.signOut({ scope: 'local' }).catch(() => {}) },
     signOut() { session = null; sb.auth.signOut({ scope: 'local' }).catch(() => {}); files?.signOut(); desk?.logout() },
 
+    // Pierwsze wczytanie: tylko to, co widać od razu — nabożeństwa z ostatnich 120 dni i przyszłe, wydarzenia,
+    // ogłoszenia, szablony. Pieśni (z tekstami) i starsze nabożeństwa — loadRest(), już po pokazaniu strony.
     async load() {
       const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
-      const [services, songs, events, tpl, news] = await Promise.all([
-        all(() => sb.from('services').select('data,updated').order('id')),
-        songsList(),
+      const [services, events, tpl, news] = await Promise.all([
+        all(() => sb.from('services').select('data,updated').or(`date.gte.${since},date.is.null`).order('id')),
         all(() => sb.from('events').select('data,updated,status,created_by').or(`date.gte.${since},date.is.null`).order('id')),
         sb.from('templates').select('types,updated').eq('id', 'main').then(check),
         all(() => sb.from('announcements').select('data,audience,updated,status,created_by').order('id')),
       ])
       return {
         // „updated” z kolumny — rekordy dodane wprost w bazie mogą go nie mieć w danych (inaczej każdy zapis byłby „konfliktem”)
-        services: services.map(withUpdated), songs, events: events.map(withMeta),
+        services: services.map(withUpdated), songs: null, events: events.map(withMeta),
         templates: tpl[0]?.types || null, templatesUpdated: tpl[0]?.updated || 0,
         announcements: news.map(r => ({ ...withMeta(r), audience: r.audience })),
       }
+    },
+    async loadRest() {
+      const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
+      const [songs, older] = await Promise.all([
+        songsList(),
+        all(() => sb.from('services').select('data,updated').lt('date', since).order('id')),
+      ])
+      return { songs, services: older.map(withUpdated) }
     },
     async save(payload, base = 0, force = false) {
       const s = payload.service
