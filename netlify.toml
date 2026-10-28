@@ -11,6 +11,18 @@
 [functions]
   directory = "netlify/functions"
 
+# Kod i style z Vite mają skrót treści w nazwie — przeglądarka może je trzymać bez sprawdzania (szybki start).
+# sw.js i index.html — zawsze świeże (nowa wersja strony).
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 # Adresy podstron aplikacji (/kalendarz, /wydarzenie/<id>…) — ta sama strona; widok wybiera aplikacja.
 [[redirects]]
   from = "/kalendarz"
