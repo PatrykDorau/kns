@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <base href="/">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f1013">
+<meta name="theme-color" content="#0e0d0c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="KNS">
 <title>Kościół Na Skale</title>
@@ -13,6 +13,30 @@
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="maskable-192.png">
 <link rel="manifest" href="manifest.webmanifest">
+<!-- od pierwszej chwili: tło strony (to samo co w manifeście) i style rysującej się góry (sam rysunek wkleja vite.config.mjs — kns-backdrop-inline) -->
+<style>
+html, body { background: #0e0d0c; } html[data-theme="light"], html[data-theme="light"] body { background: #f4f3f1; }
+.kns-backdrop { position: fixed; inset: auto 0 0 0; height: min(80vh, 760px); z-index: 0; pointer-events: none; overflow: hidden; color: var(--text, #f3f3f6); opacity: .3; }
+.kns-backdrop svg { width: 100%; height: 100%; overflow: visible; }
+.kns-backdrop path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation-name: kb-draw; animation-timing-function: cubic-bezier(.5, 0, .3, 1); animation-fill-mode: forwards; }
+.kns-backdrop .kb-edge { stroke-width: 1.7; }
+.kns-backdrop .kb-ridge { stroke-width: 1.3; }
+.kns-backdrop .kb-rib { stroke-width: 1; opacity: .85; }
+.kns-backdrop .kb-side { stroke-width: 1.1; opacity: .8; }
+.kns-backdrop .kb-2 { stroke-width: .7; opacity: .4; }
+.kns-backdrop .kb-hatch { stroke-width: .75; opacity: .6; }
+.kns-backdrop .kb-hatch.kb-light { opacity: .38; }
+.kns-backdrop .kb-far { stroke-width: .8; opacity: .3; }
+.kns-backdrop .kb-cross { stroke-width: 2.4; }
+.kns-backdrop .kb-cross-g { filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 14px currentColor); }
+html[data-theme="light"] .kns-backdrop { opacity: .3; color: var(--text, #2a2119); }
+html[data-theme="light"] .kns-backdrop .kb-cross-g { filter: none; }
+@keyframes kb-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .kns-backdrop path { animation: none !important; stroke-dashoffset: 0; } }
+.kns-backdrop .kb-back { opacity: .45; }
+@media (max-width: 700px) { .kns-backdrop { height: 64vh; } }
+</style>
 <script>try { document.documentElement.dataset.theme = localStorage.getItem('kns-theme') || 'dark' } catch (e) { document.documentElement.dataset.theme = 'dark' }</script>
 </head>
 <body>

@@ -128,9 +128,17 @@ export function startBackdrop(speed = 1): number {
   const cross = `<g class="kb-cross-g">${P('M700 302 L700 196', 'kb-cross', 5.6, 0.6)}${P('M672 228 L728 228', 'kb-cross', 6.1, 0.4)}</g>`
   const el = document.createElement('div')
   el.className = 'kns-backdrop'
+  el.dataset.speed = String(speed); el.dataset.start = String(performance.now())
   el.innerHTML = `<svg viewBox="-560 160 2520 840" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">${parts.join('')}${cross}</svg>`
   document.body.prepend(el)
   return 6500 * speed
+}
+// Rysowanie z tym tempem już trwa (rozpoczęte od razu przy starcie strony — boot.ts)? Wtedy tylko czas do końca;
+// inaczej rysujemy od nowa. Zwraca ms do końca rysowania.
+export function continueBackdrop(speed = 1): number {
+  const el = document.querySelector<HTMLElement>('.kns-backdrop')
+  if (el && +el.dataset.speed === speed) return Math.max(0, +el.dataset.start + 6500 * speed - performance.now())
+  return redrawBackdrop(speed)
 }
 export function redrawBackdrop(speed = 1): number {
   document.querySelector('.kns-backdrop')?.remove()

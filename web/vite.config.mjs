@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
 
 // Strona na telefon (kns-nabo.netlify.app): web/ → web/dist (Netlify publikuje web/dist).
 //   npm run dev:web — podgląd;  npm run build:web — budowanie
@@ -40,6 +41,19 @@ function testMode(mode) {
   }
 }
 
+// Góra w tle od pierwszego bajtu strony: kod rysowania (src/utils/backdrop.ts) wklejony do index.html jako zwykły
+// skrypt na początku <body> — rusza, zanim pobierze się reszta kodu i dane. Gość (bez zapisanej sesji) — szybsze
+// rysowanie (ekran wczytywania na stronie gościa, GuestView → continueBackdrop). main.ts / GuestView przejmują rysunek.
+const backdropInline = () => ({
+  name: 'kns-backdrop-inline',
+  transformIndexHtml(html) {
+    const src = fs.readFileSync(path.join(here, 'src', 'utils', 'backdrop.ts'), 'utf8')
+    const js = ts.transpileModule(src, { compilerOptions: { target: ts.ScriptTarget.ES2019, module: ts.ModuleKind.ESNext, removeComments: true } }).outputText.replace(/^export /gm, '')
+    const run = "var s = 0.42; try { if (Object.keys(localStorage).some(function (k) { return /^sb-.+-auth-token$/.test(k) || k === 'fake-session' })) s = 1 } catch (e) {} startBackdrop(s)"
+    return html.replace('<body>', '<body>\n<script>(function () {' + js + run + '})()</script>')
+  },
+})
+
 // Numer wydania strony: w kodzie (__BUILD_ID__) i w pliku version.json — aplikacja sama sprawdza, czy jest nowsza wersja.
 const BUILD_ID = String(Date.now())
 const buildId = () => ({ name: 'kns-build-id', generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD_ID }) }) } })
@@ -50,6 +64,6 @@ export default defineConfig(({ mode }) => ({
   base: '/',
   resolve: { alias: { '@': path.join(here, 'src') } },
   // adresy obrazków w szablonach (znak.png, *.svg) zostają zwykłymi adresami plików z public/ — jak dawniej
-  plugins: [vue({ template: { transformAssetUrls: false } }), buildId(), ...(mode === 'baza' || mode === 'dysk' ? [testMode(mode)] : [])],
+  plugins: [vue({ template: { transformAssetUrls: false } }), buildId(), backdropInline(), ...(mode === 'baza' || mode === 'dysk' ? [testMode(mode)] : [])],
   build: { outDir: path.join(here, 'dist'), emptyOutDir: true },
 }))

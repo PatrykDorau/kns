@@ -2,7 +2,7 @@
 // @ts-nocheck — stan i działania wspólne (useApp)
 import { computed, defineComponent, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useApp } from '@/composables/useApp'
-import { redrawBackdrop } from '@/utils/backdrop'
+import { continueBackdrop } from '@/utils/backdrop'
 
 // Strona dla gości (bez logowania). Najpierw rysuje się góra z krzyżem (ta sama co w tle aplikacji) — ekran wczytywania;
 // gdy się narysuje, pojawia się nazwa kościoła i dwa przyciski: „Zaloguj się” i „Odkryj nas”. „Odkryj nas” (albo
@@ -115,8 +115,8 @@ export default defineComponent({
         return
       }
       if (still) return
-      // góra z tła rysuje się od nowa, szybciej — to ekran wczytywania
-      timer = window.setTimeout(show, redrawBackdrop(0.42) + 150)
+      // góra z tła (szybsza) to ekran wczytywania — zwykle już się rysuje od startu strony (boot.ts), więc czekamy do końca
+      timer = window.setTimeout(show, continueBackdrop(0.42) + 150)
     })
     onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
     return { ...app, trail, trailDrawn, asbNextMonth, asbMonthName, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, calLink, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
