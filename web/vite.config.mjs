@@ -54,6 +54,19 @@ const backdropInline = () => ({
   },
 })
 
+// Style aplikacji nie wstrzymują pierwszego obrazu: arkusz wstawiony przez Vite ładuje się w tle (preload — wysoki
+// priorytet, media=print → all po wczytaniu). main.ts czeka na niego (data-kns-css) przed pokazaniem treści.
+const cssAsync = () => ({
+  name: 'kns-css-async',
+  transformIndexHtml: {
+    order: 'post',
+    handler: html => html.replace(/<link rel="stylesheet" crossorigin href="([^"]+\.css)">/g, (_, href) =>
+      `<link rel="preload" as="style" crossorigin href="${href}">` +
+      `<link rel="stylesheet" crossorigin href="${href}" media="print" onload="this.media='all'" data-kns-css>` +
+      `<noscript><link rel="stylesheet" href="${href}"></noscript>`),
+  },
+})
+
 // Numer wydania strony: w kodzie (__BUILD_ID__) i w pliku version.json — aplikacja sama sprawdza, czy jest nowsza wersja.
 const BUILD_ID = String(Date.now())
 const buildId = () => ({ name: 'kns-build-id', generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD_ID }) }) } })
@@ -64,6 +77,6 @@ export default defineConfig(({ mode }) => ({
   base: '/',
   resolve: { alias: { '@': path.join(here, 'src') } },
   // adresy obrazków w szablonach (znak.png, *.svg) zostają zwykłymi adresami plików z public/ — jak dawniej
-  plugins: [vue({ template: { transformAssetUrls: false } }), buildId(), backdropInline(), ...(mode === 'baza' || mode === 'dysk' ? [testMode(mode)] : [])],
+  plugins: [vue({ template: { transformAssetUrls: false } }), buildId(), backdropInline(), cssAsync(), ...(mode === 'baza' || mode === 'dysk' ? [testMode(mode)] : [])],
   build: { outDir: path.join(here, 'dist'), emptyOutDir: true },
 }))

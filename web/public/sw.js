@@ -4,7 +4,7 @@
 //   w tle, a aplikacja sama zaproponuje odświeżenie — utils/updateCheck);
 // • reszta plików strony — z sieci, bez internetu z kopii.
 // Dane (Dysk Google, baza Supabase) nigdy nie są tu zapisywane — zawsze idą prosto do źródła.
-const CACHE = 'kns-nabo-v224'
+const CACHE = 'kns-nabo-v225'
 const SHELL = ['./', './index.html', './swit.svg', './pole.svg', './jezioro.svg', './noc.svg', './papier.svg', './manifest.webmanifest', './logo.png', './znak.png', './icon-192.png', './icon-512.png', './badge.png', './favicon.png', './maskable-192.png', './maskable-512.png']
 const LIBRARY = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//
 const HTML_WAIT = 1200

@@ -7,8 +7,12 @@ import { provideApp } from '@/composables/useApp'
 // Po starcie pobierają się w tle (są potem od razu i bez internetu); gdy po nowym wydaniu starego pliku już nie ma —
 // jednorazowe odświeżenie strony.
 const lazyLoaders = []
-function lazy(loader) {
+// early — część strony dla zalogowanych (strona główna, menu…): gość jej nie pobiera, a przy zapisanej sesji
+// pobiera się od razu przy starcie (equipLoggedIn), równolegle z resztą
+const earlyLoaders = []
+function lazy(loader, early = false) {
   lazyLoaders.push(loader)
+  if (early) earlyLoaders.push(loader)
   return defineAsyncComponent({
     loader,
     onError(err, retry, fail) {
@@ -19,11 +23,12 @@ function lazy(loader) {
   })
 }
 const prefetchViews = () => { for (const f of lazyLoaders) f().catch(() => {}) }
+const equipLoggedIn = () => { for (const f of earlyLoaders) f().catch(() => {}) }
 const BugsView = lazy(() => import('@/views/BugsView.vue'))
 const BugReportDialog = lazy(() => import('@/components/dialogs/BugReportDialog.vue'))
-import SideNav from '@/components/SideNav.vue'
-import AccountBar from '@/components/AccountBar.vue'
-import AppHeader from '@/components/AppHeader.vue'
+const SideNav = lazy(() => import('@/components/SideNav.vue'), true)
+const AccountBar = lazy(() => import('@/components/AccountBar.vue'), true)
+const AppHeader = lazy(() => import('@/components/AppHeader.vue'), true)
 const CameraCue = lazy(() => import('@/components/CameraCue.vue'))
 const SongEditView = lazy(() => import('@/views/SongEditView.vue'))
 const AnnouncementView = lazy(() => import('@/views/AnnouncementView.vue'))
@@ -47,15 +52,15 @@ import { startUpdateCheck, updateReady } from '@/utils/updateCheck'
 import { startTabSwipe } from '@/utils/tabSwipe'
 const ServicesView = lazy(() => import('@/views/ServicesView.vue'))
 const AsbPreviewDialog = lazy(() => import('@/components/dialogs/AsbPreviewDialog.vue'))
-import LiveEvent from '@/components/LiveEvent.vue'
+const LiveEvent = lazy(() => import('@/components/LiveEvent.vue'), true)
 const GoalsView = lazy(() => import('@/views/GoalsView.vue'))
 const ListenView = lazy(() => import('@/views/ListenView.vue'))
 const ProfileView = lazy(() => import('@/views/ProfileView.vue'))
 const MoreView = lazy(() => import('@/views/MoreView.vue'))
-import HomeView from '@/views/HomeView.vue'
-import CardDeck from '@/components/CardDeck.vue'
+const HomeView = lazy(() => import('@/views/HomeView.vue'), true)
+const CardDeck = lazy(() => import('@/components/CardDeck.vue'), true)
 import GuestView from '@/views/GuestView.vue'
-import IosInstall from '@/components/IosInstall.vue'
+const IosInstall = lazy(() => import('@/components/IosInstall.vue'))
 const Prayers = lazy(() => import('@/components/Prayers.vue'))
 const ServiceEditView = lazy(() => import('@/views/ServiceEditView.vue'))
 import PublicListen from '@/components/PublicListen.vue'
@@ -66,7 +71,7 @@ const MessageDialog = lazy(() => import('@/components/dialogs/MessageDialog.vue'
 const AsbMeetingDialog = lazy(() => import('@/components/dialogs/AsbMeetingDialog.vue'))
 const InboxDialog = lazy(() => import('@/components/dialogs/InboxDialog.vue'))
 const MinistryDialog = lazy(() => import('@/components/dialogs/MinistryDialog.vue'))
-import TabBar from '@/components/TabBar.vue'
+const TabBar = lazy(() => import('@/components/TabBar.vue'), true)
 import { ACCEPT, createDemo, createDrive, fileType, uid } from '@/services/drive'
 import { createApi, createDemoApi } from '@/services/api'
 import { createSupa } from '@/services/supa'
@@ -97,7 +102,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.11 · 28.10.2026'
+const VERSION = '4.12 · 29.10.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -210,6 +215,8 @@ export default defineComponent({
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
     const booting = ref(!demo && !!clientId && !!memberEmail() && (!api.enabled || savedSession()))
+    if (booting.value || savedSession()) equipLoggedIn() // zalogowany — strona główna i menu od razu, równolegle z danymi
+    watch(() => ready.value || booting.value, on => { if (on) equipLoggedIn() })
     const services = ref([]), songs = ref([])
     const svcListView = ref(false) // lista nabożeństw (zaplanowane, wolne niedziele, minione)
     const current = ref(null), saved = ref(''), query = ref(''), picking = ref(false), confirmDelete = ref(false)
