@@ -154,7 +154,7 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
     let s = list.find(x => x.snippet?.title === STREAM_TITLE)
     if (!s) {
       s = await call('POST', '/liveStreams?part=id,snippet,cdn,status,contentDetails', {
-        snippet: { title: STREAM_TITLE, description: 'Klucz transmisji aplikacji Kościoła Na Skale (OBS albo ATEM). Nie usuwaj.' },
+        snippet: { title: STREAM_TITLE, description: 'Klucz transmisji aplikacji Kościoła Na Skale. Nie usuwaj.' },
         cdn: { ingestionType: 'rtmp', resolution: 'variable', frameRate: 'variable' },
         contentDetails: { isReusable: true },
       })

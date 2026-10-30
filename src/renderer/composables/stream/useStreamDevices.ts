@@ -1,5 +1,5 @@
 // Skąd obraz i dźwięk: tryb studio (kamera i dźwięk z przeglądarki — ATEM po USB) albo prosty (urządzenia FFmpeg).
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api, settings } from '@/stores'
 import { checkHardware, listCameras, setAudio, setCamera, studio } from '@/services/studio'
 
@@ -17,7 +17,7 @@ export function useStreamDevices() {
     // awaryjnie pierwsza prawdziwa kamera — nie wirtualna kamera OBS (bez działającego OBS nie daje obrazu)
     const cam = pick(studioDevices.value.video, settings.studioCamera) || studioDevices.value.video.find(d => !/obs|virtual/i.test(d.label)) || studioDevices.value.video[0]
     // zapamiętany wybór (np. ATEM) zostaje, nawet gdy chwilowo go nie ma — po podłączeniu wróci sam
-    if (cam) { if (!settings.studioCamera || cam.label === settings.studioCamera || /blackmagic|atem/i.test(cam.label)) settings.studioCamera = cam.label; setCamera(cam.deviceId) }
+    if (cam) { if (!settings.studioCamera || cam.label === settings.studioCamera || /blackmagic|atem/i.test(cam.label)) settings.studioCamera = cam.label; if (engine.value === 'studio') setCamera(cam.deviceId) }
     const mic = pick(studioDevices.value.audio, settings.studioAudio)
     if (mic) { settings.studioAudio = mic.label; setAudio(mic.deviceId) }
   }
@@ -40,8 +40,10 @@ export function useStreamDevices() {
     const list = await listCameras()
     studioDevices.value = list
     const saved = list.video.find(d => d.label === settings.studioCamera) || list.video.find(d => /blackmagic|atem/i.test(d.label))
-    if (saved && saved.deviceId !== studio.camera) setCamera(saved.deviceId)
+    if (saved && saved.deviceId !== studio.camera && engine.value === 'studio') setCamera(saved.deviceId)
   }
+  // tryb prosty: obraz bierze FFmpeg — kamera musi być wolna; powrót do Studio — otwieramy ją znowu
+  watch(engine, e => { if (e === 'simple') setCamera(''); else loadStudioDevices() })
   onMounted(async () => {
     loadDevices()
     await checkHardware()

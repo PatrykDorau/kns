@@ -9,7 +9,7 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
 
 <template>
   <details class="desk-set">
-    <summary>Zaawansowane: klucz transmisji (OBS albo nadawanie z ATEM)</summary>
+    <summary>Zaawansowane: klucz transmisji (nadawanie z ATEM)</summary>
     <div v-if="yt.stream" class="desk-key">
       <span><small class="muted">Serwer</small><code>{{ yt.stream.url }}</code></span>
       <button class="small" @click="copy('url', yt.stream.url)"><Icon :name="copied === 'url' ? 'check' : 'copy'" /></button>
@@ -22,6 +22,6 @@ const sendKeyToAtem = () => run('streamService', { url: yt.value.stream.url, key
       <button v-if="atem.streaming !== 'streaming'" class="small" @click="run('streaming', true)">Start transmisji z ATEM</button>
       <button v-else class="small danger" @click="stopAtemStream">Stop transmisji z ATEM</button>
     </div>
-    <p class="note">Tylko jeśli nadajecie innym programem: klucz wklej raz w OBS albo wyślij do ATEM (mikser z internetem po kablu sieciowym).</p>
+    <p class="note">Tylko jeśli nadajecie innym programem: klucz wyślij do ATEM (mikser z internetem po kablu sieciowym).</p>
   </details>
 </template>

@@ -178,7 +178,7 @@ class Streamer extends EventEmitter {
       const reason = (log.match(/(Could not find|I\/O error|Connection|Error opening|Invalid data|Device or resource busy|Could not run graph)[^\n]*/i) || [])[0] || 'FFmpeg zakończył pracę (kod ' + code + ').'
       const busy = /Could not run graph|busy|Could not set video options/i.test(log)
       this.emitState({ running: false, starting: true, restarts: this.state.restarts + 1,
-        error: busy ? 'Obraz z ATEM jest zajęty przez inny program (np. OBS albo ATEM Software Control z podglądem) — zamknij go.' : 'Przerwa w nadawaniu: ' + reason.trim() + ' — wznawiam za 3 s.' })
+        error: busy ? 'Obraz z ATEM jest zajęty przez inny program (np. Discord albo ATEM Software Control z podglądem) — zamknij go.' : 'Przerwa w nadawaniu: ' + reason.trim() + ' — wznawiam za 3 s.' })
       // zerwane łącze, chwilowy błąd — wznowienie, dopóki transmisja ma trwać
       setTimeout(() => { if (this.want && !this.proc) this.launch(encoder) }, 3000)
     })

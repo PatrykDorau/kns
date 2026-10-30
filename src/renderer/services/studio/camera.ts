@@ -1,7 +1,10 @@
 // Kamera (ATEM po USB): wybór urządzenia, rysowanie obrazu i pilnowanie, żeby obraz naprawdę płynął.
-// Gdy kamerę trzyma inny program (np. OBS — także schowany w zasobniku), gdy po jego zamknięciu urządzenie
+// ATEM otwieramy od razu przy starcie aplikacji i trzymamy, póki działa (startCameraHold) — Windows daje kamerę temu,
+// kto otworzył ją pierwszy, więc inny program (np. Discord) jej nie przejmie.
+// Gdy kamerę trzyma inny program (także schowany w zasobniku), gdy po jego zamknięciu urządzenie
 // przez chwilę nie daje klatek, gdy obraz stanie albo kabel zostanie odpięty — kamera otwiera się ponownie sama
 // (co kilka sekund), a na obrazie widać, na co czeka.
+import { settings } from '@/stores'
 import { H, W, studio } from './state'
 import { fit, g, text } from './paint'
 
@@ -35,7 +38,9 @@ async function open() {
   opening = true
   release()
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: studio.fps } }, audio: false })
+    // co druga ponowna próba bez wymagań co do formatu — urządzenie mogło zostać w formacie ustawionym przez inny program
+    const plain = tries % 2 === 1
+    const stream = await navigator.mediaDevices.getUserMedia({ video: plain ? { deviceId: { exact: id } } : { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: studio.fps } }, audio: false })
     if (mine !== seq || id !== wanted) { stream.getTracks().forEach(tr => tr.stop()); return } // w międzyczasie wybrano inną kamerę
     camStream = stream
     if (!camVideo) {
@@ -55,9 +60,12 @@ async function open() {
     // Zajęta (NotReadable) to co innego niż „nie odpowiada” (Abort: Timeout starting video source): urządzenie zawiesiło się
     // po innym programie albo nie daje obrazu. Wtedy nie pomoże zamykanie programów, tylko ponowne podłączenie — i rzadsze próby.
     const busy = /NotReadable|TrackStart/.test(e?.name), stuck = e?.name === 'AbortError'
-    note = stuck ? 'Kamera nie odpowiada — wyjmij i włóż USB z ATEM' : busy ? 'Kamera zajęta przez inny program (np. OBS) — ponawiam…' : 'Nie mogę otworzyć kamery — ponawiam…'
-    studio.error = stuck ? 'Kamera nie odpowiada (ATEM po USB zawiesił się, np. po użyciu w innym programie). Wyjmij i włóż kabel USB z miksera albo wyłącz i włącz ATEM — obraz wróci sam, aplikacji nie trzeba zamykać.'
-      : busy ? 'Kamera zajęta przez inny program (np. OBS, Discord — sprawdź też zasobnik przy zegarze). Windows daje obraz jednemu programowi naraz. Aplikacja sama ponawia próbę.' : 'Nie mogę otworzyć kamery: ' + (e?.message || e) + ' — ponawiam.'
+    // po kilku próbach (ok. 20 s): zaciął się sam mikser — pomaga tylko jego wyłączenie; restart komputera nie pomaga
+    const power = (stuck || busy) && tries >= 3
+    note = power ? 'Brak obrazu z ATEM — wyłącz i włącz mikser' : stuck ? 'Kamera nie odpowiada — ponawiam…' : busy ? 'Kamera zajęta przez inny program — ponawiam…' : 'Nie mogę otworzyć kamery — ponawiam…'
+    studio.error = power ? 'ATEM nie wysyła obrazu po USB. Zamknij programy, które mogą używać kamery (np. Discord), a potem wyłącz i włącz mikser — obraz wróci sam, aplikacji nie trzeba zamykać. Restart komputera tu nie pomaga.'
+      : stuck ? 'Kamera nie odpowiada. Aplikacja sama ponawia próbę.'
+      : busy ? 'Kamera zajęta przez inny program (np. Discord — sprawdź też zasobnik przy zegarze). Aplikacja sama ponawia próbę.' : 'Nie mogę otworzyć kamery: ' + (e?.message || e) + ' — ponawiam.'
     later(stuck ? 10000 : busy ? 3000 : 5000)
   } finally { if (mine === seq) opening = false }
 }
@@ -74,6 +82,17 @@ export async function setCamera(deviceId) {
 }
 // podłączono urządzenie (np. kabel USB z ATEM po zawieszeniu) — od razu próba, bez czekania na kolejne ponowienie
 navigator.mediaDevices?.addEventListener('devicechange', () => { if (wanted && !opening) retryAt = performance.now() + 800 })
+// ATEM (albo zapamiętana kamera) — otwarty od startu aplikacji i po podłączeniu, nie dopiero po wejściu w Stream.
+// Tryb prosty: obraz bierze FFmpeg, więc kamery nie trzymamy.
+async function holdCamera() {
+  if (wanted || settings.streamEngine === 'simple') return
+  const d = (await listCameras()).video.find(x => x.label === settings.studioCamera || /blackmagic|atem/i.test(x.label))
+  if (d && !wanted && settings.streamEngine !== 'simple') setCamera(d.deviceId)
+}
+export function startCameraHold() {
+  holdCamera().catch(() => {})
+  navigator.mediaDevices?.addEventListener('devicechange', () => { holdCamera().catch(() => {}) })
+}
 // ręcznie: „Połącz ponownie” / „Odśwież kamery”
 export function reconnectCamera() { if (wanted) { tries = 0; open() } }
 
@@ -85,6 +104,6 @@ setInterval(() => {
   if (retryAt) return
   const live = camStream?.getVideoTracks()[0]?.readyState === 'live'
   if (!live || now - lastFrame > FROZEN_MS) {
-    later(Math.min(10000, 1500 * (tries + 1)), tries ? 'Nadal brak obrazu z kamery — ponawiam (sprawdź kabel USB i czy OBS jest zamknięty)…' : 'Brak obrazu z kamery — łączę ponownie…')
+    later(Math.min(10000, 1500 * (tries + 1)), tries ? 'Nadal brak obrazu z kamery — ponawiam (sprawdź kabel USB)…' : 'Brak obrazu z kamery — łączę ponownie…')
   } else if (tries) { tries = 0; studio.error = '' }
 }, 1000)

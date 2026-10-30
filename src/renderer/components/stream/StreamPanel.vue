@@ -121,10 +121,10 @@ async function refresh() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: d.deviceId }, width: { ideal: 1280 } } })
         cam = { id: d.deviceId, label, stream: markRaw(stream) }
       } catch (e) {
-        // NotReadableError: urządzenie trzyma inny program (np. OBS) — Windows daje obraz tylko jednemu.
+        // NotReadableError: urządzenie trzyma inny program — Windows daje obraz tylko jednemu.
         // AbortError (Timeout starting video source): urządzenie nie odpowiada — zawiesiło się, pomaga ponowne podłączenie.
         const stuck = e?.name === 'AbortError', busy = stuck || ['NotReadableError', 'TrackStartError'].includes(e?.name)
-        cam = { id: d.deviceId, label, busy, error: stuck ? 'Kamera nie odpowiada — wyjmij i włóż USB z ATEM. Spróbuję ponownie sam.' : busy ? 'Kamera zajęta przez inny program (np. OBS, Discord). Spróbuję ponownie sam.' : 'Brak obrazu z tej kamery.' }
+        cam = { id: d.deviceId, label, busy, error: stuck ? 'Kamera nie odpowiada — jeśli to potrwa, wyłącz i włącz ATEM. Spróbuję ponownie sam.' : busy ? 'Kamera zajęta przez inny program (np. Discord). Spróbuję ponownie sam.' : 'Brak obrazu z tej kamery.' }
       }
     }
     next.push(cam)
@@ -214,8 +214,8 @@ onBeforeUnmount(() => {
       <Brand />
       <h1>Stream</h1>
       <span class="spacer"></span>
-      <button :class="{ on: settings.camOnTop }" :aria-pressed="settings.camOnTop" title="Okno zawsze nad innymi programami (np. nad OBS)" @click="toggleOnTop"><Icon name="pin" />Zawsze na wierzchu</button>
-      <button title="Małe okno z samymi kamerami — do ustawienia w OBS jako nakładka" @click="toggleOverlay"><Icon name="shrink" />Tryb nakładki</button>
+      <button :class="{ on: settings.camOnTop }" :aria-pressed="settings.camOnTop" title="Okno zawsze nad innymi programami" @click="toggleOnTop"><Icon name="pin" />Zawsze na wierzchu</button>
+      <button title="Małe okno z samymi kamerami" @click="toggleOverlay"><Icon name="shrink" />Tryb nakładki</button>
       <button @click="reconnectCamera(); refresh()"><Icon name="camera" />Odśwież kamery</button>
     </header>
 
@@ -328,8 +328,8 @@ onBeforeUnmount(() => {
         <div v-if="anyBusy && !overlay" class="busy-tip">
           <b>Kamera zajęta?</b> Windows zwykle daje obraz z kamery (także z ATEM Mini po USB) tylko jednemu programowi naraz. Co możesz zrobić:
           <ul>
-            <li>Windows 11: Ustawienia → Bluetooth i urządzenia → Kamery → wybierz kamerę (np. Blackmagic Design) → włącz „Zezwalaj wielu aplikacjom na jednoczesne używanie kamery”, potem uruchom OBS ponownie.</li>
-            <li>Albo w OBS kliknij „Uruchom wirtualną kamerę” i odśwież kamery tutaj — pojawi się „OBS Virtual Camera” z obrazem z OBS.</li>
+            <li>Windows 11: Ustawienia → Bluetooth i urządzenia → Kamery → wybierz kamerę (np. Blackmagic Design) → włącz „Zezwalaj wielu aplikacjom na jednoczesne używanie kamery”, potem uruchom aplikację ponownie.</li>
+            <li>Nadal brak obrazu? Wyłącz i włącz ATEM — restart komputera tu nie pomaga.</li>
           </ul>
           ATEM Mini wysyła przez USB jeden obraz (to, co jest na wyjściu programu), nie osobno każdą kamerę.
         </div>

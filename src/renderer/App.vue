@@ -14,7 +14,7 @@ import { lyricsFeed, startLyricsFeed } from '@/services/lyricsFeed'
 import { startProjectorFeed } from '@/services/projectorFeed'
 import { followSlide, pilot, startPreacherPilot } from '@/services/preacherPilot'
 import { startProjectorMirror } from '@/services/projectorMirror'
-import { audioInfo, bannerPending, bannerToProgram, setCamera, setEndOverlay, startEncoding, stopEncoding, studio } from '@/services/studio'
+import { audioInfo, bannerPending, bannerToProgram, setCamera, setEndOverlay, startCameraHold, startEncoding, stopEncoding, studio } from '@/services/studio'
 import SermonThoughts from '@/components/home/SermonThoughts.vue'
 import GuestBoard from '@/components/home/GuestBoard.vue'
 import InboxBell from '@/components/common/InboxBell.vue'
@@ -33,6 +33,7 @@ onMounted(async () => {
   startProjectorFeed() // scena „Rzutnik”: to, co pokazuje rzutnik na tym komputerze
   startPreacherPilot() // pilot kaznodziei w telefonie i slajdy prezentacji w Stream
   startProjectorMirror() // Stream na innym komputerze pokazuje ten sam materiał co rzutnik (własna kopia z Dysku)
+  startCameraHold() // ATEM po USB trzymany od startu aplikacji — inny program go nie przejmie
   ready.value = true
 })
 
