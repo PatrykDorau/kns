@@ -52,10 +52,13 @@ async function open() {
     studio.error = ''; note = 'Czekam na obraz z kamery…'
   } catch (e) {
     if (mine !== seq) return
-    const busy = /NotReadable|Abort|TrackStart/.test(e?.name)
-    note = busy ? 'Kamera zajęta przez inny program (np. OBS) — ponawiam…' : 'Nie mogę otworzyć kamery — ponawiam…'
-    studio.error = busy ? 'Kamera zajęta przez inny program (np. OBS — sprawdź też zasobnik przy zegarze). Aplikacja sama ponawia próbę.' : 'Nie mogę otworzyć kamery: ' + (e?.message || e) + ' — ponawiam.'
-    later(busy ? 3000 : 5000)
+    // Zajęta (NotReadable) to co innego niż „nie odpowiada” (Abort: Timeout starting video source): urządzenie zawiesiło się
+    // po innym programie albo nie daje obrazu. Wtedy nie pomoże zamykanie programów, tylko ponowne podłączenie — i rzadsze próby.
+    const busy = /NotReadable|TrackStart/.test(e?.name), stuck = e?.name === 'AbortError'
+    note = stuck ? 'Kamera nie odpowiada — wyjmij i włóż USB z ATEM' : busy ? 'Kamera zajęta przez inny program (np. OBS) — ponawiam…' : 'Nie mogę otworzyć kamery — ponawiam…'
+    studio.error = stuck ? 'Kamera nie odpowiada (ATEM po USB zawiesił się, np. po użyciu w innym programie). Wyjmij i włóż kabel USB z miksera albo wyłącz i włącz ATEM — obraz wróci sam, aplikacji nie trzeba zamykać.'
+      : busy ? 'Kamera zajęta przez inny program (np. OBS, Discord — sprawdź też zasobnik przy zegarze). Windows daje obraz jednemu programowi naraz. Aplikacja sama ponawia próbę.' : 'Nie mogę otworzyć kamery: ' + (e?.message || e) + ' — ponawiam.'
+    later(stuck ? 10000 : busy ? 3000 : 5000)
   } finally { if (mine === seq) opening = false }
 }
 function later(ms: number, msg?: string) { if (msg) note = msg; retryAt = performance.now() + ms }
@@ -69,6 +72,8 @@ export async function setCamera(deviceId) {
   if (!wanted) { seq++; release(); return }
   await open()
 }
+// podłączono urządzenie (np. kabel USB z ATEM po zawieszeniu) — od razu próba, bez czekania na kolejne ponowienie
+navigator.mediaDevices?.addEventListener('devicechange', () => { if (wanted && !opening) retryAt = performance.now() + 800 })
 // ręcznie: „Połącz ponownie” / „Odśwież kamery”
 export function reconnectCamera() { if (wanted) { tries = 0; open() } }
 

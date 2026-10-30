@@ -5,7 +5,7 @@ import SyncButton from '@/components/common/SyncButton.vue'
 import Brand from '@/components/common/Brand.vue'
 import Countdown from '@/components/display/Countdown.vue'
 import StreamDesk from '@/components/stream/StreamDesk.vue'
-import { reconnectCamera } from '@/services/studio'
+import { reconnectCamera, studio } from '@/services/studio'
 import { api, cameraLock, cloud, servicePlace, serviceTime, nearestService, now, prettyDate, role, services, settings, songs, sortedServices, uid, today, DEFAULT_TIME } from '@/stores'
 import { addMinutes, categoryName } from '@web/services/church'
 
@@ -92,10 +92,20 @@ function onCueKey(e) {
 const stop = cam => cam.stream?.getTracks().forEach(t => t.stop())
 let retryTimer = 0
 watch(cameraLock, () => refresh())
+// Podgląd kamer na tej stronie jest tylko dla trybu prostego i nakładki. W Studio kamerę otwiera services/studio/camera.ts —
+// druga, równoległa pętla otwierania tego samego urządzenia przeszkadzała mu (Windows: kamera „w użyciu”, a obrazu brak).
+const usesPreview = computed(() => overlay.value || settings.streamEngine === 'simple' || studio.hardware === false)
+watch(usesPreview, () => refresh())
 const anyBusy = computed(() => cams.value.some(c => c.busy))
 
 async function refresh() {
   if (cameraLock.value) { for (const c of cams.value) stop(c); cams.value = []; status.value = 'Obraz z ATEM idzie teraz w transmisji — podgląd tego, co widzą widzowie, jest w pulpicie u góry.'; return }
+  if (!usesPreview.value) {
+    clearTimeout(retryTimer)
+    for (const c of cams.value) stop(c)
+    cams.value = []; status.value = ''
+    return
+  }
   try {
     // Bez jednorazowej zgody na kamerę system nie podaje nazw urządzeń.
     if (!cams.value.some(c => c.stream)) (await navigator.mediaDevices.getUserMedia({ video: true })).getTracks().forEach(t => t.stop())
@@ -111,9 +121,10 @@ async function refresh() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: d.deviceId }, width: { ideal: 1280 } } })
         cam = { id: d.deviceId, label, stream: markRaw(stream) }
       } catch (e) {
-        // NotReadableError / AbortError: urządzenie trzyma inny program (np. OBS) — Windows daje obraz tylko jednemu.
-        const busy = ['NotReadableError', 'AbortError', 'TrackStartError'].includes(e?.name)
-        cam = { id: d.deviceId, label, busy, error: busy ? 'Kamera zajęta przez inny program (np. OBS). Spróbuję ponownie sam.' : 'Brak obrazu z tej kamery.' }
+        // NotReadableError: urządzenie trzyma inny program (np. OBS) — Windows daje obraz tylko jednemu.
+        // AbortError (Timeout starting video source): urządzenie nie odpowiada — zawiesiło się, pomaga ponowne podłączenie.
+        const stuck = e?.name === 'AbortError', busy = stuck || ['NotReadableError', 'TrackStartError'].includes(e?.name)
+        cam = { id: d.deviceId, label, busy, error: stuck ? 'Kamera nie odpowiada — wyjmij i włóż USB z ATEM. Spróbuję ponownie sam.' : busy ? 'Kamera zajęta przez inny program (np. OBS, Discord). Spróbuję ponownie sam.' : 'Brak obrazu z tej kamery.' }
       }
     }
     next.push(cam)
@@ -205,7 +216,7 @@ onBeforeUnmount(() => {
       <span class="spacer"></span>
       <button :class="{ on: settings.camOnTop }" :aria-pressed="settings.camOnTop" title="Okno zawsze nad innymi programami (np. nad OBS)" @click="toggleOnTop"><Icon name="pin" />Zawsze na wierzchu</button>
       <button title="Małe okno z samymi kamerami — do ustawienia w OBS jako nakładka" @click="toggleOverlay"><Icon name="shrink" />Tryb nakładki</button>
-      <button @click="cameraLock && reconnectCamera(); refresh()"><Icon name="camera" />Odśwież kamery</button>
+      <button @click="reconnectCamera(); refresh()"><Icon name="camera" />Odśwież kamery</button>
     </header>
 
     <main class="stream wide">
