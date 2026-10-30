@@ -2,7 +2,7 @@
 import { ask } from '@/utils/ask'
 import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
-import { api, flush, output, overlayUrl, remoteUrl, settings, uid } from '@/stores'
+import { api, flush, output, remoteUrl, settings, uid } from '@/stores'
 import { share } from '@/services/screenShare'
 import { focusOnce } from '@/utils/dom'
 
@@ -11,31 +11,11 @@ const message = ref('')
 // zakładki ustawień
 const TABS = [['stream', 'link', 'Dla streamu'], ['display', 'monitor', 'Obraz i pliki'], ['remote', 'gear', 'Pilot w telefonie'], ['backup', 'folder', 'Kopia biblioteki']]
 const tab = ref('stream')
-// Adres napisów z wybraną pozycją i rozmiarem (parametry czyta sama strona).
-const lyricsQuery = () => {
-  const q = new URLSearchParams()
-  if (settings.lyricsPos && settings.lyricsPos !== 'dol') q.set('pozycja', settings.lyricsPos)
-  if (settings.lyricsSize && settings.lyricsSize !== 6) q.set('rozmiar', String(settings.lyricsSize))
-  if (settings.lyricsBar) q.set('pasek', '1')
-  return q
-}
-// Przez internet: strona na kns-nabo z kluczem tego komputera (OBS na laptopie od streamu, w dowolnej sieci).
-const onlineLink = computed(() => {
-  const q = lyricsQuery()
-  q.set('k', settings.lyricsKey)
-  return 'https://kns-nabo.netlify.app/napisy?' + q
-})
+// Przez internet: adres z kluczem tego komputera (Stream na drugim laptopie, w dowolnej sieci).
+const onlineLink = computed(() => 'https://kns-nabo.netlify.app/napisy?k=' + settings.lyricsKey)
 async function newLyricsKey() {
-  if ((await ask('Nowy klucz — stary adres w OBS przestanie działać i trzeba będzie wkleić nowy. Kontynuować?'))) settings.lyricsKey = uid() + uid() + uid()
+  if ((await ask('Nowy klucz — stary adres przestanie działać. Kontynuować?'))) settings.lyricsKey = uid() + uid() + uid()
 }
-const lyricsLink = computed(() => {
-  if (!overlayUrl.value) return ''
-  const q = new URLSearchParams()
-  if (settings.lyricsPos && settings.lyricsPos !== 'dol') q.set('pozycja', settings.lyricsPos)
-  if (settings.lyricsSize && settings.lyricsSize !== 6) q.set('rozmiar', String(settings.lyricsSize))
-  if (settings.lyricsBar) q.set('pasek', '1')
-  return overlayUrl.value + (q.toString() ? '?' + q : '')
-})
 const copied = ref<string | false>(false)
 async function copyLyrics(text) { await navigator.clipboard.writeText(text); copied.value = text; setTimeout(() => { if (copied.value === text) copied.value = false }, 1500) }
 
@@ -66,7 +46,7 @@ async function importBackup() {
         </nav>
 
         <div class="st-pane">
-          <!-- Dla streamu: obraz rzutnika i napisy na laptop ze streamem / OBS -->
+          <!-- Dla streamu: obraz rzutnika i napisy na laptop ze streamem -->
           <template v-if="tab === 'stream'">
             <h4>Dla streamu</h4>
             <p class="st-help">Laptop ze streamem dostaje stąd obraz rzutnika i napisy pieśni — przez internet, w dowolnej sieci. W Stream ten komputer pojawi się na liście sam.</p>
@@ -83,43 +63,19 @@ async function importBackup() {
                 <span :class="['st-pill', share.error ? 'bad' : share.viewers ? 'ok' : 'wait']">{{ share.error || (!output.open ? 'Obraz ruszy po „Rozpocznij wyświetlanie”' : share.viewers ? 'Stream odbiera obraz' + (share.viewers > 1 ? ' (' + share.viewers + ')' : '') : 'Czekam na laptop ze streamem') }}</span>
               </div>
               <div class="st-row">
-                <span class="st-txt"><b>Napisy pieśni</b><small>Bieżąca zwrotka — na transmisję w Stream albo do OBS (adres poniżej).</small></span>
+                <span class="st-txt"><b>Napisy pieśni</b><small>Bieżąca zwrotka — na transmisję w Stream.</small></span>
                 <input v-model="settings.lyricsOnline" class="sw" type="checkbox" aria-label="Napisy przez internet">
               </div>
               <div v-if="settings.lyricsOnline || settings.screenShare || settings.mirrorStream" class="st-stack">
-                <span class="st-lbl">Adres tego rzutnika (dla OBS albo do wklejenia ręcznie)</span>
+                <span class="st-lbl">Adres tego rzutnika (do wklejenia ręcznie w Stream)</span>
                 <div class="st-copy"><input :value="onlineLink" readonly aria-label="Adres napisów" @focus="($event.target as HTMLInputElement).select()"><button class="small" @click="copyLyrics(onlineLink)"><Icon :name="copied === onlineLink ? 'check' : 'copy'" />{{ copied === onlineLink ? 'Skopiowano' : 'Kopiuj' }}</button><button class="small" title="Nowy adres — stary przestanie działać (Stream przejdzie na nowy sam)" @click="newLyricsKey">Nowy klucz</button></div>
                 <span class="st-hint">Kto zna adres, widzi napisy (a z udostępnianiem — także obraz rzutnika). Nie publikuj go.</span>
               </div>
             </div>
 
-            <div class="st-card">
-              <div class="st-card-h"><span class="ic"><Icon name="monitor" /></span><span><b>Napisy w OBS</b><small>Przezroczyste tło z cieniem — źródło „Przeglądarka” nad kamerą.</small></span></div>
-              <div class="st-row">
-                <span class="st-txt"><b>Bez internetu</b><small>OBS na tym komputerze albo w tej samej sieci Wi-Fi.</small></span>
-                <input v-model="settings.lyrics" class="sw" type="checkbox" aria-label="Napisy w tej samej sieci">
-              </div>
-              <div v-if="settings.lyrics && overlayUrl" class="st-stack">
-                <div class="st-copy"><input :value="lyricsLink" readonly aria-label="Adres napisów w sieci lokalnej" @focus="($event.target as HTMLInputElement).select()"><button class="small" @click="copyLyrics(lyricsLink)"><Icon :name="copied === lyricsLink ? 'check' : 'copy'" />{{ copied === lyricsLink ? 'Skopiowano' : 'Kopiuj' }}</button></div>
-              </div>
-              <template v-if="settings.lyricsOnline || (settings.lyrics && overlayUrl)">
-                <div class="st-grid2">
-                  <label>Pozycja<select v-model="settings.lyricsPos"><option value="dol">na dole</option><option value="srodek">na środku</option><option value="gora">na górze</option></select></label>
-                  <label>Rozmiar<select v-model.number="settings.lyricsSize"><option :value="4">mały</option><option :value="6">średni</option><option :value="8">duży</option></select></label>
-                </div>
-                <div class="st-row">
-                  <span class="st-txt"><b>Ciemny pasek pod tekstem</b><small>Lepiej czytelne na jasnym obrazie.</small></span>
-                  <input v-model="settings.lyricsBar" class="sw" type="checkbox" aria-label="Ciemny pasek pod tekstem">
-                </div>
-              </template>
-              <details class="st-help">
-                <summary>Jak dodać w OBS</summary>
-                <ol><li>Źródła → + → „Przeglądarka”.</li><li>Wklej adres, szerokość 1920, wysokość 1080.</li><li>Ustaw to źródło nad kamerą. „Ukryj” w Rzutniku chowa też napisy.</li><li>Po zmianie pozycji lub rozmiaru wklej adres ponownie.</li></ol>
-              </details>
-            </div>
             <!-- napisy w częściach: rzutnik — cała zwrotka, stream — po kilka linijek -->
             <div class="st-card">
-              <div class="st-card-h"><span class="ic"><Icon name="text" /></span><span><b>Napisy na streamie w częściach</b><small>Rzutnik pokazuje całą zwrotkę, a na streamie (i w OBS) napisy idą po kilka linijek — np. 5 linijek jako 3 + 2.</small></span></div>
+              <div class="st-card-h"><span class="ic"><Icon name="text" /></span><span><b>Napisy na streamie w częściach</b><small>Rzutnik pokazuje całą zwrotkę, a na streamie napisy idą po kilka linijek — np. 5 linijek jako 3 + 2.</small></span></div>
               <div class="st-grid2">
                 <label>Najwyżej linijek naraz<select v-model.number="settings.streamLines"><option :value="0">cała zwrotka</option><option :value="2">2</option><option :value="3">3</option><option :value="4">4</option></select></label>
                 <label>Następna część<select v-model="settings.streamPartMode" :disabled="!settings.streamLines"><option value="keys">strzałką (rzutnik stoi)</option><option value="auto">sama, po czasie</option></select></label>

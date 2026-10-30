@@ -5,7 +5,7 @@ import { setDisplays, stepBy, toggleHidden } from './display'
 import { visibleItems } from './lists'
 import { label, liveItem, liveView, loopPlaying, loopStep, lyricsNow, lyricsParts, streamPart, verses } from './live'
 import { computerUser, mergeSameDay, now, nowCoarse } from './services'
-import { BAZA, api, appUpdate, busy, cloud, confirmId, frozen, frozenAt, hidden, items, liveId, liveNonce, liveStart, liveStep, loaded, notice, output, overlayUrl, previewIndex, remoteUrl, selectedId, services, settings, songIndex, songs, uid, video, volume } from './state'
+import { BAZA, api, appUpdate, busy, cloud, confirmId, frozen, frozenAt, hidden, items, liveId, liveNonce, liveStart, liveStep, loaded, notice, output, previewIndex, remoteUrl, selectedId, services, settings, songIndex, songs, uid, video, volume } from './state'
 import { SYNC_EVERY, markSynced, mergeTwinSongs, pushSoon, sharedAccount, songsChanged, syncIfStale, syncShared } from './sync'
 import { projectorGraphics, purgeOldTrash, syncAnnouncements } from './library'
 
@@ -105,13 +105,8 @@ export async function init() {
   // Powrót do okna: synchronizacja, a bez połączonego folderu — ponowne szukanie go (np. po dodaniu skrótu).
   window.addEventListener('focus', () => (settings.sharedDir ? syncIfStale() : findSharedDir()))
   watch(settings, () => saveSoon('settings'), { deep: true })
-  watch(() => settings.lyrics, async on => {
-    const res = await api.setLyrics?.(!!on)
-    overlayUrl.value = res?.url || ''
-    if (res?.error) { notice.value = 'Napisy dla OBS: ' + res.error; settings.lyrics = false }
-  }, { immediate: true })
   // Napisy przez internet: bieżąca zwrotka pieśni (puste przy „Ukryj” i gdy nie ma pieśni); co 15 s powtórka,
-  // żeby strona w OBS nadrobiła zgubioną wiadomość.
+  // żeby odbiorca nadrobił zgubioną wiadomość.
   const lyricsText = lyricsNow
   const lyricsOut = () => { if (!frozen.value) cloud?.lyrics(settings.lyricsOnline ? settings.lyricsKey : '', lyricsText.value) }
   watch([lyricsText, frozen, () => settings.lyricsOnline, () => settings.lyricsKey], lyricsOut, { immediate: true })

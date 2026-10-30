@@ -20,7 +20,7 @@ export const settings = reactive<Settings>({
   fadeMs: 350, // 0 = bez przejścia
   copyFiles: true,
   remote: false,
-  lyrics: false, lyricsPos: 'dol', lyricsSize: 6, lyricsBar: false, // napisy pieśni dla OBS (na tym komputerze)
+  lyrics: false, lyricsPos: 'dol', lyricsSize: 6, lyricsBar: false, // dawne napisy dla OBS — nieużywane, zostają w zapisanych ustawieniach
   lyricsOnline: false, lyricsKey: '', // napisy przez internet (kns-nabo.netlify.app/napisy?k=…)
   mirrorStream: false, // materiały rzutnika dla Streamu na innym komputerze (Dysk Google + kanał na żywo)
   remoteToken: '',
@@ -74,7 +74,6 @@ export const volume = ref(0.25)
 export const notice = ref('')
 export const busy = ref('')
 export const remoteUrl = ref('')
-export const overlayUrl = ref('')
 // Nadawanie z aplikacji trzyma obraz z ATEM — podgląd kamer w Stream go wtedy oddaje.
 export const cameraLock = ref(false)
 export const renamingId = ref(null)
