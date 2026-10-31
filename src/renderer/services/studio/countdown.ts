@@ -10,8 +10,8 @@ import { BACKGROUNDS, LIGHT_BG } from './backgrounds'
 import { drawPeak } from './peak'
 
 export const LAYOUTS = [
-  ['rock', 'Skała', 'Wielki napis i zegar z lewej, ogłoszenia w poszarpanym panelu'],
-  ['edit', 'Czysty', 'Elegancki napis, data i nabożeństwo, ogłoszenie w ramce'],
+  ['rock', 'Mocny napis', 'Wielki plakatowy napis i zegar z lewej, ogłoszenia w panelu'],
+  ['edit', 'Elegancki', 'Elegancka typografia, data i nabożeństwo, ogłoszenie w ramce'],
   ['top', 'Klasyczny', 'Zegar u góry, w środku ogłoszenia w pętli'],
   ['center', 'Duży zegar', 'Duży zegar na środku, pod nim podpis'],
   ['split', 'Dzielony', 'Zdjęcie z lewej z zegarem w dymku, po prawej ogłoszenia albo napis — w kolorowej ramce'],

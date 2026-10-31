@@ -93,7 +93,7 @@ function cameraPip() {
 function endTiles() {
   const e = studio.end, bank = bankQr(e), phone = String(e.phone || '').replace(/[^\d+]/g, '').replace(/^(\+?48)?(\d{3})(\d{3})(\d{3})$/, '$2 $3 $4')
   const tiles = []
-  if (bank || phone) tiles.push({ head: 'Wesprzyj kościół', qr: bank, phone, lines: [bank && 'Zeskanuj w aplikacji banku', phone && 'albo BLIK na numer ' + phone].filter(Boolean) })
+  if (bank || phone) tiles.push({ head: 'Wesprzyj kościół', qr: bank, phone, lines: [bank && 'Zeskanuj w aplikacji banku', phone && (bank ? 'albo BLIK na numer ' : 'BLIK na numer ') + phone].filter(Boolean) })
   if (e.youtube) tiles.push({ head: 'YouTube', qr: e.youtube, lines: ['Kazania i transmisje'] })
   if (e.spotify) tiles.push({ head: 'Spotify', qr: e.spotify, lines: ['Kazania jako podcast'] })
   return tiles
@@ -112,8 +112,16 @@ function endClean(L) {
   let y = (H - total) / 2
   for (const tl of tiles) {
     if (tl.qr) { rounded(x, y, q, q, 10); g.fillStyle = '#fff'; g.fill(); qr(tl.qr, x + 14, y + 14, q - 28) }
-    text(tl.head, x - 28, y + q / 2 - (tl.qr ? 4 : 20), { size: 40, weight: 400, font: 'display', color: side, align: 'right' })
-    if (tl.lines[0]) { const f = fitLine(tl.lines[0], 400, 24, 18, 700, 'sans'); text(f.str, x - 28, y + q / 2 + 36, { size: f.size, weight: 700, font: 'sans', color: L.bg === 'krem' ? side : accent, align: 'right' }) }
+    const note = L.bg === 'krem' ? side : accent
+    if (tl.qr) {
+      text(tl.head, x - 28, y + q / 2 - 24, { size: 40, weight: 400, font: 'display', color: side, align: 'right' })
+      tl.lines.forEach((l, n) => { const f = fitLine(l, 400, 24, 18, 700, 'sans'); text(f.str, x - 28, y + q / 2 + 18 + n * 34, { size: f.size, weight: 700, font: 'sans', color: note, align: 'right' }) })
+    } else {
+      // bez kodu QR: sam numer BLIK, duży, w miejscu kodu
+      text(tl.head, x + q, y + q / 2 - 56, { size: 44, weight: 400, font: 'display', color: side, align: 'right' })
+      text('BLIK', x + q, y + q / 2 - 4, { size: 30, weight: 700, font: 'sans', color: note, align: 'right' })
+      text(tl.phone, x + q, y + q / 2 + 66, { size: 64, weight: 400, font: 'display', color: side, align: 'right' })
+    }
     y += q + gap
   }
 }

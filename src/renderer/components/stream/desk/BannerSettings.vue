@@ -7,7 +7,7 @@ import TextColor from './TextColor.vue'
 // Baner w presecie: gotowe wzory i własne ustawienia (styl, kolor, napisy, kod QR), do tego kolejka.
 const props = defineProps<{ preset: { banner: any, queue: any[], cycle: boolean, sec: number } }>()
 const b = props.preset.banner, set = props.preset
-const STYLES = [['rock', 'Skała', 'Poszarpany pas u dołu z logo i wielkim napisem'], ['edit', 'Czysty', 'Kremowy pas z elegancką typografią'], ['frame', 'Ramka', 'Zaokrąglony baner w kolorze przez całą szerokość'], ['band', 'Pasek', 'Ciemny pasek u dołu przechodzący w obraz, z logo'], ['card', 'Karta', 'Jasna karta w prawym dolnym rogu — zasłania mniej']] as const
+const STYLES = [['rock', 'Ciemny pas', 'Ciemny pas u dołu z logo i wielkim napisem'], ['edit', 'Jasny pas', 'Kremowy pas z elegancką typografią'], ['frame', 'Ramka', 'Zaokrąglony baner w kolorze przez całą szerokość'], ['band', 'Pasek', 'Ciemny pasek u dołu przechodzący w obraz, z logo'], ['card', 'Karta', 'Jasna karta w prawym dolnym rogu — zasłania mniej']] as const
 const QRS = [['all', 'Wszystkie (wsparcie, YouTube, Spotify)'], ['bank', 'Wsparcie (przelew / BLIK)'], ['youtube', 'YouTube'], ['spotify', 'Spotify'], ['link', 'Własny link'], ['none', 'Bez kodu']] as const
 const PRESETS = [
   ['Podziękowanie', { title: 'Dziękujemy, że byliście z nami!', sub: BANNER_DEFAULT.sub, note: '', qr: 'all' }],

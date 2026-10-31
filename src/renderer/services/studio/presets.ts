@@ -60,9 +60,9 @@ const CLEAN_STARTERS = (): Preset[] => [
   starter('cd', 'Uwielbienie', 'Czarno-żółty, na wieczory', { ...CD_DEFAULT, accent: '#f5e66c', bg: 'czern', layout: 'edit', title: 'Wieczór uwielbienia', done: 'Zaraz zaczynamy' }),
   starter('end', 'Krem', 'Czysto, kody QR obok', { ...END_DEFAULT, bg: 'krem', layout: 'edit', title: 'Dziękujemy, że byliście z nami' }),
   starter('end', 'Piasek', 'Czysto, ciepłe kolory', { ...END_DEFAULT, bg: 'piasek', layout: 'edit', title: 'Do zobaczenia' }),
-  starter('banner', 'Czysty', 'Kremowy pas', { banner: { ...BANNER_DEFAULT, style: 'edit', color: '#1a2a9a' }, queue: [], cycle: false, sec: 10 }),
-  starter('prayer', 'Czysty', 'Kremowy pas', { ...BLANK_PRAYER, style: 'edit' }),
-  starter('lower', 'Czysty', 'Kremowa plakietka', { ...LOWER_DEFAULT, style: 'edit' }),
+  starter('banner', 'Jasny', 'Kremowy pas', { banner: { ...BANNER_DEFAULT, style: 'edit', color: '#1a2a9a' }, queue: [], cycle: false, sec: 10 }),
+  starter('prayer', 'Jasna', 'Kremowy pas', { ...BLANK_PRAYER, style: 'edit' }),
+  starter('lower', 'Jasny', 'Kremowa plakietka', { ...LOWER_DEFAULT, style: 'edit' }),
 ]
 // Stare presety: puste pola znaczyły „z nabożeństwa” — teraz pusto znaczy pusto, więc dostają wpisane pola.
 function upgrade(p: Preset) {
@@ -93,12 +93,14 @@ export function ensurePresets() {
     for (const p of fresh) if (fresh.find(x => x.kind === p.kind) === p) { settings.presetOn[p.kind] = p.id; writeLook(p.kind, p.data) }
   }
   if (settings.presetsV < 3) { settings.presetsV = 3; settings.studioPresets.push(...CLEAN_STARTERS()) }
+  if (settings.presetsV < 5) for (const p of settings.studioPresets) if (p.name === 'Czysty' && p.kind !== 'cd' && p.kind !== 'end') p.name = p.kind === 'prayer' ? 'Jasna' : 'Jasny' // dawna nazwa gotowych presetów
   if (settings.presetsV < 4) {
     settings.presetsV = 4
     const frames = [starter('life', 'Szczyt', 'Ramka na tle góry', { ...LIFE_DEFAULT }), starter('life', 'Noc', 'Ramka na nocnym niebie', { ...LIFE_DEFAULT, bg: 'noc' }), starter('life', 'Krem', 'Jasna, czysta ramka', { ...LIFE_DEFAULT, bg: 'krem' })]
     settings.studioPresets.push(...frames)
     settings.presetOn[frames[0].kind] = frames[0].id; writeLook('life', frames[0].data)
   }
+  settings.presetsV = 5
 }
 export const presetsOf = (kind: PresetKind) => (settings.studioPresets || []).filter(p => p.kind === kind)
 export const blankPreset = (kind: PresetKind): Preset => ({

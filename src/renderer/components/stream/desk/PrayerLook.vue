@@ -8,8 +8,8 @@ defineProps<{ look: { ink?: string, style?: string, head: string, text: string, 
   <div class="desk-cd desk-banner" role="group" aria-label="Modlitwa">
     <div class="desk-opt-group">
       <small class="muted">Styl</small>
-      <button :class="{ on: look.style !== 'edit' }" @click="look.style = 'rock'">Skała</button>
-      <button :class="{ on: look.style === 'edit' }" @click="look.style = 'edit'">Czysty</button>
+      <button :class="{ on: look.style !== 'edit' }" @click="look.style = 'rock'">Ciemny</button>
+      <button :class="{ on: look.style === 'edit' }" @click="look.style = 'edit'">Jasny</button>
     </div>
     <TextColor :look="look" />
     <div class="desk-opt-group desk-cd-text">
