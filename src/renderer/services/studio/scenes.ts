@@ -1,14 +1,15 @@
 // Sceny: co rysujemy na płótnie dla każdej sceny, napisy pieśni i pasek z mówcą.
 import { nearestService, servicePlace, settings } from '@/stores'
 import { ANN_MEDIA, H, W, studio } from './state'
-import { S, background, fitLine, fontStr, fullImage, g, img, rounded, setHalo, text, wrap } from './paint'
-import { CARD, armed, bankQr, bannerNow, prayerLook, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
+import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
+import { CARD, armed, bankQr, bannerNow, prayerLook, presetBanners, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
 import { drawMedia, drawSlideOf, mediaOverlay, mediaSlide, mediaUrl } from './media'
 import { projectorFrame } from './projector'
 import { toProgram } from './look'
+import type { Look } from '@/types'
 
 let lyricShown = '', lyricPrev = '', lyricAt = 0, lyricSeen = 0
 /* ---------- sceny ---------- */
@@ -58,6 +59,17 @@ export const SCENE_DRAW = {
     if (!it) { background(t); text('Wybierz materiał w Bibliotece (pod podglądem)', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
     drawSlideOf(S.media, x => drawMedia(x, true)); cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t)
   },
+}
+// Preset na osobnym płótnie (miniatura, podgląd w Przygotowaniu): plansza z jego wyglądem, nakładka na neutralnym tle.
+export function drawPreset(ctx, kind, data, t, edit = false) {
+  const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerThird: false, lowerOff: 0, styles: { cd: data, end: data },
+    scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
+    endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit), sec: +data.sec || 10, at: 0 } : null }
+  const prev = paintOn(ctx, look as Look)
+  try {
+    if (kind === 'cd') SCENE_DRAW.countdown(t); else if (kind === 'end') SCENE_DRAW.end(t)
+    else { background(t); endOverlay(); prayerOverlay() }
+  } finally { paintOn(prev.ctx, prev.look) }
 }
 // Kamera w okienku (nakładka na każdej scenie poza Kamerą): wybrany róg, małe albo duże.
 function cameraPip() {

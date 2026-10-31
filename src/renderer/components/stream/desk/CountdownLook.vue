@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { label, settings } from '@/stores'
+import { label } from '@/stores'
 import { CD_DEFAULT } from '@/services/studio/cards'
 import { LAYOUTS, TIMERS, layoutThumb } from '@/services/studio/countdown'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import LookBg from './LookBg.vue'
-import PresetBar from './PresetBar.vue'
 
-// Wygląd odliczania: układ (miniatury z bieżącym wyglądem), styl zegara, kolor, tło, treść w środku, napisy.
-if (!settings.cdLook) settings.cdLook = { ...CD_DEFAULT }
-const cd = settings.cdLook
+// Wygląd odliczania w presecie: układ (miniatury z bieżącym wyglądem), styl zegara, kolor, tło, treść w środku, napisy.
+const props = defineProps<{ cd: any }>()
+const cd = props.cd
 for (const [k, v] of Object.entries(CD_DEFAULT)) if (cd[k] === undefined) cd[k] = v // nowe pola po aktualizacji
 const { mediaList, addMediaFiles } = useDesk()
 // zdjęcie z dysku do układu „Dzielony”: dodaje do Biblioteki i od razu wybiera
@@ -22,15 +21,12 @@ const redraw = () => { clearTimeout(timer); timer = window.setTimeout(() => { th
 watch(() => JSON.stringify(cd), redraw, { immediate: true })
 const late = window.setTimeout(redraw, 2000)
 onBeforeUnmount(() => { clearTimeout(timer); clearTimeout(late) })
-const readLook = () => cd
-const writeLook = d => { Object.assign(cd, CD_DEFAULT, d) }
 const content = computed(() => ['top', 'split', 'poster', 'bar'].includes(cd.layout)) // układy z ogłoszeniami w środku
 const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w środku' : 'Podpis')
 </script>
 
 <template>
   <div class="desk-cd" role="group" aria-label="Wygląd odliczania">
-    <PresetBar kind="cd" :read="readLook" :write="writeLook" />
     <div class="desk-layouts" role="group" aria-label="Układ">
       <button v-for="[id, name, tip] in LAYOUTS" :key="id" class="desk-layout" :class="{ on: cd.layout === id }" :aria-pressed="cd.layout === id" :title="tip" @click="cd.layout = id">
         <img v-if="thumbs[id]" :src="thumbs[id]" alt=""><span v-else class="desk-layout-ph"></span>{{ name }}

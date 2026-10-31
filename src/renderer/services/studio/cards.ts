@@ -188,7 +188,10 @@ export const bannerSet = () => ({
 })
 // podgląd: sam edytowany baner, bez przełączania — zmiany stylu i napisów widać od razu (kolejka rusza dopiero na wizji)
 export const bannerNow = () => S?.banner || { list: [{ ...BANNER_DEFAULT, ...settings.banner }], sec: 10, at: 0 }
-export const prayerLook = () => ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
+// wizja: kopia z chwili wysłania; podgląd (i miniatury presetów przez S.prayerLook) — jak banery
+export const prayerLook = () => S?.prayerLook || ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
+// banery presetu: edycja i miniatura pokazują jeden, kolejka rusza dopiero na wizji
+export const presetBanners = (d, edit = false) => ((!edit && d.cycle && d.queue?.length) ? d.queue : [d.banner]).map(b => ({ ...BANNER_DEFAULT, ...b }))
 const dimmed = L => { g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H) }
 // Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów, grafika z Biblioteki albo kamera na żywo.
 export function cdBackground(L, t, side = true) {

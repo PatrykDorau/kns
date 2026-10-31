@@ -1,6 +1,7 @@
 // Pulpit streamu jako całość: składa mniejsze części (ATEM, YouTube, nadawanie, stan, urządzenia, rzutniki, media)
 // i udostępnia je komponentom pulpitu (provide/inject) — każdy bierze, czego potrzebuje: const desk = useDesk().
 import { computed, inject, nextTick, onBeforeUnmount, provide, ref, watch, type InjectionKey, type Ref } from 'vue'
+import type { PresetKind } from '@/types'
 import { loadListen, settings } from '@/stores'
 import { lyricsFeed, lyricsKey, startLyricsFeed } from '@/services/lyricsFeed'
 import { remote as remoteScreen } from '@/services/screenShare'
@@ -47,6 +48,8 @@ function createDesk(service: Ref<Service | null>) {
 
   // źródła pod scenami: przy Materiale — biblioteka; inaczej zostaje to, co było
   const deskTab = ref<DeskTab>('media')
+  const deskMode = ref<'live' | 'prep'>('live') // Studio albo Przygotowanie (presety)
+  const prepKind = ref<PresetKind>('cd')
   watch(() => studio.preview.scene, sc => { if (sc === 'media') deskTab.value = 'media' })
 
   // ikonka w zwiniętej kolumnie: rozwija kolumnę i daną sekcję
@@ -81,7 +84,7 @@ function createDesk(service: Ref<Service | null>) {
     ]
   })
 
-  return { service, ...atem, ...youtube, ...devices, ...broadcast, ...health, ...projectors, ...media, pip, deskTab, unrail, openCfg, lyricsInfo, readiness }
+  return { service, ...atem, ...youtube, ...devices, ...broadcast, ...health, ...projectors, ...media, pip, deskTab, deskMode, prepKind, unrail, openCfg, lyricsInfo, readiness }
 }
 
 export type Desk = ReturnType<typeof createDesk>

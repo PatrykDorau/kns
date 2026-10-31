@@ -13,6 +13,8 @@ export interface Pip {
 
 // Wygląd plansz (kopia ustawień): odliczanie, koniec.
 export interface LookStyles { cd: any, end: any }
+export type PresetKind = 'cd' | 'end' | 'banner' | 'prayer'
+export interface Preset { id: string, kind: PresetKind, name: string, desc: string, data: any }
 
 // Wygląd jednej strony (podgląd albo wizja).
 export interface Look {
@@ -28,6 +30,7 @@ export interface Look {
   endOvl: boolean // baner (nakładka u dołu)
   banner?: { list: any[], sec: number, at?: number } | null // wizja: banery z chwili wysłania i kiedy ruszyły (podgląd — bieżące ustawienia)
   prayer: boolean // czas modlitwy (napis u dołu)
+  prayerLook?: { text?: string, sub?: string, link?: string, label?: string } | null // wizja: napisy z chwili wysłania
   styles?: LookStyles | null // wizja: wygląd plansz z chwili „Na wizję” (null — bieżące ustawienia)
   mpos: { corner: Corner | string; size: BoxSize }
 }
@@ -76,6 +79,7 @@ export interface EndCard {
 }
 
 export interface StudioState {
+  airPreset: Partial<Record<PresetKind, string>> // który preset jest na wizji
   program: Look
   preview: Look
   direct: boolean

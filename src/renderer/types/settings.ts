@@ -1,5 +1,6 @@
 // Ustawienia aplikacji na komputer (zapisywane na dysku razem z biblioteką).
 import type { ServiceSongRef, TextStyle } from './library'
+import type { Preset, PresetKind } from './studio'
 
 // Widok aplikacji: służba albo ekran organizacji (kalendarz, osoby).
 export type Role = 'display' | 'stream' | 'planner' | 'calendar' | 'people'
@@ -16,7 +17,8 @@ export interface Settings {
   lyricsOnline: boolean
   mirrorStream?: boolean
   mirrorLive?: boolean
-  studioPresets?: { id: string, kind: 'cd' | 'end' | 'banner', name: string, data: any }[] // przygotowane wyglądy plansz i banerów
+  studioPresets?: Preset[] // przygotowane plansze i nakładki (Przygotowanie)
+  presetOn?: Partial<Record<PresetKind, string>> // wybrany preset (na podglądzie)
   lyricsKey: string
   remoteToken: string
   songSort: 'number' | 'title'

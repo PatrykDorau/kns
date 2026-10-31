@@ -14,14 +14,15 @@ export const fade: { from: Look | null; at: number } = { from: null, at: 0 }
 const snap = l => ({ ...l, pip: { ...l.pip }, mpos: { ...l.mpos }, styles: l.styles ? copy(l.styles) : l.styles })
 const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size && !!a.pip.on === !!b.pip.on
   && !!a.endOvl === !!b.endOvl && !!a.prayer === !!b.prayer && stylesOf(a) === stylesOf(b) && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
-export const differs = () => !same(studio.preview, studio.program)
+export const differs = () => !same(studio.preview, studio.program) || bannerPending() || prayerPending()
 export function toProgram(fn) {
   const before = snap(studio.program)
   fn(studio.program)
   if (studio.program.lowerThird && !before.lowerThird) studio.program.lowerAt = performance.now()
   if (!studio.program.lowerThird && before.lowerThird) studio.program.lowerOff = performance.now()
   // sam pasek mówcy wjeżdża/wyjeżdża — bez przenikania całego obrazu
-  if (!same({ ...before, lowerThird: studio.program.lowerThird }, studio.program)) { fade.from = before; fade.at = performance.now() }
+  const swapped = JSON.stringify(before.banner?.list) !== JSON.stringify(studio.program.banner?.list) || JSON.stringify(before.prayerLook) !== JSON.stringify(studio.program.prayerLook)
+  if (swapped || !same({ ...before, lowerThird: studio.program.lowerThird }, studio.program)) { fade.from = before; fade.at = performance.now() }
 }
 // Zmiana idzie na podgląd; przy „Od razu na wizję” — też na wizję.
 export function change(fn) {
@@ -41,11 +42,20 @@ export function setLowerThird(v: boolean) { both(lt(v)) }
 export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boolean) { change(key === 'lowerThird' ? lt(v) : l => { l[key] = v }) }
 export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
-export function setPrayer(v: boolean) { both(l => { l.prayer = v }) }
+// modlitwa: wizja dostaje kopię napisów z chwili wysłania
+const prayerSet = () => ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
+// który preset poszedł na wizję (kafelek „Na wizji”)
+export const onAirPreset = (...kinds: string[]) => { for (const k of kinds) studio.airPreset[k] = settings.presetOn?.[k] || '' }
+export function setPrayer(v: boolean) {
+  studio.preview.prayer = v
+  toProgram(l => { l.prayer = v; l.prayerLook = v ? prayerSet() : null })
+  if (v) onAirPreset('prayer')
+}
+export const prayerPending = () => !!studio.program.prayer && JSON.stringify(studio.program.prayerLook || null) !== JSON.stringify(prayerSet())
 // baner: wizja dostaje kopię ustawień z chwili wysłania (kolejne zmiany — najpierw na podglądzie, potem bannerToProgram)
 // „at”: kolejka na wizji zawsze rusza od pierwszego banera
 const bannerCopy = () => ({ ...copy(bannerSet()), at: performance.now() })
-export function setEndOverlay(v: boolean) { studio.preview.endOvl = v; toProgram(l => { l.endOvl = v; l.banner = v ? bannerCopy() : null }) }
+export function setEndOverlay(v: boolean) { studio.preview.endOvl = v; toProgram(l => { l.endOvl = v; l.banner = v ? bannerCopy() : null }); if (v) onAirPreset('banner') }
 export function bannerToProgram() { if (studio.program.endOvl) studio.program.banner = bannerCopy() }
 // czy baner na wizji różni się od ustawień (zmiany czekają na podglądzie)
 export const bannerPending = () => { const b = studio.program.banner; return !!studio.program.endOvl && JSON.stringify(b ? { list: b.list, sec: b.sec } : null) !== JSON.stringify(bannerSet()) }
@@ -55,7 +65,7 @@ export function pipToProgram() { const p = { ...studio.preview.pip }; toProgram(
 export function mediaPipToProgram() { const { omedia, ovl } = studio.preview, mpos = { ...studio.preview.mpos }; toProgram(l => { l.omedia = omedia; l.ovl = ovl; l.mpos = mpos }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
-export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, endOvl: p.endOvl, banner: p.endOvl ? bannerCopy() : null, prayer: p.prayer, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }) }
+export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, endOvl: p.endOvl, banner: p.endOvl ? bannerCopy() : null, prayer: p.prayer, prayerLook: p.prayer ? prayerSet() : null, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }); onAirPreset('cd', 'end', 'banner', 'prayer') }
 export function setDirect(v) { studio.direct = !!v; if (v) take(); else studio.program.styles = liveStyles() }
 // Wygląd na start (zapamiętane okienko): ten sam na podglądzie i wizji.
 export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip }; studio.program.styles = studio.direct ? null : liveStyles() }

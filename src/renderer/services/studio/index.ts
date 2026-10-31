@@ -1,7 +1,7 @@
 // Studio streamu: cały obraz transmisji składa aplikacja (płótno 1920×1080). Moduły według tematu:
 // state (stan), look (podgląd → wizja), scenes / cards / media / projector / camera (rysowanie), audio, encoder, loop.
 export { ANN_MEDIA, PROJ_MEDIA, SCENES, OVERLAYS, studio } from './state'
-export { bannerPending, bannerToProgram, differs, initLook, clearPreviewMedia, mediaPipToProgram, pipToProgram, previewOverlay, setDirect, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPip, setPrayer, setScene, showMediaFull, showMediaOverlay, take, toggleLyrics } from './look'
+export { bannerPending, bannerToProgram, differs, prayerPending, initLook, clearPreviewMedia, mediaPipToProgram, pipToProgram, previewOverlay, setDirect, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPip, setPrayer, setScene, showMediaFull, showMediaOverlay, take, toggleLyrics } from './look'
 export { startCameraHold } from './camera'
 export { addCountdown, countdownLeft, setCountdown, showSlide, slideCandidates, upcomingService } from './cards'
 export { airMedia, mediaCtl, mediaSlide } from './media'

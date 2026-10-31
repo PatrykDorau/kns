@@ -10,6 +10,7 @@ import DeskMonitors from './desk/DeskMonitors.vue'
 import DeskOverlays from './desk/DeskOverlays.vue'
 import DeskScenes from './desk/DeskScenes.vue'
 import DeskTabs from './desk/DeskTabs.vue'
+import DeskPrepare from './desk/DeskPrepare.vue'
 import SceneTab from './desk/SceneTab.vue'
 import DeskAirControls from './desk/DeskAirControls.vue'
 import DeskAtem from './desk/DeskAtem.vue'
@@ -19,7 +20,7 @@ import DeskSettings from './desk/DeskSettings.vue'
 // Pulpit streamu: po lewej obraz (podgląd i wizja ze scenami, nakładkami i mediami — albo kamery w trybie prostym)
 // i ATEM; po prawej YouTube i ustawienia nadawania. Stan i działania — composables/stream (useDesk w częściach).
 const props = withDefaults(defineProps<{ service?: Service | null }>(), { service: null })
-const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
+const { live, liveOn, engine, unrail, deskMode } = provideDesk(toRef(props, 'service'))
 </script>
 
 <template>
@@ -44,11 +45,19 @@ const { live, liveOn, engine, unrail } = provideDesk(toRef(props, 'service'))
           <DeskMonitors />
           <!-- reszta pulpitu; w układzie „kolumna” przewija się sama, podgląd i wizja stoją obok -->
           <div class="desk-stage-rest">
+            <!-- Studio: tylko wybór gotowych rzeczy; Przygotowanie: cała konfiguracja plansz i nakładek -->
+            <div class="desk-mode" role="tablist" aria-label="Tryb pulpitu">
+              <button role="tab" :aria-selected="deskMode === 'live'" :class="{ on: deskMode === 'live' }" @click="deskMode = 'live'">Studio</button>
+              <button role="tab" :aria-selected="deskMode === 'prep'" :class="{ on: deskMode === 'prep' }" @click="deskMode = 'prep'">Przygotowanie</button>
+            </div>
+            <DeskPrepare v-if="deskMode === 'prep'" />
+            <template v-else>
             <DeskScenes />
             <div class="desk-scene-panel"><SceneTab /></div>
             <DeskOverlays />
             <DeskAirControls />
             <DeskTabs />
+            </template>
             <p v-if="studio.error" class="note bad">{{ studio.error }}</p>
           </div>
         </template>
