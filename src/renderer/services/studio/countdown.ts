@@ -12,6 +12,7 @@ import { drawPeak } from './peak'
 export const LAYOUTS = [
   ['rock', 'Mocny napis', 'Wielki plakatowy napis i zegar z lewej, ogłoszenia w panelu'],
   ['edit', 'Elegancki', 'Elegancka typografia, data i nabożeństwo, ogłoszenie w ramce'],
+  ['chat', 'Dymek', 'Logo mówi: duży dymek z napisem i zegarem, ogłoszenie jak druga wiadomość'],
   ['top', 'Klasyczny', 'Zegar u góry, w środku ogłoszenia w pętli'],
   ['center', 'Duży zegar', 'Duży zegar na środku, pod nim podpis'],
   ['split', 'Dzielony', 'Zdjęcie z lewej z zegarem w dymku, po prawej ogłoszenia albo napis — w kolorowej ramce'],
@@ -142,7 +143,7 @@ function logoAt(x, y, size, ring = true) {
 
 /* ---------- układy ---------- */
 export function drawCountdown(L, t) {
-  const prev = setHalo(LIGHT_BG.includes(L.bg) && L.layout !== 'edit' ? 'rgba(244,237,227,0.92)' : '')
+  const prev = setHalo(LIGHT_BG.includes(L.bg) && L.layout !== 'edit' && L.layout !== 'chat' ? 'rgba(244,237,227,0.92)' : '')
   try { return layout(L, t) } finally { setHalo(prev) }
 }
 function layout(L, t) {
@@ -153,6 +154,7 @@ function layout(L, t) {
   switch (L.layout) {
     case 'rock': return rockLayout(L, t, accent, foot, subText)
     case 'edit': return cleanLayout(L, t, foot, subText)
+    case 'chat': return chatLayout(L, t, foot, subText)
     case 'center': {
       cdBackground(L, t)
       const left = T(W / 2, H / 2 - 40, L.timer === 'blob' ? 1.7 : 1.5)
@@ -288,6 +290,45 @@ function rockLayout(L, t, accent, foot, subText) {
     words.forEach((l, i) => text(l, 1445, (H - (words.length - 1) * 104) / 2 + 30 + i * 104, { size: 96, weight: 700, font: 'cond', align: 'center', color: ink, shadow: onLight ? 0 : 20 }))
   }
   if (foot) { const up = foot.toUpperCase(); roughText(up, W - 60, H - 44, { size: roughFit(up, 900, 52, 30, 'cond', 2), font: 'cond', weight: 700, align: 'right', color: soft, spacing: 2 }) }
+  return left
+}
+// Dymek: logo kościoła „mówi” — duży dymek z napisem i zegarem, ogłoszenie obok jak druga wiadomość w rozmowie.
+function bubbleShape(x, y, w, h, tipX, tipY, baseX) {
+  g.beginPath(); g.roundRect(x, y, w, h, 34)
+  g.moveTo(baseX + 90, y + h - 2); g.lineTo(tipX, tipY); g.lineTo(baseX, y + h - 2); g.closePath()
+}
+function chatLayout(L, t, foot, subText) {
+  cdBackground(L, t, false)
+  const onLight = LIGHT_BG.includes(L.bg), accent = L.accent || '#f6a836', ink = L.ink || cleanInk(L.bg).ink, left = countdownLeft()
+  if (!onLight) shade(0.5, 0.6)
+  const speech = luminance(accent) > 0.55 ? '#1a1208' : '#fff', ann = L.show !== 'text' && !!carousel(t), box = L.show === 'text' && subText
+  const x = 104, y = 150, w = 900, h = 560, cx = x + w / 2
+  // duży dymek przy logo
+  g.save(); g.translate(cx, y + h / 2); g.rotate(-0.018); g.translate(-cx, -(y + h / 2))
+  g.save(); shadow(44, 16); bubbleShape(x, y, w, h, 186, y + h + 92, 210); g.fillStyle = accent; g.fill(); g.restore()
+  const head = String((left ? L.title : L.done) || ''), fit = titleFit(head.toUpperCase(), w - 130, 92, 54, 'cond', 700)
+  const note = !box ? subText : '', clockStrNow = left ? clockStr(left) : ''
+  const clock = left ? clockFor(clockStrNow, w - 130, 'serif', 400, 130, 270) : 0, lineH = fit.size * 1.06
+  const inner = fit.lines.length * lineH + (left ? clock * 0.82 + 34 : 0) + (note ? 84 : 0)
+  let py = y + (h - inner) / 2
+  fit.lines.forEach((l, i) => text(l, cx, py + (i + 0.82) * lineH, { size: fit.size, weight: 700, font: 'cond', align: 'center', color: speech, spacing: 3 }))
+  py += fit.lines.length * lineH
+  if (left) { py += 34 + clock * 0.82; steady((c, x2) => text(c, x2, py, { size: clock, weight: 400, font: 'serif', italic: true, align: 'center', color: speech }), clockStrNow, cx, clock, 'serif', 400, 'center', true) }
+  if (note) { const f = fitLine(note, w - 130, 40, 26, 600); text(f.str, cx, py + 84, { size: f.size, weight: 600, align: 'center', color: speech }) }
+  g.restore()
+  // pod dymkiem: kto mówi i kiedy
+  logoAt(98, 838, 132)
+  const up = String(L.brand || '').toUpperCase(), low = foot ? foot.toUpperCase() : ''
+  if (up) text(up, 270, low ? 898 : 926, { size: 46, weight: 700, font: 'cond', color: ink, spacing: 4, shadow: onLight ? 0 : 14 })
+  if (low) { const f = fitLine(low, 760, 40, 26, 700, 'cond'); text(f.str, 270, up ? 952 : 926, { size: f.size, weight: 700, font: 'cond', color: ink, spacing: 2, shadow: onLight ? 0 : 14 }) }
+  // druga wiadomość: ogłoszenie albo napis
+  if (!ann && !box) return left
+  const mw = 730, mh = mw * 9 / 16 + 44, mx = 1100, my = (H - mh) / 2, mcx = mx + mw / 2
+  g.save(); g.translate(mcx, my + mh / 2); g.rotate(0.014); g.translate(-mcx, -(my + mh / 2))
+  g.save(); shadow(40, 14); bubbleShape(mx, my, mw, mh, mx + mw - 90, my + mh + 70, mx + mw - 230); g.fillStyle = '#fff'; g.fill(); g.restore()
+  if (ann) { const prev = setHalo(''); g.save(); rounded(mx + 22, my + 22, mw - 44, mh - 44, 18); g.clip(); drawCarousel(carousel(t), mx + 22, my + 22, mw - 44, mh - 44); g.restore(); setHalo(prev) }
+  else { const ls = wrap(box, mw - 90, 76, 400, 4, 'display'); ls.forEach((l, i) => text(l, mcx, my + mh / 2 + 26 + (i - (ls.length - 1) / 2) * 88, { size: 76, weight: 400, font: 'display', color: '#2b2b2b', align: 'center' })) }
+  g.restore()
   return left
 }
 // Czysty: każde tło ma swoją kompozycję (Krem — podział, Piasek — napis u dołu, Czerń — środek).

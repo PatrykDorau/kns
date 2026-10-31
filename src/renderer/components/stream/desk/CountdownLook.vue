@@ -22,9 +22,9 @@ const redraw = () => { clearTimeout(timer); timer = window.setTimeout(() => { th
 watch(() => JSON.stringify(cd), redraw, { immediate: true })
 const late = window.setTimeout(redraw, 2000)
 onBeforeUnmount(() => { clearTimeout(timer); clearTimeout(late) })
-const content = computed(() => ['rock', 'edit', 'top', 'split', 'poster', 'bar'].includes(cd.layout))
+const content = computed(() => ['rock', 'edit', 'chat', 'top', 'split', 'poster', 'bar'].includes(cd.layout))
 // które pola dany układ naprawdę pokazuje; podpis „text” — tylko gdy w środku jest napis zamiast ogłoszeń
-const FIELDS = { rock: { sub: true, brand: true, foot: true }, edit: { sub: true, brand: true, foot: true }, top: { sub: 'text' }, center: { sub: true }, split: { sub: 'text', foot: true }, poster: { sub: 'text', brand: true, foot: true }, bar: { sub: 'text', foot: true }, minimal: { foot: true } }
+const FIELDS = { rock: { sub: true, brand: true, foot: true }, edit: { sub: true, brand: true, foot: true }, chat: { sub: true, brand: true, foot: true }, top: { sub: 'text' }, center: { sub: true }, split: { sub: 'text', foot: true }, poster: { sub: 'text', brand: true, foot: true }, bar: { sub: 'text', foot: true }, minimal: { foot: true } }
 const fields = computed(() => FIELDS[cd.layout] || {})
 const showSub = computed(() => fields.value.sub === true || (fields.value.sub === 'text' && cd.show === 'text')) // układy z ogłoszeniami w środku
 const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w środku' : 'Podpis')
@@ -37,7 +37,7 @@ const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w �
         <img v-if="thumbs[id]" :src="thumbs[id]" alt=""><span v-else class="desk-layout-ph"></span>{{ name }}
       </button>
     </div>
-    <div v-if="cd.layout !== 'bar'" class="desk-opt-group">
+    <div v-if="cd.layout !== 'bar' && cd.layout !== 'chat'" class="desk-opt-group">
       <small class="muted">Zegar</small>
       <button v-for="[id, name] in TIMERS" :key="id" :class="{ on: cd.timer === id }" :aria-pressed="cd.timer === id" @click="cd.timer = id">{{ name }}</button>
       <label class="desk-color" title="Kolor akcentu (zegar, ramka, paski)"><input v-model="cd.accent" type="color" aria-label="Kolor akcentu"></label>

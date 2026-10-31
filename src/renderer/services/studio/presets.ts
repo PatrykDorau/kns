@@ -103,7 +103,8 @@ export function ensurePresets() {
   }
   // jasne plansze dostają dobrane kolory zamiast domyślnego pomarańczowego zegara
   if (settings.presetsV < 6) for (const p of settings.studioPresets) if (['krem', 'piasek', 'czern'].includes(p.data?.bg) && (!p.data.accent || p.data.accent === CD_DEFAULT.accent)) { p.data.ink = p.data.ink || ''; p.data.accent = PALETTES[p.data.bg][0][1] }
-  settings.presetsV = 6
+  if (settings.presetsV < 7) settings.studioPresets.push(starter('cd', 'Dymek', 'Logo zaprasza: zegar w dużym dymku', { ...CD_DEFAULT, layout: 'chat', bg: 'noc', ink: '#f4ecdf', accent: '#f5c96b', timer: 'bubble' }))
+  settings.presetsV = 7
 }
 export const presetsOf = (kind: PresetKind) => (settings.studioPresets || []).filter(p => p.kind === kind)
 export const blankPreset = (kind: PresetKind): Preset => ({
