@@ -32,6 +32,24 @@ export function fit(src, sw, sh, x, y, w, h, mode = 'contain') {
 }
 export function rounded(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r) }
 // Grafika na cały kadr: rozmyte tło z tej samej grafiki + grafika w całości.
+// Prostokąt obrazu bez przezroczystych marginesów: wycięta postać stoi dokładnie tam, gdzie ją postawimy.
+const trims = new WeakMap<object, { x: number, y: number, w: number, h: number }>()
+export function trimmed(im) {
+  let box = trims.get(im)
+  if (box) return box
+  const nw = im.naturalWidth, nh = im.naturalHeight, k = Math.min(1, 300 / Math.max(nw, nh)), w = Math.max(1, Math.round(nw * k)), h = Math.max(1, Math.round(nh * k))
+  box = { x: 0, y: 0, w: nw, h: nh }
+  try {
+    const c = document.createElement('canvas'); c.width = w; c.height = h
+    const p = c.getContext('2d', { willReadFrequently: true }); p.drawImage(im, 0, 0, w, h)
+    const d = p.getImageData(0, 0, w, h).data
+    let l = w, r = -1, t = h, b = -1
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 16) { l = Math.min(l, x); r = Math.max(r, x); t = Math.min(t, y); b = Math.max(b, y) }
+    if (r >= 0) { const sx = nw / w, sy = nh / h; box = { x: l * sx, y: t * sy, w: (r - l + 1) * sx, h: (b - t + 1) * sy } }
+  } catch { /* bez przycięcia */ }
+  trims.set(im, box)
+  return box
+}
 export function fullImage(im) {
   g.save(); g.filter = 'blur(40px) brightness(0.45)'; fit(im, im.naturalWidth, im.naturalHeight, -60, -60, W + 120, H + 120, 'cover'); g.restore()
   fit(im, im.naturalWidth, im.naturalHeight, 0, 0, W, H, 'contain')

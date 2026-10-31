@@ -21,7 +21,7 @@ export interface Settings {
   presetsV?: number // wersja presetów (uzupełnienie starych, nowe gotowe)
   lifeLook?: any // scena „Życie kościoła”: ramka
   presetOn?: Partial<Record<PresetKind, string>> // wybrany preset (na podglądzie)
-  lowerLook?: { ink?: string, outline?: string, style?: string, name: string, sub: string, color: string, logo: boolean } // pasek mówcy: napisy (puste — z nabożeństwa), kolor, logo
+  lowerLook?: { ink?: string, outline?: string, photo?: string, style?: string, name: string, sub: string, color: string, logo: boolean } // pasek mówcy: napisy (puste — z nabożeństwa), kolor, logo
   lyricsKey: string
   remoteToken: string
   songSort: 'number' | 'title'

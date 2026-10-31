@@ -147,6 +147,13 @@ try {
   ok('edycja trafia do presetu, nie do ustawień', await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Duży zegar test'); return p.data.title==='TEST ZEGAR'&&p.data.layout==='center'&&s.settings.cdLook.title==='ZACZYNAMY ZA'`))
   ok('duży podgląd presetu coś rysuje', await ev(`const c=document.querySelector('.prep-canvas'); const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let v=new Set(); for(let i=0;i<d.length;i+=4001)v.add(d[i]); return v.size>4`))
   await shot('2-przygotowanie.png')
+  /* ---------- zdjęcie mówcy na pasku: PNG z przezroczystymi marginesami ---------- */
+  const facePng = await ev(`const c=document.createElement('canvas'); c.width=400; c.height=500; const p=c.getContext('2d'); p.fillStyle='#ff0000'; p.fillRect(100,50,200,400); return c.toDataURL('image/png').split(',')[1]`)
+  const faceFile = path.join(os.tmpdir(), 'kns-e2e-mowca.png'); fs.writeFileSync(faceFile, Buffer.from(facePng, 'base64'))
+  await ev(`s.items.value.push({id:'e2e-face',lib:'stream',type:'image',path:${JSON.stringify(faceFile.split(path.sep).join('/'))},name:'Mówca e2e'}); await clk('Pasek mówcy','.prep-kinds button'); await clk('Nowy preset','.prep-add'); await w(300); await setv($$('.prep-head input')[0],'Zdjęcie test'); const sel=document.querySelector('[aria-label="Zdjęcie mówcy"]'); sel.value='e2e-face'; sel.dispatchEvent(new Event('change')); await w(600); return 1`)
+  const face = await ev(`const c=document.querySelector('.prep-canvas'); const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data; let box=[1e9,0,1e9,0]; for(let i=0;i<d.length;i+=4) if(d[i]>220&&d[i+1]<40&&d[i+2]<40){const x=(i/4)%c.width,y=Math.floor(i/4/c.width); box=[Math.min(box[0],x),Math.max(box[1],x),Math.min(box[2],y),Math.max(box[3],y)]} return {box,w:c.width}`)
+  ok('zdjęcie mówcy: wychodzi nad pasek, marginesy przycięte', face.box[2] < 415 && face.box[0] < 110 && Math.abs((face.box[1] - face.box[0]) / (face.box[3] - face.box[2]) - 0.5) < 0.04, JSON.stringify(face)) // góra paska: y=415, proporcje 1:2 tylko po przycięciu marginesów
+  await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Zdjęcie test'); s.settings.studioPresets=s.settings.studioPresets.filter(x=>x!==p); s.items.value=s.items.value.filter(x=>x.id!=='e2e-face'); return 1`)
   /* ---------- baner z grafiki ---------- */
   const picFile = path.join(os.tmpdir(), 'kns-e2e-baner.png').split(path.sep).join('/')
   fs.writeFileSync(picFile, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAEElEQVR4nGP8z8DAwMDAAAAJBgEBvdYgcQAAAABJRU5ErkJggg==', 'base64'))
