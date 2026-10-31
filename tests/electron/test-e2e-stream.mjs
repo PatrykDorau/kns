@@ -127,11 +127,13 @@ try {
   /* ---------- każdy układ i tło rysują się bez błędu ---------- */
   ok('wszystkie układy i tła rysują się', await ev(`const T=window.rzutnikStream.presetThumb, bgs=['szczyt','swit','noc','zar','krem','piasek','czern','paper','sketch','colors'], base={title:'A',done:'B',sub:'C',brand:'D',foot:'{nabożeństwo}',accent:'#f6a836',show:'text',draw:false,dim:0}; let n=0; for(const bg of bgs){ for(const layout of ['rock','edit','chat','top','center','split','poster','bar','minimal']) for(const timer of ['blob','bubble','pill','flip','plain']){T({id:'x',name:'',desc:'',kind:'cd',data:{...base,bg,layout,timer}});n++} for(const layout of ['rock','edit','cards','side','center']){T({id:'x',name:'',desc:'',kind:'end',data:{...base,bg,layout}});n++}for(const layout of ['side','float','frame']) for(const banner of [true,false]){T({id:'x',name:'',desc:'',kind:'life',data:{...base,bg,layout,banner,qr:'none',link:''}});n++} } return n>400`))
 
+  ok('obwódka: działa w każdym rodzaju, napisy w dymku jej nie mają', await ev(`const T=window.rzutnikStream.presetThumb, at=st.countdownTo; st.countdownTo=0; const O='#ff00ff', look={bg:'noc',title:'A',done:'B',brand:'C',foot:'',sub:'',layout:'rock',timer:'plain',accent:'#f6a836',show:'ann',draw:false,dim:0,c1:'#000',c2:'#000',image:'',photo:'',ink:'#ffffff'}, ban={style:'rock',title:'A',sub:'B',note:'',qr:'none',link:'',color:'#f6a836'}, kinds=[['cd',o=>({...look,outline:o})],['end',o=>({...look,outline:o})],['life',o=>({...look,layout:'side',banner:true,ann:false,events:false,qr:'none',outline:o})],['banner',o=>({banner:{...ban,outline:o},queue:[],cycle:false,sec:10})],['prayer',o=>({style:'rock',head:'A',text:'B',sub:'',link:'',label:'',outline:o})],['lower',o=>({style:'rock',name:'A',sub:'B',color:'#f6a836',logo:true,outline:o})]]; const same=(k,d)=>T({id:'x',name:'',desc:'',kind:k,data:d(O)})===T({id:'x',name:'',desc:'',kind:k,data:d('')}); const off=kinds.filter(([k,d])=>same(k,d)).map(([k])=>k); const bubble=same('cd',o=>({...look,layout:'chat',brand:'',outline:o})); st.countdownTo=at; return !off.length&&bubble||JSON.stringify({off,bubble})`)===true)
+
   /* ---------- Przygotowanie: po jednym nowym presecie każdego rodzaju ---------- */
   await ev(`await clk('Przygotowanie','.desk-mode button'); await w(500); return 1`)
   ok('Przygotowanie otwarte, sceny schowane', await ev(`return !!document.querySelector('.prep')&&!document.querySelector('.desk-scenes')`))
   const makers = [
-    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); await clk('Duży zegar','.desk-layout'); await clk('Noc','.desk-motif button');`],
+    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); document.querySelector('[aria-label="Kolor obwódki #000000"]').click(); await clk('Duży zegar','.desk-layout'); await clk('Noc','.desk-motif button');`],
     ['Koniec', 'Koniec kamera', 'Z kamerą w tle', `await clk('Duży napis','.desk-opt-group button'); await clk('Kamera','.desk-bg'); await setv($$('.desk-cd-text input')[0],'TEST KONIEC');`],
     ['Baner', 'Zbiórka test', 'Po kazaniu', `await setv($$('.desk-cd-text input')[0],'TEST BANER'); await clk('Pasek','.desk-opt-group button');`],
     ['Modlitwa', 'Modlitwa test', 'Czas modlitwy', `await setv($$('.desk-cd-text input')[1],'TEST MODLITWA');`],
@@ -141,6 +143,7 @@ try {
     await ev(`await clk(${JSON.stringify(kind)},'.prep-kinds button'); await clk('Nowy preset','.prep-add'); await w(300); const f=$$('.prep-head input'); await setv(f[0],${JSON.stringify(name)}); await setv(f[1],${JSON.stringify(desc)}); ${edit} await w(300); return 1`)
     ok(`Przygotowanie: utworzony „${name}”`, await ev(`return s.settings.studioPresets.some(p=>p.name===${JSON.stringify(name)}&&p.desc===${JSON.stringify(desc)})`))
   }
+  ok('obwódka z kreatora zapisana w presecie', await ev(`return s.settings.studioPresets.find(x=>x.name==='Duży zegar test').data.outline==='#000000'`))
   ok('edycja trafia do presetu, nie do ustawień', await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Duży zegar test'); return p.data.title==='TEST ZEGAR'&&p.data.layout==='center'&&s.settings.cdLook.title==='ZACZYNAMY ZA'`))
   ok('duży podgląd presetu coś rysuje', await ev(`const c=document.querySelector('.prep-canvas'); const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let v=new Set(); for(let i=0;i<d.length;i+=4001)v.add(d[i]); return v.size>4`))
   await shot('2-przygotowanie.png')

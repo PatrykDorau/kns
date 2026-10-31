@@ -1,7 +1,7 @@
 // Odliczanie: układy planszy i style zegara (wybierane w Studio → Odliczanie). Każdy układ rysuje tło,
 // treść (ogłoszenia w pętli albo własny napis) i zegar w wybranym stylu; zwraca, ile sekund zostało.
 import { H, W, studio } from './state'
-import { fit, fitLine, fontStr, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
+import { fit, fitLine, fontStr, g, img, paintOn, rounded, setHalo, setOutline, text, withOutline, wrap } from './paint'
 import { carousel, cdBackground, countdownLeft, drawCarousel, fill, paper, setDemo, topWave } from './cards'
 import { clockFor, clockWidth, glassPanel, hairline, roughClock, roughFit, roughText, shade, steady, textWidth, titleFit } from './rough'
 import { cleanInk, pill } from './clean'
@@ -33,7 +33,9 @@ const shadow = (blur = 30, y = 10, c = 'rgba(0,0,0,0.35)') => { g.shadowColor = 
 
 /* ---------- zegary ---------- */
 type TimerOpt = { ink?: string, cx: number, cy: number, scale?: number, title?: string, done?: string, accent: string, light: boolean }
-export function drawTimer(style: string, o: TimerOpt) {
+// plakietki i dymki mają własne tło, obwódka dotyczy tylko napisów leżących wprost na planszy
+export const drawTimer = (style: string, o: TimerOpt) => style === 'plain' || style === 'flip' ? timer(style, o) : withOutline('', () => timer(style, o))
+function timer(style: string, o: TimerOpt) {
   const left = countdownLeft(), s = o.scale || 1, after = String(o.done || '').toUpperCase().trim().split(/\s+/)
   const clock = left ? clockStr(left) : after.pop() // po zerze: ostatnie słowo jako główne, reszta nad nim
   const title = left ? String(o.title || '').toUpperCase() : after.join(' ')
@@ -76,7 +78,7 @@ export function drawTimer(style: string, o: TimerOpt) {
         g.save(); shadow(18, 8, 'rgba(0,0,0,0.4)'); rounded(x, y, cw, ch, 14 * s)
         const gr = g.createLinearGradient(0, y, 0, y + ch); gr.addColorStop(0, '#2c2c30'); gr.addColorStop(0.5, '#1d1d20'); gr.addColorStop(0.5, '#151517'); gr.addColorStop(1, '#202024')
         g.fillStyle = gr; g.fill(); g.restore()
-        text(c, x + cw / 2, y + ch * 0.77, { size: 140 * s, weight: 700, font: 'cond', align: 'center', color: onPlate })
+        withOutline('', () => text(c, x + cw / 2, y + ch * 0.77, { size: 140 * s, weight: 700, font: 'cond', align: 'center', color: onPlate }))
         g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, y + ch / 2 - 1.5 * s, cw, 3 * s)
         x += cw + gap
       }
@@ -144,7 +146,7 @@ function logoAt(x, y, size, ring = true) {
 /* ---------- układy ---------- */
 export function drawCountdown(L, t) {
   const prev = setHalo(LIGHT_BG.includes(L.bg) && L.layout !== 'edit' && L.layout !== 'chat' ? 'rgba(244,237,227,0.92)' : '')
-  try { return layout(L, t) } finally { setHalo(prev) }
+  try { return withOutline(L.outline, () => layout(L, t)) } finally { setHalo(prev) }
 }
 function layout(L, t) {
   const light = LIGHT_BG.includes(L.bg), accent = L.accent || '#f6a836', ink = L.ink || (light ? '#2b2b2b' : '#fff')
@@ -214,7 +216,7 @@ function layout(L, t) {
       cdBackground(L, t)
       if (showText) bigText(L.sub, 120, y / 2 - 60, W - 240, { size: 150, color: ink, align: 'center', lines: 3, shadowPx: light ? 0 : 20 })
       else { const ah = y - 80, aw = ah * 16 / 9; annBox(t, (W - aw) / 2, 40, aw, ah, 16) }
-      const prevHalo = setHalo('')
+      const prevHalo = setHalo(''), prevOutline = setOutline('')
       g.fillStyle = '#121214'; g.fillRect(0, y, W, bh)
       g.fillStyle = accent; g.fillRect(0, y, W, 6)
       logoAt(60, y + 38, 94)
@@ -232,7 +234,7 @@ function layout(L, t) {
       }
       const nx = foot, a0 = 200 + hw + 60, a1 = (clk ? dotX - 40 : W - 70)
       if (nx && a1 - a0 > 200) { const f = fitLine(nx.toUpperCase(), a1 - a0 - 40, 42, 22, 700, 'cond'); text(f.str, (a0 + a1) / 2, y + 104, { size: f.size, weight: 700, font: 'cond', color: L.ink || '#a9a39b', align: 'center' }) }
-      setHalo(prevHalo)
+      setHalo(prevHalo); setOutline(prevOutline)
       return left
     }
     case 'minimal': {
@@ -311,10 +313,12 @@ function chatLayout(L, t, foot, subText) {
   const clock = left ? clockFor(clockStrNow, w - 130, 'serif', 400, 130, 270) : 0, lineH = fit.size * 1.06
   const inner = fit.lines.length * lineH + (left ? clock * 0.82 + 34 : 0) + (note ? 84 : 0)
   let py = y + (h - inner) / 2
+  const prevOutline = setOutline('')
   fit.lines.forEach((l, i) => text(l, cx, py + (i + 0.82) * lineH, { size: fit.size, weight: 700, font: 'cond', align: 'center', color: speech, spacing: 3 }))
   py += fit.lines.length * lineH
   if (left) { py += 34 + clock * 0.82; steady((c, x2) => text(c, x2, py, { size: clock, weight: 400, font: 'serif', italic: true, align: 'center', color: speech }), clockStrNow, cx, clock, 'serif', 400, 'center', true) }
   if (note) { const f = fitLine(note, w - 130, 40, 26, 600); text(f.str, cx, py + 84, { size: f.size, weight: 600, align: 'center', color: speech }) }
+  setOutline(prevOutline)
   g.restore()
   // pod dymkiem: kto mówi i kiedy
   logoAt(98, 838, 132)
@@ -327,7 +331,7 @@ function chatLayout(L, t, foot, subText) {
   g.save(); g.translate(mcx, my + mh / 2); g.rotate(0.014); g.translate(-mcx, -(my + mh / 2))
   g.save(); shadow(40, 14); bubbleShape(mx, my, mw, mh, mx + mw - 90, my + mh + 70, mx + mw - 230); g.fillStyle = '#fff'; g.fill(); g.restore()
   if (ann) { const prev = setHalo(''); g.save(); rounded(mx + 22, my + 22, mw - 44, mh - 44, 18); g.clip(); drawCarousel(carousel(t), mx + 22, my + 22, mw - 44, mh - 44); g.restore(); setHalo(prev) }
-  else { const ls = wrap(box, mw - 90, 76, 400, 4, 'display'); ls.forEach((l, i) => text(l, mcx, my + mh / 2 + 26 + (i - (ls.length - 1) / 2) * 88, { size: 76, weight: 400, font: 'display', color: '#2b2b2b', align: 'center' })) }
+  else withOutline('', () => { const ls = wrap(box, mw - 90, 76, 400, 4, 'display'); ls.forEach((l, i) => text(l, mcx, my + mh / 2 + 26 + (i - (ls.length - 1) / 2) * 88, { size: 76, weight: 400, font: 'display', color: '#2b2b2b', align: 'center' })) })
   g.restore()
   return left
 }

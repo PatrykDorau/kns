@@ -4,7 +4,7 @@ import qrcode from 'qrcode-generator'
 import { currentAnnouncements, nearestService, projectorGraphics, servicePlace, serviceTime, sortedServices } from '@/stores'
 import type { StudioSlide } from '@/types'
 import { H, W, studio } from './state'
-import { S, background, fit, fitLine, g, img, paintOn, rounded, text, wrap } from './paint'
+import { S, background, fit, fitLine, g, img, paintOn, rounded, text, withOutline, wrap } from './paint'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, BG_IDS } from './backgrounds'
 import { drawCamera } from './camera'
@@ -65,7 +65,9 @@ export function textSlide(sl, x, y, w, h) {
   cy += gap - 20 * k
   bl.forEach(l => { text(l, x + w / 2, cy + 20 * k, { size: Math.round(42 * k), weight: 500, color: '#2a1a10', align: 'center' }); cy += 56 * k })
 }
-export function drawSlide(sl, x, y, w, h) {
+// ogłoszenia mają swoje grafiki — obwódka napisów planszy ich nie dotyczy
+export const drawSlide = (sl, x, y, w, h) => withOutline('', () => slideOn(sl, x, y, w, h))
+function slideOn(sl, x, y, w, h) {
   if (sl.im) fit(sl.im, sl.im.naturalWidth, sl.im.naturalHeight, x, y, w, h, 'cover')
   else if (sl.service) serviceCard(x, y, w, h)
   else textSlide(sl, x, y, w, h)
@@ -104,7 +106,8 @@ export function serviceCard(x, y, w, h) {
     if (more) { const m = fitLine(more, w - 160 * k, Math.round(36 * k), Math.round(26 * k), 600); text(m.str, cx, y + (sermon ? 600 : 540) * k, { size: m.size, weight: 600, color: '#fff3e0', align: 'center' }) }
   }
 }
-export function drawCarousel(c, x, y, w, h) {
+export const drawCarousel = (c, x, y, w, h) => withOutline('', () => carouselOn(c, x, y, w, h))
+function carouselOn(c, x, y, w, h) {
   drawSlide(c.prev, x, y, w, h)
   if (c.mix < 1) { g.save(); g.globalAlpha = c.mix; drawSlide(c.cur, x, y, w, h); g.restore() } else drawSlide(c.cur, x, y, w, h)
 }
@@ -209,7 +212,7 @@ export const bannerNow = () => {
   return { list: [list[i < 0 ? i + list.length : i]], sec: 10, at: 0 }
 }
 // wizja: kopia z chwili wysłania; podgląd (i miniatury presetów przez S.prayerLook) — jak banery
-export const prayerLook = () => S?.prayerLook || ({ ink: settings.prayerInk, style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
+export const prayerLook = () => S?.prayerLook || ({ ink: settings.prayerInk, outline: settings.prayerOutline, style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 // banery presetu: edycja i miniatura pokazują jeden, kolejka rusza dopiero na wizji
 export const presetBanners = (d, edit = false) => ((!edit && d.cycle && d.queue?.length) ? d.queue : [d.banner]).map(b => ({ ...BANNER_DEFAULT, ...b }))
 const dimmed = L => { g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H) }

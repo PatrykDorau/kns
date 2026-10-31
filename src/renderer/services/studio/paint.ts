@@ -58,6 +58,12 @@ export const fontStr = (weight, size, font: Font = 'ui', italic = false) => `${i
 // Obwódka ciemnych napisów na jasnych planszach (ustawiana na czas rysowania planszy).
 let halo = ''
 export function setHalo(c: string) { const p = halo; halo = c; return p }
+// Obwódka napisów wybrana w presecie: obowiązuje na czas rysowania planszy, napisy na własnych panelach ją wyłączają.
+let outline = ''
+export const outlineNow = () => outline
+export const outlineWidth = (size: number) => Math.min(14, Math.max(3, size * 0.09))
+export function setOutline(c?: string) { const p = outline; outline = c || ''; return p }
+export function withOutline<R>(c: string | undefined, draw: () => R) { const p = setOutline(c); try { return draw() } finally { setOutline(p) } }
 const darkHex = (c: string) => { const m = /^#([0-9a-f]{6})$/i.exec(c); if (!m) return false; const n = parseInt(m[1], 16); return ((n >> 16) * 0.3 + (n >> 8 & 255) * 0.59 + (n & 255) * 0.11) < 120 }
 export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'left', alpha = 1, shadow = 0, font = 'ui' as Font, italic = false, spacing = 0 } = {}) {
   g.save()
@@ -66,7 +72,8 @@ export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align
   if (spacing) g.letterSpacing = spacing + 'px'
   g.fillStyle = color; g.textAlign = align as CanvasTextAlign; g.textBaseline = 'alphabetic'
   if (shadow) { g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = shadow; g.shadowOffsetY = shadow / 6 }
-  else if (halo && darkHex(color)) { g.lineJoin = 'round'; g.lineWidth = Math.min(16, Math.max(5, size * 0.16)); g.strokeStyle = halo; g.strokeText(str, x, y) }
+  else if (halo && !outline && darkHex(color)) { g.lineJoin = 'round'; g.lineWidth = Math.min(16, Math.max(5, size * 0.16)); g.strokeStyle = halo; g.strokeText(str, x, y) }
+  if (outline) { g.lineJoin = 'round'; g.lineWidth = outlineWidth(size); g.strokeStyle = outline; g.strokeText(str, x, y); g.shadowColor = 'transparent' }
   g.fillText(str, x, y)
   g.restore()
 }

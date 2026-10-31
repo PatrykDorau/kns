@@ -4,7 +4,7 @@
 // ogłoszenia obok, u dołu pas. Po wejściu w scenę kamera płynnie zmniejsza się z pełnego kadru, a reszta się pojawia.
 import { churchEvents, today } from '@/stores'
 import { H, W, studio } from './state'
-import { S, fitLine, g, rounded, text, wrap } from './paint'
+import { S, fitLine, g, rounded, text, withOutline, wrap } from './paint'
 import { carousel, carouselStack, cdBackground, drawCarousel, drawSlide, lifeLook, slides } from './cards'
 import { drawCamera } from './camera'
 import { LIGHT_BG } from './backgrounds'
@@ -32,7 +32,7 @@ const short = (date: string) => new Date(date + 'T12:00').toLocaleDateString('pl
 function cameraIn(x: number, y: number, w: number, h: number, r: number, sample: boolean) {
   if (!sample) { g.save(); rounded(x, y, w, h, r); g.clip(); drawCamera(x, y, w, h); g.restore(); return }
   rounded(x, y, w, h, r); g.fillStyle = 'rgba(12,10,8,0.82)'; g.fill() // miniatura presetu: miejsce na kamerę
-  text('Kamera', x + w / 2, y + h / 2, { size: 72, weight: 400, font: 'display', color: '#f4ecdf', align: 'center' })
+  withOutline('', () => text('Kamera', x + w / 2, y + h / 2, { size: 72, weight: 400, font: 'display', color: '#f4ecdf', align: 'center' }))
 }
 // Ogłoszenia jadą w górę jednym ciągiem, w kółko; tempo z „Zmiana co”: jedna karta na tyle sekund.
 function drawFeed(t: number, x: number) {
@@ -97,7 +97,11 @@ function drawFloat(L, t: number, k: number, qrs, tile, logo, sample: boolean) {
 }
 
 export function drawLife(t: number, qrs: (L) => { qr?: string, phone?: string }[], tile: (q, x: number, y: number, size: number, label: string) => void, logo: (x: number, y: number, size: number, ring: boolean) => void, sample = false) {
-  const L = lifeLook(), seen = lastDraw.get(S) ?? -1e9
+  const L = lifeLook()
+  withOutline(L.outline, () => lifeBoard(L, t, qrs, tile, logo, sample))
+}
+function lifeBoard(L, t: number, qrs, tile, logo, sample: boolean) {
+  const seen = lastDraw.get(S) ?? -1e9
   if (t - seen > 400) enteredAt.set(S, t)
   lastDraw.set(S, t)
   // animacja tylko na żywym podglądzie i wizji; przy wyjściu ze sceny przenikanie rysuje jej kopię, gotową, bez wejścia

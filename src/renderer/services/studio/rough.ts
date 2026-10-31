@@ -1,7 +1,7 @@
 // Grafika plakatowa plansz: chropowate napisy i panele z poszarpaną krawędzią, kurz i rysowanie gór (to samo co w tle
 // aplikacji). Gotowe elementy trzymane w pamięci — rysowane raz, potem tylko wstawiane do klatki.
 import { H, W } from './state'
-import { fontStr, g, type Font } from './paint'
+import { fontStr, g, outlineNow, outlineWidth, type Font } from './paint'
 import { SKETCH_PATHS } from './sketchPaths'
 
 const seeded = (s: number) => () => (s = (s * 16807) % 2147483647) / 2147483647
@@ -38,7 +38,7 @@ type RoughOpts = { size?: number, color?: string, align?: 'left' | 'center' | 'r
 // Napis plakatowy z wytartą fakturą; y — linia bazowa, jak w text().
 export function roughText(str: string, x: number, y: number, { size = 120, color = '#f1e9dc', align = 'left', font = 'poster', weight = 400, spacing = 0, alpha = 1 }: RoughOpts = {}) {
   if (!str) return
-  const key = ['t', str, size, color, font, weight, spacing].join('|')
+  const edge = outlineNow(), key = ['t', str, size, color, font, weight, spacing, edge].join('|')
   const pad = Math.ceil(size * 0.3)
   const c = kept(key, () => {
     const probe = canvas(4, 4).getContext('2d')
@@ -47,6 +47,7 @@ export function roughText(str: string, x: number, y: number, { size = 120, color
     p.font = fontStr(weight, size, font); p.letterSpacing = spacing + 'px'; p.fillStyle = color; p.textBaseline = 'alphabetic'
     p.fillText(str, pad, size * 1.2)
     scuff(p, cv.width, cv.height, hash(str))
+    if (edge) { p.globalCompositeOperation = 'destination-over'; p.lineJoin = 'round'; p.lineWidth = outlineWidth(size); p.strokeStyle = edge; p.strokeText(str, pad, size * 1.2) } // pod spodem: chropowaty jest napis, obwódka gładka
     return cv
   })
   const left = (align === 'center' ? x - (c.width - pad * 2) / 2 : align === 'right' ? x - (c.width - pad * 2) : x) - pad

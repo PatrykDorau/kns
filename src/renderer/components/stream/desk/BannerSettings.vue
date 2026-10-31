@@ -18,7 +18,7 @@ const PRESETS = [
 // Kolejka: kilka banerów przełączanych w kółko (np. najpierw BLIK, potem sociale). Kliknięty baner z kolejki
 // wczytuje się do edycji powyżej — zmiany od razu zapisują się w nim.
 const editing = ref('')
-const copyB = () => JSON.parse(JSON.stringify({ ink: b.ink, style: b.style, color: b.color, title: b.title, sub: b.sub, note: b.note, qr: b.qr, link: b.link }))
+const copyB = () => JSON.parse(JSON.stringify({ ink: b.ink, outline: b.outline, style: b.style, color: b.color, title: b.title, sub: b.sub, note: b.note, qr: b.qr, link: b.link }))
 watch(b, () => { const q = set.queue.find(x => x.id === editing.value); if (q) Object.assign(q, copyB()) }, { deep: true })
 function addToQueue() { const item = { id: uid(), ...copyB() }; set.queue.push(item); editing.value = item.id }
 function editQueued(item) { editing.value = item.id; Object.assign(b, { ...BANNER_DEFAULT, ...item, id: undefined }); delete (b as any).id }

@@ -21,7 +21,7 @@ export interface Settings {
   presetsV?: number // wersja presetów (uzupełnienie starych, nowe gotowe)
   lifeLook?: any // scena „Życie kościoła”: ramka
   presetOn?: Partial<Record<PresetKind, string>> // wybrany preset (na podglądzie)
-  lowerLook?: { ink?: string, style?: string, name: string, sub: string, color: string, logo: boolean } // pasek mówcy: napisy (puste — z nabożeństwa), kolor, logo
+  lowerLook?: { ink?: string, outline?: string, style?: string, name: string, sub: string, color: string, logo: boolean } // pasek mówcy: napisy (puste — z nabożeństwa), kolor, logo
   lyricsKey: string
   remoteToken: string
   songSort: 'number' | 'title'
@@ -64,7 +64,7 @@ export interface Settings {
   studioSlideSec: number
   // wygląd sceny „Odliczanie”: tło, napis nad zegarem, podpis (tylko przy zegarze na środku), układ, przyciemnienie grafiki (0–80)
   // układ: top, center, split, poster, bar, minimal; zegar: blob, bubble, pill, flip, plain; w środku: ogłoszenia albo napis (sub)
-  cdLook?: { ink?: string, draw?: boolean, done?: string, brand?: string, foot?: string, bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: string, timer: string, accent: string, show: 'ann' | 'text', photo?: string }
+  cdLook?: { ink?: string, outline?: string, draw?: boolean, done?: string, brand?: string, foot?: string, bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: string, timer: string, accent: string, show: 'ann' | 'text', photo?: string }
   // wygląd sceny „Koniec”: tło (jak w odliczaniu), układ: karta z kafelkami, obok siebie, duży napis
   // baner na kamerze: styl (frame — ramka, band — pasek, card — karta w rogu), kolor, napisy, kod QR (all, bank, youtube, spotify, link, none)
   banner?: { style: string, color: string, title: string, sub: string, note: string, qr: string, link: string }
@@ -72,7 +72,7 @@ export interface Settings {
   bannerCycle?: boolean // przełączaj banery z kolejki w kółko
   bannerSec?: number // co ile sekund następny baner
   healthFolded?: boolean // statystyki transmisji w prawej kolumnie — zwinięte do samej oceny
-  endLook?: { ink?: string, draw?: boolean, brand?: string, bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: 'rock' | 'cards' | 'side' | 'center' | 'image', pic?: string }
+  endLook?: { ink?: string, outline?: string, draw?: boolean, brand?: string, bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: 'rock' | 'cards' | 'side' | 'center' | 'image', pic?: string }
   donateAccount: string
   donatePhone: string
   donateName: string
@@ -80,6 +80,7 @@ export interface Settings {
   streamLyrics: 'local' | 'online' | 'none' | string
   streamLyricsKey: string
   prayerInk?: string
+  prayerOutline?: string
   prayerStyle?: string
   prayerHead?: string
   prayerText?: string // nakładka „Modlitwa”: napis i podpis

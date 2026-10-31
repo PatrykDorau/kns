@@ -22,7 +22,7 @@ export interface Look {
   lyricsOn: boolean
   lowerThird: boolean
   loop?: boolean // tylko podgląd w Przygotowaniu: rysowanie gór w kółko
-  lowerLook?: { ink?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
+  lowerLook?: { ink?: string, outline?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
   pip: Pip
   lowerAt: number
   lowerOff: number
@@ -32,7 +32,7 @@ export interface Look {
   endOvl: boolean // baner (nakładka u dołu)
   banner?: { list: any[], sec: number, at?: number } | null // wizja: banery z chwili wysłania i kiedy ruszyły (podgląd — bieżące ustawienia)
   prayer: boolean // czas modlitwy (napis u dołu)
-  prayerLook?: { ink?: string, style?: string, head?: string, text?: string, sub?: string, link?: string, label?: string } | null // wizja: napisy z chwili wysłania
+  prayerLook?: { ink?: string, outline?: string, style?: string, head?: string, text?: string, sub?: string, link?: string, label?: string } | null // wizja: napisy z chwili wysłania
   styles?: LookStyles | null // wizja: wygląd plansz z chwili „Na wizję” (null — bieżące ustawienia)
   mpos: { corner: Corner | string; size: BoxSize }
 }

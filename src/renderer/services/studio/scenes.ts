@@ -1,6 +1,6 @@
 // Sceny: co rysujemy na płótnie dla każdej sceny, napisy pieśni i pasek z mówcą.
 import { ANN_MEDIA, H, W, studio } from './state'
-import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
+import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, setHalo, setOutline, text, withOutline, wrap } from './paint'
 import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, prayerLook, presetBanners, setDemo, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, zeroAt } from './cards'
 import { bottomBand, glassPanel, hairline, roughFit, roughText, shade } from './rough'
 import { cleanInk, pill } from './clean'
@@ -30,22 +30,7 @@ export const SCENE_DRAW = {
   },
   // Koniec: tło (jak w odliczaniu), podziękowanie, najbliższe nabożeństwo i kody QR (wsparcie, YouTube, Spotify)
   // w jednym z układów: karta z kafelkami, napis obok kodów albo duży napis z kodami u dołu.
-  end(t) {
-    const L = endLook(), light = LIGHT_BG.includes(L.bg)
-    // sama grafika z Biblioteki (rozmyte tło z tej samej grafiki + grafika w całości)
-    if (L.layout === 'image') {
-      const it = L.pic && mediaSlide(L.pic), im = it?.type === 'image' && img(mediaUrl(it.path))
-      if (im) fullImage(im)
-      else { paper(); text(it ? 'Wczytuję grafikę…' : 'Wybierz grafikę w ustawieniach sceny Koniec', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }) }
-      cameraPip(); return
-    }
-    cdBackground(L, t, L.layout !== 'cards')
-    if (L.layout === 'rock') { endRock(L); cameraPip(); return }
-    if (L.layout === 'edit') { endClean(L); cameraPip(); return }
-    const prev = setHalo(light && L.layout !== 'cards' ? 'rgba(244,237,227,0.92)' : '')
-    try { if (L.layout === 'side') endSide(L, light); else if (L.layout === 'center') endCenter(L, light); else endCards(L) } finally { setHalo(prev) }
-    cameraPip()
-  },
+  end(t) { const L = endLook(); withOutline(L.layout === 'cards' || L.layout === 'image' ? '' : L.outline, () => endBoard(L, t)) }, // układ „karta” stoi na jasnej karcie
   // Życie kościoła: kamera w ramce z ogłoszeniami, wydarzeniami i kodem QR
   life(t) { drawLife(t, L => bannerQrs(L), (q, x, y, size, label) => qrTile(q, x, y, size, label), logo); lowerThird(t); lyrics(t) },
   // Rzutnik — z kamerą w okienku, gdy włączona (wybrany róg, małe albo duże)
@@ -90,6 +75,22 @@ function cameraPip() {
   g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
 }
 /* ---------- Koniec: kafelki i układy ---------- */
+function endBoard(L, t) {
+  const light = LIGHT_BG.includes(L.bg)
+  // sama grafika z Biblioteki (rozmyte tło z tej samej grafiki + grafika w całości)
+  if (L.layout === 'image') {
+    const it = L.pic && mediaSlide(L.pic), im = it?.type === 'image' && img(mediaUrl(it.path))
+    if (im) fullImage(im)
+    else { paper(); text(it ? 'Wczytuję grafikę…' : 'Wybierz grafikę w ustawieniach sceny Koniec', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }) }
+    cameraPip(); return
+  }
+  cdBackground(L, t, L.layout !== 'cards')
+  if (L.layout === 'rock') { endRock(L); cameraPip(); return }
+  if (L.layout === 'edit') { endClean(L); cameraPip(); return }
+  const prev = setHalo(light && L.layout !== 'cards' ? 'rgba(244,237,227,0.92)' : '')
+  try { if (L.layout === 'side') endSide(L, light); else if (L.layout === 'center') endCenter(L, light); else endCards(L) } finally { setHalo(prev) }
+  cameraPip()
+}
 function endTiles() {
   const e = studio.end, bank = bankQr(e), phone = String(e.phone || '').replace(/[^\d+]/g, '').replace(/^(\+?48)?(\d{3})(\d{3})(\d{3})$/, '$2 $3 $4')
   const tiles = []
@@ -144,6 +145,7 @@ function endRock(L) {
   const tw = 700, th = 268, gap = 26, x = W - tw - 90, total = tiles.length * th + (tiles.length - 1) * gap
   let y = (H - total) / 2
   glassPanel(x - 36, y - 36, tw + 72, total + 72)
+  const prevOutline = setOutline('')
   for (const tl of tiles) {
     if (tl.qr) { rounded(x, y, th, th, 10); g.fillStyle = '#fff'; g.fill(); qr(tl.qr, x + 14, y + 14, th - 28) }
     const tx = tl.qr ? x + th + 34 : x + 10, mid = y + th / 2
@@ -152,6 +154,7 @@ function endRock(L) {
     else { text('BLIK na numer', tx, mid + 26, { size: 32, weight: 600, color: '#f4ecdf' }); roughText(tl.phone, tx, mid + 100, { size: 70, color: L.accent || '#f6a836' }) }
     y += th + gap
   }
+  setOutline(prevOutline)
 }
 function logo(x, y, size, ring = false) {
   if (ring) { g.save(); g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 30; g.beginPath(); g.arc(x + size / 2, y + size / 2, size / 2 + 14, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.restore() }
@@ -194,6 +197,7 @@ function endSide(L, light) {
   if (!tiles.length) return
   const tw = 720, gap = 30, th = Math.min(290, (H - 160 - (tiles.length - 1) * gap) / tiles.length), x = W - tw - 110
   let ty = (H - (tiles.length * th + (tiles.length - 1) * gap)) / 2
+  const prevOutline = setOutline('')
   for (const tl of tiles) {
     tileCard(x, ty, tw, th)
     const q = th - 56
@@ -204,13 +208,18 @@ function endSide(L, light) {
     else { text('BLIK na numer', tx, mid + 22, { size: 32, weight: 600, color: '#6b6258' }); text(tl.phone, tx, mid + 96, { size: 64, weight: 800, color: '#e8952f' }) }
     ty += th + gap
   }
+  setOutline(prevOutline)
 }
 // Baner (nakładka na Kamerze i Rzutniku): obraz zostaje, u dołu napis i kod QR — w ramce, w pasku
 // albo w karcie w rogu; kolor, napisy, dopisek i kod QR ustawia się w „Nakładkach”.
 // Czas modlitwy: obraz zostaje, u dołu spokojny napis (rozstrzelone „CZAS MODLITWY”, napis kursywą, podpis).
 function prayerOverlay() {
   if (!S.prayer) return
-  const P = prayerLook(), txt = P.text || '', sub = P.sub || '', label = P.head || '', link = String(P.link || '').trim(), h = 300, y = H - h
+  const P = prayerLook()
+  withOutline(P.outline, () => prayerBand(P))
+}
+function prayerBand(P) {
+  const txt = P.text || '', sub = P.sub || '', label = P.head || '', link = String(P.link || '').trim(), h = 300, y = H - h
   if (!txt && !sub && !label && !link) return
   const tw = link ? W - 640 : W - 300 // z kodem QR po prawej napisy węższe
   const clean = P.style === 'edit', ink = P.ink || (clean ? '#1a2a9a' : '#fff')
@@ -250,8 +259,8 @@ function endOverlay() {
   if (k < 1) drawBanner(list[(i - 1 + list.length) % list.length]) // poprzedni stoi pod spodem, nowy wchodzi na niego — pas nie prześwituje
   g.save(); g.globalAlpha = k; drawBanner(list[i]); g.restore()
 }
-function drawBanner(B) {
-  if (!B) return
+const drawBanner = B => { if (B) withOutline(B.outline, () => bannerOn(B)) }
+function bannerOn(B) {
   const qs = bannerQrs(B), color = B.color || '#f6a836'
   const title = String(B.title || ''), sub = fill(B.sub), note = fill(String(B.note || '').split('{opis kodu}').join(qs.length === 1 && B.style !== 'card' ? autoNote(qs[0]) : ''))
   if (!title && !sub && !note && !qs.length) return
@@ -339,12 +348,14 @@ function endCenter(L, light) {
   for (const l of [fill(L.sub)].filter(Boolean)) { const f = fitLine(l, W - 300, 42, 28, 600); text(f.str, W / 2, y, { size: f.size, weight: 600, color: L.ink || (light ? '#5d5146' : '#f3e3c8'), align: 'center', shadow: sh }); y += 58 }
   if (!tiles.length) return
   const tw = 440, th = 230, gap = 40, x0 = (W - tiles.length * tw - (tiles.length - 1) * gap) / 2, ty = H - th - 60
+  const prevOutline = setOutline('')
   tiles.forEach((tl, i) => {
     const x = x0 + i * (tw + gap)
     tileCard(x, ty, tw, th)
     if (tl.qr) { qr(tl.qr, x + 24, ty + 30, 176); const hd = fitLine(tl.head, tw - 244, 32, 22, 800); text(hd.str, x + 222, ty + 100, { size: hd.size, weight: 800, color: '#2b2b2b' }); wrap(tl.lines[0], tw - 244, 24, 500, 3).forEach((s2, j) => text(s2, x + 222, ty + 140 + j * 30, { size: 24, weight: 500, color: '#6b6258' })) }
     else { text(tl.head, x + tw / 2, ty + 76, { size: 34, weight: 800, color: '#2b2b2b', align: 'center' }); text('BLIK na numer', x + tw / 2, ty + 124, { size: 28, weight: 600, color: '#6b6258', align: 'center' }); text(tl.phone, x + tw / 2, ty + 192, { size: 54, weight: 800, color: '#e8952f', align: 'center' }) }
   })
+  setOutline(prevOutline)
 }
 // Napisy pieśni: biały tekst, miękki cień, przenikanie przy zmianie zwrotki.
 function lyrics(t) {
@@ -392,6 +403,8 @@ function lowerThird(t) {
     if (lg) g.drawImage(lg, cx - 72, cy - 72, 144, 144)
   }
   g.restore()
-  text(name.str, x + tx, y + (what ? 66 : 88), { size: name.size, weight: clean ? 400 : 800, font: clean ? 'display' : 'ui', color: L.ink || (clean ? '#1a2a9a' : '#fff'), alpha: e })
-  if (what) text(sub.str, x + tx, y + 116, { size: sub.size, weight: clean ? 700 : 500, font: clean ? 'sans' : 'ui', color: L.ink || (clean ? '#1a2a9a' : '#d6d8e0'), alpha: e })
+  withOutline(L.outline, () => {
+    text(name.str, x + tx, y + (what ? 66 : 88), { size: name.size, weight: clean ? 400 : 800, font: clean ? 'display' : 'ui', color: L.ink || (clean ? '#1a2a9a' : '#fff'), alpha: e })
+    if (what) text(sub.str, x + tx, y + 116, { size: sub.size, weight: clean ? 700 : 500, font: clean ? 'sans' : 'ui', color: L.ink || (clean ? '#1a2a9a' : '#d6d8e0'), alpha: e })
+  })
 }
