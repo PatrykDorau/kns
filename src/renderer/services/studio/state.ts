@@ -21,11 +21,12 @@ export const SCENES = [
   ['projector', 'Rzutnik'],
   ['countdown', 'Odliczanie'],
   ['media', 'Materiał'],
+  ['life', 'Życie kościoła'],
   ['end', 'Koniec'],
 ]
 // Na których scenach są nakładki (napisów i paska mówcy na planszach — odliczanie, koniec — nie ma celowo);
 // kamera w okienku — na każdej scenie poza Kamerą.
-export const OVERLAYS = { lyrics: ['camera', 'projector', 'media'], lowerThird: ['camera', 'projector', 'media'], media: ['camera', 'projector'], end: ['camera', 'projector'], prayer: ['camera', 'projector', 'media'], pip: ['projector', 'countdown', 'media', 'end'] }
+export const OVERLAYS = { lyrics: ['camera', 'projector', 'media', 'life'], lowerThird: ['camera', 'projector', 'media', 'life'], media: ['camera', 'projector'], end: ['camera', 'projector'], prayer: ['camera', 'projector', 'media'], pip: ['projector', 'countdown', 'media', 'end'] }
 // media — materiał na cały ekran (scena „Media”); omedia — materiał jako nakładka na kamerze/rzutniku,
 // ovl: 'off', 'full' (cały kadr — PNG z przezroczystym tłem, napis bez tła), 'corner' (okienko w rogu, mpos)
 const look = (): Look => ({ scene: 'camera', lyricsOn: true, lowerThird: false, pip: { corner: 'br', size: 'small', on: false }, lowerAt: 0, lowerOff: 0, media: '', omedia: '', ovl: 'off', endOvl: false, prayer: false, mpos: { corner: 'tr', size: 'small' } })

@@ -957,7 +957,7 @@ main.stream > section:first-child { overflow-y: auto; }
 .studio-host { position: absolute; inset: 0; }
 .studio-host canvas { display: block; width: 100%; height: 100%; }
 /* sceny: równa siatka (6 w rzędzie, na wąskim 3) — bez „sierot” w nowej linii */
-.desk-scenes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.desk-scenes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 @media (max-width: 900px) { .desk-scenes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .desk-scenes button, .desk-opts button { padding: 7px 10px; font-size: 13px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .desk-scenes button.on, .desk-opts button.on { background: var(--accent-soft, rgba(232,163,61,.18)); border-color: var(--accent); color: var(--accent); font-weight: 700; }
@@ -1520,3 +1520,4 @@ select { padding-right: 36px !important; }
 .desk-atem-state { display: block; margin-top: 4px; }
 .desk-atem-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .desk-atem-row .desk-ip { flex: 1; min-width: 0; width: auto; }
+

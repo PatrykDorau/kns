@@ -1,7 +1,7 @@
 // Studio streamu: wygląd obrazu (podgląd i wizja) i odtwarzanie materiałów.
 import type { TextStyle } from './library'
 
-export type SceneId = 'camera' | 'projector' | 'countdown' | 'media' | 'end'
+export type SceneId = 'camera' | 'projector' | 'countdown' | 'media' | 'life' | 'end'
 export type Corner = 'tl' | 'tr' | 'bl' | 'br'
 export type BoxSize = 'small' | 'medium' | 'large' | string
 
@@ -12,8 +12,8 @@ export interface Pip {
 }
 
 // Wygląd plansz (kopia ustawień): odliczanie, koniec.
-export interface LookStyles { cd: any, end: any }
-export type PresetKind = 'cd' | 'end' | 'banner' | 'prayer' | 'lower'
+export interface LookStyles { cd: any, end: any, life?: any }
+export type PresetKind = 'cd' | 'end' | 'life' | 'banner' | 'prayer' | 'lower'
 export interface Preset { id: string, kind: PresetKind, name: string, desc: string, data: any }
 
 // Wygląd jednej strony (podgląd albo wizja).

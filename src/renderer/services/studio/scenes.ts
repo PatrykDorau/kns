@@ -4,6 +4,7 @@ import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, s
 import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, prayerLook, presetBanners, setDemo, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, zeroAt } from './cards'
 import { bottomBand, glassPanel, hairline, roughFit, roughText, shade } from './rough'
 import { cleanInk, pill } from './clean'
+import { drawLife } from './life'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
@@ -45,6 +46,8 @@ export const SCENE_DRAW = {
     try { if (L.layout === 'side') endSide(L, light); else if (L.layout === 'center') endCenter(L, light); else endCards(L) } finally { setHalo(prev) }
     cameraPip()
   },
+  // Życie kościoła: kamera w ramce z ogłoszeniami, wydarzeniami i kodem QR
+  life(t) { drawLife(t, L => bannerQrs(L), (q, x, y, size, label) => qrTile(q, x, y, size, label), logo); lowerThird(t); lyrics(t) },
   // Rzutnik — z kamerą w okienku, gdy włączona (wybrany róg, małe albo duże)
   projector(t) {
     projectorFrame(t)
@@ -65,14 +68,15 @@ export const SCENE_DRAW = {
 }
 // Preset na osobnym płótnie (miniatura, podgląd w Przygotowaniu): plansza z jego wyglądem, nakładka na neutralnym tle.
 export function drawPreset(ctx, kind, data, t, edit = false) {
-  const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerOff: 0, styles: { cd: data, end: data },
-    scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
+  const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerOff: 0, styles: { cd: data, end: data, life: data },
+    scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : kind === 'life' ? 'life' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
     lowerAt: 0, lowerThird: kind === 'lower', lowerLook: kind === 'lower' ? data : null,
     endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit).slice(0, 1), sec: 10, at: 0 } : null }
   const prev = paintOn(ctx, look as Look)
   setDemo(true)
   try {
     if (kind === 'cd') SCENE_DRAW.countdown(t); else if (kind === 'end') SCENE_DRAW.end(t)
+    else if (kind === 'life') drawLife(t, L => bannerQrs(L), (q, x, y, size, label) => qrTile(q, x, y, size, label), logo, true)
     else { cdBackground({ bg: 'szczyt', draw: false, dim: 0 }, t); endOverlay(); prayerOverlay(); lowerThird(t) }
   } finally { setDemo(false); paintOn(prev.ctx, prev.look) }
 }

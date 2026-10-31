@@ -3,15 +3,15 @@
 import { itemById, settings } from '@/stores'
 import type { Look } from '@/types'
 import { studio } from './state'
-import { CD_DEFAULT, END_DEFAULT, LOWER_DEFAULT, bannerSet } from './cards'
+import { CD_DEFAULT, END_DEFAULT, LIFE_DEFAULT, LOWER_DEFAULT, bannerSet } from './cards'
 
 // Bieżący wygląd plansz z ustawień (kopia) — wizja dostaje go przy „Na wizję”, podgląd zawsze rysuje z ustawień.
 const copy = x => (x == null ? x : JSON.parse(JSON.stringify(x)))
-export const liveStyles = () => ({ cd: { ...CD_DEFAULT, ...copy(settings.cdLook || {}) }, end: { ...END_DEFAULT, ...copy(settings.endLook || {}) } }) // plansze; nakładki działają od razu
+export const liveStyles = () => ({ cd: { ...CD_DEFAULT, ...copy(settings.cdLook || {}) }, end: { ...END_DEFAULT, ...copy(settings.endLook || {}) }, life: { ...LIFE_DEFAULT, ...copy(settings.lifeLook || {}) } }) // plansze; nakładki działają od razu
 // wygląd planszy liczy się tylko, gdy ta plansza jest na podglądzie albo na wizji — inaczej nie ma czego wysyłać
 const sameStyles = (a, b) => {
   const x = a.styles || liveStyles(), y = b.styles || liveStyles(), shown = scene => a.scene === scene || b.scene === scene
-  return (!shown('countdown') || JSON.stringify(x.cd) === JSON.stringify(y.cd)) && (!shown('end') || JSON.stringify(x.end) === JSON.stringify(y.end))
+  return (!shown('countdown') || JSON.stringify(x.cd) === JSON.stringify(y.cd)) && (!shown('end') || JSON.stringify(x.end) === JSON.stringify(y.end)) && (!shown('life') || JSON.stringify(x.life) === JSON.stringify(y.life))
 }
 // przejście na wizji: poprzedni wygląd znika przez pół sekundy
 export const fade: { from: Look | null; at: number } = { from: null, at: 0 }
@@ -75,7 +75,7 @@ export function pipToProgram() { const p = { ...studio.preview.pip }; toProgram(
 export function mediaPipToProgram() { const { omedia, ovl } = studio.preview, mpos = { ...studio.preview.mpos }; toProgram(l => { l.omedia = omedia; l.ovl = ovl; l.mpos = mpos }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
-export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, lowerLook: p.lowerThird ? lowerSet() : l.lowerLook, endOvl: p.endOvl, banner: p.endOvl ? bannerCopy() : null, prayer: p.prayer, prayerLook: p.prayer ? prayerSet() : null, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }); onAirPreset('cd', 'end', 'banner', 'prayer', 'lower') }
+export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, lowerLook: p.lowerThird ? lowerSet() : l.lowerLook, endOvl: p.endOvl, banner: p.endOvl ? bannerCopy() : null, prayer: p.prayer, prayerLook: p.prayer ? prayerSet() : null, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }); onAirPreset('cd', 'end', 'life', 'banner', 'prayer', 'lower') }
 export function setDirect(v) { studio.direct = !!v; if (v) take(); else studio.program.styles = liveStyles() }
 // Wygląd na start (zapamiętane okienko): ten sam na podglądzie i wizji.
 export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip }; studio.program.styles = studio.direct ? null : liveStyles() }

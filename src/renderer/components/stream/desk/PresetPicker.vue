@@ -15,8 +15,8 @@ const { deskMode, prepKind, prepId } = useDesk()
 ensurePresets()
 const list = computed(() => presetsOf(props.kind))
 const chosen = computed(() => settings.presetOn?.[props.kind] || '')
-const overlay = computed(() => props.kind !== 'cd' && props.kind !== 'end')
-const onAir = computed(() => ({ cd: studio.program.scene === 'countdown', end: studio.program.scene === 'end', banner: !!studio.program.endOvl, prayer: !!studio.program.prayer, lower: !!studio.program.lowerThird })[props.kind])
+const overlay = computed(() => !['cd', 'end', 'life'].includes(props.kind))
+const onAir = computed(() => ({ cd: studio.program.scene === 'countdown', end: studio.program.scene === 'end', life: studio.program.scene === 'life', banner: !!studio.program.endOvl, prayer: !!studio.program.prayer, lower: !!studio.program.lowerThird })[props.kind])
 const isAir = (id: string) => onAir.value && studio.airPreset[props.kind] === id
 const pending = computed(() => {
   if (!overlay.value) return !studio.direct && differs()

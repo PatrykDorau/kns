@@ -26,6 +26,13 @@ export function slideCandidates(): StudioSlide[] {
     { id: 'svc', title: 'Najbliższe nabożeństwo', service: true },
   ]
 }
+// kilka ogłoszeń naraz, zaczynając od bieżącego (ramka „Życie kościoła”)
+export function carouselStack(t, count) {
+  const list = slides()
+  if (!list.length) return []
+  const every = Math.max(3, +studio.slideEvery || 8) * 1000, i = Math.floor(Math.max(0, t - slideBase) / every)
+  return Array.from({ length: Math.min(count, list.length) }, (_, n) => list[(i + n) % list.length])
+}
 export function slides() {
   return slideCandidates().filter(c => !studio.hidden.includes(c.id))
     .map(c => (c.image ? (img(c.image) ? { ...c, im: img(c.image) } : null) : c)).filter(Boolean)
@@ -176,11 +183,14 @@ export const CD_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952
 // tło spoza listy (np. dawne „Ciemne” albo „Góry”) — Szczyt
 const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'szczyt' })
 // wizja rysuje wygląd z chwili „Na wizję” (S.styles), podgląd — bieżące ustawienia
-export const styleOf = (k: 'cd' | 'end', live) => (S?.styles ? S.styles[k] : live)
+export const styleOf = (k: 'cd' | 'end' | 'life', live) => (S?.styles ? S.styles[k] : live)
 export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.cdLook) || {}) })
 // Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
 export const END_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'DZIĘKUJEMY, ŻE BYLIŚCIE Z NAMI', sub: 'Do zobaczenia: {nabożeństwo}', brand: 'KOŚCIÓŁ NA SKALE', layout: 'rock', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
+// Ramka sceny „Życie kościoła”: tło jak w planszach, napisy, ogłoszenia, wydarzenia i kod QR.
+export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
+export const lifeLook = () => safeBg({ ...LIFE_DEFAULT, ...(styleOf('life', settings.lifeLook) || {}) })
 // Pasek mówcy: {mówca} i {kazanie} — z najbliższego nabożeństwa; puste pole — nic.
 export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true } as const
 export const lowerLookOf = () => S?.lowerLook || { ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }

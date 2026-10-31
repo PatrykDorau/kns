@@ -2,7 +2,7 @@
 // wybierane. Wybrany preset trafia do ustawień, z których rysuje podgląd — na wizję idzie dopiero przyciskiem „Na wizję”.
 import { settings, uid } from '@/stores'
 import type { Preset, PresetKind } from '@/types'
-import { BANNER_DEFAULT, CD_DEFAULT, END_DEFAULT, LOWER_DEFAULT, prayerLook } from './cards'
+import { BANNER_DEFAULT, CD_DEFAULT, END_DEFAULT, LIFE_DEFAULT, LOWER_DEFAULT, prayerLook } from './cards'
 import { H, W, studio } from './state'
 import { onAirPreset, previewOverlay, setEndOverlay, setLowerThird, setPrayer } from './look'
 import { drawPreset } from './scenes'
@@ -10,6 +10,7 @@ import { drawPreset } from './scenes'
 export const PRESET_KINDS: [PresetKind, string, string][] = [
   ['cd', 'Odliczanie', 'Plansza przed nabożeństwem'],
   ['end', 'Koniec', 'Plansza po nabożeństwie'],
+  ['life', 'Życie kościoła', 'Kamera w ramce z ogłoszeniami'],
   ['banner', 'Baner', 'Napis i kod QR na obrazie'],
   ['prayer', 'Modlitwa', 'Spokojny napis na czas modlitwy'],
   ['lower', 'Pasek mówcy', 'Imię i podpis u dołu obrazu'],
@@ -21,6 +22,7 @@ const BLANK_PRAYER = { style: 'rock', head: 'CZAS MODLITWY', text: 'Zachęcamy d
 function readLook(kind: PresetKind) {
   if (kind === 'cd') return copy({ ...CD_DEFAULT, ...(settings.cdLook || {}) })
   if (kind === 'end') return copy({ ...END_DEFAULT, ...(settings.endLook || {}) })
+  if (kind === 'life') return copy({ ...LIFE_DEFAULT, ...(settings.lifeLook || {}) })
   if (kind === 'lower') return copy({ ...LOWER_DEFAULT, ...(settings.lowerLook || {}) })
   if (kind === 'prayer') return copy({ ...BLANK_PRAYER, ...copy(prayerLook()) })
   return { banner: copy({ ...BANNER_DEFAULT, ...(settings.banner || {}) }), queue: [], cycle: false, sec: 10 }
@@ -29,6 +31,7 @@ function writeLook(kind: PresetKind, data) {
   const d = copy(data)
   if (kind === 'cd') settings.cdLook = { ...CD_DEFAULT, ...d }
   else if (kind === 'end') settings.endLook = { ...END_DEFAULT, ...d }
+  else if (kind === 'life') settings.lifeLook = { ...LIFE_DEFAULT, ...d }
   else if (kind === 'lower') settings.lowerLook = { ...LOWER_DEFAULT, ...d }
   else if (kind === 'prayer') Object.assign(settings, { prayerStyle: d.style, prayerHead: d.head, prayerText: d.text, prayerSub: d.sub, prayerLink: d.link, prayerLinkLabel: d.label })
   else Object.assign(settings, { banner: { ...BANNER_DEFAULT, ...d.banner }, bannerQueue: d.queue, bannerCycle: d.cycle, bannerSec: d.sec })
@@ -90,11 +93,17 @@ export function ensurePresets() {
     for (const p of fresh) if (fresh.find(x => x.kind === p.kind) === p) { settings.presetOn[p.kind] = p.id; writeLook(p.kind, p.data) }
   }
   if (settings.presetsV < 3) { settings.presetsV = 3; settings.studioPresets.push(...CLEAN_STARTERS()) }
+  if (settings.presetsV < 4) {
+    settings.presetsV = 4
+    const frames = [starter('life', 'Szczyt', 'Ramka na tle góry', { ...LIFE_DEFAULT }), starter('life', 'Noc', 'Ramka na nocnym niebie', { ...LIFE_DEFAULT, bg: 'noc' }), starter('life', 'Krem', 'Jasna, czysta ramka', { ...LIFE_DEFAULT, bg: 'krem' })]
+    settings.studioPresets.push(...frames)
+    settings.presetOn[frames[0].kind] = frames[0].id; writeLook('life', frames[0].data)
+  }
 }
 export const presetsOf = (kind: PresetKind) => (settings.studioPresets || []).filter(p => p.kind === kind)
 export const blankPreset = (kind: PresetKind): Preset => ({
   id: uid(), kind, name: 'Nowy preset', desc: '',
-  data: kind === 'cd' ? { ...CD_DEFAULT } : kind === 'end' ? { ...END_DEFAULT } : kind === 'prayer' ? { ...BLANK_PRAYER } : kind === 'lower' ? { ...LOWER_DEFAULT } : { banner: { ...BANNER_DEFAULT }, queue: [], cycle: false, sec: 10 },
+  data: kind === 'cd' ? { ...CD_DEFAULT } : kind === 'end' ? { ...END_DEFAULT } : kind === 'prayer' ? { ...BLANK_PRAYER } : kind === 'lower' ? { ...LOWER_DEFAULT } : kind === 'life' ? { ...LIFE_DEFAULT } : { banner: { ...BANNER_DEFAULT }, queue: [], cycle: false, sec: 10 },
 })
 
 // Studio: kliknięty preset — na podgląd (przy „Od razu na wizję” — też na wizję)

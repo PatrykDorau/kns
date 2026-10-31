@@ -19,6 +19,7 @@ export interface Settings {
   mirrorLive?: boolean
   studioPresets?: Preset[] // przygotowane plansze i nakładki (Przygotowanie)
   presetsV?: number // wersja presetów (uzupełnienie starych, nowe gotowe)
+  lifeLook?: any // scena „Życie kościoła”: ramka
   presetOn?: Partial<Record<PresetKind, string>> // wybrany preset (na podglądzie)
   lowerLook?: { style?: string, name: string, sub: string, color: string, logo: boolean } // pasek mówcy: napisy (puste — z nabożeństwa), kolor, logo
   lyricsKey: string
