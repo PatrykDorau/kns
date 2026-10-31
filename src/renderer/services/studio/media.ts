@@ -2,8 +2,9 @@
 // filmy grają tylko na wizji (dźwięk w transmisji), prezentacje mogą same zmieniać slajdy.
 import { itemById } from '@/stores'
 import type { MediaSlide } from '@/types'
-import { H, PROJ_MEDIA, W, studio } from './state'
+import { ANN_MEDIA, H, PROJ_MEDIA, W, studio } from './state'
 import { projectorFrame } from './projector'
+import { carousel, drawCarousel, paper } from './cards'
 import { S, fit, fullImage, g, img, rounded, text } from './paint'
 import { connectMedia } from './audio'
 
@@ -71,7 +72,9 @@ export function mediaBox(id, pos) {
   const x = pos.corner.includes('l') ? m : W - w - m, y = pos.corner.includes('t') ? m : H - h - m
   g.save(); g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 40; rounded(x, y, w, h, 22); g.fillStyle = '#000'; g.fill(); g.restore()
   g.save(); rounded(x, y, w, h, 22); g.clip(); g.translate(x, y); g.scale(w / W, h / H)
-  if (id === PROJ_MEDIA) projectorFrame(performance.now()); else drawSlideOf(id, it => drawMedia(it, true))
+  if (id === PROJ_MEDIA) projectorFrame(performance.now())
+  else if (id === ANN_MEDIA) { const c = carousel(performance.now()); if (c) drawCarousel(c, 0, 0, W, H); else paper() }
+  else drawSlideOf(id, it => drawMedia(it, true))
   g.restore()
   g.save(); g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 2; rounded(x, y, w, h, 22); g.stroke(); g.restore()
 }
@@ -79,6 +82,7 @@ export function mediaOverlay() {
   if (S.ovl === 'off') return
   // rzutnik w okienku (albo na cały kadr) na innej scenie
   if (S.omedia === PROJ_MEDIA) { if (S.scene === 'projector') return; if (S.ovl === 'corner') mediaBox(PROJ_MEDIA, S.mpos); else projectorFrame(performance.now()); return }
+  if (S.omedia === ANN_MEDIA) { mediaBox(ANN_MEDIA, S.mpos); return } // ogłoszenia w pętli — tylko w okienku
   const it = mediaSlide(S.omedia)
   if (!it) return
   if (S.ovl === 'corner') mediaBox(S.omedia, S.mpos); else drawSlideOf(S.omedia, x => drawMedia(x, false))

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
-import { OVERLAYS, PROJ_MEDIA, bannerPending, bannerToProgram, mediaPipToProgram, pipToProgram, previewOverlay, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
+import { ANN_MEDIA, OVERLAYS, PROJ_MEDIA, bannerPending, bannerToProgram, mediaPipToProgram, pipToProgram, previewOverlay, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
 import { answerLive, confirmLive, ovlAsk } from '@/composables/stream/ovlAsk'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
@@ -57,6 +57,7 @@ if (settings.prayerText === undefined) settings.prayerText = 'Zachęcamy do modl
       <select :value="pvCorner ? studio.preview.omedia : ''" aria-label="Materiał w okienku PIP" @change="cornerMedia(($event.target as HTMLSelectElement).value)">
         <option value="">— bez PIP —</option>
         <option :value="PROJ_MEDIA">Rzutnik (to, co teraz pokazuje)</option>
+        <option :value="ANN_MEDIA">Ogłoszenia w pętli</option>
         <option v-for="it in mediaList" :key="it.id" :value="it.id">{{ label(it) }} ({{ mediaKind(it).toLowerCase() }})</option>
       </select>
       <template v-if="pvCorner">
