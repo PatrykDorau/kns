@@ -10,7 +10,7 @@ import { drawMedia, drawSlideOf, mediaOverlay, mediaSlide, mediaUrl } from './me
 import { projectorFrame } from './projector'
 import { toProgram } from './look'
 
-let lyricShown = '', lyricPrev = '', lyricAt = 0
+let lyricShown = '', lyricPrev = '', lyricAt = 0, lyricSeen = 0
 /* ---------- sceny ---------- */
 export const SCENE_DRAW = {
   camera(t) { drawCamera(); mediaOverlay(); prayerOverlay(); endOverlay(); lowerThird(t); lyrics(t) },
@@ -246,6 +246,9 @@ function endCenter(L, light) {
 // Napisy pieśni: biały tekst, miękki cień, przenikanie przy zmianie zwrotki.
 function lyrics(t) {
   if (!S.lyricsOn) return
+  // napisy dopiero wracają (były wyłączone, scena bez napisów) — bez przenikania ze starą zwrotką
+  if (t - lyricSeen > 500) { lyricShown = studio.lyrics; lyricPrev = ''; lyricAt = 0 }
+  lyricSeen = t
   if (studio.lyrics !== lyricShown) { lyricPrev = lyricShown; lyricShown = studio.lyrics; lyricAt = t }
   const k = Math.min(1, (t - lyricAt) / 300)
   const draw = (str, alpha) => {
