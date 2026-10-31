@@ -1,9 +1,10 @@
-// Scena „Życie kościoła”: ramka w kształcie L. Kamera w dużym oknie, z prawej ogłoszenia w pętli, u dołu napis, najbliższe
-// wydarzenia i kod QR. Po wejściu w scenę kamera płynnie zmniejsza się z pełnego kadru, a ramka się pojawia.
+// Scena „Życie kościoła”, dwa układy. Boczny: kamera na całą wysokość, z prawej pas ogłoszeń jadących jedno za drugim, lekko
+// nachodzących na obraz, a na kamerze mała plakietka z napisem, wydarzeniami i kodem QR. Ramka: kamera w dużym oknie,
+// ogłoszenia obok, u dołu pas. Po wejściu w scenę kamera płynnie zmniejsza się z pełnego kadru, a reszta się pojawia.
 import { churchEvents, today } from '@/stores'
-import { H, W } from './state'
+import { H, W, studio } from './state'
 import { S, fitLine, g, rounded, text, wrap } from './paint'
-import { carouselStack, cdBackground, drawSlide, lifeLook } from './cards'
+import { carouselStack, cdBackground, drawSlide, lifeLook, slides } from './cards'
 import { drawCamera } from './camera'
 import { LIGHT_BG } from './backgrounds'
 import { cleanInk } from './clean'
@@ -21,7 +22,58 @@ export function publicEvents(max = 3) {
     .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
     .slice(0, max)
 }
+// Układ boczny: stałe wymiary (kamera, karty ogłoszeń i ile nachodzą na obraz)
+const CAM_W = 1500, CARD_W = 500, CARD_H = CARD_W * 9 / 16, CARD_GAP = 28, OVERLAP = 116
 const short = (date: string) => new Date(date + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'short' })
+
+function cameraIn(x: number, y: number, w: number, h: number, r: number, sample: boolean) {
+  if (!sample) { g.save(); rounded(x, y, w, h, r); g.clip(); drawCamera(x, y, w, h); g.restore(); return }
+  rounded(x, y, w, h, r); g.fillStyle = 'rgba(12,10,8,0.82)'; g.fill() // miniatura presetu: miejsce na kamerę
+  text('Kamera', x + w / 2, y + h / 2, { size: 72, weight: 400, font: 'display', color: '#f4ecdf', align: 'center' })
+}
+// Ogłoszenia jadą w górę jednym ciągiem, w kółko; tempo z „Zmiana co”: jedna karta na tyle sekund.
+function drawFeed(t: number, x: number) {
+  const list = slides(), pitch = CARD_H + CARD_GAP
+  const card = (sl, y) => {
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 26; g.shadowOffsetY = 8; rounded(x, y, CARD_W, CARD_H, 14); g.fillStyle = '#000'; g.fill(); g.restore()
+    g.save(); rounded(x, y, CARD_W, CARD_H, 14); g.clip(); drawSlide(sl, x, y, CARD_W, CARD_H); g.restore()
+  }
+  if (list.length === 1) { card(list[0], (H - CARD_H) / 2); return } // jedno ogłoszenie stoi
+  const every = Math.max(3, +studio.slideEvery || 8) * 1000, moved = (t / every) * pitch, base = Math.floor(moved / pitch), shift = moved - base * pitch
+  for (let i = 0; i * pitch - shift < H; i++) card(list[(base + i) % list.length], i * pitch - shift + 20)
+}
+function drawSide(L, t: number, k: number, qrs, tile, logo, sample: boolean) {
+  cdBackground(L, t, false)
+  const onLight = LIGHT_BG.includes(L.bg), hasFeed = L.ann !== false && slides().length > 0
+  // bez ogłoszeń kamera bierze cały kadr
+  const camW = hasFeed ? mix(W, CAM_W, k) : W
+  cameraIn(0, 0, camW, H, 0, sample)
+  if (hasFeed) {
+    g.save(); g.globalAlpha *= k
+    const edge = g.createLinearGradient(camW - 150, 0, camW, 0); edge.addColorStop(0, 'rgba(0,0,0,0)'); edge.addColorStop(1, 'rgba(0,0,0,0.42)')
+    g.fillStyle = edge; g.fillRect(camW - 150, 0, 150, H)
+    g.restore()
+    drawFeed(t, mix(W + 40, CAM_W - OVERLAP, k))
+  }
+  // plakietka na kamerze: logo, napis, wydarzenia, kod QR; pusta — nie ma jej wcale
+  const events = L.events === false ? [] : publicEvents(2), q = qrs(L)[0]
+  if (!L.title && !L.brand && !events.length && !q) return
+  const h = 136, y = H - h - 32, x = 32, ew = 270, tw = L.title || L.brand ? 470 : 0, w = 124 + tw + events.length * ew + (q ? h : 0)
+  g.save(); g.globalAlpha *= k
+  glassPanel(x, y, w, h, onLight ? 'rgba(255,250,240,0.9)' : 'rgba(16,10,6,0.8)')
+  const ink = L.ink || (onLight ? '#2b2b2b' : '#f4ecdf'), soft = L.ink || (onLight ? ink : '#fbe3bd')
+  logo(x + 20, y + 26, 84, !onLight)
+  if (L.brand) text(L.brand.toUpperCase(), x + 124, y + (L.title ? 50 : 78), { size: 24, weight: 700, font: 'sans', color: soft })
+  if (L.title) { const f = fitLine(L.title, tw - 20, 44, 26, 400, 'display'); text(f.str, x + 122, y + (L.brand ? 102 : 84), { size: f.size, weight: 400, font: 'display', color: ink }) }
+  events.forEach((e, i) => {
+    const ax = x + 124 + tw + i * ew
+    g.fillStyle = onLight ? ink : 'rgba(255,240,220,0.3)'; g.fillRect(ax - 14, y + 26, 2, h - 52)
+    text(short(e.date) + (e.time ? ' · ' + e.time : ''), ax, y + 50, { size: 23, weight: 700, font: 'sans', color: soft })
+    wrap(String(e.title || ''), ew - 30, 26, 700, 2, 'sans').forEach((l, n) => text(l, ax, y + 86 + n * 32, { size: 26, weight: 700, font: 'sans', color: ink }))
+  })
+  if (q) tile(q, x + w - h + 12, y + 12, h - 24, '')
+  g.restore()
+}
 
 export function drawLife(t: number, qrs: (L) => { qr?: string, phone?: string }[], tile: (q, x: number, y: number, size: number, label: string) => void, logo: (x: number, y: number, size: number, ring: boolean) => void, sample = false) {
   const L = lifeLook(), seen = lastDraw.get(S) ?? -1e9
@@ -29,8 +81,9 @@ export function drawLife(t: number, qrs: (L) => { qr?: string, phone?: string }[
   lastDraw.set(S, t)
   const k = sample ? 1 : ease(Math.min(1, (t - (enteredAt.get(S) ?? t)) / ENTER))
 
+  if (L.layout !== 'frame') { drawSide(L, t, k, qrs, tile, logo, sample); return }
   cdBackground(L, t, false)
-  const onLight = LIGHT_BG.includes(L.bg), ink = onLight ? cleanInk(L.bg).ink : '#f4ecdf', soft = onLight ? ink : '#fbe3bd'
+  const onLight = LIGHT_BG.includes(L.bg), ink = L.ink || (onLight ? cleanInk(L.bg).ink : '#f4ecdf'), soft = L.ink || (onLight ? ink : '#fbe3bd')
   if (!onLight) shade(0.35, 0.5)
 
   const stack = L.ann === false ? [] : carouselStack(t, 2), events = L.events === false ? [] : publicEvents()
@@ -65,11 +118,6 @@ export function drawLife(t: number, qrs: (L) => { qr?: string, phone?: string }[
 
   // kamera: z pełnego kadru do swojego okna
   const fx = mix(0, x, k), fy = mix(0, y, k), fw = mix(W, w, k), fh = mix(H, h, k), r = 16 * k
-  if (!sample) {
-    g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30 * k; rounded(fx, fy, fw, fh, r); g.fillStyle = '#000'; g.fill(); g.restore()
-    g.save(); rounded(fx, fy, fw, fh, r); g.clip(); drawCamera(fx, fy, fw, fh); g.restore()
-  } else { // miniatura presetu: miejsce na kamerę
-    rounded(fx, fy, fw, fh, r); g.fillStyle = 'rgba(12,10,8,0.82)'; g.fill()
-    text('Kamera', fx + fw / 2, fy + fh / 2, { size: 72, weight: 400, font: 'display', color: '#f4ecdf', align: 'center' })
-  }
+  if (!sample) { g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30 * k; rounded(fx, fy, fw, fh, r); g.fillStyle = '#000'; g.fill(); g.restore() }
+  cameraIn(fx, fy, fw, fh, r, sample)
 }

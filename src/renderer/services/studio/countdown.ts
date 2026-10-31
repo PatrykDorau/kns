@@ -30,13 +30,13 @@ const clockStr = (left: number) => {
 const shadow = (blur = 30, y = 10, c = 'rgba(0,0,0,0.35)') => { g.shadowColor = c; g.shadowBlur = blur; g.shadowOffsetY = y }
 
 /* ---------- zegary ---------- */
-type TimerOpt = { cx: number, cy: number, scale?: number, title?: string, done?: string, accent: string, light: boolean }
+type TimerOpt = { ink?: string, cx: number, cy: number, scale?: number, title?: string, done?: string, accent: string, light: boolean }
 export function drawTimer(style: string, o: TimerOpt) {
   const left = countdownLeft(), s = o.scale || 1, after = String(o.done || '').toUpperCase().trim().split(/\s+/)
   const clock = left ? clockStr(left) : after.pop() // po zerze: ostatnie słowo jako główne, reszta nad nim
   const title = left ? String(o.title || '').toUpperCase() : after.join(' ')
   if (!clock) return left
-  const ink = o.light ? '#2b2b2b' : '#fff'
+  const ink = o.ink || (o.light ? '#2b2b2b' : '#fff')
   if (style === 'bubble') {
     // dymek w kolorze akcentu, cyfry szeryfową kursywą (jak w zapowiedziach na plakatach)
     const cw = clockWidth(clock, 170 * s, 'serif', 400, true) // szerokość z komórek cyfr — dymek nie zmienia się co sekundę
@@ -80,8 +80,8 @@ export function drawTimer(style: string, o: TimerOpt) {
     if (title) text(title, o.cx, o.cy - ch / 2 - 18 * s, { size: 36 * s, weight: 700, font: 'cond', align: 'center', color: ink, spacing: 8 * s, shadow: o.light ? 0 : 14 })
   } else if (style === 'plain') {
     // same duże cyfry
-    if (title) text(title, o.cx, o.cy - 168 * s, { size: 40 * s, weight: 700, font: 'cond', align: 'center', color: o.light ? '#2b2b2b' : '#f3e3c8', spacing: 10 * s, shadow: o.light ? 0 : 14 })
-    roughClock(clock, o.cx, o.cy + 90 * s, { size: left ? 250 * s : roughFit(clock, 1500 * s, 250 * s, 80), align: 'center', color: o.light ? '#2b2b2b' : '#f4ecdf' })
+    if (title) text(title, o.cx, o.cy - 168 * s, { size: 40 * s, weight: 700, font: 'cond', align: 'center', color: o.ink || (o.light ? '#2b2b2b' : '#f3e3c8'), spacing: 10 * s, shadow: o.light ? 0 : 14 })
+    roughClock(clock, o.cx, o.cy + 90 * s, { size: left ? 250 * s : roughFit(clock, 1500 * s, 250 * s, 80), align: 'center', color: o.ink || (o.light ? '#2b2b2b' : '#f4ecdf') })
   } else {
     // plakietka z falowanym brzegiem (kolor obwódki logo), cyfry w kolorze akcentu
     const rx = (left >= 3600 ? 310 : 265) * s, ry = 130 * s
@@ -143,8 +143,8 @@ export function drawCountdown(L, t) {
   try { return layout(L, t) } finally { setHalo(prev) }
 }
 function layout(L, t) {
-  const light = LIGHT_BG.includes(L.bg), accent = L.accent || '#f6a836', ink = light ? '#2b2b2b' : '#fff'
-  const T = (cx, cy, scale = 1, light2 = light) => drawTimer(L.timer, { cx, cy, scale, title: L.title, done: L.done, accent, light: light2 })
+  const light = LIGHT_BG.includes(L.bg), accent = L.accent || '#f6a836', ink = L.ink || (light ? '#2b2b2b' : '#fff')
+  const T = (cx, cy, scale = 1, light2 = light) => drawTimer(L.timer, { cx, cy, scale, title: L.title, done: L.done, accent, light: light2, ink: L.ink })
   const foot = fill(L.foot), subText = fill(L.sub)
   const showText = L.show === 'text' && L.sub
   switch (L.layout) {
@@ -216,7 +216,7 @@ function layout(L, t) {
       const cw = clk ? clockWidth(clk, 130, 'cond', 700) : 0
       g.save()
       g.font = fontStr(700, 54, 'cond'); g.letterSpacing = '6px'; const hw = g.measureText(head).width; g.restore()
-      text(head, 200, y + 108, { size: 54, weight: 700, font: 'cond', color: '#fff', spacing: 6 })
+      text(head, 200, y + 108, { size: 54, weight: 700, font: 'cond', color: L.ink || '#fff', spacing: 6 })
       const dotX = W - 70 - cw - 40
       if (clk) {
         steady((c, x2) => text(c, x2, y + 132, { size: 130, weight: 700, font: 'cond', color: accent, align: 'center' }), clk, W - 70, 130, 'cond', 700, 'right')
@@ -224,7 +224,7 @@ function layout(L, t) {
         g.save(); g.globalAlpha = 0.5 + 0.5 * Math.sin(t / 300); g.fillStyle = '#e5484d'; g.beginPath(); g.arc(dotX, y + 88, 12, 0, Math.PI * 2); g.fill(); g.restore()
       }
       const nx = foot, a0 = 200 + hw + 60, a1 = (clk ? dotX - 40 : W - 70)
-      if (nx && a1 - a0 > 200) { const f = fitLine(nx.toUpperCase(), a1 - a0 - 40, 42, 22, 700, 'cond'); text(f.str, (a0 + a1) / 2, y + 104, { size: f.size, weight: 700, font: 'cond', color: '#a9a39b', align: 'center' }) }
+      if (nx && a1 - a0 > 200) { const f = fitLine(nx.toUpperCase(), a1 - a0 - 40, 42, 22, 700, 'cond'); text(f.str, (a0 + a1) / 2, y + 104, { size: f.size, weight: 700, font: 'cond', color: L.ink || '#a9a39b', align: 'center' }) }
       setHalo(prevHalo)
       return left
     }
@@ -255,13 +255,13 @@ function layout(L, t) {
 // Skała: wielki napis z lewej, ogłoszenia w poszarpanym panelu, zegar z kreskami po bokach, stopka.
 function rockLayout(L, t, accent, foot, subText) {
   cdBackground(L, t, false)
-  const onLight = LIGHT_BG.includes(L.bg), ink = onLight ? cleanInk(L.bg).ink : '#f4ecdf'
+  const onLight = LIGHT_BG.includes(L.bg), ink = L.ink || (onLight ? cleanInk(L.bg).ink : '#f4ecdf'), soft = L.ink || (onLight ? ink : '#fbe3bd')
   if (!onLight) shade()
   const left = countdownLeft(), ann = L.show !== 'text' && !!carousel(t), lx = 104, lw = 900
   if (L.brand) {
     logoAt(lx + 6, 62, 78)
     roughText(L.brand.toUpperCase(), lx + 118, 124, { size: 50, spacing: 5, color: ink })
-    hairline(lx, 176, lw, onLight ? ink : 'rgba(244,236,223,0.8)')
+    hairline(lx, 176, lw, ink)
   }
   const head = String((left ? L.title : L.done) || '').toUpperCase(), box = showBig(L), note = !box ? subText : ''
   // największy napis, przy którym nad zegarem zostaje miejsce
@@ -274,7 +274,7 @@ function rockLayout(L, t, accent, foot, subText) {
   lines.forEach((l, i) => roughText(l, lx, 190 + size + i * size * 1.03, { size: Math.min(size, roughFit(l, lw, size)), color: ink }))
   // zegar zawsze z lewej, pod napisem, z wyraźnym odstępem — góra zostaje widoczna; podpis pod zegarem
   const clockY = Math.min(note ? 950 : 1006, bottom + 275), clockColor = onLight ? ink : accent
-  if (note) { const f = fitLine(note, lw, 46, 28, 600); text(f.str, lx + 4, clockY + 64, { size: f.size, weight: 600, color: onLight ? ink : '#fbe3bd', shadow: onLight ? 0 : 14 }) }
+  if (note) { const f = fitLine(note, lw, 46, 28, 600); text(f.str, lx + 4, clockY + 64, { size: f.size, weight: 600, color: soft, shadow: onLight ? 0 : 14 }) }
   if (left) { if (L.timer === 'plain') roughClock(clockStr(left), lx, clockY, { size: 236, color: clockColor }); else drawTimer(L.timer, { cx: lx + 400, cy: clockY - 90, scale: 0.95, accent: clockColor, light: onLight }) }
   if (ann) {
     glassPanel(1066, 58, 758, 446)
@@ -283,7 +283,7 @@ function rockLayout(L, t, accent, foot, subText) {
     const words = wrap(subBig(L), 760, 96, 700, 5, 'cond')
     words.forEach((l, i) => text(l, 1445, 300 + i * 104, { size: 96, weight: 700, font: 'cond', align: 'center', color: ink, shadow: onLight ? 0 : 20 }))
   }
-  if (foot) { const up = foot.toUpperCase(); roughText(up, W - 60, H - 44, { size: roughFit(up, 900, 52, 30, 'cond', 2), font: 'cond', weight: 700, align: 'right', color: onLight ? ink : '#fbe3bd', spacing: 2 }) }
+  if (foot) { const up = foot.toUpperCase(); roughText(up, W - 60, H - 44, { size: roughFit(up, 900, 52, 30, 'cond', 2), font: 'cond', weight: 700, align: 'right', color: soft, spacing: 2 }) }
   return left
 }
 // Czysty: każde tło ma swoją kompozycję (Krem — podział, Piasek — napis u dołu, Czerń — środek).
@@ -299,7 +299,7 @@ function cleanTitle(lines, x, y, size, ink, align: 'left' | 'center' = 'left') {
 function cleanCard(t, x, y, w) { const h = w * 9 / 16, prev = setHalo(''); g.save(); rounded(x, y, w, h, 10); g.clip(); drawCarousel(carousel(t), x, y, w, h); g.restore(); setHalo(prev) }
 function cleanLayout(L, t, foot, subText) {
   cdBackground(L, t, false)
-  const { ink } = cleanInk(L.bg), accent = L.accent || '#f6a836', onLight = LIGHT_BG.includes(L.bg), left = countdownLeft(), ann = L.show !== 'text' && !!carousel(t)
+  const ink = L.ink || cleanInk(L.bg).ink, accent = L.accent || '#f6a836', onLight = LIGHT_BG.includes(L.bg), left = countdownLeft(), ann = L.show !== 'text' && !!carousel(t)
   if (!onLight && L.bg !== 'czern') shade(0.5)
   const head = String((left ? L.title : L.done) || '')
   const textBox = L.show === 'text' && subText

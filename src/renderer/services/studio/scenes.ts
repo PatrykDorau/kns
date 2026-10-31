@@ -100,7 +100,7 @@ function endTiles() {
 }
 // Koniec „Czysty”: logo, elegancki napis, kody QR bez ramek.
 function endClean(L) {
-  const onLight = LIGHT_BG.includes(L.bg), { ink, accent = '#f6a836' } = cleanInk(L.bg) as { ink: string, accent?: string }, lx = 96, tiles = endTiles(), side = L.bg === 'krem' ? '#fbf3e6' : ink, lw = tiles.length ? 1000 : 1500
+  const onLight = LIGHT_BG.includes(L.bg), { ink: autoInk, accent: autoAccent = '#f6a836' } = cleanInk(L.bg) as { ink: string, accent?: string }, ink = L.ink || autoInk, accent = L.ink || autoAccent, lx = 96, tiles = endTiles(), side = L.bg === 'krem' ? '#fbf3e6' : ink, lw = tiles.length ? 1000 : 1500
   if (!onLight && L.bg !== 'czern') shade(0.6, 0.8)
   logo(lx, 64, 92)
   if (L.brand) pill(L.brand, lx + 130, 74, ink)
@@ -119,18 +119,18 @@ function endClean(L) {
 }
 // Koniec „Skała”: wielki napis z lewej, kody QR w poszarpanym panelu z prawej.
 function endRock(L) {
-  const onLight = LIGHT_BG.includes(L.bg), ink = onLight ? cleanInk(L.bg).ink : '#f4ecdf'
+  const onLight = LIGHT_BG.includes(L.bg), ink = L.ink || (onLight ? cleanInk(L.bg).ink : '#f4ecdf')
   if (!onLight) shade()
   const lx = 104, lw = 900
   if (L.brand) {
     logo(lx + 6, 62, 78, true)
     roughText(L.brand.toUpperCase(), lx + 118, 124, { size: 50, spacing: 5, color: ink })
-    hairline(lx, 176, lw, onLight ? ink : 'rgba(244,236,223,0.8)')
+    hairline(lx, 176, lw, ink)
   }
   const head = String(L.title || '').toUpperCase(), lines = wrap(head, lw, 176, 400, 4, 'poster')
   lines.forEach((l, i) => roughText(l, lx, 360 + i * 182, { size: Math.min(176, roughFit(l, lw, 176)), color: ink }))
   const sub = fill(L.sub)
-  if (sub) wrap(sub, lw, 44, 600, 2).forEach((l, i) => text(l, lx + 4, 360 + (lines.length - 1) * 182 + 86 + i * 56, { size: 44, weight: 600, color: onLight ? ink : '#fbe3bd', shadow: onLight ? 0 : 14 }))
+  if (sub) wrap(sub, lw, 44, 600, 2).forEach((l, i) => text(l, lx + 4, 360 + (lines.length - 1) * 182 + 86 + i * 56, { size: 44, weight: 600, color: L.ink || (onLight ? ink : '#fbe3bd'), shadow: onLight ? 0 : 14 }))
   const tiles = endTiles()
   if (!tiles.length) return
   const tw = 700, th = 268, gap = 26, x = W - tw - 90, total = tiles.length * th + (tiles.length - 1) * gap
@@ -160,9 +160,9 @@ function endCards(L) {
   rounded(CARD.x, CARD.y, CARD.w, CARD.h, 22); g.fillStyle = '#e6ddcf'; g.fill(); g.restore()
   logo(W / 2 - 85, 110, 170)
   const t = fitLine(L.title || '', CARD.w - 120, 80, 50, 800)
-  text(t.str, W / 2, 375, { size: t.size, weight: 800, color: '#d9862a', align: 'center' })
+  text(t.str, W / 2, 375, { size: t.size, weight: 800, color: L.ink || '#d9862a', align: 'center' })
   const nx = fill(L.sub)
-  if (nx) { const n = fitLine(nx, CARD.w - 120, 38, 26, 600); text(n.str, W / 2, 445, { size: n.size, weight: 600, color: '#2b2b2b', align: 'center' }) }
+  if (nx) { const n = fitLine(nx, CARD.w - 120, 38, 26, 600); text(n.str, W / 2, 445, { size: n.size, weight: 600, color: L.ink || '#2b2b2b', align: 'center' }) }
   const tiles = endTiles()
   if (!tiles.length) return
   const tw = 470, th = 440, gap = 60, x0 = (W - tiles.length * tw - (tiles.length - 1) * gap) / 2, y = 500
@@ -176,10 +176,10 @@ function endCards(L) {
 }
 // po lewej logo, podziękowanie i najbliższe nabożeństwo; po prawej kody QR jeden pod drugim
 function endSide(L, light) {
-  const soft = light ? '#5d5146' : '#efe6da', sh = light ? 0 : 20
+  const soft = L.ink || (light ? '#5d5146' : '#efe6da'), sh = light ? 0 : 20
   logo(150, 150, 200, !light)
   const lines = wrap(L.title || '', 860, 92, 800, 3)
-  lines.forEach((l, i) => text(l, 140, 500 + i * 108, { size: 92, weight: 800, color: light ? '#d9862a' : '#f6a836', shadow: sh }))
+  lines.forEach((l, i) => text(l, 140, 500 + i * 108, { size: 92, weight: 800, color: L.ink || (light ? '#d9862a' : '#f6a836'), shadow: sh }))
   let y = 500 + (lines.length - 1) * 108 + 90
   for (const l of [fill(L.sub)].filter(Boolean)) { wrap(l, 860, 40, 600, 2).forEach(x => { text(x, 140, y, { size: 40, weight: 600, color: soft, shadow: sh }); y += 54 }); y += 14 }
   const tiles = endTiles()
@@ -205,16 +205,16 @@ function prayerOverlay() {
   const P = prayerLook(), txt = P.text || '', sub = P.sub || '', label = P.head || '', link = String(P.link || '').trim(), h = 300, y = H - h
   if (!txt && !sub && !label && !link) return
   const tw = link ? W - 640 : W - 300 // z kodem QR po prawej napisy węższe
-  const clean = P.style === 'edit', ink = clean ? '#1a2a9a' : '#fff'
+  const clean = P.style === 'edit', ink = P.ink || (clean ? '#1a2a9a' : '#fff')
   if (clean) { g.fillStyle = '#fbf3e6'; g.fillRect(0, y, W, h); g.fillStyle = ink; g.fillRect(0, y, W, 4) }
   else bottomBand(y)
   const ly = y + (sub ? 92 : 112)
   g.save(); g.font = fontStr(700, 32, 'cond'); g.letterSpacing = '14px'; const lw = g.measureText(label).width; g.restore()
-  text(label, W / 2 + 7, ly, { size: 32, weight: 700, font: 'cond', color: clean ? ink : '#f6c27a', align: 'center', spacing: 14 })
-  if (label) { g.fillStyle = clean ? ink : 'rgba(246,194,122,0.7)'; g.fillRect(W / 2 - lw / 2 - 150, ly - 11, 110, 2); g.fillRect(W / 2 + lw / 2 + 40, ly - 11, 110, 2) }
+  text(label, W / 2 + 7, ly, { size: 32, weight: 700, font: 'cond', color: clean || P.ink ? ink : '#f6c27a', align: 'center', spacing: 14 })
+  if (label) { g.fillStyle = clean || P.ink ? ink : 'rgba(246,194,122,0.7)'; g.fillRect(W / 2 - lw / 2 - 150, ly - 11, 110, 2); g.fillRect(W / 2 + lw / 2 + 40, ly - 11, 110, 2) }
   const f = fitLine(txt, tw, 78, 44, 400, 'serif', true)
   text(f.str, W / 2, ly + 96, { size: f.size, weight: 400, font: clean ? 'display' : 'serif', italic: true, align: 'center', shadow: clean ? 0 : 24, color: ink })
-  if (sub) { const s = fitLine(sub, tw - 100, 34, 24, 500); text(s.str, W / 2, ly + 160, { size: s.size, weight: 500, color: clean ? ink : '#e9e1d6', align: 'center', shadow: clean ? 0 : 16 }) }
+  if (sub) { const s = fitLine(sub, tw - 100, 34, 24, 500); text(s.str, W / 2, ly + 160, { size: s.size, weight: 500, color: clean || P.ink ? ink : '#e9e1d6', align: 'center', shadow: clean ? 0 : 16 }) }
   // kod QR do strony z prośbami modlitewnymi (gdy podany link)
   if (link) { const q = 190, qx = W - q - 90, qy = H - q - 74; qrTile({ qr: link, head: '' }, qx, qy, q, P.label) }
 }
@@ -249,7 +249,7 @@ function drawBanner(B) {
   if (!title && !sub && !note && !qs.length) return
   if (B.style === 'edit') {
     // czysty pas u dołu: kremowy, elegancki napis, kody QR po prawej
-    const bh = 250, y = H - bh, tw = 180, gap = 22, ink = '#1a2a9a', qrW = qs.length * tw + Math.max(0, qs.length - 1) * gap, tx0 = W - 70 - qrW
+    const bh = 250, y = H - bh, tw = 180, gap = 22, ink = B.ink || '#1a2a9a', qrW = qs.length * tw + Math.max(0, qs.length - 1) * gap, tx0 = W - 70 - qrW
     g.fillStyle = '#fbf3e6'; g.fillRect(0, y, W, bh); g.fillStyle = color; g.fillRect(0, y, W, 6)
     logo(70, y + 72, 110)
     const maxT = tx0 - 300, t = fitLine(title, maxT, 92, 48, 400, 'display')
@@ -266,9 +266,9 @@ function drawBanner(B) {
     logo(70, y + 60, 130, true)
     // długi tytuł schodzi na dwie linie, żeby nie wejść pod kody QR
     const maxT = tx0 - 320, big = title.toUpperCase(), fits = roughFit(big, maxT, 104, 56), two = big && fits <= 56, heads = two ? wrap(big, maxT, 62, 400, 2, 'poster') : [big]
-    heads.forEach((l, i) => roughText(l, 260, y + (two ? 92 + i * 66 : sub || note ? 124 : 164), { size: two ? Math.min(62, roughFit(l, maxT, 62, 30)) : fits, color }))
+    heads.forEach((l, i) => roughText(l, 260, y + (two ? 92 + i * 66 : sub || note ? 124 : 164), { size: two ? Math.min(62, roughFit(l, maxT, 62, 30)) : fits, color: B.ink || color }))
     let ly = y + (two ? 212 : 186)
-    for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 262, ly, { size: f.size, weight: 600, color: '#f4ecdf', shadow: 10 }); ly += 46 }
+    for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 262, ly, { size: f.size, weight: 600, color: B.ink || '#f4ecdf', shadow: 10 }); ly += 46 }
     qs.forEach((q, i) => qrTile(q, tx0 + i * (tw + gap), y + 26, tw - 10, q.head === 'Wesprzyj kościół' ? 'Wsparcie' : q.head))
     return
   }
@@ -278,9 +278,9 @@ function drawBanner(B) {
     g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 40; g.shadowOffsetY = 12; rounded(x, y, w, h, 24); g.fillStyle = '#f7f2ea'; g.fill(); g.restore()
     g.save(); rounded(x, y, w, h, 24); g.clip(); g.fillStyle = color; g.fillRect(x, y, 14, h); g.restore()
     const tl = wrap(title.toUpperCase(), tw, 64, 700, 2, 'cond')
-    tl.forEach((l, i) => text(l, x + 50, y + 92 + i * 64, { size: 64, weight: 700, font: 'cond', color: '#221c16' }))
+    tl.forEach((l, i) => text(l, x + 50, y + 92 + i * 64, { size: 64, weight: 700, font: 'cond', color: B.ink || '#221c16' }))
     let ly = y + 92 + (tl.length - 1) * 64 + 54
-    if (sub) { const f = fitLine(sub, tw, 32, 22, 600); text(f.str, x + 50, ly, { size: f.size, weight: 600, color: '#6b5d50' }); ly += 44 }
+    if (sub) { const f = fitLine(sub, tw, 32, 22, 600); text(f.str, x + 50, ly, { size: f.size, weight: 600, color: B.ink || '#6b5d50' }); ly += 44 }
     if (note) wrap(note, tw, 26, 500, 2).forEach(l => { text(l, x + 50, ly, { size: 26, weight: 500, color: '#8a7b6c' }); ly += 34 })
     if (q) { if (q.qr) qr(q.qr, x + w - qw - 35, y + (h - qw) / 2, qw); else { text('BLIK', x + w - 150, y + 130, { size: 40, weight: 700, font: 'cond', color: '#6b5d50', align: 'center' }); text(q.phone, x + w - 150, y + 190, { size: 46, weight: 700, font: 'cond', color, align: 'center' }) } }
     return
@@ -295,9 +295,9 @@ function drawBanner(B) {
     logo(80, y + 60, 150, true)
     const maxT = tx0 - 330 - 60
     const t = fitLine(title, maxT, 72, 44, 800)
-    text(t.str, 300, y + 128, { size: t.size, weight: 800, color: '#fff', shadow: 20 })
+    text(t.str, 300, y + 128, { size: t.size, weight: 800, color: B.ink || '#fff', shadow: 20 })
     let ly = y + 190
-    for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 300, ly, { size: f.size, weight: 600, color: '#f3e3c8', shadow: 14 }); ly += 48 }
+    for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 300, ly, { size: f.size, weight: 600, color: B.ink || '#f3e3c8', shadow: 14 }); ly += 48 }
     qs.forEach((q, i) => qrTile(q, tx0 + i * (tw + gap), y + 40, tw, q.head === 'Wesprzyj kościół' ? 'Wsparcie' : q.head))
     return
   }
@@ -318,17 +318,17 @@ function drawBanner(B) {
   }
   const maxT = rx - (noteW ? noteW + 70 : 50) - (x + 60)
   const t = fitLine(title.toUpperCase(), maxT, 112, 56, 700, 'cond')
-  text(t.str, x + 60, y + (sub ? 128 : 150), { size: t.size, weight: 700, font: 'cond', color })
-  if (sub) { const f = fitLine(sub.toUpperCase(), maxT, 54, 32, 700, 'cond'); text(f.str, x + 62, y + 196, { size: f.size, weight: 700, font: 'cond', color: '#fff' }) }
+  text(t.str, x + 60, y + (sub ? 128 : 150), { size: t.size, weight: 700, font: 'cond', color: B.ink || color })
+  if (sub) { const f = fitLine(sub.toUpperCase(), maxT, 54, 32, 700, 'cond'); text(f.str, x + 62, y + 196, { size: f.size, weight: 700, font: 'cond', color: B.ink || '#fff' }) }
 }
 // duży napis na środku, pod nim nabożeństwo; kody QR małe, w pasku u dołu
 function endCenter(L, light) {
   const sh = light ? 0 : 24, tiles = endTiles(), top = tiles.length ? 90 : 200
   logo(W / 2 - 90, top, 180, !light)
   const lines = wrap(L.title || '', W - 300, 104, 800, 2)
-  lines.forEach((l, i) => text(l, W / 2, top + 330 + i * 120, { size: 104, weight: 800, color: light ? '#d9862a' : '#fff', align: 'center', shadow: sh }))
+  lines.forEach((l, i) => text(l, W / 2, top + 330 + i * 120, { size: 104, weight: 800, color: L.ink || (light ? '#d9862a' : '#fff'), align: 'center', shadow: sh }))
   let y = top + 330 + (lines.length - 1) * 120 + 80
-  for (const l of [fill(L.sub)].filter(Boolean)) { const f = fitLine(l, W - 300, 42, 28, 600); text(f.str, W / 2, y, { size: f.size, weight: 600, color: light ? '#5d5146' : '#f3e3c8', align: 'center', shadow: sh }); y += 58 }
+  for (const l of [fill(L.sub)].filter(Boolean)) { const f = fitLine(l, W - 300, 42, 28, 600); text(f.str, W / 2, y, { size: f.size, weight: 600, color: L.ink || (light ? '#5d5146' : '#f3e3c8'), align: 'center', shadow: sh }); y += 58 }
   if (!tiles.length) return
   const tw = 440, th = 230, gap = 40, x0 = (W - tiles.length * tw - (tiles.length - 1) * gap) / 2, ty = H - th - 60
   tiles.forEach((tl, i) => {
@@ -384,6 +384,6 @@ function lowerThird(t) {
     if (lg) g.drawImage(lg, cx - 72, cy - 72, 144, 144)
   }
   g.restore()
-  text(name.str, x + tx, y + (what ? 66 : 88), { size: name.size, weight: clean ? 400 : 800, font: clean ? 'display' : 'ui', color: clean ? '#1a2a9a' : '#fff', alpha: e })
-  if (what) text(sub.str, x + tx, y + 116, { size: sub.size, weight: clean ? 700 : 500, font: clean ? 'sans' : 'ui', color: clean ? '#1a2a9a' : '#d6d8e0', alpha: e })
+  text(name.str, x + tx, y + (what ? 66 : 88), { size: name.size, weight: clean ? 400 : 800, font: clean ? 'display' : 'ui', color: L.ink || (clean ? '#1a2a9a' : '#fff'), alpha: e })
+  if (what) text(sub.str, x + tx, y + 116, { size: sub.size, weight: clean ? 700 : 500, font: clean ? 'sans' : 'ui', color: L.ink || (clean ? '#1a2a9a' : '#d6d8e0'), alpha: e })
 }

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { uid } from '@/stores'
 import { BANNER_DEFAULT } from '@/services/studio/cards'
+import TextColor from './TextColor.vue'
 
 // Baner w presecie: gotowe wzory i własne ustawienia (styl, kolor, napisy, kod QR), do tego kolejka.
 const props = defineProps<{ preset: { banner: any, queue: any[], cycle: boolean, sec: number } }>()
@@ -17,7 +18,7 @@ const PRESETS = [
 // Kolejka: kilka banerów przełączanych w kółko (np. najpierw BLIK, potem sociale). Kliknięty baner z kolejki
 // wczytuje się do edycji powyżej — zmiany od razu zapisują się w nim.
 const editing = ref('')
-const copyB = () => JSON.parse(JSON.stringify({ style: b.style, color: b.color, title: b.title, sub: b.sub, note: b.note, qr: b.qr, link: b.link }))
+const copyB = () => JSON.parse(JSON.stringify({ ink: b.ink, style: b.style, color: b.color, title: b.title, sub: b.sub, note: b.note, qr: b.qr, link: b.link }))
 watch(b, () => { const q = set.queue.find(x => x.id === editing.value); if (q) Object.assign(q, copyB()) }, { deep: true })
 function addToQueue() { const item = { id: uid(), ...copyB() }; set.queue.push(item); editing.value = item.id }
 function editQueued(item) { editing.value = item.id; Object.assign(b, { ...BANNER_DEFAULT, ...item, id: undefined }); delete (b as any).id }
@@ -37,6 +38,7 @@ function moveQueued(i, d) { const l = set.queue, [x] = l.splice(i, 1); l.splice(
       <label class="desk-color" title="Kolor banera"><input v-model="b.color" type="color" aria-label="Kolor banera"></label>
       <button v-for="c in ['#f6a836', '#f5e532', '#e5484d', '#4f8ef7', '#ffffff']" :key="c" class="desk-swatch" :class="{ on: b.color === c }" :style="{ background: c }" :title="c" :aria-label="'Kolor ' + c" @click="b.color = c"></button>
     </div>
+    <TextColor :look="b" />
     <div class="desk-opt-group desk-cd-text">
       <label>Napis <input v-model="b.title" maxlength="60"></label>
       <label>Podpis <input v-model="b.sub" maxlength="80"></label>

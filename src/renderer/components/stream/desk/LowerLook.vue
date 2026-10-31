@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { LOWER_DEFAULT } from '@/services/studio/cards'
+import TextColor from './TextColor.vue'
 
 // Pasek mówcy w presecie: napisy, kolor i logo.
-defineProps<{ look: { style?: string, name: string, sub: string, color: string, logo: boolean } }>()
+defineProps<{ look: { ink?: string, style?: string, name: string, sub: string, color: string, logo: boolean } }>()
 </script>
 
 <template>
@@ -12,6 +13,7 @@ defineProps<{ look: { style?: string, name: string, sub: string, color: string, 
       <button :class="{ on: look.style !== 'edit' }" @click="look.style = 'rock'">Skała</button>
       <button :class="{ on: look.style === 'edit' }" @click="look.style = 'edit'">Czysty</button>
     </div>
+    <TextColor :look="look" />
     <div class="desk-opt-group desk-cd-text">
       <label>Imię i nazwisko <input v-model="look.name" maxlength="60"></label>
       <label>Podpis <input v-model="look.sub" maxlength="100"></label>

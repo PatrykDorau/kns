@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import TextColor from './TextColor.vue'
 // Nakładka „Modlitwa” w presecie: napis, podpis i kod QR do próśb modlitewnych.
-defineProps<{ look: { style?: string, head: string, text: string, sub: string, link: string, label: string } }>()
+defineProps<{ look: { ink?: string, style?: string, head: string, text: string, sub: string, link: string, label: string } }>()
 </script>
 
 <template>
@@ -10,6 +11,7 @@ defineProps<{ look: { style?: string, head: string, text: string, sub: string, l
       <button :class="{ on: look.style !== 'edit' }" @click="look.style = 'rock'">Skała</button>
       <button :class="{ on: look.style === 'edit' }" @click="look.style = 'edit'">Czysty</button>
     </div>
+    <TextColor :look="look" />
     <div class="desk-opt-group desk-cd-text">
       <label>Nagłówek <input v-model="look.head" maxlength="40"></label>
       <label>Napis modlitwy <input v-model="look.text" maxlength="80"></label>

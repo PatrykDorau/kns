@@ -53,7 +53,7 @@ export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boole
 export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
 // modlitwa: wizja dostaje kopię napisów z chwili wysłania
-const prayerSet = () => ({ style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
+const prayerSet = () => ({ ink: settings.prayerInk, style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 // który preset poszedł na wizję (kafelek „Na wizji”)
 export const onAirPreset = (...kinds: string[]) => { for (const k of kinds) studio.airPreset[k] = settings.presetOn?.[k] || '' }
 export function setPrayer(v: boolean) {

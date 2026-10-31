@@ -189,7 +189,7 @@ export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.c
 export const END_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'DZIĘKUJEMY, ŻE BYLIŚCIE Z NAMI', sub: 'Do zobaczenia: {nabożeństwo}', brand: 'KOŚCIÓŁ NA SKALE', layout: 'rock', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
 // Ramka sceny „Życie kościoła”: tło jak w planszach, napisy, ogłoszenia, wydarzenia i kod QR.
-export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
+export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, layout: 'side', title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
 export const lifeLook = () => safeBg({ ...LIFE_DEFAULT, ...(styleOf('life', settings.lifeLook) || {}) })
 // Pasek mówcy: {mówca} i {kazanie} — z najbliższego nabożeństwa; puste pole — nic.
 export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true } as const
@@ -209,7 +209,7 @@ export const bannerNow = () => {
   return { list: [list[i < 0 ? i + list.length : i]], sec: 10, at: 0 }
 }
 // wizja: kopia z chwili wysłania; podgląd (i miniatury presetów przez S.prayerLook) — jak banery
-export const prayerLook = () => S?.prayerLook || ({ style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
+export const prayerLook = () => S?.prayerLook || ({ ink: settings.prayerInk, style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 // banery presetu: edycja i miniatura pokazują jeden, kolejka rusza dopiero na wizji
 export const presetBanners = (d, edit = false) => ((!edit && d.cycle && d.queue?.length) ? d.queue : [d.banner]).map(b => ({ ...BANNER_DEFAULT, ...b }))
 const dimmed = L => { g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H) }

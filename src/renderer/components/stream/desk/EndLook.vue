@@ -4,6 +4,7 @@ import { label } from '@/stores'
 import { END_DEFAULT } from '@/services/studio/cards'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import LookBg from './LookBg.vue'
+import TextColor from './TextColor.vue'
 
 // Wygląd sceny Koniec w presecie: układ, tło, napis i podpis.
 const props = defineProps<{ en: any }>()
@@ -30,6 +31,7 @@ async function addPic() { const before = new Set(mediaList.value.map(x => x.id))
       <button class="small" title="Grafika z dysku — trafi też do Biblioteki" @click="addPic">Z dysku…</button>
     </div>
     <LookBg v-if="en.layout !== 'image'" :look="en" />
+    <TextColor v-if="en.layout !== 'image'" :look="en" />
     <div v-if="en.layout !== 'image'" class="desk-opt-group desk-cd-text">
       <label>Napis <input v-model="en.title" maxlength="60"></label>
       <label>Podpis <input v-model="en.sub" maxlength="90"></label>

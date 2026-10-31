@@ -16,7 +16,7 @@ const SCENE_HELP = {
   projector: 'Obraz z rzutnika (przez sieć z laptopa przy rzutniku). Kamerę w okienku włączysz niżej, w „Nakładkach”.',
   countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku (które i jak często — zakładka „Ogłoszenia”), na końcu „Zaraz zaczynamy”.',
   media: 'Materiał z Biblioteki na cały ekran — wybierz go niżej w Bibliotece („Na ekran”).',
-  life: 'Kamera w ramce: ogłoszenia z prawej, u dołu najbliższe wydarzenia i kod QR. Na czas, gdy kamerzysta chodzi między ludźmi.',
+  life: 'Kamera i jadące obok ogłoszenia, do tego najbliższe wydarzenia i kod QR. Na czas, gdy kamerzysta chodzi między ludźmi.',
   end: 'Podziękowanie z kodami QR (wsparcie, YouTube, Spotify) — dane do wsparcia w „Plansza końcowa” w prawej kolumnie.',
 }
 const clock = (sec: number) => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }

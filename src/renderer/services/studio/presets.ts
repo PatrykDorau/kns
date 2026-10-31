@@ -33,7 +33,7 @@ function writeLook(kind: PresetKind, data) {
   else if (kind === 'end') settings.endLook = { ...END_DEFAULT, ...d }
   else if (kind === 'life') settings.lifeLook = { ...LIFE_DEFAULT, ...d }
   else if (kind === 'lower') settings.lowerLook = { ...LOWER_DEFAULT, ...d }
-  else if (kind === 'prayer') Object.assign(settings, { prayerStyle: d.style, prayerHead: d.head, prayerText: d.text, prayerSub: d.sub, prayerLink: d.link, prayerLinkLabel: d.label })
+  else if (kind === 'prayer') Object.assign(settings, { prayerInk: d.ink, prayerStyle: d.style, prayerHead: d.head, prayerText: d.text, prayerSub: d.sub, prayerLink: d.link, prayerLinkLabel: d.label })
   else Object.assign(settings, { banner: { ...BANNER_DEFAULT, ...d.banner }, bannerQueue: d.queue, bannerCycle: d.cycle, bannerSec: d.sec })
 }
 

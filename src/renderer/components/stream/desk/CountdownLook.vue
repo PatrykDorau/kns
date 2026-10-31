@@ -5,6 +5,7 @@ import { CD_DEFAULT } from '@/services/studio/cards'
 import { LAYOUTS, TIMERS, layoutThumb } from '@/services/studio/countdown'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import LookBg from './LookBg.vue'
+import TextColor from './TextColor.vue'
 
 // Wygląd odliczania w presecie: układ (miniatury z bieżącym wyglądem), styl zegara, kolor, tło, treść w środku, napisy.
 const props = defineProps<{ cd: any }>()
@@ -44,6 +45,7 @@ const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w �
       <button class="small" @click="cd.accent = CD_DEFAULT.accent">kolor kościoła</button>
     </div>
     <LookBg :look="cd" />
+    <TextColor :look="cd" />
     <div v-if="content" class="desk-opt-group">
       <small class="muted">W środku</small>
       <button :class="{ on: cd.show !== 'text' }" title="Ogłoszenia w pętli (które — zakładka „Ogłoszenia” niżej)" @click="cd.show = 'ann'">Ogłoszenia</button>
