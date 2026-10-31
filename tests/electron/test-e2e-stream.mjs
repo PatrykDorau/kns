@@ -8,7 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 const project = process.cwd()
-const out = path.dirname(new URL(import.meta.url).pathname).replace(/^\/(\w:)/, '$1')
+const out = fs.mkdtempSync(path.join(os.tmpdir(), 'kns-e2e-'))
 const dir = path.join(out, 'e2e-stream'), profile = path.join(dir, 'profil')
 fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true })
 const ffmpeg = path.join(project, 'node_modules/ffmpeg-static/ffmpeg.exe')

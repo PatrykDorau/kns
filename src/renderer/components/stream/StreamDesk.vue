@@ -45,11 +45,7 @@ const { live, liveOn, engine, unrail, deskMode } = provideDesk(toRef(props, 'ser
           <DeskMonitors />
           <!-- reszta pulpitu; w układzie „kolumna” przewija się sama, podgląd i wizja stoją obok -->
           <div class="desk-stage-rest">
-            <!-- Studio: tylko wybór gotowych rzeczy; Przygotowanie: cała konfiguracja plansz i nakładek -->
-            <div class="desk-mode" role="tablist" aria-label="Tryb pulpitu">
-              <button role="tab" :aria-selected="deskMode === 'live'" :class="{ on: deskMode === 'live' }" @click="deskMode = 'live'">Studio</button>
-              <button role="tab" :aria-selected="deskMode === 'prep'" :class="{ on: deskMode === 'prep' }" @click="deskMode = 'prep'">Przygotowanie</button>
-            </div>
+            <!-- Studio: tylko wybór gotowych rzeczy; Przygotowanie: cała konfiguracja plansz i nakładek (przełącznik w prawej kolumnie) -->
             <DeskPrepare v-if="deskMode === 'prep'" />
             <template v-else>
             <DeskScenes />
@@ -76,10 +72,18 @@ const { live, liveOn, engine, unrail, deskMode } = provideDesk(toRef(props, 'ser
       <nav v-if="settings.railFolded" key="rail" class="desk-rail" aria-label="Zwinięta kolumna">
         <button class="rail-btn rail-toggle" :class="{ live: liveOn }" :title="liveOn ? 'Rozwiń kolumnę — transmisja NA ŻYWO' : 'Rozwiń kolumnę'" aria-label="Rozwiń kolumnę" @click="settings.railFolded = false"><Icon name="left" /><i v-if="liveOn" class="rail-dot"></i></button>
         <slot name="rail" :open="unrail" />
+        <div v-if="engine === 'studio'" class="rail-mode" role="tablist" aria-label="Tryb pulpitu">
+          <button role="tab" class="rail-btn" :class="{ on: deskMode === 'live' }" :aria-selected="deskMode === 'live'" title="Studio" aria-label="Studio" @click="deskMode = 'live'"><Icon name="monitor" /></button>
+          <button role="tab" class="rail-btn" :class="{ on: deskMode === 'prep' }" :aria-selected="deskMode === 'prep'" title="Przygotowanie" aria-label="Przygotowanie" @click="deskMode = 'prep'"><Icon name="gear" /></button>
+        </div>
         <DeskHealth v-if="liveOn" rail />
       </nav>
       <div v-else key="full" class="desk-right-full">
       <button class="rail-fold" title="Zwiń kolumnę — więcej miejsca na podgląd i wizję" aria-label="Zwiń kolumnę" @click="settings.railFolded = true"><Icon name="right" /></button>
+      <div v-if="engine === 'studio'" class="desk-mode" role="tablist" aria-label="Tryb pulpitu">
+        <button role="tab" :aria-selected="deskMode === 'live'" :class="{ on: deskMode === 'live' }" @click="deskMode = 'live'">Studio</button>
+        <button role="tab" :aria-selected="deskMode === 'prep'" :class="{ on: deskMode === 'prep' }" @click="deskMode = 'prep'">Przygotowanie</button>
+      </div>
       <DeskHealth v-if="liveOn" vertical />
       <DeskYouTube />
       <DeskSettings />
