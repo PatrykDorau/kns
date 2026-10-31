@@ -6,6 +6,15 @@ import { connectMedia } from './audio'
 
 let projVideo: HTMLVideoElement = null, remoteVideo: HTMLVideoElement = null
 let lastImage: HTMLImageElement = null // poprzedni slajd — zostaje, dopóki nowy się wczytuje (bez mignięcia pustej planszy)
+let held: HTMLCanvasElement = null // klatka filmu sprzed przewinięcia — zostaje na obrazie, dopóki nowa się wczytuje (bez czarnego mignięcia)
+function holdFrame(v: HTMLVideoElement) {
+  if (v.readyState < 2 || !v.videoWidth) return
+  held ||= document.createElement('canvas')
+  held.width = v.videoWidth; held.height = v.videoHeight
+  held.getContext('2d').drawImage(v, 0, 0)
+}
+// Rozjazd z rzutnikiem większy niż tyle sekund = przewinięcie. Mniejszy zostaje: każde przewinięcie to zacięcie obrazu.
+const SYNC_S = 1
 // Obraz rzutnika z innego komputera (WebRTC) — null, gdy połączenie zerwane.
 export function setRemoteScreen(stream) {
   if (!stream) { if (remoteVideo) remoteVideo.srcObject = null; studio.remoteScreen = false; return }
@@ -24,15 +33,17 @@ export function projectorFrame(t) {
   if (p.kind === 'image' && p.url) { const im = img(p.url) || lastImage; if (im) { lastImage = im; fullImage(im); return } }
   if (p.kind === 'video' && p.url) {
     if (!projVideo) { projVideo = document.createElement('video'); projVideo.crossOrigin = 'anonymous'; projVideo.playsInline = true; connectMedia(projVideo) }
-    if (projVideo.dataset.src !== p.url) { projVideo.dataset.src = p.url; projVideo.src = p.url }
+    if (projVideo.dataset.src !== p.url) { holdFrame(projVideo); projVideo.dataset.src = p.url; projVideo.src = p.url }
     // kopia filmu z innego komputera — bez dźwięku (dźwięk filmu przychodzi z konsoli)
     projVideo.muted = !!p.remote; projVideo.volume = p.remote ? 0 : 1
     // zgranie z rzutnikiem: czas i pauza
     const want = (p.time || 0) + (p.playing ? (Date.now() - (p.at || Date.now())) / 1000 : 0)
-    if (projVideo.readyState >= 1 && Math.abs(projVideo.currentTime - want) > 0.6) projVideo.currentTime = want
+    if (projVideo.readyState >= 1 && !projVideo.seeking && Math.abs(projVideo.currentTime - want) > SYNC_S) { holdFrame(projVideo); projVideo.currentTime = want }
     if (p.playing && projVideo.paused) projVideo.play().catch(() => {})
     if (!p.playing && !projVideo.paused) projVideo.pause()
-    if (projVideo.readyState >= 2) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); fit(projVideo, projVideo.videoWidth, projVideo.videoHeight, 0, 0, W, H) } else { g.fillStyle = '#000'; g.fillRect(0, 0, W, H) }
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H)
+    if (projVideo.readyState >= 2 && !projVideo.seeking) fit(projVideo, projVideo.videoWidth, projVideo.videoHeight, 0, 0, W, H)
+    else if (held) fit(held, held.width, held.height, 0, 0, W, H)
     return
   }
   if (projVideo && !projVideo.paused) projVideo.pause()

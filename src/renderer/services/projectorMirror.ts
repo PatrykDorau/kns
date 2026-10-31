@@ -87,7 +87,8 @@ async function onShow(m) {
       if (my !== latest) return // w międzyczasie rzutnik pokazał coś innego
       if (!path) { studio.projector = { kind: 'loading', remote: true, missing: true }; return }
     }
-    studio.projector = { kind: m.kind, url: mediaUrl(path), fit: m.fit, playing: !!m.playing, time: m.time || 0, at: m.at || Date.now(), remote: true }
+    // czas liczony od odebrania, nie od „at” z rzutnika — zegary komputerów różnią się o sekundy (cofka po każdej pauzie)
+    studio.projector = { kind: m.kind, url: mediaUrl(path), fit: m.fit, playing: !!m.playing, time: m.time || 0, at: Date.now(), remote: true }
     return
   }
   studio.projector = { kind: 'none', remote: true }
