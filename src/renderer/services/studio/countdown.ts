@@ -3,7 +3,7 @@
 import { H, W, studio } from './state'
 import { fit, fitLine, fontStr, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
 import { carousel, cdBackground, countdownLeft, drawCarousel, fill, paper, setDemo, topWave } from './cards'
-import { clockWidth, glassPanel, hairline, roughClock, roughFit, roughText, shade, steady, titleFit } from './rough'
+import { clockFor, clockWidth, glassPanel, hairline, roughClock, roughFit, roughText, shade, steady, textWidth, titleFit } from './rough'
 import { cleanInk, pill } from './clean'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, LIGHT_BG } from './backgrounds'
@@ -271,11 +271,13 @@ function rockLayout(L, t, accent, foot, subText) {
   // napis i zegar to jeden blok, wyśrodkowany w pionie pod nazwą
   const head = String((left ? L.title : L.done) || '').toUpperCase(), box = showBig(L), note = !box ? subText : ''
   const fit = titleFit(head, lw, 232, 150, 'poster'), lineH = fit.size * 1.02, titleH = fit.lines.length * lineH
-  const clockH = left ? 200 : 0, noteH = note ? 66 : 0, gap = head && left ? 54 : 0
-  const top = 200 + Math.max(0, (800 - titleH - gap - clockH - noteH) / 2)
+  // zegar tej samej szerokości co napis, blok na wysokości ogłoszenia
+  const plain = L.timer === 'plain', clockSize = left && plain ? clockFor(clockStr(left), textWidth(fit.lines, fit.size, 'poster'), 'poster', 400, 170, 290) : 236
+  const clockH = left ? clockSize * 0.85 : 0, noteH = note ? 66 : 0, gap = head && left ? 54 : 0
+  const top = Math.max(200, (H - titleH - gap - clockH - noteH) / 2)
   fit.lines.forEach((l, i) => roughText(l, lx, top + i * lineH + fit.size * 0.86, { size: fit.size, color: ink }))
   const clockTop = top + titleH + gap, clockColor = onLight ? ink : accent
-  if (left) { if (L.timer === 'plain') roughClock(clockStr(left), lx, clockTop + clockH, { size: 236, color: clockColor }); else drawTimer(L.timer, { cx: lx + 400, cy: clockTop + 100, scale: 0.95, accent: clockColor, light: onLight }) }
+  if (left) { if (L.timer === 'plain') roughClock(clockStr(left), lx, clockTop + clockH, { size: clockSize, color: clockColor }); else drawTimer(L.timer, { cx: lx + 400, cy: clockTop + 100, scale: 0.95, accent: clockColor, light: onLight }) }
   if (note) { const f = fitLine(note, lw, 46, 28, 600); text(f.str, lx + 4, clockTop + clockH + 68, { size: f.size, weight: 600, color: soft, shadow: onLight ? 0 : 14 }) }
   // ogłoszenia wyśrodkowane po prawej
   if (ann) {
@@ -293,7 +295,7 @@ function cleanClock(L, x, y, size, color, align: 'left' | 'center' | 'right', on
   const left = countdownLeft()
   if (!left) return
   const clock = clockStr(left)
-  if (L.timer === 'plain') { steady((c, cx) => text(c, cx, y, { size, weight: 400, font: 'display', color, align: 'center' }), clock, x, size, 'display', 400, align); return }
+  if (L.timer === 'plain') { steady((c, cx) => text(c, cx, y, { size, weight: 400, font: 'display', color, align: 'center', shadow: onLight ? 0 : 26 }), clock, x, size, 'display', 400, align); return }
   const w = 360
   drawTimer(L.timer, { cx: align === 'left' ? x + w : align === 'right' ? x - w : x, cy: y - size * 0.34, scale: 0.9, accent: L.accent || color, light: onLight })
 }
@@ -304,10 +306,12 @@ function cleanLayout(L, t, foot, subText) {
   if (!onLight && L.bg !== 'czern') shade(0.74, 0.72)
   const head = String((left ? L.title : L.done) || ''), textBox = L.show === 'text' && subText
   // napis i zegar zawsze razem: jeden blok od góry do dołu
+  // zegar tej samej szerokości co napis (Same cyfry); inne style zegara mają własny rozmiar
+  const sized = (fit, fallback) => (left && L.timer === 'plain' ? clockFor(clockStr(left), textWidth(fit.lines, fit.size, 'display'), 'display', 400, 130, 280) : fallback)
   const block = (x, top, fit, clockSize, align: 'left' | 'center') => {
-    fit.lines.forEach((l, i) => text(l, x, top + (i + 0.82) * fit.size * 1.05, { size: fit.size, weight: 400, font: 'display', color: ink, align }))
+    fit.lines.forEach((l, i) => text(l, x, top + (i + 0.82) * fit.size * 1.05, { size: fit.size, weight: 400, font: 'display', color: ink, align, shadow: onLight ? 0 : 20 }))
     const y = top + fit.lines.length * fit.size * 1.05 + (left ? clockSize * 0.98 : 0)
-    if (left) cleanClock(L, align === 'left' ? x - 4 : x, y, clockSize, accent, align, onLight)
+    if (left) cleanClock(L, x, y, clockSize, accent, align, onLight)
     return y
   }
   const height = (fit, clockSize) => fit.lines.length * fit.size * 1.05 + (left ? clockSize * 0.98 : 0)
@@ -323,7 +327,7 @@ function cleanLayout(L, t, foot, subText) {
   if (L.bg === 'piasek') {
     logoAt(84, 64, 92)
     // napis z zegarem na środku wolnego miejsca (obok ogłoszenia albo całego kadru), informacje na dole
-    const lw = ann ? 960 : 1600, cx = ann ? 590 : W / 2, fit = titleFit(head, lw, 170, 110, 'display'), clock = 220, h = height(fit, clock), note = subText && !textBox, y = block(cx, (H - h - (note ? 60 : 0)) / 2 - 20, fit, clock, 'center')
+    const lw = ann ? 960 : 1600, cx = ann ? 590 : W / 2, fit = titleFit(head, lw, 170, 110, 'display'), clock = sized(fit, 220), h = height(fit, clock), note = subText && !textBox, y = block(cx, (H - h - (note ? 60 : 0)) / 2 - 20, fit, clock, 'center')
     if (note) text(subText, cx, y + 58, { size: 36, weight: 700, font: 'sans', color: ink, align: 'center' })
     let x = 90
     const row = 1016
@@ -339,7 +343,7 @@ function cleanLayout(L, t, foot, subText) {
   let px = lx + 130
   if (foot) px += pill(foot, px, 80, ink) + 16
   if (L.brand && px < 760) pill(L.brand, px, 80, ink)
-  const fit = titleFit(head, lw, 170, 110, 'display'), clock = 200, noteH = subText && !textBox ? 70 : 0, top = 180 + (830 - height(fit, clock) - noteH) / 2, y = block(lx, top, fit, clock, 'left')
+  const fit = titleFit(head, lw, 170, 110, 'display'), clock = sized(fit, 200), noteH = subText && !textBox ? 70 : 0, top = Math.max(180, (H - height(fit, clock) - noteH) / 2), y = block(lx, top, fit, clock, 'left')
   if (subText && !textBox) text(subText, lx + 4, y + 56, { size: 38, weight: 700, font: 'sans', italic: true, color: ink })
   if (ann) cleanCard(t, 1180, (H - 382) / 2, 680)
   else if (textBox) { const ls = wrap(subText, 620, 84, 400, 4, 'display'); ls.forEach((l, i) => text(l, 1520, (H - (ls.length - 1) * 96) / 2 + 28 + i * 96, { size: 84, weight: 400, font: 'display', color: block2 ? '#fbf3e6' : ink, align: 'center' })) }

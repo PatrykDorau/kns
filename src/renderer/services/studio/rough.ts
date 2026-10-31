@@ -66,11 +66,26 @@ export function steady(draw: (ch: string, x: number) => void, str: string, x: nu
   const cell = Math.max(...[...'0123456789'].map(d => g.measureText(d).width)), colon = cell * 0.55
   g.restore()
   const chars = [...str], width = chars.reduce((s, c) => s + (c === ':' ? colon : cell), 0)
-  let at = align === 'center' ? x - width / 2 : align === 'right' ? x - width : x
+  // przy lewej krawędzi liczy się kształt cyfry, nie jej komórka — „1” ma zacząć się równo z napisem nad nią
+  g.save(); g.font = fontStr(weight, size, font, italic)
+  const first = g.measureText(chars[0] || '0'), lead = (cell - first.actualBoundingBoxLeft - first.actualBoundingBoxRight) / 2
+  g.restore()
+  let at = align === 'center' ? x - width / 2 : align === 'right' ? x - width : x - Math.max(0, lead)
   for (const c of chars) { const w = c === ':' ? colon : cell; draw(c, at + w / 2); at += w }
   return width
 }
 export const roughClock = (str: string, x: number, y: number, o: RoughOpts & { align?: 'left' | 'center' | 'right' }) => steady((c, cx) => roughText(c, cx, y, { ...o, align: 'center' }), str, x, o.size, o.font || 'poster', 400, o.align)
+// Wielkość zegara, przy której ma szerokość napisu nad nim (blok napis + zegar z równymi krawędziami).
+export function clockFor(str: string, titleW: number, font: Font, weight: number, min: number, max: number) {
+  const w = clockWidth(str, 100, font, weight)
+  return w && titleW ? Math.max(min, Math.min(max, Math.floor((titleW * 1.035 / w) * 100))) : max // cyfry nie wypełniają komórek do końca
+}
+export function textWidth(lines: string[], size: number, font: Font, weight = 400) {
+  g.save(); g.font = fontStr(weight, size, font)
+  const w = Math.max(0, ...lines.map(l => { const m = g.measureText(l); return m.actualBoundingBoxLeft + m.actualBoundingBoxRight }))
+  g.restore()
+  return w
+}
 // Tytuł: najlepiej jedna linia; dopiero gdy się nie mieści — dwie równe, żeby żadne słowo nie zostało samo w linii.
 export function titleFit(str: string, maxW: number, big: number, small: number, font: Font, weight = 400) {
   const width = (t: string, s: number) => { g.font = fontStr(weight, s, font); return g.measureText(t).width }
