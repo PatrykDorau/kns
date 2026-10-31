@@ -59,6 +59,5 @@ function open(p: Preset | null) { prepKind.value = props.kind; prepId.value = p?
         <button v-if="pending" class="desk-send ready" :title="overlay ? 'Ten preset na wizję (reszta wizji bez zmian)' : 'Podgląd na wizję'" @click="send"><Icon name="play" />Na wizję</button>
       </div>
     </div>
-    <button class="pz-card pz-new" title="Nowe presety tworzysz w „Przygotowaniu”" @click="open(null)"><span class="pz-pic"><Icon name="plus" /></span><span class="pz-meta"><b>Przygotuj preset</b><small>Otwiera Przygotowanie</small></span></button>
   </div>
 </template>

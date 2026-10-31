@@ -7,8 +7,9 @@ import LookBg from './LookBg.vue'
 
 // Wygląd sceny Koniec w presecie: układ, tło, napis i podpis.
 const props = defineProps<{ en: any }>()
+for (const [k, v] of Object.entries(END_DEFAULT)) if (props.en[k] === undefined) props.en[k] = v // nowe pola po aktualizacji
 const { mediaList, addMediaFiles } = useDesk()
-const END_LAYOUTS = [['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: karta, pod napisem kody QR obok siebie'], ['side', 'Napis obok kodów', 'Po lewej podziękowanie i najbliższe nabożeństwo, po prawej kody QR'], ['center', 'Duży napis', 'Duże podziękowanie na środku, kody QR małe u dołu'], ['image', 'Sama grafika', 'Tylko wybrana grafika (np. przygotowana plansza) na cały ekran']] as const
+const END_LAYOUTS = [['rock', 'Skała', 'Wielki napis z lewej, kody QR w poszarpanym panelu'], ['edit', 'Czysty', 'Elegancki napis, kody QR bez ramek'], ['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: karta, pod napisem kody QR obok siebie'], ['side', 'Napis obok kodów', 'Po lewej podziękowanie i najbliższe nabożeństwo, po prawej kody QR'], ['center', 'Duży napis', 'Duże podziękowanie na środku, kody QR małe u dołu'], ['image', 'Sama grafika', 'Tylko wybrana grafika (np. przygotowana plansza) na cały ekran']] as const
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 // grafika z dysku: dodaje do Biblioteki i od razu wybiera
 async function addPic() { const before = new Set(mediaList.value.map(x => x.id)); if (await addMediaFiles()) { const n = mediaList.value.find(x => x.type === 'image' && !before.has(x.id)); if (n) props.en.pic = n.id } }
@@ -30,9 +31,11 @@ async function addPic() { const before = new Set(mediaList.value.map(x => x.id))
     </div>
     <LookBg v-if="en.layout !== 'image'" :look="en" />
     <div v-if="en.layout !== 'image'" class="desk-opt-group desk-cd-text">
-      <label>Napis <input v-model="en.title" maxlength="60" :placeholder="END_DEFAULT.title"></label>
-      <label>Podpis <input v-model="en.sub" maxlength="90" placeholder="np. Błogosławionego tygodnia!"></label>
+      <label>Napis <input v-model="en.title" maxlength="60"></label>
+      <label>Podpis <input v-model="en.sub" maxlength="90"></label>
+      <label>Nazwa <input v-model="en.brand" maxlength="40"></label>
       <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(en, END_DEFAULT)">Domyślny</button>
     </div>
+    <p class="desk-help">Puste pole nic nie pokazuje. {nabożeństwo} wstawia najbliższe nabożeństwo.</p>
   </div>
 </template>

@@ -8,6 +8,9 @@ import { S, background, fit, fitLine, g, img, paintOn, rounded, text, wrap } fro
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, BG_IDS } from './backgrounds'
 import { drawCamera } from './camera'
+import { MOODS, drawPeak, isMood } from './peak'
+import { drawSketch, dust } from './rough'
+import { CLEAN, cleanBackground, isClean } from './clean'
 import { settings } from '@/stores'
 
 let slideBase = 0
@@ -169,20 +172,20 @@ export function addCountdown(minutes) { studio.countdownTo = Math.max(Date.now()
 export let armed = false, zeroAt = 0
 export function setArmed(v: boolean, at = 0) { armed = v; zeroAt = at }
 // Wygląd „Odliczania” (Studio → Scena): domyślnie papier z falą i ogłoszeniami w środku.
-export const CD_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'ZACZYNAMY ZA', sub: '', layout: 'top', timer: 'blob', accent: '#f6a836', show: 'ann', photo: '' } as const
+export const CD_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'ZACZYNAMY ZA', done: 'ZARAZ ZACZYNAMY', sub: '', brand: 'KOŚCIÓŁ NA SKALE', foot: '{nabożeństwo}', layout: 'rock', timer: 'plain', accent: '#f6a836', show: 'ann', photo: '' } as const
 // tło spoza listy (np. dawne „Ciemne”) — papier
 const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'paper' })
 // wizja rysuje wygląd z chwili „Na wizję” (S.styles), podgląd — bieżące ustawienia
 export const styleOf = (k: 'cd' | 'end', live) => (S?.styles ? S.styles[k] : live)
 export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.cdLook) || {}) })
 // Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
-export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'Dziękujemy, że byliście z nami!', sub: '', layout: 'cards', pic: '' } as const
+export const END_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'DZIĘKUJEMY, ŻE BYLIŚCIE Z NAMI', sub: 'Do zobaczenia: {nabożeństwo}', brand: 'KOŚCIÓŁ NA SKALE', layout: 'rock', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
-// Pasek mówcy: puste napisy — mówca, tytuł kazania i fragment z najbliższego nabożeństwa.
-export const LOWER_DEFAULT = { name: '', sub: '', color: '#f6a836', logo: true } as const
+// Pasek mówcy: {mówca} i {kazanie} — z najbliższego nabożeństwa; puste pole — nic.
+export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true } as const
 export const lowerLookOf = () => S?.lowerLook || { ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }
 // Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
-export const BANNER_DEFAULT = { style: 'frame', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: '', note: '', qr: 'all', link: '' } as const
+export const BANNER_DEFAULT = { style: 'rock', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: 'Do zobaczenia: {nabożeństwo}', note: '', qr: 'all', link: '' } as const
 // Banery: jeden albo kolejka kilku (slajdy w kółko co „sec” sekund). Podgląd — bieżące ustawienia; wizja — kopia z chwili
 // wysłania (S.banner), więc zmiany na pulpicie widać najpierw na podglądzie, a na wizję idą po potwierdzeniu.
 export const bannerSet = () => ({
@@ -196,12 +199,26 @@ export const bannerNow = () => {
   return { list: [list[i < 0 ? i + list.length : i]], sec: 10, at: 0 }
 }
 // wizja: kopia z chwili wysłania; podgląd (i miniatury presetów przez S.prayerLook) — jak banery
-export const prayerLook = () => S?.prayerLook || ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
+export const prayerLook = () => S?.prayerLook || ({ style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 // banery presetu: edycja i miniatura pokazują jeden, kolejka rusza dopiero na wizji
 export const presetBanners = (d, edit = false) => ((!edit && d.cycle && d.queue?.length) ? d.queue : [d.banner]).map(b => ({ ...BANNER_DEFAULT, ...b }))
 const dimmed = L => { g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H) }
-// Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów, grafika z Biblioteki albo kamera na żywo.
+// Pola w napisach: wstawione z nabożeństwa; gdy nie ma czego wstawić, cały napis znika. Miniatury pokazują przykład.
+let demo = false
+export const setDemo = (v: boolean) => { demo = v }
+export function fill(str) {
+  let s = String(str || ''), empty = false
+  const svc = upcomingService(), near = nearestService.value
+  const put = (token, value, sample) => { if (s.includes(token)) { const v = value || (demo ? sample : ''); if (!v) empty = true; s = s.split(token).join(v) } }
+  put('{nabożeństwo}', svc ? svcWhen(svc) + ' · ' + servicePlace(svc) : '', 'niedziela, 10:00')
+  put('{mówca}', near?.speaker, 'Imię mówcy')
+  put('{kazanie}', [near?.sermonTitle, near?.passage].filter(Boolean).join(' · '), 'Tytuł kazania')
+  return empty ? '' : s
+}
+// Tło planszy: namalowana góra (Szczyt, Świt, Noc, Żar), papier, szkic, góry, dwa kolory, grafika z Biblioteki albo kamera.
 export function cdBackground(L, t, side = true) {
+  if (isMood(L.bg)) { drawPeak(L.bg); drawSketch(t, demo || L.draw === false, MOODS[L.bg].line); dust(t); dimmed(L); return }
+  if (isClean(L.bg)) { cleanBackground(L.bg); g.save(); g.globalAlpha = 0.42; drawSketch(t, demo || L.draw === false, CLEAN[L.bg].line); g.restore(); return } // linia ma być tłem, nie treścią
   if (BACKGROUNDS[L.bg]) return BACKGROUNDS[L.bg](t)
   if (L.bg === 'camera') { drawCamera(); dimmed(L); return }
   if (L.bg === 'colors') {
@@ -221,7 +238,8 @@ export function bgThumb(id: string) {
   const c = document.createElement('canvas'); c.width = 320; c.height = 180
   const ctx = c.getContext('2d'); ctx.scale(320 / W, 180 / H)
   const prev = paintOn(ctx, studio.preview)
-  try { cdBackground({ ...CD_DEFAULT, bg: id }, 4000) } finally { paintOn(prev.ctx, prev.look) }
+  setDemo(true)
+  try { cdBackground({ ...CD_DEFAULT, bg: id, dim: 0 }, 4000) } finally { setDemo(false); paintOn(prev.ctx, prev.look) }
   return c.toDataURL('image/jpeg', 0.8)
 }
 // Proste grafiki po bokach: lewy — okrąg z kropkami, prawy — szczyty jak w logo.

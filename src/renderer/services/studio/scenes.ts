@@ -1,8 +1,9 @@
 // Sceny: co rysujemy na płótnie dla każdej sceny, napisy pieśni i pasek z mówcą.
-import { nearestService, servicePlace, settings } from '@/stores'
 import { ANN_MEDIA, H, W, studio } from './state'
 import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
-import { CARD, armed, bankQr, bannerNow, lowerLookOf, prayerLook, presetBanners, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
+import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, prayerLook, presetBanners, setDemo, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, zeroAt } from './cards'
+import { roughFit, roughPanel, roughText, shade } from './rough'
+import { cleanInk, pill } from './clean'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
@@ -38,6 +39,8 @@ export const SCENE_DRAW = {
       cameraPip(); return
     }
     cdBackground(L, t, L.layout !== 'cards')
+    if (L.layout === 'rock') { endRock(L); cameraPip(); return }
+    if (L.layout === 'edit') { endClean(L); cameraPip(); return }
     const prev = setHalo(light && L.layout !== 'cards' ? 'rgba(244,237,227,0.92)' : '')
     try { if (L.layout === 'side') endSide(L, light); else if (L.layout === 'center') endCenter(L, light); else endCards(L) } finally { setHalo(prev) }
     cameraPip()
@@ -64,13 +67,14 @@ export const SCENE_DRAW = {
 export function drawPreset(ctx, kind, data, t, edit = false) {
   const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerOff: 0, styles: { cd: data, end: data },
     scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
-    lowerAt: 0, lowerThird: kind === 'lower', lowerLook: kind === 'lower' ? { ...data, name: data.name || nearestService.value?.speaker || 'Imię mówcy', sub: data.sub || [nearestService.value?.sermonTitle, nearestService.value?.passage].filter(Boolean).join(' · ') || 'Tytuł kazania' } : null,
+    lowerAt: 0, lowerThird: kind === 'lower', lowerLook: kind === 'lower' ? data : null,
     endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit).slice(0, 1), sec: 10, at: 0 } : null }
   const prev = paintOn(ctx, look as Look)
+  setDemo(true)
   try {
     if (kind === 'cd') SCENE_DRAW.countdown(t); else if (kind === 'end') SCENE_DRAW.end(t)
-    else { background(t); endOverlay(); prayerOverlay(); lowerThird(t) }
-  } finally { paintOn(prev.ctx, prev.look) }
+    else { cdBackground({ bg: 'szczyt', draw: false, dim: 0 }, t); endOverlay(); prayerOverlay(); lowerThird(t) }
+  } finally { setDemo(false); paintOn(prev.ctx, prev.look) }
 }
 // Kamera w okienku (nakładka na każdej scenie poza Kamerą): wybrany róg, małe albo duże.
 function cameraPip() {
@@ -90,7 +94,51 @@ function endTiles() {
   if (e.spotify) tiles.push({ head: 'Spotify', qr: e.spotify, lines: ['Kazania jako podcast'] })
   return tiles
 }
-const nextLine = () => { const svc = upcomingService(); return svc ? 'Do zobaczenia: ' + svcWhen(svc) + ' · ' + servicePlace(svc) : '' }
+// Koniec „Czysty”: logo, elegancki napis, kody QR bez ramek.
+function endClean(L) {
+  const { ink, accent } = cleanInk(L.bg), lx = 96, tiles = endTiles(), lw = tiles.length ? 1000 : 1500
+  logo(lx, 64, 92)
+  if (L.brand) pill(L.brand, lx + 130, 74, ink)
+  const lines = wrap(String(L.title || ''), lw, 150, 400, 4, 'display')
+  lines.forEach((l, i) => text(l, lx, 370 + i * 160, { size: 150, weight: 400, font: 'display', color: ink }))
+  const sub = fill(L.sub)
+  if (sub) { const f = fitLine(sub, lw, 42, 26, 700, 'sans'); text(f.str, lx + 4, 980, { size: f.size, weight: 700, font: 'sans', color: accent }) }
+  const q = 250, gap = 40, total = tiles.length * q + (tiles.length - 1) * gap, x = W - 110 - q
+  let y = (H - total) / 2
+  for (const tl of tiles) {
+    if (tl.qr) { rounded(x, y, q, q, 10); g.fillStyle = '#fff'; g.fill(); qr(tl.qr, x + 14, y + 14, q - 28) }
+    text(tl.head, x - 28, y + q / 2 - (tl.qr ? 4 : 20), { size: 40, weight: 400, font: 'display', color: ink, align: 'right' })
+    if (tl.lines[0]) { const f = fitLine(tl.lines[0], 440, 24, 18, 700, 'sans'); text(f.str, x - 28, y + q / 2 + 36, { size: f.size, weight: 700, font: 'sans', color: accent, align: 'right' }) }
+    y += q + gap
+  }
+}
+// Koniec „Skała”: wielki napis z lewej, kody QR w poszarpanym panelu z prawej.
+function endRock(L) {
+  shade()
+  const lx = 104, lw = 900
+  if (L.brand) {
+    logo(lx + 6, 62, 78, true)
+    roughText(L.brand.toUpperCase(), lx + 118, 124, { size: 50, spacing: 5 })
+    roughPanel(lx, 176, lw, 4, 'rgba(244,236,223,0.8)', 'lr')
+  }
+  const head = String(L.title || '').toUpperCase(), lines = wrap(head, lw, 176, 400, 4, 'poster')
+  lines.forEach((l, i) => roughText(l, lx, 360 + i * 182, { size: Math.min(176, roughFit(l, lw, 176)), color: '#f4ecdf' }))
+  const sub = fill(L.sub)
+  if (sub) wrap(sub, lw, 44, 600, 2).forEach((l, i) => text(l, lx + 4, 360 + (lines.length - 1) * 182 + 86 + i * 56, { size: 44, weight: 600, color: '#fbe3bd', shadow: 14 }))
+  const tiles = endTiles()
+  if (!tiles.length) return
+  const tw = 700, th = 268, gap = 26, x = W - tw - 90, total = tiles.length * th + (tiles.length - 1) * gap
+  let y = (H - total) / 2
+  roughPanel(x - 36, y - 40, tw + 72, total + 80)
+  for (const tl of tiles) {
+    if (tl.qr) { rounded(x, y, th, th, 10); g.fillStyle = '#fff'; g.fill(); qr(tl.qr, x + 14, y + 14, th - 28) }
+    const tx = tl.qr ? x + th + 34 : x + 10, mid = y + th / 2
+    roughText(tl.head.toUpperCase(), tx, mid - 18, { size: roughFit(tl.head.toUpperCase(), x + tw - tx, 64, 36), color: '#f6a836' })
+    if (tl.qr) tl.lines.forEach((l, k) => { const f = fitLine(l, x + tw - tx, 30, 20, 500); text(f.str, tx, mid + 32 + k * 40, { size: f.size, weight: k ? 700 : 500, color: '#f4ecdf' }) })
+    else { text('BLIK na numer', tx, mid + 26, { size: 32, weight: 600, color: '#f4ecdf' }); roughText(tl.phone, tx, mid + 100, { size: 70, color: '#f6a836' }) }
+    y += th + gap
+  }
+}
 function logo(x, y, size, ring = false) {
   if (ring) { g.save(); g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 30; g.beginPath(); g.arc(x + size / 2, y + size / 2, size / 2 + 14, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.restore() }
   const lg = img('./znak-obrys.png'); if (lg) g.drawImage(lg, x, y, size, size)
@@ -107,10 +155,10 @@ function endCards(L) {
   logo(W / 2 - 85, 110, 170)
   const t = fitLine(L.title || '', CARD.w - 120, 80, 50, 800)
   text(t.str, W / 2, 375, { size: t.size, weight: 800, color: '#d9862a', align: 'center' })
-  const nx = L.sub || nextLine()
+  const nx = fill(L.sub)
   if (nx) { const n = fitLine(nx, CARD.w - 120, 38, 26, 600); text(n.str, W / 2, 445, { size: n.size, weight: 600, color: '#2b2b2b', align: 'center' }) }
   const tiles = endTiles()
-  if (!tiles.length) { text('Kościół Na Skale · kns-nabo.netlify.app', W / 2, 640, { size: 38, weight: 500, color: '#6b6258', align: 'center' }); return }
+  if (!tiles.length) return
   const tw = 470, th = 440, gap = 60, x0 = (W - tiles.length * tw - (tiles.length - 1) * gap) / 2, y = 500
   tiles.forEach((tl, i) => {
     const x = x0 + i * (tw + gap)
@@ -127,9 +175,9 @@ function endSide(L, light) {
   const lines = wrap(L.title || '', 860, 92, 800, 3)
   lines.forEach((l, i) => text(l, 140, 500 + i * 108, { size: 92, weight: 800, color: light ? '#d9862a' : '#f6a836', shadow: sh }))
   let y = 500 + (lines.length - 1) * 108 + 90
-  for (const l of [L.sub, nextLine()].filter(Boolean)) { wrap(l, 860, 40, 600, 2).forEach(x => { text(x, 140, y, { size: 40, weight: 600, color: soft, shadow: sh }); y += 54 }); y += 14 }
+  for (const l of [fill(L.sub)].filter(Boolean)) { wrap(l, 860, 40, 600, 2).forEach(x => { text(x, 140, y, { size: 40, weight: 600, color: soft, shadow: sh }); y += 54 }); y += 14 }
   const tiles = endTiles()
-  if (!tiles.length) { text('kns-nabo.netlify.app', 140, y + 40, { size: 36, weight: 600, color: soft, shadow: sh }); return }
+  if (!tiles.length) return
   const tw = 720, gap = 30, th = Math.min(290, (H - 160 - (tiles.length - 1) * gap) / tiles.length), x = W - tw - 110
   let ty = (H - (tiles.length * th + (tiles.length - 1) * gap)) / 2
   for (const tl of tiles) {
@@ -148,19 +196,21 @@ function endSide(L, light) {
 // Czas modlitwy: obraz zostaje, u dołu spokojny napis (rozstrzelone „CZAS MODLITWY”, napis kursywą, podpis).
 function prayerOverlay() {
   if (!S.prayer) return
-  const P = prayerLook(), txt = P.text || 'Zachęcamy do modlitwy', sub = P.sub || '', link = String(P.link || '').trim(), h = 380, y = H - h
+  const P = prayerLook(), txt = P.text || '', sub = P.sub || '', label = P.head || '', link = String(P.link || '').trim(), h = 300, y = H - h
+  if (!txt && !sub && !label && !link) return
   const tw = link ? W - 640 : W - 300 // z kodem QR po prawej napisy węższe
-  const gr = g.createLinearGradient(0, y, 0, H); gr.addColorStop(0, 'rgba(12,10,8,0)'); gr.addColorStop(0.45, 'rgba(12,10,8,0.62)'); gr.addColorStop(1, 'rgba(12,10,8,0.86)')
-  g.fillStyle = gr; g.fillRect(0, y, W, h)
-  const ly = y + (sub ? 150 : 180), label = 'CZAS MODLITWY'
+  const clean = P.style === 'edit', ink = clean ? '#1a2a9a' : '#fff'
+  if (clean) { g.fillStyle = '#fbf3e6'; g.fillRect(0, y, W, h); g.fillStyle = ink; g.fillRect(0, y, W, 4) }
+  else roughPanel(-50, y, W + 100, h + 60, 'rgba(20,12,8,0.92)', 't')
+  const ly = y + (sub ? 92 : 112)
   g.save(); g.font = fontStr(700, 32, 'cond'); g.letterSpacing = '14px'; const lw = g.measureText(label).width; g.restore()
-  text(label, W / 2 + 7, ly, { size: 32, weight: 700, font: 'cond', color: '#f6c27a', align: 'center', spacing: 14 })
-  g.fillStyle = 'rgba(246,194,122,0.7)'; g.fillRect(W / 2 - lw / 2 - 150, ly - 11, 110, 2); g.fillRect(W / 2 + lw / 2 + 40, ly - 11, 110, 2)
+  text(label, W / 2 + 7, ly, { size: 32, weight: 700, font: 'cond', color: clean ? ink : '#f6c27a', align: 'center', spacing: 14 })
+  if (label) { g.fillStyle = clean ? ink : 'rgba(246,194,122,0.7)'; g.fillRect(W / 2 - lw / 2 - 150, ly - 11, 110, 2); g.fillRect(W / 2 + lw / 2 + 40, ly - 11, 110, 2) }
   const f = fitLine(txt, tw, 78, 44, 400, 'serif', true)
-  text(f.str, W / 2, ly + 96, { size: f.size, weight: 400, font: 'serif', italic: true, align: 'center', shadow: 24 })
-  if (sub) { const s = fitLine(sub, tw - 100, 34, 24, 500); text(s.str, W / 2, ly + 160, { size: s.size, weight: 500, color: '#e9e1d6', align: 'center', shadow: 16 }) }
+  text(f.str, W / 2, ly + 96, { size: f.size, weight: 400, font: clean ? 'display' : 'serif', italic: true, align: 'center', shadow: clean ? 0 : 24, color: ink })
+  if (sub) { const s = fitLine(sub, tw - 100, 34, 24, 500); text(s.str, W / 2, ly + 160, { size: s.size, weight: 500, color: clean ? ink : '#e9e1d6', align: 'center', shadow: clean ? 0 : 16 }) }
   // kod QR do strony z prośbami modlitewnymi (gdy podany link)
-  if (link) { const q = 190, qx = W - q - 90, qy = H - q - 84; qrTile({ qr: link, head: '' }, qx, qy, q, P.label || 'Prośby modlitewne') }
+  if (link) { const q = 190, qx = W - q - 90, qy = H - q - 74; qrTile({ qr: link, head: '' }, qx, qy, q, P.label) }
 }
 function bannerQrs(B) {
   const tiles = endTiles(), pick = h => tiles.filter(x => x.head === h)
@@ -189,7 +239,32 @@ function endOverlay() {
 function drawBanner(B) {
   if (!B) return
   const qs = bannerQrs(B), color = B.color || '#f6a836'
-  const title = String(B.title || ''), sub = B.sub || nextLine(), note = B.note || (qs.length === 1 && B.style !== 'card' ? autoNote(qs[0]) : '')
+  const title = String(B.title || ''), sub = fill(B.sub), note = fill(String(B.note || '').split('{opis kodu}').join(qs.length === 1 && B.style !== 'card' ? autoNote(qs[0]) : ''))
+  if (!title && !sub && !note && !qs.length) return
+  if (B.style === 'edit') {
+    // czysty pas u dołu: kremowy, elegancki napis, kody QR po prawej
+    const bh = 250, y = H - bh, tw = 180, gap = 22, ink = '#1a2a9a', qrW = qs.length * tw + Math.max(0, qs.length - 1) * gap, tx0 = W - 70 - qrW
+    g.fillStyle = '#fbf3e6'; g.fillRect(0, y, W, bh); g.fillStyle = color; g.fillRect(0, y, W, 6)
+    logo(70, y + 72, 110)
+    const maxT = tx0 - 300, t = fitLine(title, maxT, 92, 48, 400, 'display')
+    text(t.str, 220, y + (sub || note ? 118 : 144), { size: t.size, weight: 400, font: 'display', color: ink })
+    let ly = y + 176
+    for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 30, 20, 700, 'sans'); text(f.str, 222, ly, { size: f.size, weight: 700, font: 'sans', color: ink }); ly += 40 }
+    qs.forEach((q, i) => { if (q.qr) qr(q.qr, tx0 + i * (tw + gap), y + 34, tw); else text(q.phone, tx0 + i * (tw + gap) + tw / 2, y + 130, { size: 38, weight: 700, font: 'sans', color: ink, align: 'center' }) })
+    return
+  }
+  if (B.style === 'rock') {
+    // poszarpany pas u dołu: logo, wielki napis, kody QR po prawej
+    const bh = 280, y = H - bh, tw = 190, gap = 24, qrW = qs.length * tw + Math.max(0, qs.length - 1) * gap, tx0 = W - 70 - qrW
+    roughPanel(-50, y, W + 100, bh + 60, 'rgba(20,12,8,0.93)', 't')
+    logo(70, y + 60, 130, true)
+    const maxT = tx0 - 320, big = title.toUpperCase(), size = roughFit(big, maxT, 104, 56)
+    roughText(big, 260, y + (sub || note ? 124 : 164), { size, color })
+    let ly = y + 186
+    for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 262, ly, { size: f.size, weight: 600, color: '#f4ecdf', shadow: 10 }); ly += 46 }
+    qs.forEach((q, i) => qrTile(q, tx0 + i * (tw + gap), y + 26, tw - 10, q.head === 'Wesprzyj kościół' ? 'Wsparcie' : q.head))
+    return
+  }
   if (B.style === 'card') {
     // karta w prawym dolnym rogu
     const w = 820, h = 300, x = W - w - 60, y = H - h - 60, q = qs[0], qw = q ? 230 : 0, tw = w - qw - (q ? 110 : 80)
@@ -246,7 +321,7 @@ function endCenter(L, light) {
   const lines = wrap(L.title || '', W - 300, 104, 800, 2)
   lines.forEach((l, i) => text(l, W / 2, top + 330 + i * 120, { size: 104, weight: 800, color: light ? '#d9862a' : '#fff', align: 'center', shadow: sh }))
   let y = top + 330 + (lines.length - 1) * 120 + 80
-  for (const l of [L.sub, nextLine()].filter(Boolean)) { const f = fitLine(l, W - 300, 42, 28, 600); text(f.str, W / 2, y, { size: f.size, weight: 600, color: light ? '#5d5146' : '#f3e3c8', align: 'center', shadow: sh }); y += 58 }
+  for (const l of [fill(L.sub)].filter(Boolean)) { const f = fitLine(l, W - 300, 42, 28, 600); text(f.str, W / 2, y, { size: f.size, weight: 600, color: light ? '#5d5146' : '#f3e3c8', align: 'center', shadow: sh }); y += 58 }
   if (!tiles.length) return
   const tw = 440, th = 230, gap = 40, x0 = (W - tiles.length * tw - (tiles.length - 1) * gap) / 2, ty = H - th - 60
   tiles.forEach((tl, i) => {
@@ -274,27 +349,27 @@ function lyrics(t) {
 }
 // Pasek z mówcą i tytułem kazania (wjeżdża z lewej), z logo kościoła w białym kółku.
 function lowerThird(t) {
-  const svc = nearestService.value, L = lowerLookOf()
-  const who = L.name || svc?.speaker || '', what = L.sub || [svc?.sermonTitle, svc?.passage].filter(Boolean).join(' · ')
+  const L = lowerLookOf(), who = fill(L.name), what = fill(L.sub)
   if (!who && !what) return
   // po wyłączeniu pasek wyjeżdża w lewo (pół sekundy)
   const off = !S.lowerThird
   if (off && !(S.lowerOff && t - S.lowerOff < 500)) return
   const k = off ? 1 - Math.min(1, (t - S.lowerOff) / 500) : Math.min(1, (t - S.lowerAt) / 500), e = 1 - Math.pow(1 - k, 3)
-  const logo = L.logo !== false, tx = logo ? 222 : 44 // napisy zaczynają się za logo
+  const hasLogo = L.logo !== false, tx = hasLogo ? 222 : 44, clean = L.style === 'edit' // napisy zaczynają się za logo
   const maxText = 1500 - tx - 60
-  const name = fitLine(who || 'Kazanie', maxText, 46, 34, 800)
+  const name = fitLine(who, maxText, 46, 34, 800)
   const sub = fitLine(what, maxText, 32, 24, 500)
   g.save(); g.font = `800 ${name.size}px "Segoe UI", system-ui, sans-serif`; const w1 = g.measureText(name.str).width
   g.font = `500 ${sub.size}px "Segoe UI", system-ui, sans-serif`; const w2 = g.measureText(sub.str).width; g.restore()
-  const w = Math.min(1500, Math.max(logo ? 620 : 420, tx + Math.max(w1, w2) + 60)), bh = 150
+  const w = Math.min(1500, Math.max(hasLogo ? 620 : 420, tx + Math.max(w1, w2) + 60)), bh = 150
   const x = -w + (w + 60) * e, y = H - 250
   g.save(); g.globalAlpha = e
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30
-  rounded(x, y, w, bh, 18); g.fillStyle = 'rgba(15,16,19,0.88)'; g.fill(); g.shadowBlur = 0
+  if (clean) { rounded(x, y, w, bh, 12); g.fillStyle = '#fbf3e6'; g.fill() } else roughPanel(x, y, w, bh, 'rgba(20,12,8,0.94)')
+  g.shadowBlur = 0
   g.fillStyle = L.color || '#f6a836'; g.fillRect(x + 18, y + bh - 6, w - 36, 6)
   // logo: białe kółko wystające nad pasek
-  if (logo) {
+  if (hasLogo) {
     const cx = x + 100, cy = y + bh / 2, r = 92
     g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 24
     g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0
@@ -302,6 +377,6 @@ function lowerThird(t) {
     if (lg) g.drawImage(lg, cx - 72, cy - 72, 144, 144)
   }
   g.restore()
-  text(name.str, x + tx, y + (what ? 66 : 88), { size: name.size, weight: 800, alpha: e })
-  if (what) text(sub.str, x + tx, y + 116, { size: sub.size, weight: 500, color: '#d6d8e0', alpha: e })
+  text(name.str, x + tx, y + (what ? 66 : 88), { size: name.size, weight: clean ? 400 : 800, font: clean ? 'display' : 'ui', color: clean ? '#1a2a9a' : '#fff', alpha: e })
+  if (what) text(sub.str, x + tx, y + 116, { size: sub.size, weight: clean ? 700 : 500, font: clean ? 'sans' : 'ui', color: clean ? '#1a2a9a' : '#d6d8e0', alpha: e })
 }

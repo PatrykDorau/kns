@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { LOWER_DEFAULT } from '@/services/studio/cards'
 
-// Pasek mówcy w presecie: napisy (puste — mówca i kazanie z najbliższego nabożeństwa), kolor i logo.
-defineProps<{ look: { name: string, sub: string, color: string, logo: boolean } }>()
+// Pasek mówcy w presecie: napisy, kolor i logo.
+defineProps<{ look: { style?: string, name: string, sub: string, color: string, logo: boolean } }>()
 </script>
 
 <template>
   <div class="desk-cd desk-banner" role="group" aria-label="Pasek mówcy">
+    <div class="desk-opt-group">
+      <small class="muted">Styl</small>
+      <button :class="{ on: look.style !== 'edit' }" @click="look.style = 'rock'">Skała</button>
+      <button :class="{ on: look.style === 'edit' }" @click="look.style = 'edit'">Czysty</button>
+    </div>
     <div class="desk-opt-group desk-cd-text">
-      <label>Imię i nazwisko <input v-model="look.name" maxlength="60" placeholder="puste — mówca z nabożeństwa"></label>
-      <label>Podpis <input v-model="look.sub" maxlength="100" placeholder="puste — tytuł kazania i fragment"></label>
+      <label>Imię i nazwisko <input v-model="look.name" maxlength="60"></label>
+      <label>Podpis <input v-model="look.sub" maxlength="100"></label>
     </div>
     <div class="desk-opt-group">
       <small class="muted">Kolor</small>
@@ -18,5 +23,6 @@ defineProps<{ look: { name: string, sub: string, color: string, logo: boolean } 
       <label class="check"><input v-model="look.logo" type="checkbox"> Logo kościoła</label>
       <button class="small" title="Przywróć domyślny pasek" @click="Object.assign(look, LOWER_DEFAULT)">Domyślny</button>
     </div>
+    <p class="desk-help">Puste pole nic nie pokazuje. {mówca} i {kazanie} wstawiają dane z najbliższego nabożeństwa.</p>
   </div>
 </template>

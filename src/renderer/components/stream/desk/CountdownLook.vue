@@ -21,7 +21,7 @@ const redraw = () => { clearTimeout(timer); timer = window.setTimeout(() => { th
 watch(() => JSON.stringify(cd), redraw, { immediate: true })
 const late = window.setTimeout(redraw, 2000)
 onBeforeUnmount(() => { clearTimeout(timer); clearTimeout(late) })
-const content = computed(() => ['top', 'split', 'poster', 'bar'].includes(cd.layout)) // układy z ogłoszeniami w środku
+const content = computed(() => ['rock', 'top', 'split', 'poster', 'bar'].includes(cd.layout)) // układy z ogłoszeniami w środku
 const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w środku' : 'Podpis')
 </script>
 
@@ -65,9 +65,13 @@ const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w �
       </template>
     </div>
     <div class="desk-opt-group desk-cd-text">
-      <label>Napis przy zegarze <input v-model="cd.title" maxlength="40" placeholder="ZACZYNAMY ZA"></label>
-      <label>{{ subLabel }} <input v-model="cd.sub" maxlength="90" :placeholder="content && cd.show === 'text' ? 'np. Dołącz do grupy młodzieżowej' : 'np. Kawa po nabożeństwie w holu'"></label>
+      <label>Napis przy zegarze <input v-model="cd.title" maxlength="40"></label>
+      <label>Po zerze <input v-model="cd.done" maxlength="40"></label>
+      <label>{{ subLabel }} <input v-model="cd.sub" maxlength="90"></label>
+      <label>Nazwa <input v-model="cd.brand" maxlength="40"></label>
+      <label>Stopka <input v-model="cd.foot" maxlength="90"></label>
       <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(cd, CD_DEFAULT)">Domyślny</button>
     </div>
+    <p class="desk-help">Puste pole nic nie pokazuje. {nabożeństwo} wstawia najbliższe nabożeństwo.</p>
   </div>
 </template>

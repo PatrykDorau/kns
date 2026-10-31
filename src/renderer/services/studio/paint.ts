@@ -45,8 +45,15 @@ export function background(t) {
   blob(W * (0.6 + 0.1 * Math.sin(t / 11000)), H * 0.1, 600, 'rgba(169,139,255,0.12)')
 }
 // Czcionki: zwykła (Segoe UI), wąska plakatowa (Bahnschrift Condensed — jest w Windows 10/11) i szeryfowa (Georgia).
-export const FAMILY = { ui: '"Segoe UI", system-ui, sans-serif', cond: '"Bahnschrift Condensed", Bahnschrift, Impact, sans-serif', serif: 'Georgia, "Palatino Linotype", serif' }
+export const FAMILY = { ui: '"Segoe UI", system-ui, sans-serif', display: '"DM Serif Display", Georgia, serif', sans: 'Manrope, "Segoe UI", sans-serif', poster: 'Impact, "Bahnschrift Condensed", sans-serif', cond: '"Bahnschrift Condensed", Bahnschrift, Impact, sans-serif', serif: 'Georgia, "Palatino Linotype", serif' }
 export type Font = keyof typeof FAMILY
+// Czcionki czystych plansz: z plików aplikacji, zwykłe znaki i polskie osobno.
+const LATIN = 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD'
+const LATIN_EXT = 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2113,U+2C60-2C7F,U+A720-A7FF'
+for (const [family, file, descriptors] of [['DM Serif Display', 'dm-serif-display', { weight: '400' }], ['DM Serif Display', 'dm-serif-display', { weight: '400', style: 'italic' }], ['Manrope', 'manrope', { weight: '700' }]] as [string, string, FontFaceDescriptors][]) {
+  const shape = (descriptors.weight === '700' ? '700' : '400') + '-' + (descriptors.style || 'normal')
+  for (const [part, unicodeRange] of [['latin', LATIN], ['latin-ext', LATIN_EXT]]) new FontFace(family, `url(./fonts/${file}-${part}-${shape}.woff2)`, { ...descriptors, unicodeRange }).load().then(f => document.fonts.add(f)).catch(() => {})
+}
 export const fontStr = (weight, size, font: Font = 'ui', italic = false) => `${italic ? 'italic ' : ''}${weight} ${size}px ${FAMILY[font] || FAMILY.ui}`
 // Obwódka ciemnych napisów na jasnych planszach (ustawiana na czas rysowania planszy).
 let halo = ''

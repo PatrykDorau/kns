@@ -5,9 +5,10 @@ import { bgThumb } from '@/services/studio/cards'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 
 // Wybór tła planszy (Odliczanie, Koniec): miniatury gotowych teł, dwa kolory, grafika z Biblioteki albo kamera na żywo.
-const props = defineProps<{ look: { bg: string, c1: string, c2: string, image: string, dim: number } }>()
+const props = defineProps<{ look: { bg: string, draw?: boolean, c1: string, c2: string, image: string, dim: number } }>()
 const { mediaList, deskTab } = useDesk()
-const BGS = [['paper', 'Papier'], ['sketch', 'Szkic'], ['mountains', 'Góry'], ['colors', 'Kolory'], ['image', 'Grafika'], ['camera', 'Kamera']] as const
+const BGS = [['szczyt', 'Szczyt'], ['swit', 'Świt'], ['noc', 'Noc'], ['zar', 'Żar'], ['krem', 'Krem'], ['piasek', 'Piasek'], ['czern', 'Czerń'], ['paper', 'Papier'], ['sketch', 'Szkic'], ['mountains', 'Góry'], ['colors', 'Kolory'], ['image', 'Grafika'], ['camera', 'Kamera']] as const
+const moods = ['szczyt', 'swit', 'noc', 'zar', 'krem', 'piasek', 'czern']
 const thumbs = Object.fromEntries(BGS.filter(([id]) => !['colors', 'image', 'camera'].includes(id)).map(([id]) => [id, bgThumb(id)]))
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 const swatch = (id: string) => id === 'colors' ? { background: `linear-gradient(135deg, ${props.look.c1}, ${props.look.c2})` } : thumbs[id] ? { backgroundImage: `url(${thumbs[id]})` } : {}
@@ -20,7 +21,10 @@ const swatch = (id: string) => id === 'colors' ? { background: `linear-gradient(
       <span class="desk-bg-pic" :class="'bg-' + id" :style="swatch(id)"></span>{{ name }}
     </button>
   </div>
-  <div v-if="look.bg !== 'paper' && look.bg !== 'sketch' && look.bg !== 'mountains'" class="desk-opt-group">
+  <div v-if="moods.includes(look.bg)" class="desk-opt-group">
+    <label class="check" title="Góra rysuje się kreską jak w tle aplikacji"><input :checked="look.draw !== false" type="checkbox" @change="look.draw = ($event.target as HTMLInputElement).checked"> Animacja rysowania</label>
+  </div>
+  <div v-if="look.bg === 'colors' || look.bg === 'image' || look.bg === 'camera'" class="desk-opt-group">
     <template v-if="look.bg === 'colors'">
       <small class="muted">Kolory</small>
       <label class="desk-color" title="Kolor z lewej u góry"><input v-model="look.c1" type="color" aria-label="Pierwszy kolor"></label>
