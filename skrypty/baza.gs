@@ -127,8 +127,9 @@ function htmlNewslettera(services, events, anns, types, tz) {
 /* ---------- zdjęcia z nabożeństw: Dysk → karta najbliższego nabożeństwa na stronie startowej ---------- */
 // Folder ze zdjęciami (lata → MM_RR → DD_MM, np. 2026 / 10_26 / 18_10). Skrypt bierze najnowszy folder, w którym są
 // zdjęcia, wgrywa do bazy (prywatny kubełek „zdjecia”, widzą tylko zatwierdzeni członkowie) do 8 pomniejszonych
-// zdjęć wybranych równo z całego folderu, zapisuje ich listę i usuwa poprzednie. Raz dziennie (rano): nowe nabożeństwo albo
-// nowe zdjęcia — od początku folderu; bez zmian — kolejna ósemka z tego samego folderu (po obejściu całego — od nowa).
+// zdjęć wybranych z całego folderu, zapisuje ich listę i usuwa poprzednie. Raz dziennie (rano): nowe nabożeństwo albo
+// nowe zdjęcia — od początku; bez zmian — kolejna ósemka z tego samego folderu, wymieszana (sąsiednie zdjęcia to prawie
+// te same ujęcia, więc po kolei wyglądałoby to jak ciągle ten sam zestaw). Po obejściu całego folderu — w innej kolejności.
 // Instalacja (raz, także po zmianie tego pliku): uruchom „ustawZdjecia” (codziennie ok. 6:00; pierwsze pobranie od razu). Konto skryptu musi widzieć folder.
 const ZDJECIA = { folderId: '1JDHuBFv_l6QZpKc5oPcO_vBY1V60vbKs', max: 8, size: 1600 }
 
@@ -169,6 +170,16 @@ function bazaNaglowki(extra) {
   for (const k in extra || {}) h[k] = extra[k]
   return h
 }
+// Zestaw na dany dzień: cały folder wymieszany (dla każdego obejścia inaczej), kolejna porcja po „max” zdjęć.
+function zestawZdjec(all, round, max, seed) {
+  if (all.length <= max) return all
+  const sets = Math.ceil(all.length / max), lap = Math.floor(round / sets)
+  let x = 7
+  for (const c of String(seed) + ':' + lap) x = (x * 31 + c.charCodeAt(0)) % 2147483647
+  const mixed = all.slice()
+  for (let i = mixed.length - 1; i > 0; i--) { x = (x * 16807) % 2147483647; const j = x % (i + 1), t = mixed[i]; mixed[i] = mixed[j]; mixed[j] = t }
+  return Array.from({ length: max }, (_, i) => mixed[((round % sets) * max + i) % mixed.length])
+}
 function zdjeciaNabozenstw() {
   if (!bazaWlaczona()) return
   const found = najnowszyFolderZdjec(DriveApp.getFolderById(ZDJECIA.folderId), [])
@@ -183,10 +194,7 @@ function zdjeciaNabozenstw() {
     if (all.length <= ZDJECIA.max) return
     round = +(props.getProperty('ZDJECIA_RUNDA') || 0) + 1
   }
-  // równo z całego folderu (np. 8 ze 120 — co 15.), w kolejnych dniach przesunięte o jedno zdjęcie dalej
-  const step = all.length / ZDJECIA.max
-  round = round % Math.max(1, Math.ceil(step))
-  const pick = all.length <= ZDJECIA.max ? all : Array.from({ length: ZDJECIA.max }, (_, i) => all[(Math.floor(i * step) + round) % all.length])
+  const pick = zestawZdjec(all, round, ZDJECIA.max, id)
   const token = ScriptApp.getOAuthToken(), auth = { Authorization: 'Bearer ' + token }
   const files = []
   pick.forEach((f, i) => {
