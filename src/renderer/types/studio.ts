@@ -80,6 +80,7 @@ export interface EndCard {
 
 export interface StudioState {
   airPreset: Partial<Record<PresetKind, string>> // który preset jest na wizji
+  bannerPv: number // który baner z kolejki widać na podglądzie
   program: Look
   preview: Look
   direct: boolean

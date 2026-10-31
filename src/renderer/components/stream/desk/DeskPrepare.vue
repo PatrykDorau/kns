@@ -14,14 +14,13 @@ import EndLook from './EndLook.vue'
 import PrayerLook from './PrayerLook.vue'
 
 // Przygotowanie: tu powstają presety (cały wygląd plansz i nakładek) — w Studio zostaje już tylko ich wybór.
-const { prepKind } = useDesk()
+const { prepKind, prepId } = useDesk()
 ensurePresets()
 const list = computed(() => presetsOf(prepKind.value))
-const pickedId = ref('')
-const preset = computed<Preset | null>(() => list.value.find(p => p.id === pickedId.value) || list.value[0] || null)
-function add() { const p = blankPreset(prepKind.value); settings.studioPresets.push(p); pickedId.value = p.id }
-function duplicate() { const p = preset.value, c = { ...JSON.parse(JSON.stringify(p)), id: uid(), name: p.name + ' (kopia)' }; settings.studioPresets.push(c); pickedId.value = c.id }
-async function remove() { if (await ask('Usunąć preset „' + preset.value.name + '”?')) { dropPreset(preset.value); pickedId.value = '' } }
+const preset = computed<Preset | null>(() => list.value.find(p => p.id === prepId.value) || list.value[0] || null)
+function add() { const p = blankPreset(prepKind.value); settings.studioPresets.push(p); prepId.value = p.id }
+function duplicate() { const p = preset.value, c = { ...JSON.parse(JSON.stringify(p)), id: uid(), name: p.name + ' (kopia)' }; settings.studioPresets.push(c); prepId.value = c.id }
+async function remove() { if (await ask('Usunąć preset „' + preset.value.name + '”?')) { dropPreset(preset.value); prepId.value = '' } }
 watch(() => JSON.stringify(preset.value?.data), () => { if (preset.value) presetEdited(preset.value) })
 
 // duży podgląd presetu: własne płótno, niezależne od podglądu i wizji
@@ -43,11 +42,11 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
 <template>
   <div class="prep">
     <nav class="prep-kinds" aria-label="Rodzaj presetu">
-      <button v-for="[id, name, tip] in PRESET_KINDS" :key="id" :class="{ on: prepKind === id }" :aria-pressed="prepKind === id" :title="tip" @click="prepKind = id; pickedId = ''">{{ name }} <em>{{ presetsOf(id).length }}</em></button>
+      <button v-for="[id, name, tip] in PRESET_KINDS" :key="id" :class="{ on: prepKind === id }" :aria-pressed="prepKind === id" :title="tip" @click="prepKind = id; prepId = ''">{{ name }} <em>{{ presetsOf(id).length }}</em></button>
     </nav>
     <div class="prep-body">
       <aside class="prep-list" aria-label="Presety">
-        <button v-for="p in list" :key="p.id" :class="{ on: preset?.id === p.id }" :aria-pressed="preset?.id === p.id" @click="pickedId = p.id"><b>{{ p.name }}</b><small v-if="p.desc">{{ p.desc }}</small></button>
+        <button v-for="p in list" :key="p.id" :class="{ on: preset?.id === p.id }" :aria-pressed="preset?.id === p.id" @click="prepId = p.id"><b>{{ p.name }}</b><small v-if="p.desc">{{ p.desc }}</small></button>
         <button class="prep-add" @click="add"><Icon name="plus" />Nowy preset</button>
       </aside>
       <div v-if="preset" class="prep-main">

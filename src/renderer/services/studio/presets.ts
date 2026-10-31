@@ -52,11 +52,13 @@ export const blankPreset = (kind: PresetKind): Preset => ({
 // Studio: kliknięty preset — na podgląd (przy „Od razu na wizję” — też na wizję)
 export function pickPreset(p: Preset) {
   writeLook(p.kind, p.data)
+  if (p.kind === 'banner') studio.bannerPv = 0
   settings.presetOn = { ...settings.presetOn, [p.kind]: p.id }
   if (p.kind === 'banner') previewOverlay('endOvl', true)
   if (p.kind === 'prayer') previewOverlay('prayer', true)
   if (studio.direct) { sendOverlay(p.kind); onAirPreset(p.kind) }
 }
+export function stepBanner(d: number) { studio.bannerPv += d }
 // nakładka na wizję — sama, reszta wizji bez zmian
 export function sendOverlay(kind: PresetKind) {
   if (kind === 'banner') setEndOverlay(true)

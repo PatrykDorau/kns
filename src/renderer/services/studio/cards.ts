@@ -186,8 +186,12 @@ export const bannerSet = () => ({
   list: (settings.bannerCycle && settings.bannerQueue?.length ? settings.bannerQueue : [settings.banner || {}]).map(b => ({ ...BANNER_DEFAULT, ...b })),
   sec: Math.max(4, Math.min(120, +settings.bannerSec || 10)),
 })
-// podgląd: sam edytowany baner, bez przełączania — zmiany stylu i napisów widać od razu (kolejka rusza dopiero na wizji)
-export const bannerNow = () => S?.banner || { list: [{ ...BANNER_DEFAULT, ...settings.banner }], sec: 10, at: 0 }
+// podgląd: jeden baner, bez przełączania — z kolejki ten wskazany strzałkami (kolejka rusza dopiero na wizji)
+export const bannerNow = () => {
+  if (S?.banner) return S.banner
+  const { list } = bannerSet(), i = studio.bannerPv % list.length
+  return { list: [list[i < 0 ? i + list.length : i]], sec: 10, at: 0 }
+}
 // wizja: kopia z chwili wysłania; podgląd (i miniatury presetów przez S.prayerLook) — jak banery
 export const prayerLook = () => S?.prayerLook || ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 // banery presetu: edycja i miniatura pokazują jeden, kolejka rusza dopiero na wizji

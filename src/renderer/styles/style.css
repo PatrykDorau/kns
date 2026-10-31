@@ -995,7 +995,16 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-mode button.on { background: var(--panel3, #2a2d34); color: var(--text); }
 /* presety w Studio: kafelki z miniaturą */
 .pz { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 10px; }
-.pz-card { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; overflow: hidden; text-align: left; border: 2px solid var(--line); border-radius: 10px; background: var(--panel2, #1d1f24); color: var(--text); cursor: pointer; }
+.pz-card { position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; overflow: hidden; text-align: left; border: 2px solid var(--line); border-radius: 10px; background: var(--panel2, #1d1f24); color: var(--text); cursor: pointer; }
+.pz-main { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; flex: 1; width: 100%; padding: 0; text-align: left; border: 0; border-radius: 0; background: transparent; color: inherit; }
+.pz-edit { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 30px; height: 30px; min-height: 0; padding: 0; border: 0; border-radius: 8px; color: #fff; background: rgba(12, 12, 14, .72); }
+.pz-edit:hover { background: rgba(12, 12, 14, .92); }
+.pz-edit svg { width: 15px; height: 15px; }
+.pz-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 0 10px 10px; }
+.pz-acts .desk-send { padding: 7px 14px; font-size: 13px; }
+.pz-queue { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.pz-queue .small { display: grid; place-items: center; width: 28px; height: 28px; min-height: 0; padding: 0; }
+.pz-queue svg { width: 14px; height: 14px; }
 .pz-card:hover { border-color: rgba(255, 255, 255, .28); }
 .pz-card.on { border-color: #3fb950; }
 .pz-card.live { border-color: #e5484d; }
@@ -1007,7 +1016,6 @@ main.stream > section:first-child { overflow-y: auto; }
 .pz-meta em { font-style: normal; font-size: 12px; font-weight: 700; }
 .pz-meta em.live { color: #ff6b6f; }
 .pz-meta em.pv { color: #3fb950; }
-.pz-send { display: flex; justify-content: flex-end; margin: 10px 0 4px; }
 /* Przygotowanie */
 .rail-mode { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 .rail-mode .rail-btn.on { color: #fff; background: var(--panel3, #2a2d34); border-color: var(--accent); }

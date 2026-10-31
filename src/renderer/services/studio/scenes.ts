@@ -64,7 +64,7 @@ export const SCENE_DRAW = {
 export function drawPreset(ctx, kind, data, t, edit = false) {
   const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerThird: false, lowerOff: 0, styles: { cd: data, end: data },
     scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
-    endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit), sec: +data.sec || 10, at: 0 } : null }
+    endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit).slice(0, 1), sec: 10, at: 0 } : null }
   const prev = paintOn(ctx, look as Look)
   try {
     if (kind === 'cd') SCENE_DRAW.countdown(t); else if (kind === 'end') SCENE_DRAW.end(t)

@@ -50,6 +50,7 @@ function createDesk(service: Ref<Service | null>) {
   const deskTab = ref<DeskTab>('media')
   const deskMode = ref<'live' | 'prep'>('live') // Studio albo Przygotowanie (presety)
   const prepKind = ref<PresetKind>('cd')
+  const prepId = ref('') // preset otwarty w Przygotowaniu
   watch(() => studio.preview.scene, sc => { if (sc === 'media') deskTab.value = 'media' })
 
   // ikonka w zwiniętej kolumnie: rozwija kolumnę i daną sekcję
@@ -84,7 +85,7 @@ function createDesk(service: Ref<Service | null>) {
     ]
   })
 
-  return { service, ...atem, ...youtube, ...devices, ...broadcast, ...health, ...projectors, ...media, pip, deskTab, deskMode, prepKind, unrail, openCfg, lyricsInfo, readiness }
+  return { service, ...atem, ...youtube, ...devices, ...broadcast, ...health, ...projectors, ...media, pip, deskTab, deskMode, prepKind, prepId, unrail, openCfg, lyricsInfo, readiness }
 }
 
 export type Desk = ReturnType<typeof createDesk>

@@ -44,6 +44,7 @@ export const studio = reactive<StudioState>({
   hardware: null, // null — nie sprawdzono; true/false — czy karta koduje H.264
   remoteScreen: false, // obraz rzutnika przez sieć dociera
   projector: { kind: 'none' }, // to, co pokazuje rzutnik (etap 2): { kind: 'image'|'video'|'text'|'none', url, text, style, playing, time, at }
+  bannerPv: 0, // który baner z kolejki widać na podglądzie
   airPreset: {}, // który preset jest na wizji: { cd, end, banner, prayer }
   countdownTo: 0, // odliczanie do tej chwili (ms); 0 — do godziny najbliższego nabożeństwa
   left: 0, // ile sekund zostało (do pulpitu)
