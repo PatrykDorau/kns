@@ -2,12 +2,18 @@
 import { computed } from 'vue'
 import { label } from '@/stores'
 import { bgThumb } from '@/services/studio/cards'
+import { PALETTES } from '@/services/studio/clean'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 
 // Wybór tła planszy (Odliczanie, Koniec): miniatury gotowych teł, dwa kolory, grafika z Biblioteki albo kamera na żywo.
-const props = defineProps<{ look: { bg: string, draw?: boolean, c1: string, c2: string, image: string, dim: number } }>()
+const props = defineProps<{ look: { ink?: string, bg: string, draw?: boolean, c1: string, c2: string, image: string, dim: number } }>()
 const { mediaList, deskTab } = useDesk()
 const BGS = [['szczyt', 'Szczyt'], ['swit', 'Świt'], ['noc', 'Noc'], ['zar', 'Żar'], ['krem', 'Krem'], ['piasek', 'Piasek'], ['czern', 'Czerń'], ['paper', 'Papier'], ['sketch', 'Szkic'], ['colors', 'Kolory'], ['image', 'Grafika'], ['camera', 'Kamera']] as const
+const palettes = computed(() => PALETTES[props.look.bg] || [])
+const isOn = ([ink, accent]) => (props.look as any).accent === accent && props.look.ink === ink
+function usePalette([ink, accent]) { props.look.ink = ink; (props.look as any).accent = accent }
+// nowe tło od razu z dobranymi kolorami
+function pick(id: string) { props.look.bg = id; if (PALETTES[id]) usePalette(PALETTES[id][0]); else { props.look.ink = ''; (props.look as any).accent = '#f6a836' } }
 const moods = ['szczyt', 'swit', 'noc', 'zar', 'krem', 'piasek', 'czern']
 const thumbs = Object.fromEntries(BGS.filter(([id]) => !['colors', 'image', 'camera'].includes(id)).map(([id]) => [id, bgThumb(id)]))
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
@@ -18,10 +24,14 @@ const swatch = (id: string) => id === 'colors' ? { background: `linear-gradient(
   <div class="desk-opt-group desk-bgs" role="group" aria-label="Tło">
     <small class="muted">Tło</small>
     <div class="desk-bg-list">
-      <button v-for="[id, name] in BGS" :key="id" class="desk-bg" :class="{ on: look.bg === id }" :aria-pressed="look.bg === id" :title="name" @click="look.bg = id">
+      <button v-for="[id, name] in BGS" :key="id" class="desk-bg" :class="{ on: look.bg === id }" :aria-pressed="look.bg === id" :title="name" @click="pick(id)">
         <span class="desk-bg-pic" :class="'bg-' + id" :style="swatch(id)"></span>{{ name }}
       </button>
     </div>
+  </div>
+  <div v-if="palettes.length" class="desk-opt-group">
+    <small class="muted">Kolory</small>
+    <button v-for="(p, i) in palettes" :key="i" class="desk-pal" :class="{ on: isOn(p) }" :aria-label="'Zestaw kolorów ' + (i + 1)" :title="'Zestaw kolorów ' + (i + 1)" @click="usePalette(p)"><i :style="{ background: p[0] }"></i><i :style="{ background: p[1] }"></i></button>
   </div>
   <div v-if="moods.includes(look.bg)" class="desk-opt-group">
     <label class="check" title="Góra rysuje się kreską jak w tle aplikacji"><input :checked="look.draw !== false" type="checkbox" @change="look.draw = ($event.target as HTMLInputElement).checked"> Animacja rysowania</label>

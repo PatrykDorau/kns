@@ -71,6 +71,22 @@ export function steady(draw: (ch: string, x: number) => void, str: string, x: nu
   return width
 }
 export const roughClock = (str: string, x: number, y: number, o: RoughOpts & { align?: 'left' | 'center' | 'right' }) => steady((c, cx) => roughText(c, cx, y, { ...o, align: 'center' }), str, x, o.size, o.font || 'poster', 400, o.align)
+// Tytuł: najlepiej jedna linia; dopiero gdy się nie mieści — dwie równe, żeby żadne słowo nie zostało samo w linii.
+export function titleFit(str: string, maxW: number, big: number, small: number, font: Font, weight = 400) {
+  const width = (t: string, s: number) => { g.font = fontStr(weight, s, font); return g.measureText(t).width }
+  g.save()
+  try {
+    if (!str) return { lines: [] as string[], size: big }
+    for (let s = big; s >= small; s -= 2) if (width(str, s) <= maxW) return { lines: [str], size: s }
+    const words = str.split(' ')
+    let best = [str], worst = Infinity
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(' '), b = words.slice(i).join(' '), w = Math.max(width(a, 100), width(b, 100))
+      if (w < worst) { worst = w; best = [a, b] }
+    }
+    return { lines: best, size: Math.max(44, Math.min(big * 0.8, Math.floor((maxW / worst) * 100))) }
+  } finally { g.restore() }
+}
 // największy rozmiar, przy którym napis mieści się w szerokości
 export function roughFit(str: string, maxW: number, size: number, min = 32, font: Font = 'poster', spacing = 0) {
   g.save()

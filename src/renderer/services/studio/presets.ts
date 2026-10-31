@@ -4,6 +4,7 @@ import { settings, uid } from '@/stores'
 import type { Preset, PresetKind } from '@/types'
 import { BANNER_DEFAULT, CD_DEFAULT, END_DEFAULT, LIFE_DEFAULT, LOWER_DEFAULT, prayerLook } from './cards'
 import { H, W, studio } from './state'
+import { PALETTES } from './clean'
 import { onAirPreset, previewOverlay, setEndOverlay, setLowerThird, setPrayer } from './look'
 import { drawPreset } from './scenes'
 
@@ -100,7 +101,9 @@ export function ensurePresets() {
     settings.studioPresets.push(...frames)
     settings.presetOn[frames[0].kind] = frames[0].id; writeLook('life', frames[0].data)
   }
-  settings.presetsV = 5
+  // jasne plansze dostają dobrane kolory zamiast domyślnego pomarańczowego zegara
+  if (settings.presetsV < 6) for (const p of settings.studioPresets) if (['krem', 'piasek', 'czern'].includes(p.data?.bg) && (!p.data.accent || p.data.accent === CD_DEFAULT.accent)) { p.data.ink = p.data.ink || ''; p.data.accent = PALETTES[p.data.bg][0][1] }
+  settings.presetsV = 6
 }
 export const presetsOf = (kind: PresetKind) => (settings.studioPresets || []).filter(p => p.kind === kind)
 export const blankPreset = (kind: PresetKind): Preset => ({

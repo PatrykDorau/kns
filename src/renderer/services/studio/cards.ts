@@ -243,7 +243,7 @@ export function cdBackground(L, t, side = true) {
   if (isClean(L.bg)) {
     const c = CLEAN[L.bg]
     const block = hasBlock(L.bg, L.layout)
-    cleanBackground(L.bg, L.layout)
+    cleanBackground(L.bg, L.layout, L.ink)
     g.save(); g.globalAlpha = c.alpha // linia ma być tłem, nie treścią
     if (block) { g.beginPath(); g.rect(c.clip[0], 0, c.clip[1], H); g.clip() }
     sketchLine(L, t, c.clip && !block ? c.ink : c.line, c.at); g.restore()

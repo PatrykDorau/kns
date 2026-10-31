@@ -100,7 +100,7 @@ function endTiles() {
 }
 // Koniec „Czysty”: logo, elegancki napis, kody QR bez ramek.
 function endClean(L) {
-  const onLight = LIGHT_BG.includes(L.bg), { ink: autoInk, accent: autoAccent = '#f6a836' } = cleanInk(L.bg) as { ink: string, accent?: string }, ink = L.ink || autoInk, accent = L.ink || autoAccent, lx = 96, tiles = endTiles(), side = L.bg === 'krem' ? '#fbf3e6' : ink, lw = tiles.length ? 1000 : 1500
+  const onLight = LIGHT_BG.includes(L.bg), { ink: autoInk, accent: autoAccent = '#f6a836' } = cleanInk(L.bg) as { ink: string, accent?: string }, ink = L.ink || autoInk, accent = L.accent || autoAccent, lx = 96, tiles = endTiles(), side = L.bg === 'krem' ? '#fbf3e6' : ink, lw = tiles.length ? 1000 : 1500
   if (!onLight && L.bg !== 'czern') shade(0.6, 0.8)
   logo(lx, 64, 92)
   if (L.brand) pill(L.brand, lx + 130, 74, ink)
@@ -147,9 +147,9 @@ function endRock(L) {
   for (const tl of tiles) {
     if (tl.qr) { rounded(x, y, th, th, 10); g.fillStyle = '#fff'; g.fill(); qr(tl.qr, x + 14, y + 14, th - 28) }
     const tx = tl.qr ? x + th + 34 : x + 10, mid = y + th / 2
-    roughText(tl.head.toUpperCase(), tx, mid - 18, { size: roughFit(tl.head.toUpperCase(), x + tw - tx, 64, 36), color: '#f6a836' })
+    roughText(tl.head.toUpperCase(), tx, mid - 18, { size: roughFit(tl.head.toUpperCase(), x + tw - tx, 64, 36), color: L.accent || '#f6a836' })
     if (tl.qr) tl.lines.forEach((l, k) => { const f = fitLine(l, x + tw - tx, 30, 20, 500); text(f.str, tx, mid + 32 + k * 40, { size: f.size, weight: k ? 700 : 500, color: '#f4ecdf' }) })
-    else { text('BLIK na numer', tx, mid + 26, { size: 32, weight: 600, color: '#f4ecdf' }); roughText(tl.phone, tx, mid + 100, { size: 70, color: '#f6a836' }) }
+    else { text('BLIK na numer', tx, mid + 26, { size: 32, weight: 600, color: '#f4ecdf' }); roughText(tl.phone, tx, mid + 100, { size: 70, color: L.accent || '#f6a836' }) }
     y += th + gap
   }
 }
