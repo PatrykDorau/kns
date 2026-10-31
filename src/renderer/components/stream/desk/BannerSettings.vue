@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { settings, uid } from '@/stores'
 import { BANNER_DEFAULT } from '@/services/studio/cards'
+import PresetBar from './PresetBar.vue'
 
 // Baner na kamerze: gotowe wzory i własne ustawienia (styl, kolor, napisy, kod QR). Zapisywane na tym komputerze.
 if (!settings.banner) settings.banner = { ...BANNER_DEFAULT }
@@ -24,11 +25,15 @@ watch(b, () => { const q = settings.bannerQueue.find(x => x.id === editing.value
 function addToQueue() { const item = { id: uid(), ...copyB() }; settings.bannerQueue.push(item); editing.value = item.id }
 function editQueued(item) { editing.value = item.id; Object.assign(b, { ...BANNER_DEFAULT, ...item, id: undefined }); delete (b as any).id }
 function dropQueued(item) { settings.bannerQueue = settings.bannerQueue.filter(x => x !== item); if (editing.value === item.id) editing.value = '' }
+// preset banera: baner z kolejką i jej ustawieniami
+const readPreset = () => ({ banner: copyB(), queue: settings.bannerQueue, cycle: !!settings.bannerCycle, sec: settings.bannerSec })
+function writePreset(d) { editing.value = ''; Object.assign(b, BANNER_DEFAULT, d.banner); settings.bannerQueue = d.queue; settings.bannerCycle = d.cycle; settings.bannerSec = d.sec }
 function moveQueued(i, d) { const l = settings.bannerQueue, [x] = l.splice(i, 1); l.splice(i + d, 0, x) }
 </script>
 
 <template>
   <div class="desk-cd desk-banner" role="group" aria-label="Baner">
+    <PresetBar kind="banner" :read="readPreset" :write="writePreset" />
     <div class="desk-opt-group">
       <small class="muted">Wzór</small>
       <button v-for="[name, p] in PRESETS" :key="name" class="small" @click="Object.assign(b, p)">{{ name }}</button>

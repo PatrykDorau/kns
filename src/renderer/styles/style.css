@@ -989,6 +989,12 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-proj { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 10px; margin: 8px 0; }
 .desk-proj label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 260px; flex: 1; }
 .desk-proj small { flex-basis: 100%; }
+.desk-preset { display: inline-flex; align-items: center; gap: 2px; }
+.desk-preset.on .small { border-color: var(--accent); color: var(--accent); }
+.desk-preset-x { padding: 2px; width: 22px; height: 22px; display: grid; place-items: center; background: transparent; border: 0; color: var(--muted); }
+.desk-preset-x:hover { color: var(--text); }
+.desk-preset-x svg { width: 13px; height: 13px; }
+.desk-preset-new input { width: 190px; }
 /* zakładka „Z rzutnika”: pliki, postęp, ponawianie */
 .desk-pfiles { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .desk-pfiles li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; }

@@ -5,6 +5,7 @@ import { CD_DEFAULT } from '@/services/studio/cards'
 import { LAYOUTS, TIMERS, layoutThumb } from '@/services/studio/countdown'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import LookBg from './LookBg.vue'
+import PresetBar from './PresetBar.vue'
 
 // Wygląd odliczania: układ (miniatury z bieżącym wyglądem), styl zegara, kolor, tło, treść w środku, napisy.
 if (!settings.cdLook) settings.cdLook = { ...CD_DEFAULT }
@@ -21,12 +22,15 @@ const redraw = () => { clearTimeout(timer); timer = window.setTimeout(() => { th
 watch(() => JSON.stringify(cd), redraw, { immediate: true })
 const late = window.setTimeout(redraw, 2000)
 onBeforeUnmount(() => { clearTimeout(timer); clearTimeout(late) })
+const readLook = () => cd
+const writeLook = d => { Object.assign(cd, CD_DEFAULT, d) }
 const content = computed(() => ['top', 'split', 'poster', 'bar'].includes(cd.layout)) // układy z ogłoszeniami w środku
 const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w środku' : 'Podpis')
 </script>
 
 <template>
   <div class="desk-cd" role="group" aria-label="Wygląd odliczania">
+    <PresetBar kind="cd" :read="readLook" :write="writeLook" />
     <div class="desk-layouts" role="group" aria-label="Układ">
       <button v-for="[id, name, tip] in LAYOUTS" :key="id" class="desk-layout" :class="{ on: cd.layout === id }" :aria-pressed="cd.layout === id" :title="tip" @click="cd.layout = id">
         <img v-if="thumbs[id]" :src="thumbs[id]" alt=""><span v-else class="desk-layout-ph"></span>{{ name }}

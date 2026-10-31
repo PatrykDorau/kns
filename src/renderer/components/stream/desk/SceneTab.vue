@@ -6,6 +6,7 @@ import { remote as remoteScreen } from '@/services/screenShare'
 import { ANN_MEDIA, addCountdown, setCountdown, studio } from '@/services/studio'
 import { END_DEFAULT } from '@/services/studio/cards'
 import LookBg from './LookBg.vue'
+import PresetBar from './PresetBar.vue'
 import CountdownLook from './CountdownLook.vue'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { fetchAllProjFiles, projFiles } from '@/services/projectorMirror'
@@ -26,6 +27,8 @@ const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.l
 // wygląd końca
 if (!settings.endLook) settings.endLook = { ...END_DEFAULT }
 const en = settings.endLook
+const readEnd = () => en
+const writeEnd = d => { Object.assign(en, END_DEFAULT, d) }
 const END_LAYOUTS = [['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: karta, pod napisem kody QR obok siebie'], ['side', 'Napis obok kodów', 'Po lewej podziękowanie i najbliższe nabożeństwo, po prawej kody QR'], ['center', 'Duży napis', 'Duże podziękowanie na środku, kody QR małe u dołu'], ['image', 'Sama grafika', 'Tylko wybrana grafika (np. przygotowana plansza) na cały ekran']] as const
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 // grafika z dysku: dodaje do Biblioteki i od razu wybiera
@@ -56,6 +59,7 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
   <CountdownLook v-if="studio.preview.scene === 'countdown'" />
   <!-- wygląd końca: tło, układ, napis i podpis -->
   <div v-if="studio.preview.scene === 'end'" class="desk-cd" role="group" aria-label="Wygląd końca">
+    <PresetBar kind="end" :read="readEnd" :write="writeEnd" />
     <div class="desk-opt-group">
       <small class="muted">Układ</small>
       <button v-for="[id, name, tip] in END_LAYOUTS" :key="id" :class="{ on: en.layout === id }" :aria-pressed="en.layout === id" :title="tip" @click="en.layout = id">{{ name }}</button>

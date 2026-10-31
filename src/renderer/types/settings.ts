@@ -16,6 +16,7 @@ export interface Settings {
   lyricsOnline: boolean
   mirrorStream?: boolean
   mirrorLive?: boolean
+  studioPresets?: { id: string, kind: 'cd' | 'end' | 'banner', name: string, data: any }[] // przygotowane wyglądy plansz i banerów
   lyricsKey: string
   remoteToken: string
   songSort: 'number' | 'title'
