@@ -131,7 +131,7 @@ try {
     ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); await clk('Duży zegar','.desk-layout'); await clk('Góry','.desk-bg');`],
     ['Koniec', 'Koniec kamera', 'Z kamerą w tle', `await clk('Duży napis','.desk-opt-group button'); await clk('Kamera','.desk-bg'); await setv($$('.desk-cd-text input')[0],'TEST KONIEC');`],
     ['Baner', 'Zbiórka test', 'Po kazaniu', `await setv($$('.desk-cd-text input')[0],'TEST BANER'); await clk('Pasek','.desk-opt-group button');`],
-    ['Modlitwa', 'Modlitwa test', 'Czas modlitwy', `await setv($$('.desk-cd-text input')[0],'TEST MODLITWA');`],
+    ['Modlitwa', 'Modlitwa test', 'Czas modlitwy', `await setv($$('.desk-cd-text input')[1],'TEST MODLITWA');`],
     ['Pasek mówcy', 'Gość test', 'Gość z daleka', `await setv($$('.desk-cd-text input')[0],'TEST MÓWCA'); await setv($$('.desk-cd-text input')[1],'Gość specjalny');`],
   ]
   for (const [kind, name, desc, edit] of makers) {
@@ -187,7 +187,7 @@ try {
   await ev(`await clk('Modlitwa','.ovl-btn'); await w(400); await clk('Modlitwa test','.pz-main'); await w(300); document.querySelector('.pz-acts .desk-send').click(); await w(900); return 1`)
   ok('modlitwa na wizji z kopią', await ev(`return st.program.prayer&&st.program.prayerLook.text==='TEST MODLITWA'`))
   await wait(4000); await shot('4-modlitwa-na-wizji.png')
-  await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Modlitwa test'); await clk('Przygotowanie','.desk-mode button'); await w(400); await clk('Modlitwa','.prep-kinds button'); await clk('Modlitwa test','.prep-list button'); await w(300); await setv($$('.desk-cd-text input')[0],'ZMIENIONA'); await w(300); await clk('Studio','.desk-mode button'); await w(400); return 1`)
+  await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Modlitwa test'); await clk('Przygotowanie','.desk-mode button'); await w(400); await clk('Modlitwa','.prep-kinds button'); await clk('Modlitwa test','.prep-list button'); await w(300); await setv($$('.desk-cd-text input')[1],'ZMIENIONA'); await w(300); await clk('Studio','.desk-mode button'); await w(400); return 1`)
   ok('edycja presetu na wizji nie rusza obrazu', await ev(`return st.program.prayerLook.text==='TEST MODLITWA'&&s.settings.prayerText==='ZMIENIONA'`))
   await ev(`await clk('Modlitwa','.ovl-btn'); await w(400); return 1`)
 

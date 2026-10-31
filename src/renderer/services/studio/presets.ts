@@ -47,6 +47,8 @@ const STARTERS = (): Preset[] => [
   starter('banner', 'Wsparcie', 'Przelew i BLIK', banner('Buduj razem z nami', 'Twoje wsparcie ma znaczenie', 'bank')),
   starter('banner', 'YouTube', 'Zaproszenie na kanał', banner('Subskrybuj nasz kanał', 'Kazania i transmisje co tydzień', 'youtube')),
   starter('banner', 'Podcast', 'Kazania na Spotify', banner('Słuchaj kazań w drodze', 'Kazania jako podcast na Spotify', 'spotify')),
+  starter('prayer', 'Modlitwa', 'Czas modlitwy', { ...BLANK_PRAYER }),
+  starter('lower', 'Z nabożeństwa', 'Mówca i kazanie z planu', { ...LOWER_DEFAULT }),
 ]
 // Czyste presety: kremowe plansze z elegancką typografią i linią gór
 const CLEAN_STARTERS = (): Preset[] => [
@@ -67,25 +69,27 @@ function upgrade(p: Preset) {
   if (p.kind === 'prayer') { empty(d, 'head', BLANK_PRAYER.head); empty(d, 'text', BLANK_PRAYER.text); empty(d, 'label', BLANK_PRAYER.label) }
   if (p.kind === 'banner') for (const b of [d.banner, ...(d.queue || [])]) { empty(b, 'sub', BANNER_DEFAULT.sub); empty(b, 'note', '{opis kodu}') }
 }
-// Dotychczasowe ustawienia stają się pierwszymi presetami — nic nie ginie, a Studio od razu ma co pokazać.
+// Dotychczasowe ustawienia stają się presetami — nic nie ginie; do tego gotowe, żeby Studio od razu miało co pokazać.
+function keepOld() {
+  const had = { cd: settings.cdLook, end: settings.endLook, banner: settings.banner, prayer: settings.prayerText, lower: settings.lowerLook }
+  for (const [kind] of PRESET_KINDS) {
+    if (!had[kind] || settings.studioPresets.some(p => p.kind === kind)) continue
+    settings.studioPresets.push({ id: uid(), kind, name: 'Mój wygląd', desc: '', data: readLook(kind) })
+    if (kind === 'banner' && settings.bannerQueue?.length) settings.studioPresets.push({ id: uid(), kind, name: 'Kolejka banerów', desc: 'Banery w kółko', data: { ...readLook(kind), queue: copy(settings.bannerQueue), cycle: !!settings.bannerCycle, sec: +settings.bannerSec || 10 } })
+  }
+}
 export function ensurePresets() {
   if (!settings.studioPresets) settings.studioPresets = []
   if (!settings.presetOn) settings.presetOn = {}
   if ((settings.presetsV || 0) < 2) {
     settings.presetsV = 2
+    keepOld()
     settings.studioPresets.forEach(upgrade)
     const fresh = STARTERS()
     settings.studioPresets.unshift(...fresh)
     for (const p of fresh) if (fresh.find(x => x.kind === p.kind) === p) { settings.presetOn[p.kind] = p.id; writeLook(p.kind, p.data) }
   }
   if (settings.presetsV < 3) { settings.presetsV = 3; settings.studioPresets.push(...CLEAN_STARTERS()) }
-  for (const [kind, name] of PRESET_KINDS) {
-    if (settings.studioPresets.some(p => p.kind === kind)) continue
-    const first: Preset = { id: uid(), kind, name: kind === 'lower' ? 'Z nabożeństwa' : name, desc: kind === 'lower' ? 'Mówca i kazanie z planu' : '', data: readLook(kind) }
-    settings.studioPresets.push(first)
-    settings.presetOn[kind] = first.id
-    if (kind === 'banner' && settings.bannerQueue?.length) settings.studioPresets.push({ id: uid(), kind, name: 'Kolejka banerów', desc: 'Banery w kółko', data: { ...readLook(kind), queue: copy(settings.bannerQueue), cycle: !!settings.bannerCycle, sec: +settings.bannerSec || 10 } })
-  }
 }
 export const presetsOf = (kind: PresetKind) => (settings.studioPresets || []).filter(p => p.kind === kind)
 export const blankPreset = (kind: PresetKind): Preset => ({
