@@ -264,7 +264,7 @@ function drawBanner(B) {
     text(t.str, 220, y + (sub || note ? 118 : 144), { size: t.size, weight: 400, font: 'display', color: ink })
     let ly = y + 176
     for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 30, 20, 700, 'sans'); text(f.str, 222, ly, { size: f.size, weight: 700, font: 'sans', color: ink }); ly += 40 }
-    qs.forEach((q, i) => { if (q.qr) qr(q.qr, tx0 + i * (tw + gap), y + 34, tw); else text(q.phone, tx0 + i * (tw + gap) + tw / 2, y + 130, { size: 38, weight: 700, font: 'sans', color: ink, align: 'center' }) })
+    qs.forEach((q, i) => { if (q.qr) qr(q.qr, tx0 + i * (tw + gap), y + 34, tw); else { const cx = tx0 + i * (tw + gap) + tw / 2; text('BLIK', cx, y + 104, { size: 30, weight: 700, font: 'sans', color: color, align: 'center' }); text(q.phone, cx, y + 150, { size: 38, weight: 700, font: 'sans', color: ink, align: 'center' }) } })
     return
   }
   if (B.style === 'rock') {
