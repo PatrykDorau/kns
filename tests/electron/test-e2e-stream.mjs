@@ -147,6 +147,18 @@ try {
   ok('edycja trafia do presetu, nie do ustawień', await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Duży zegar test'); return p.data.title==='TEST ZEGAR'&&p.data.layout==='center'&&s.settings.cdLook.title==='ZACZYNAMY ZA'`))
   ok('duży podgląd presetu coś rysuje', await ev(`const c=document.querySelector('.prep-canvas'); const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let v=new Set(); for(let i=0;i<d.length;i+=4001)v.add(d[i]); return v.size>4`))
   await shot('2-przygotowanie.png')
+  /* ---------- baner z grafiki ---------- */
+  const picFile = path.join(os.tmpdir(), 'kns-e2e-baner.png').split(path.sep).join('/')
+  fs.writeFileSync(picFile, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAEElEQVR4nGP8z8DAwMDAAAAJBgEBvdYgcQAAAABJRU5ErkJggg==', 'base64'))
+  await ev(`s.items.value.push({id:'e2e-pic',lib:'stream',type:'image',path:${JSON.stringify(picFile)},title:'Baner e2e'}); await clk('Baner','.prep-kinds button'); await clk('Nowy preset','.prep-add'); await w(300); await setv($$('.prep-head input')[0],'Grafika test'); await clk('Grafika','.desk-banner button'); await w(300); return 1`)
+  ok('baner z grafiki: bez pól napisów, z wyborem grafiki', await ev(`return !!document.querySelector('[aria-label="Grafika banera"]')&&!$$('.desk-banner .desk-cd-text').length&&!document.querySelector('[aria-label="Kolor banera"]')`))
+  const count = `const c=document.querySelector('.prep-canvas'); const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data; let red=0,box=[1e9,0,1e9,0]; for(let i=0;i<d.length;i+=4) if(d[i]>220&&d[i+1]<40&&d[i+2]<40){red++; const x=(i/4)%c.width,y=Math.floor(i/4/c.width); box=[Math.min(box[0],x),Math.max(box[1],x),Math.min(box[2],y),Math.max(box[3],y)]}`
+  const place = async id => ev(`const sel=document.querySelector('[aria-label="Grafika banera"]'); sel.value='e2e-pic'; sel.dispatchEvent(new Event('change')); await clk(${JSON.stringify(id)},'.desk-banner button'); await w(500); ${count} return {red,box}`)
+  const pBottom = await place('Na dole'), pCorner = await place('W rogu'), pFull = await place('Cały kadr')
+  ok('baner z grafiki: trzy miejsca rysują się w swoich polach', pBottom.red > 0 && pBottom.box[3] > 480 && pCorner.box[0] > 480 && pFull.red > pBottom.red, JSON.stringify([pBottom, pCorner, pFull]))
+  await shot('2-baner-grafika.png')
+  ok('baner z grafiki: zapisany w presecie', await ev(`const d=s.settings.studioPresets.find(x=>x.name==='Grafika test').data.banner; return d.pic==='e2e-pic'&&d.place==='full'&&d.style==='image'`))
+  await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Grafika test'); s.settings.studioPresets=s.settings.studioPresets.filter(x=>x!==p); s.items.value=s.items.value.filter(x=>x.id!=='e2e-pic'); return 1`)
   await ev(`await clk('Baner','.prep-kinds button'); await w(300); await clk('Duplikuj','.prep-head button'); await w(200); return 1`)
   ok('Duplikuj', await ev(`return s.settings.studioPresets.some(p=>/\\(kopia\\)/.test(p.name))`))
   await ev(`await clk('Usuń','.prep-head button'); return 1`); await answerYes()

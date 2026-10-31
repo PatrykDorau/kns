@@ -67,8 +67,8 @@ export interface Settings {
   cdLook?: { ink?: string, outline?: string, draw?: boolean, done?: string, brand?: string, foot?: string, bg: string, c1: string, c2: string, image: string, dim: number, title: string, sub: string, layout: string, timer: string, accent: string, show: 'ann' | 'text', photo?: string }
   // wygląd sceny „Koniec”: tło (jak w odliczaniu), układ: karta z kafelkami, obok siebie, duży napis
   // baner na kamerze: styl (frame — ramka, band — pasek, card — karta w rogu), kolor, napisy, kod QR (all, bank, youtube, spotify, link, none)
-  banner?: { style: string, color: string, title: string, sub: string, note: string, qr: string, link: string }
-  bannerQueue?: { id: string, style: string, color: string, title: string, sub: string, note: string, qr: string, link: string }[] // kolejka banerów (slajdy w kółko)
+  banner?: { style: string, color: string, title: string, sub: string, note: string, qr: string, link: string, pic?: string, place?: string }
+  bannerQueue?: { id: string, style: string, color: string, title: string, sub: string, note: string, qr: string, link: string, pic?: string, place?: string }[] // kolejka banerów (slajdy w kółko)
   bannerCycle?: boolean // przełączaj banery z kolejki w kółko
   bannerSec?: number // co ile sekund następny baner
   healthFolded?: boolean // statystyki transmisji w prawej kolumnie — zwinięte do samej oceny

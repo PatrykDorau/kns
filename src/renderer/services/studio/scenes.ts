@@ -260,7 +260,19 @@ function endOverlay() {
   g.save(); g.globalAlpha = k; drawBanner(list[i]); g.restore()
 }
 const drawBanner = B => { if (B) withOutline(B.outline, () => bannerOn(B)) }
+// Baner z gotowej grafiki (też PNG z przezroczystością): widać ją w całości, przy wybranym miejscu kadru.
+const PIC_BOX = { bottom: { w: W - 80, h: 420 }, corner: { w: 680, h: 460 }, full: { w: W, h: H } }
+function bannerPic(B) {
+  const it = B.pic && mediaSlide(B.pic), im = it?.type === 'image' && img(mediaUrl(it.path))
+  if (!im) { if (S !== studio.program) text('Wybierz grafikę banera', W / 2, H - 120, { size: 48, weight: 700, align: 'center', shadow: 16 }); return } // na wizji nic
+  const full = B.place === 'full', box = PIC_BOX[B.place] || PIC_BOX.bottom, m = full ? 0 : 40, k = Math.min(box.w / im.naturalWidth, box.h / im.naturalHeight), w = im.naturalWidth * k, h = im.naturalHeight * k
+  g.save()
+  if (!full) { g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30; g.shadowOffsetY = 8 }
+  g.drawImage(im, B.place === 'corner' ? W - w - m : (W - w) / 2, full ? (H - h) / 2 : H - h - m, w, h)
+  g.restore()
+}
 function bannerOn(B) {
+  if (B.style === 'image') { bannerPic(B); return }
   const qs = bannerQrs(B), color = B.color || '#f6a836'
   const title = String(B.title || ''), sub = fill(B.sub), note = fill(String(B.note || '').split('{opis kodu}').join(qs.length === 1 && B.style !== 'card' ? autoNote(qs[0]) : ''))
   if (!title && !sub && !note && !qs.length) return

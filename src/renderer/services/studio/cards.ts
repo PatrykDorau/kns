@@ -198,7 +198,7 @@ export const lifeLook = () => safeBg({ ...LIFE_DEFAULT, ...(styleOf('life', sett
 export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true } as const
 export const lowerLookOf = () => S?.lowerLook || { ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }
 // Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
-export const BANNER_DEFAULT = { style: 'rock', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: 'Do zobaczenia: {nabożeństwo}', note: '', qr: 'all', link: '' } as const
+export const BANNER_DEFAULT = { style: 'rock', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: 'Do zobaczenia: {nabożeństwo}', note: '', qr: 'all', link: '', pic: '', place: 'bottom' } as const
 // Banery: jeden albo kolejka kilku (slajdy w kółko co „sec” sekund). Podgląd — bieżące ustawienia; wizja — kopia z chwili
 // wysłania (S.banner), więc zmiany na pulpicie widać najpierw na podglądzie, a na wizję idą po potwierdzeniu.
 export const bannerSet = () => ({
