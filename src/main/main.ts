@@ -1153,6 +1153,7 @@ app.whenReady().then(() => {
   ipcMain.handle('yt:update', yt(b => youtube.updateBroadcast(b)))
   ipcMain.handle('yt:end', yt(id => youtube.endBroadcast(id)))
   ipcMain.handle('yt:bind', yt(id => youtube.bindToKey(id)))
+  ipcMain.handle('yt:keep', yt(id => youtube.keepAfterOutage(id)))
   ipcMain.handle('yt:golive', yt(id => youtube.goLive(id)))
   // nadawanie bez OBS: obraz i dźwięk z ATEM po USB → napisy → YouTube
   const streamer = new Streamer({ dir: () => app.getPath('userData') })
@@ -1176,7 +1177,14 @@ app.whenReady().then(() => {
   ipcMain.on('studio:video', (e, buf) => streamer.writeVideo(buf))
   ipcMain.on('studio:audio', (e, buf) => streamer.writeAudio(buf))
   streamer.on('needKey', () => toControl('studio:needKey'))
-  app.on('before-quit', () => streamer.stop())
+  // Zamknięcie w trakcie nadawania: transmisja nie ma automatycznego końca, więc kończymy ją na YouTube (najwyżej 3 s czekania).
+  app.on('before-quit', e => {
+    const id = streamer.want?.broadcast
+    streamer.stop()
+    if (!id) return
+    e.preventDefault()
+    Promise.race([youtube.endBroadcast(id).catch(() => {}), new Promise(r => setTimeout(r, 3000))]).then(() => app.quit())
+  })
   ipcMain.handle('lyrics:set', (e, on) => setLyrics(!!on))
   // Podpis autora zmian w nabożeństwie, gdy komputer nie jest zalogowany do Google.
   // Stream jako nakładka w OBS: małe okno (bez minimalnego rozmiaru panelu) i opcjonalnie zawsze na wierzchu.

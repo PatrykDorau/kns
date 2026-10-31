@@ -46,6 +46,7 @@ export interface YtBroadcast {
   streamId: string
   url: string
   autoStart: boolean
+  autoStop: boolean
   monitor: boolean
   viewers?: number
 }

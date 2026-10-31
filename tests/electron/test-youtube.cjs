@@ -39,9 +39,10 @@ const server = http.createServer(async (req, res) => {
     // jak YouTube: broadcastStatus=upcoming|active filtruje, inaczej (mine=true) wszystkie, najstarsze pierwsze, do maxResults
     const st = url.searchParams.get('broadcastStatus'), max = +(url.searchParams.get('maxResults') || 5)
     const of = { upcoming: ['created', 'ready', 'testStarting', 'testing'], active: ['liveStarting', 'live'] }[st]
-    return send({ items: broadcasts.filter(b => !of || of.includes(b.status.lifeCycleStatus)).slice(0, max) })
+    const one = url.searchParams.get('id')
+    return send({ items: broadcasts.filter(b => (one ? b.id === one : !of || of.includes(b.status.lifeCycleStatus))).slice(0, max) })
   }
-  if (p === '/liveBroadcasts' && req.method === 'PUT') { const b = JSON.parse(body); const x = broadcasts.find(y => y.id === b.id); Object.assign(x.snippet, b.snippet); return send(x) }
+  if (p === '/liveBroadcasts' && req.method === 'PUT') { const b = JSON.parse(body); const x = broadcasts.find(y => y.id === b.id); Object.assign(x.snippet, b.snippet); if (b.contentDetails) x.contentDetails = b.contentDetails; return send(x) }
   if (p === '/liveBroadcasts/transition') { const x = broadcasts.find(b => b.id === url.searchParams.get('id')); x.status.lifeCycleStatus = 'complete'; return send(x) }
   send({ error: { message: 'nie ma ' + p } }, 404)
 })
@@ -69,6 +70,7 @@ server.listen(0, '127.0.0.1', async () => {
     const b = await yt2.createBroadcast({ title: 'Nabożeństwo 25.10.2026 — Rodzina dla Pana', description: 'Pieśni: …', start: '2026-10-25T10:12:00.000Z', privacy: 'unlisted' })
     assert.equal(b.streamId, k1.id); assert.equal(b.status, 'ready'); assert.equal(b.url, 'https://youtu.be/' + b.id)
     assert.equal(broadcasts[0].contentDetails.enableAutoStart, true)
+    assert.equal(broadcasts[0].contentDetails.enableAutoStop, false) // przerwa w internecie nie może zamknąć transmisji
     const ov = await yt2.overview()
     assert.equal(ov.broadcasts.length, 1); assert.equal(ov.stream.key, 'klucz-123')
     assert.equal((await yt2.updateBroadcast({ ...b, title: 'Nowy tytuł' })).title, 'Nowy tytuł')
@@ -79,6 +81,12 @@ server.listen(0, '127.0.0.1', async () => {
     broadcasts.push({ id: 'P2', snippet: { title: 'Wieczór uwielbienia', scheduledStartTime: '2026-11-05T17:00:00Z' }, status: { lifeCycleStatus: 'created', privacyStatus: 'public' }, contentDetails: { boundStreamId: 'inny' } })
     broadcasts.push({ id: 'P1', snippet: { title: 'Nabożeństwo 1.11', scheduledStartTime: '2026-11-01T09:00:00Z' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' }, contentDetails: {} })
     assert.deepEqual((await yt2.broadcasts()).map(x => x.id), ['P1', 'P2'])
+    // zaplanowana w YouTube Studio z automatycznym końcem: wyłączony, reszta ustawień bez zmian, pola tylko do odczytu nie idą
+    broadcasts.push({ id: 'P3', snippet: { title: 'Z auto-stopem', description: 'Opis', scheduledStartTime: '2026-11-08T09:00:00Z' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' }, contentDetails: { boundStreamId: 'S1', enableAutoStop: true, enableDvr: false, monitorStream: { enableMonitorStream: true, broadcastStreamDelayMs: 5000 } } })
+    assert.equal((await yt2.broadcasts()).find(x => x.id === 'P3').autoStop, true)
+    await yt2.keepAfterOutage('P3')
+    assert.deepEqual(broadcasts.at(-1).contentDetails, { enableAutoStop: false, enableDvr: false, monitorStream: { enableMonitorStream: true, broadcastStreamDelayMs: 5000 } })
+    assert.equal(broadcasts.at(-1).snippet.description, 'Opis')
     await assert.rejects(yt2.createBroadcast({ title: 'x', start: '2026-10-25T10:00:00Z', privacy: 'zly' }), /nie są włączone transmisje na żywo/)
     yt2.logout()
     assert.equal(yt2.status().loggedIn, false)

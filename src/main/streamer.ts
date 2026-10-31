@@ -54,10 +54,12 @@ function isKeyFrame(b) {
   }
   return false
 }
+// Bez postępu (czas transmisji stoi) tyle ms = łącze zerwane. Przy starcie dłużej — łączenie i otwieranie kamery trwa.
+const STALL_MS = 12000, START_MS = 25000
 class Streamer extends EventEmitter {
   // proces FFmpeg, podgląd, napisy i stan nadawania
   dir: () => string; proc: any; want: any; state: any; preview: any; audio: any
-  lastText: string; lastStats: number; statsTimer: any; skipped: number; choked: boolean; switching: any
+  lastText: string; lastStats: number; lastTime: string; statsTimer: any; skipped: number; choked: boolean; switching: any
   constructor({ dir }) {
     super()
     this.dir = dir
@@ -93,6 +95,27 @@ class Streamer extends EventEmitter {
     })
     await new Promise(r => this.preview.server.listen(0, '127.0.0.1', r))
     this.preview.port = this.preview.server.address().port
+  }
+
+  // Odcięty internet nie zawsze kończy FFmpeg: proces żyje, czas stoi i wysyłanie wisi bez końca. Co sekundę sprawdzamy
+  // postęp; bez niego ubijamy proces, a wznowienie robi obsługa „exit”. W studiu do tego stan wysyłania.
+  watch(proc, kbps = 0) {
+    this.lastStats = Date.now(); this.lastTime = ''
+    clearInterval(this.statsTimer)
+    this.statsTimer = setInterval(() => {
+      if (this.proc !== proc) { clearInterval(this.statsTimer); return }
+      const idle = Date.now() - this.lastStats
+      const studio = kbps ? { backlog: Math.round(((proc.stdin.writableLength || 0) * 8) / (kbps * 1000) * 10) / 10, skipped: this.skipped } : {}
+      this.emitState({ ...studio, stalled: this.state.running && idle > 5000 })
+      if (idle > (this.state.running ? STALL_MS : START_MS)) { proc.cut = true; proc.kill() }
+    }, 1000)
+  }
+  // postęp to dopiero zmiana czasu — FFmpeg wypisuje statystyki także wtedy, gdy wysyłanie stoi
+  progress(time) { if (time !== this.lastTime) { this.lastTime = time; this.lastStats = Date.now() } }
+  // Strażnik ubił zawieszony FFmpeg — ponawiamy, dopóki transmisja ma trwać.
+  lostLink(again) {
+    this.emitState({ running: false, starting: true, restarts: this.state.restarts + 1, error: 'Nie ma połączenia z YouTube — ponawiam, aż wróci internet.' })
+    setTimeout(() => { if (this.want && !this.proc) again() }, 3000)
   }
 
   args(o, encoder) {
@@ -149,6 +172,7 @@ class Streamer extends EventEmitter {
     let log = ''
     const proc = spawn(ffmpegPath(), this.args({ ...o, quality }, encoder), { windowsHide: true })
     this.proc = proc
+    this.watch(proc)
     this.emitState({ encoder: { nvenc: 'karta graficzna NVIDIA', amf: 'karta graficzna AMD' }[encoder] || 'procesor (720p)' })
     // podgląd: strumień MJPEG prosto do okna aplikacji
     proc.stdout.on('data', chunk => { for (const c of this.preview.clients) c.write(chunk) })
@@ -160,12 +184,13 @@ class Streamer extends EventEmitter {
         const drop = (text.match(/drop=\s*(\d+)/) || [])[1]
         const ok = v => (v && v !== 'N/A' ? v : '')
         // „na żywo” dopiero, gdy płynie obraz (na początku FFmpeg podaje „N/A”)
-        if (ok(m[3])) this.emitState({ running: true, starting: false, error: '', fps: Math.round(+m[2]), time: m[3].replace(/\.\d+$/, ''), bitrate: ok(m[4]), speed: ok(m[5]), ...(drop ? { drop: +drop } : {}) })
+        if (ok(m[3])) { this.progress(m[3]); this.emitState({ running: true, starting: false, error: '', fps: Math.round(+m[2]), time: m[3].replace(/\.\d+$/, ''), bitrate: ok(m[4]), speed: ok(m[5]), ...(drop ? { drop: +drop } : {}) }) }
       }
     })
     proc.on('exit', code => {
       if (this.proc === proc) this.proc = null
       if (!this.want) { this.emitState({ running: false, starting: false }); return }
+      if ((proc as any).cut) { this.lostLink(() => this.launch(encoder)); return }
       // zmiana źródła dźwięku w trakcie — od razu nowy FFmpeg z tym samym koderem (ok. 1–2 s przerwy)
       if (this.switching === proc) { this.switching = null; this.launch(encoder); return }
       // Koder karty niedostępny (inna karta, stary sterownik) → następny: NVIDIA → AMD → procesor (720p).
@@ -233,19 +258,13 @@ class Streamer extends EventEmitter {
     const connect = (tries = 0) => {
       if (this.proc !== proc) return
       const sock = net.connect(port, '127.0.0.1')
-      sock.on('connect', () => { this.audio.socket = sock; for (const b of this.audio.queue) sock.write(b); this.audio.queue = [] })
-      sock.on('error', () => { if (!this.audio.socket && tries < 100) setTimeout(() => connect(tries + 1), 200) })
+      sock.on('connect', () => { if (this.proc !== proc || !this.audio) { sock.destroy(); return } this.audio.socket = sock; for (const b of this.audio.queue) sock.write(b); this.audio.queue = [] })
+      sock.on('error', () => { if (this.audio && !this.audio.socket && tries < 100) setTimeout(() => connect(tries + 1), 200) })
     }
     connect()
     this.emit('needKey')
     // co sekundę: ile obrazu czeka na wysłanie (internet nie nadąża → rośnie) i czy FFmpeg w ogóle coś wysyła
-    this.lastStats = Date.now()
-    clearInterval(this.statsTimer)
-    this.statsTimer = setInterval(() => {
-      if (this.proc !== proc) { clearInterval(this.statsTimer); return }
-      const bytes = proc.stdin.writableLength || 0, kbps = +o.kbps || 6800
-      this.emitState({ backlog: Math.round((bytes * 8) / (kbps * 1000) * 10) / 10, stalled: this.state.running && Date.now() - this.lastStats > 5000, skipped: this.skipped })
-    }, 1000)
+    this.watch(proc, +o.kbps || 6800)
     proc.stderr.on('data', chunk => {
       const text = chunk.toString()
       log = (log + text).slice(-4000)
@@ -254,7 +273,7 @@ class Streamer extends EventEmitter {
       if (process.env.KNS_STREAM_DEBUG) process.stderr.write(text)
       // obraz bez przerabiania — FFmpeg nie podaje klatek, tylko czas i przepływność
       const tm = (text.match(/time=(\S+)/g) || []).pop()?.slice(5), br = (text.match(/bitrate=\s*(\S+)/g) || []).pop()?.replace(/bitrate=\s*/, '')
-      if ((m && ok(m[3])) || ok(tm)) this.lastStats = Date.now()
+      if (ok(tm)) this.progress(tm)
       if (m && ok(m[3])) this.emitState({ running: true, starting: false, error: '', fps: Math.round(+m[2]), time: m[3].replace(/\.\d+$/, ''), bitrate: ok(m[4]), speed: ok(m[5]) })
       else if (ok(tm)) this.emitState({ running: true, starting: false, error: '', fps, time: tm.replace(/\.\d+$/, ''), bitrate: ok(br) })
     })
@@ -263,6 +282,7 @@ class Streamer extends EventEmitter {
       try { this.audio?.socket?.destroy() } catch { /* zamknięte */ }
       this.audio = null
       if (!this.want) { this.emitState({ running: false, starting: false }); return }
+      if ((proc as any).cut) { this.lostLink(() => this.launchStudio()); return }
       const reason = (log.match(/(I\/O error|Connection|Error opening|Invalid data|Broken pipe)[^\n]*/i) || [])[0] || 'FFmpeg zakończył pracę (kod ' + code + ').'
       this.emitState({ running: false, starting: true, restarts: this.state.restarts + 1, error: 'Przerwa w nadawaniu: ' + reason.trim() + ' — wznawiam za 3 s.' })
       setTimeout(() => { if (this.want && !this.proc) this.launchStudio() }, 3000)

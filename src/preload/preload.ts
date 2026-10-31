@@ -95,6 +95,7 @@ contextBridge.exposeInMainWorld('api', {
   ytUpdate: invoke('yt:update'),
   ytEnd: invoke('yt:end'),
   ytBind: invoke('yt:bind'),
+  ytKeep: invoke('yt:keep'),
   ytGoLive: invoke('yt:golive'),
   streamDevices: invoke('stream:devices'),
   streamState: invoke('stream:state'),

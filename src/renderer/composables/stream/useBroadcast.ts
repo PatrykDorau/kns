@@ -39,11 +39,13 @@ export function useBroadcast(service: Ref<Service | null>, youtube: YouTube, dev
       chosenId.value = res.id
     }
     liveBroadcast.value = b
+    // bez automatycznego końca — przerwa w internecie nie może zamknąć transmisji (błąd nie blokuje startu)
+    if (b.autoStop) await api.ytKeep(b.id)
     if (dev.engine.value === 'studio') {
       // studio: obraz składa i koduje aplikacja (karta graficzna), FFmpeg tylko wysyła
       setFps(settings.streamFps)
       studio.bitrate = kbps.value * 1000
-      const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps, kbps: kbps.value })
+      const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps, kbps: kbps.value, broadcast: b.id })
       if (res?.error) { liveError.value = res.error; return }
       await startEncoding()
       watchGoLive()
@@ -51,7 +53,7 @@ export function useBroadcast(service: Ref<Service | null>, youtube: YouTube, dev
     }
     cameraLock.value = true // podgląd kamer w Stream oddaje obraz z ATEM
     await new Promise(r => setTimeout(r, 800))
-    const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality, fps: settings.streamFps, kbps: +settings.streamKbps || 0 })
+    const res = await api.streamStart({ url: yt.value.stream.url, key: yt.value.stream.key, video: settings.streamVideo, audio: settings.streamAudio, quality: settings.streamQuality, fps: settings.streamFps, kbps: +settings.streamKbps || 0, broadcast: b.id })
     if (res?.error) { liveError.value = res.error; cameraLock.value = false; return }
     refeedLyrics() // napisy od pierwszej klatki
     watchGoLive()
@@ -74,10 +76,16 @@ export function useBroadcast(service: Ref<Service | null>, youtube: YouTube, dev
     }, 6000)
   }
   async function stopLive() {
-    if (!(await ask('Zakończyć transmisję? Na YouTube zakończy się sama po chwili od zatrzymania obrazu.'))) return
+    if (!(await ask('Zakończyć transmisję? Widzowie zobaczą jej koniec.'))) return
+    const b = upcoming.value.find(x => x.id === liveBroadcast.value?.id)
     stopEncoding()
     live.value = await api.streamStop()
     cameraLock.value = false
+    // bez automatycznego końca YouTube czekałby dalej; przed wejściem „na żywo” nie ma czego kończyć
+    if (b) {
+      const res = await api.ytEnd(b.id)
+      if (res?.error && b.status === 'live') liveError.value = 'Nie udało się zakończyć transmisji na YouTube — zakończ ją w YouTube Studio. (' + res.error + ')'
+    }
     setTimeout(loadYt, 4000)
   }
   // Tryb prosty: dźwięk otwiera FFmpeg — zmiana w trakcie to restart nadawania na 1–2 s.

@@ -166,7 +166,7 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
 
   const mapBroadcast = b => ({ id: b.id, title: b.snippet?.title || '', description: b.snippet?.description || '', start: b.snippet?.scheduledStartTime || '',
     status: b.status?.lifeCycleStatus || '', privacy: b.status?.privacyStatus || '', streamId: b.contentDetails?.boundStreamId || '', url: 'https://youtu.be/' + b.id,
-    autoStart: !!b.contentDetails?.enableAutoStart, monitor: !!b.contentDetails?.monitorStream?.enableMonitorStream })
+    autoStart: !!b.contentDetails?.enableAutoStart, autoStop: !!b.contentDetails?.enableAutoStop, monitor: !!b.contentDetails?.monitorStream?.enableMonitorStream })
   // Zaplanowane i trwające transmisje kanału (najbliższe na górze). Osobno „nadchodzące” i „trwające” — lista „mine”
   // zwraca też zakończone i po 25 pozycjach ucinała zaplanowane.
   async function broadcasts() {
@@ -176,12 +176,14 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
     return items.map(b => ({ ...mapBroadcast(b), viewers: 0 })).filter(b => ['created', 'ready', 'testStarting', 'testing', 'liveStarting', 'live'].includes(b.status))
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
   }
-  // Nowa transmisja od razu połączona ze stałym kluczem; sama startuje, gdy przyjdzie obraz, i kończy się po nim.
+  // Nowa transmisja od razu połączona ze stałym kluczem; sama startuje, gdy przyjdzie obraz. Bez automatycznego końca:
+  // YouTube kończyłby ją minutę po ustaniu obrazu, więc dłuższa przerwa w internecie zamykałaby transmisję.
+  // Koniec robi przycisk „Zakończ” (endBroadcast).
   async function createBroadcast({ title, description, start, privacy }) {
     const b = await call('POST', '/liveBroadcasts?part=id,snippet,status,contentDetails', {
       snippet: { title: String(title).slice(0, 100), description: String(description || '').slice(0, 5000), scheduledStartTime: start },
       status: { privacyStatus: privacy || 'public', selfDeclaredMadeForKids: false },
-      contentDetails: { enableAutoStart: true, enableAutoStop: true, enableDvr: true, latencyPreference: 'normal', monitorStream: { enableMonitorStream: false } },
+      contentDetails: { enableAutoStart: true, enableAutoStop: false, enableDvr: true, latencyPreference: 'normal', monitorStream: { enableMonitorStream: false } },
     })
     const s = await streamKey()
     const bound = await call('POST', `/liveBroadcasts/bind?part=id,snippet,status,contentDetails&id=${b.id}&streamId=${s.id}`)
@@ -210,6 +212,18 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
     }
     return mapBroadcast(await call('POST', `/liveBroadcasts/transition?part=id,snippet,status,contentDetails&broadcastStatus=live&id=${id}`))
   }
+  // Transmisja zaplanowana w YouTube Studio bywa z automatycznym końcem — wyłączamy go przed nadawaniem. YouTube kasuje
+  // pola pominięte w aktualizacji, więc wysyłamy obecne ustawienia (bez tylko-do-odczytu) z tą jedną zmianą.
+  async function keepAfterOutage(id) {
+    const b = (await call('GET', '/liveBroadcasts?part=id,snippet,contentDetails&id=' + id)).items?.[0]
+    if (!b?.contentDetails?.enableAutoStop) return { ok: true }
+    const { boundStreamId, boundStreamLastUpdateTimeMs, ...details } = b.contentDetails
+    await call('PUT', '/liveBroadcasts?part=id,snippet,contentDetails', {
+      id, snippet: { title: b.snippet.title, description: b.snippet.description, scheduledStartTime: b.snippet.scheduledStartTime },
+      contentDetails: { ...details, enableAutoStop: false },
+    })
+    return { ok: true }
+  }
   async function endBroadcast(id) { return mapBroadcast(await call('POST', `/liveBroadcasts/transition?part=id,snippet,status,contentDetails&broadcastStatus=complete&id=${id}`)) }
   async function deleteBroadcast(id) { await call('DELETE', '/liveBroadcasts?id=' + id); return { ok: true } }
 
@@ -229,5 +243,5 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
     return { ...status(), stream, broadcasts: list }
   }
 
-  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview, bindToKey, goLive }
+  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview, bindToKey, goLive, keepAfterOutage }
 }

@@ -104,6 +104,7 @@ export interface KnsApi {
   ytUpdate: Invoke
   ytEnd: Invoke
   ytBind: Invoke
+  ytKeep: Invoke
   ytGoLive: Invoke
   streamDevices: Invoke
   streamState: Invoke

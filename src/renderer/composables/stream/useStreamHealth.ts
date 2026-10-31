@@ -43,6 +43,9 @@ export function useStreamHealth(youtube: YouTube, bc: Broadcast, dev: StreamDevi
   const sparkTarget = computed(() => (19 - (kbps.value / sparkMax.value) * 17).toFixed(1)) // przerywana linia: cel
 
   const liveBc = computed(() => (yt.value.broadcasts || []).find(b => b.id === liveBroadcast.value?.id) || (yt.value.broadcasts || []).find(b => b.status === 'live') || null)
+  // transmisja, którą lista YouTube już pokazała (świeżo utworzona może się jeszcze nie pojawić)
+  const seenId = ref('')
+  watch(() => yt.value.broadcasts, list => { const id = liveBroadcast.value?.id; if (id && list?.some(b => b.id === id)) seenId.value = id })
   const health = computed(() => {
     const L = live.value, chips: HealthChip[] = [], target = kbps.value
     const rateRatio = target ? kbpsNow.value / target : 1
@@ -71,7 +74,9 @@ export function useStreamHealth(youtube: YouTube, bc: Broadcast, dev: StreamDevi
     if (L.restarts) chips.push({ id: 'rs', label: 'Wznowienia', value: String(L.restarts), cls: 'warn', tip: 'Ile razy połączenie z YouTube zerwało się i wróciło samo.' })
     // podpowiedź — najważniejszy problem
     let alert: { cls: string; text: string } | null = null
-    if (!online.value) alert = { cls: 'bad', text: 'Brak internetu w komputerze. Transmisja wznowi się sama, gdy wróci połączenie (obraz z tego czasu przepadnie).' }
+    // trwająca transmisja zniknęła z listy YouTube — wysyłamy obraz w próżnię
+    if (liveOn.value && seenId.value && seenId.value === liveBroadcast.value?.id && !(yt.value.broadcasts || []).some(b => b.id === seenId.value)) alert = { cls: 'bad', text: 'YouTube zakończył tę transmisję — widzowie nie dostają już obrazu. Zakończ i uruchom nową.' }
+    else if (!online.value) alert = { cls: 'bad', text: 'Brak internetu w komputerze. Transmisja wznowi się sama, gdy wróci połączenie — nawet po dłuższej przerwie (obraz z tego czasu przepadnie).' }
     else if (L.error) alert = { cls: 'bad', text: L.error }
     else if (L.stalled) alert = { cls: 'bad', text: 'Od kilku sekund nic nie wychodzi do YouTube — sprawdź internet. Aplikacja próbuje dalej.' }
     else if ((L.backlog || 0) > 5) alert = { cls: 'bad', text: 'Internet nie nadąża (opóźnienie ' + L.backlog.toLocaleString('pl') + ' s). Zmniejsz przepływność albo jakość w „Ustawieniach nadawania” przy następnym starcie; przy dużym zatkaniu aplikacja pomija klatki, żeby wrócić na bieżąco.' }
