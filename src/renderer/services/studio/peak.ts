@@ -3,15 +3,18 @@
 // (po jednej na klimat), w klatce już tylko wstawiana; kreska i kurz idą na wierzchu (rough.ts).
 import { H, W } from './state'
 import { g, img } from './paint'
-import { PEAK_X, PEAK_S } from './rough'
+import type { Place } from './rough'
 
 type P = [number, number]
-export interface Mood { sky: [number, string][], sun: string, sunAt: P, cloud: string, far: string[], rock: [string, string], lit: string, fog: string, ground: string, rim: string, line: string, tint: string }
+// Każdy klimat to inna kompozycja, nie tylko inne kolory: at — gdzie i jak duża jest góra, a do tego:
+// rays (promienie zza szczytu), sea (morze chmur zamiast podnóża), stars i moon, disc (wielka tarcza słońca),
+// rocks (kamienie z przodu), sides (boczne szczyty), solid (sylwetka bez faktury skały).
+export interface Mood { cross?: string, at: Place, rays?: boolean, sea?: boolean, stars?: boolean, moon?: boolean, disc?: boolean, rocks?: boolean, sides?: boolean, solid?: boolean, sky: [number, string][], sun: string, sunAt: P, cloud: string, far: string[], rock: [string, string], lit: string, fog: string, ground: string, rim: string, line: string, tint: string }
 export const MOODS: Record<string, Mood> = {
-  szczyt: { sky: [[0, '#5a2b14'], [0.42, '#b5642a'], [0.72, '#e8a659'], [1, '#f3cf94']], sun: 'rgba(255,226,165,0.95)', sunAt: [0.56, 0.42], cloud: 'rgba(255,214,160,0.34)', far: ['#c98a52', '#a9683a', '#7f4726'], rock: ['#3a2114', '#1c0f08'], lit: 'rgba(240,160,90,0.62)', fog: 'rgba(246,206,150,0.5)', ground: '#160b06', rim: 'rgba(255,190,120,0.55)', line: '#fff0d8', tint: 'rgba(214,120,50,0.34)' },
-  swit: { sky: [[0, '#3b3158'], [0.38, '#8f5478'], [0.68, '#e58f7c'], [1, '#fbd3a2']], sun: 'rgba(255,236,196,0.98)', sunAt: [0.52, 0.5], cloud: 'rgba(255,205,190,0.38)', far: ['#b87f8e', '#8c5a78', '#5f3e60'], rock: ['#3a2740', '#1b1224'], lit: 'rgba(255,170,130,0.6)', fog: 'rgba(255,214,190,0.5)', ground: '#120c1a', rim: 'rgba(255,190,160,0.55)', line: '#ffeee0', tint: 'rgba(230,120,120,0.28)' },
-  noc: { sky: [[0, '#070b1c'], [0.45, '#121d3e'], [0.78, '#27365f'], [1, '#54597e']], sun: 'rgba(255,222,150,0.8)', sunAt: [0.54, 0.26], cloud: 'rgba(120,150,210,0.22)', far: ['#34436e', '#26335a', '#1a2444'], rock: ['#1b2340', '#0a0e20'], lit: 'rgba(120,160,230,0.42)', fog: 'rgba(130,155,215,0.3)', ground: '#060914', rim: 'rgba(245,190,100,0.5)', line: '#e4ecff', tint: 'rgba(70,100,190,0.3)' },
-  zar: { sky: [[0, '#1d0a0c'], [0.4, '#6e1a14'], [0.7, '#d4501c'], [1, '#f8a93d']], sun: 'rgba(255,212,120,0.98)', sunAt: [0.58, 0.54], cloud: 'rgba(255,130,70,0.3)', far: ['#a53c1c', '#7a2616', '#4e1610'], rock: ['#2c100c', '#120605'], lit: 'rgba(255,120,50,0.62)', fog: 'rgba(250,140,70,0.42)', ground: '#0c0403', rim: 'rgba(255,150,70,0.6)', line: '#ffe6c8', tint: 'rgba(210,70,20,0.32)' },
+  szczyt: { at: [W * 0.66, H / 840, H], rays: true, rocks: true, sides: true, sky: [[0, '#5a2b14'], [0.42, '#b5642a'], [0.72, '#e8a659'], [1, '#f3cf94']], sun: 'rgba(255,226,165,0.95)', sunAt: [0.56, 0.42], cloud: 'rgba(255,214,160,0.34)', far: ['#c98a52', '#a9683a', '#7f4726'], rock: ['#3a2114', '#1c0f08'], lit: 'rgba(240,160,90,0.62)', fog: 'rgba(246,206,150,0.5)', ground: '#160b06', rim: 'rgba(255,190,120,0.55)', line: '#fff0d8', tint: 'rgba(214,120,50,0.34)' },
+  swit: { at: [W * 0.73, 0.82, H * 0.86], sea: true, sky: [[0, '#3b3158'], [0.38, '#8f5478'], [0.68, '#e58f7c'], [1, '#fbd3a2']], sun: 'rgba(255,236,196,0.98)', sunAt: [0.52, 0.5], cloud: 'rgba(255,205,190,0.38)', far: ['#b87f8e', '#8c5a78', '#5f3e60'], rock: ['#3a2740', '#1b1224'], lit: 'rgba(255,170,130,0.6)', fog: 'rgba(255,214,190,0.5)', ground: '#120c1a', rim: 'rgba(255,190,160,0.55)', line: '#ffeee0', tint: 'rgba(230,120,120,0.28)' },
+  noc: { at: [W * 0.76, 1.02, H * 1.02], stars: true, moon: true, solid: true, sides: true, sky: [[0, '#070b1c'], [0.45, '#121d3e'], [0.78, '#27365f'], [1, '#54597e']], sun: 'rgba(255,222,150,0.8)', sunAt: [0.54, 0.26], cloud: 'rgba(120,150,210,0.22)', far: ['#34436e', '#26335a', '#1a2444'], rock: ['#1b2340', '#0a0e20'], lit: 'rgba(120,160,230,0.42)', fog: 'rgba(130,155,215,0.3)', ground: '#060914', rim: 'rgba(245,190,100,0.5)', line: '#e4ecff', tint: 'rgba(70,100,190,0.3)' },
+  zar: { cross: '#2a0d08', at: [W * 0.68, 1.8, H * 1.5], disc: true, sky: [[0, '#1d0a0c'], [0.4, '#6e1a14'], [0.7, '#d4501c'], [1, '#f8a93d']], sun: 'rgba(255,212,120,0.98)', sunAt: [0.58, 0.54], cloud: 'rgba(255,130,70,0.3)', far: ['#a53c1c', '#7a2616', '#4e1610'], rock: ['#2c100c', '#120605'], lit: 'rgba(255,120,50,0.62)', fog: 'rgba(250,140,70,0.42)', ground: '#0c0403', rim: 'rgba(255,150,70,0.6)', line: '#ffe6c8', tint: 'rgba(210,70,20,0.32)' },
 }
 export const isMood = (id: string) => id in MOODS
 
@@ -29,8 +32,6 @@ function jag(pts: P[], r: () => number, rough = 0.16, depth = 4): P[] {
   }
   return out
 }
-const X = (x: number) => PEAK_X + (x - 700) * PEAK_S, Y = (y: number) => H + (y - 1000) * PEAK_S
-const trace = (p: CanvasRenderingContext2D, pts: P[]) => { p.beginPath(); pts.forEach(([x, y], i) => (i ? p.lineTo(X(x), Y(y)) : p.moveTo(X(x), Y(y)))) }
 // szkielet: te same punkty co rysunek kreską, żeby farba leżała pod liniami
 const TOP: P = [700, 304]
 const LEFT: P[] = [TOP, [664, 368], [622, 438], [578, 496], [532, 575], [482, 632], [420, 700], [362, 770], [300, 820], [180, 1100]]
@@ -52,7 +53,9 @@ function ridge(p: CanvasRenderingContext2D, r: () => number, base: number, amp: 
 }
 function paint(m: Mood, stone: CanvasImageSource | null) {
   const c = document.createElement('canvas'); c.width = W; c.height = H
-  const p = c.getContext('2d'), r = seeded(23)
+  const p = c.getContext('2d'), r = seeded(23), [px, ps, bottom] = m.at
+  const X = (x: number) => px + (x - 700) * ps, Y = (y: number) => bottom + (y - 1000) * ps
+  const trace = (ctx: CanvasRenderingContext2D, pts: P[]) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))) }
   // niebo i słońce
   const sky = p.createLinearGradient(0, 0, 0, H * 0.82)
   m.sky.forEach(([at, col]) => sky.addColorStop(at, col))
@@ -60,37 +63,55 @@ function paint(m: Mood, stone: CanvasImageSource | null) {
   const sx = W * m.sunAt[0], sy = H * m.sunAt[1], sun = p.createRadialGradient(sx, sy, 0, sx, sy, 760)
   sun.addColorStop(0, m.sun); sun.addColorStop(0.1, m.sun.replace(/[\d.]+\)$/, '0.62)')); sun.addColorStop(0.42, m.sun.replace(/[\d.]+\)$/, '0.16)')); sun.addColorStop(1, m.sun.replace(/[\d.]+\)$/, '0)'))
   p.fillStyle = sun; p.fillRect(0, 0, W, H)
+  if (m.stars) { p.fillStyle = '#fff'; for (let i = 0; i < 420; i++) { const s = r() * r() * 2.4 + 0.4; p.globalAlpha = 0.25 + r() * 0.75; p.beginPath(); p.arc(r() * W, r() * r() * H * 0.86, s, 0, Math.PI * 2); p.fill() } p.globalAlpha = 1 }
+  if (m.moon) {
+    // sierp księżyca: z tarczy wycięta druga, przesunięta
+    const mx = W * 0.92, my = H * 0.15, gl = p.createRadialGradient(mx, my, 20, mx, my, 260); gl.addColorStop(0, 'rgba(255,226,170,0.26)'); gl.addColorStop(1, 'rgba(255,226,170,0)')
+    p.fillStyle = gl; p.fillRect(mx - 280, my - 280, 560, 560)
+    const cr = document.createElement('canvas'); cr.width = cr.height = 160
+    const cc = cr.getContext('2d'); cc.fillStyle = '#ffeec6'; cc.beginPath(); cc.arc(80, 80, 62, 0, Math.PI * 2); cc.fill()
+    cc.globalCompositeOperation = 'destination-out'; cc.beginPath(); cc.arc(106, 66, 56, 0, Math.PI * 2); cc.fill()
+    p.drawImage(cr, mx - 80, my - 80)
+  }
+  // wielka tarcza słońca za krzyżem
+  if (m.disc) {
+    const dy = Y(236), dg = p.createLinearGradient(0, dy - 400, 0, dy + 400); dg.addColorStop(0, '#ffdf94'); dg.addColorStop(1, '#f06a22')
+    p.fillStyle = dg; p.beginPath(); p.arc(px, dy, 400, 0, Math.PI * 2); p.fill()
+  }
   // promienie zza szczytu
   p.save(); p.globalCompositeOperation = 'screen'; p.translate(sx, sy)
-  for (let i = 0; i < 14; i++) { const a = r() * Math.PI * 2, w = 0.02 + r() * 0.05, l = 900 + r() * 700, gr = p.createRadialGradient(0, 0, 40, 0, 0, l); gr.addColorStop(0, m.sun.replace(/[\d.]+\)$/, '0.14)')); gr.addColorStop(1, m.sun.replace(/[\d.]+\)$/, '0)')); p.fillStyle = gr; p.beginPath(); p.moveTo(0, 0); p.arc(0, 0, l, a, a + w); p.closePath(); p.fill() }
+  for (let i = 0; m.rays && i < 14; i++) { const a = r() * Math.PI * 2, w = 0.02 + r() * 0.05, l = 900 + r() * 700, gr = p.createRadialGradient(0, 0, 40, 0, 0, l); gr.addColorStop(0, m.sun.replace(/[\d.]+\)$/, '0.14)')); gr.addColorStop(1, m.sun.replace(/[\d.]+\)$/, '0)')); p.fillStyle = gr; p.beginPath(); p.moveTo(0, 0); p.arc(0, 0, l, a, a + w); p.closePath(); p.fill() }
   p.restore()
   // chmury: długie, miękkie smugi
   p.save(); p.filter = 'blur(22px)'; p.fillStyle = m.cloud
   for (let i = 0; i < 26; i++) { p.globalAlpha = 0.35 + r() * 0.65; p.beginPath(); p.ellipse(r() * W, H * (0.08 + r() * 0.42), 180 + r() * 420, 8 + r() * 26, (r() - 0.5) * 0.08, 0, Math.PI * 2); p.fill() }
   p.restore()
   // dalekie pasma, coraz bliżej i ciemniej
-  ridge(p, r, H * 0.64, 120, m.far[0]); ridge(p, r, H * 0.72, 130, m.far[1])
-  p.save(); p.filter = 'blur(26px)'; p.fillStyle = m.fog; p.fillRect(-60, H * 0.66, W + 120, 70); p.restore()
-  ridge(p, r, H * 0.8, 120, m.far[2])
+  if (!m.sea && !m.disc) {
+    ridge(p, r, H * 0.64, 120, m.far[0]); ridge(p, r, H * 0.72, 130, m.far[1])
+    p.save(); p.filter = 'blur(26px)'; p.fillStyle = m.fog; p.fillRect(-60, H * 0.66, W + 120, 70); p.restore()
+    ridge(p, r, H * 0.8, 120, m.far[2])
+  }
+  if (m.sea) { ridge(p, r, H * 0.66, 70, m.far[0]) }
   // boczne szczyty
-  for (const s of SIDES) {
+  for (const s of m.sides ? SIDES : []) {
     const pts = jag(s, r, 0.13)
     trace(p, pts); p.closePath()
     const gr = p.createLinearGradient(0, Y(520), 0, H); gr.addColorStop(0, m.rock[0]); gr.addColorStop(1, m.rock[1])
     p.fillStyle = gr; p.fill()
   }
-  p.save(); p.filter = 'blur(30px)'; p.fillStyle = m.fog; p.globalAlpha = 0.7; p.fillRect(-60, H * 0.8, W + 120, 60); p.restore()
+  if (m.sides) { p.save(); p.filter = 'blur(30px)'; p.fillStyle = m.fog; p.globalAlpha = 0.7; p.fillRect(-60, H * 0.8, W + 120, 60); p.restore() }
   // główny szczyt: cień, oświetlone zbocze i faktura skały
   const left = jag(LEFT, r), right = jag(RIGHT, r), spine = jag(SPINE, r, 0.1)
   const whole: P[] = [...left.slice().reverse(), ...right.slice(1)]
   p.save(); trace(p, whole); p.closePath(); p.clip()
   const rock = p.createLinearGradient(0, Y(300), 0, H); rock.addColorStop(0, m.rock[0]); rock.addColorStop(1, m.rock[1])
   p.fillStyle = rock; p.fillRect(0, 0, W, H)
-  if (stone) {
+  if (stone && !m.solid) {
     p.globalCompositeOperation = 'overlay'; p.globalAlpha = 0.85
-    p.drawImage(stone, 860, 300, 900, 760, X(120), Y(280), 1160 * PEAK_S, 860 * PEAK_S)
+    p.drawImage(stone, 860, 300, 900, 760, X(120), Y(280), 1160 * ps, 860 * ps)
     p.globalCompositeOperation = 'soft-light'; p.globalAlpha = 1
-    p.drawImage(stone, 860, 300, 900, 760, X(120), Y(280), 1160 * PEAK_S, 860 * PEAK_S)
+    p.drawImage(stone, 860, 300, 900, 760, X(120), Y(280), 1160 * ps, 860 * ps)
     p.globalCompositeOperation = 'source-over'; p.globalAlpha = 1
   }
   // słońce z lewej: jasne zbocze od grzbietu w lewo, cień w prawo
@@ -103,8 +124,15 @@ function paint(m: Mood, stone: CanvasImageSource | null) {
   p.save(); p.filter = 'blur(38px)'; p.fillStyle = m.fog
   for (let i = 0; i < 12; i++) { p.globalAlpha = 0.28 + r() * 0.4; p.beginPath(); p.ellipse(r() * W, H * (0.84 + r() * 0.08), 280 + r() * 380, 26 + r() * 40, 0, 0, Math.PI * 2); p.fill() }
   p.restore()
+  // morze chmur zakrywa podnóże
+  if (m.sea) {
+    p.save(); p.filter = 'blur(10px)'
+    for (let i = 0; i < 60; i++) { p.fillStyle = m.fog; p.globalAlpha = 0.9; p.beginPath(); p.ellipse(px + (r() - 0.5) * 900, H * (0.74 + r() * 0.2), 120 + r() * 220, 26 + r() * 40, 0, 0, Math.PI * 2); p.fill() }
+    for (let i = 0; i < 150; i++) { const k = r(), y = H * (0.66 + k * 0.36); p.fillStyle = k < 0.4 ? m.fog : m.cloud.replace(/[\d.]+\)$/, '0.95)'); p.globalAlpha = 0.55 + r() * 0.4; p.beginPath(); p.ellipse(r() * W, y, 90 + r() * 260, 18 + r() * 46, 0, 0, Math.PI * 2); p.fill() }
+    p.restore()
+  }
   // kamienie na pierwszym planie
-  for (const [x0, x1, top] of [[-60, 640, 0.88], [1320, W + 60, 0.9], [420, 1280, 0.96]] as [number, number, number][]) {
+  for (const [x0, x1, top] of (m.rocks ? [[-60, 640, 0.88], [1320, W + 60, 0.9], [420, 1280, 0.96]] : []) as [number, number, number][]) {
     const peak = x0 + (x1 - x0) * (0.3 + r() * 0.4), edge = jag([[x0, H + 20], [x0 + (peak - x0) * 0.4, H * (top + 0.05)], [peak, H * top], [peak + (x1 - peak) * 0.5, H * (top + 0.05)], [x1, H + 20]], r, 0.12, 4)
     p.beginPath(); edge.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y))); p.closePath(); p.fillStyle = m.ground; p.fill()
     p.strokeStyle = m.rim; p.lineWidth = 2; p.globalAlpha = 0.5; p.stroke(); p.globalAlpha = 1

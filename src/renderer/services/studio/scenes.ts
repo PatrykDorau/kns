@@ -2,7 +2,7 @@
 import { ANN_MEDIA, H, W, studio } from './state'
 import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
 import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, prayerLook, presetBanners, setDemo, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, zeroAt } from './cards'
-import { roughFit, roughPanel, roughText, shade } from './rough'
+import { bottomBand, glassPanel, hairline, roughFit, roughText, shade } from './rough'
 import { cleanInk, pill } from './clean'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
@@ -96,40 +96,42 @@ function endTiles() {
 }
 // Koniec „Czysty”: logo, elegancki napis, kody QR bez ramek.
 function endClean(L) {
-  const { ink, accent } = cleanInk(L.bg), lx = 96, tiles = endTiles(), lw = tiles.length ? 1000 : 1500
+  const onLight = LIGHT_BG.includes(L.bg), { ink, accent = '#f6a836' } = cleanInk(L.bg) as { ink: string, accent?: string }, lx = 96, tiles = endTiles(), side = L.bg === 'krem' ? '#fbf3e6' : ink, lw = tiles.length ? 1000 : 1500
+  if (!onLight && L.bg !== 'czern') shade(0.6, 0.8)
   logo(lx, 64, 92)
   if (L.brand) pill(L.brand, lx + 130, 74, ink)
-  const lines = wrap(String(L.title || ''), lw, 150, 400, 4, 'display')
-  lines.forEach((l, i) => text(l, lx, 370 + i * 160, { size: 150, weight: 400, font: 'display', color: ink }))
+  const lines = wrap(String(L.title || ''), tiles.length ? 960 : lw, 130, 400, 4, 'display')
+  lines.forEach((l, i) => text(l, lx, 370 + i * 140, { size: 130, weight: 400, font: 'display', color: ink }))
   const sub = fill(L.sub)
-  if (sub) { const f = fitLine(sub, lw, 42, 26, 700, 'sans'); text(f.str, lx + 4, 980, { size: f.size, weight: 700, font: 'sans', color: accent }) }
+  if (sub) { const f = fitLine(sub, lw, 42, 26, 700, 'sans'); text(f.str, lx + 4, 980, { size: f.size, weight: 700, font: 'sans', color: onLight ? accent : ink }) }
   const q = 250, gap = 40, total = tiles.length * q + (tiles.length - 1) * gap, x = W - 110 - q
   let y = (H - total) / 2
   for (const tl of tiles) {
     if (tl.qr) { rounded(x, y, q, q, 10); g.fillStyle = '#fff'; g.fill(); qr(tl.qr, x + 14, y + 14, q - 28) }
-    text(tl.head, x - 28, y + q / 2 - (tl.qr ? 4 : 20), { size: 40, weight: 400, font: 'display', color: ink, align: 'right' })
-    if (tl.lines[0]) { const f = fitLine(tl.lines[0], 440, 24, 18, 700, 'sans'); text(f.str, x - 28, y + q / 2 + 36, { size: f.size, weight: 700, font: 'sans', color: accent, align: 'right' }) }
+    text(tl.head, x - 28, y + q / 2 - (tl.qr ? 4 : 20), { size: 40, weight: 400, font: 'display', color: side, align: 'right' })
+    if (tl.lines[0]) { const f = fitLine(tl.lines[0], 400, 24, 18, 700, 'sans'); text(f.str, x - 28, y + q / 2 + 36, { size: f.size, weight: 700, font: 'sans', color: L.bg === 'krem' ? side : accent, align: 'right' }) }
     y += q + gap
   }
 }
 // Koniec „Skała”: wielki napis z lewej, kody QR w poszarpanym panelu z prawej.
 function endRock(L) {
-  shade()
+  const onLight = LIGHT_BG.includes(L.bg), ink = onLight ? cleanInk(L.bg).ink : '#f4ecdf'
+  if (!onLight) shade()
   const lx = 104, lw = 900
   if (L.brand) {
     logo(lx + 6, 62, 78, true)
-    roughText(L.brand.toUpperCase(), lx + 118, 124, { size: 50, spacing: 5 })
-    roughPanel(lx, 176, lw, 4, 'rgba(244,236,223,0.8)', 'lr')
+    roughText(L.brand.toUpperCase(), lx + 118, 124, { size: 50, spacing: 5, color: ink })
+    hairline(lx, 176, lw, onLight ? ink : 'rgba(244,236,223,0.8)')
   }
   const head = String(L.title || '').toUpperCase(), lines = wrap(head, lw, 176, 400, 4, 'poster')
-  lines.forEach((l, i) => roughText(l, lx, 360 + i * 182, { size: Math.min(176, roughFit(l, lw, 176)), color: '#f4ecdf' }))
+  lines.forEach((l, i) => roughText(l, lx, 360 + i * 182, { size: Math.min(176, roughFit(l, lw, 176)), color: ink }))
   const sub = fill(L.sub)
-  if (sub) wrap(sub, lw, 44, 600, 2).forEach((l, i) => text(l, lx + 4, 360 + (lines.length - 1) * 182 + 86 + i * 56, { size: 44, weight: 600, color: '#fbe3bd', shadow: 14 }))
+  if (sub) wrap(sub, lw, 44, 600, 2).forEach((l, i) => text(l, lx + 4, 360 + (lines.length - 1) * 182 + 86 + i * 56, { size: 44, weight: 600, color: onLight ? ink : '#fbe3bd', shadow: onLight ? 0 : 14 }))
   const tiles = endTiles()
   if (!tiles.length) return
   const tw = 700, th = 268, gap = 26, x = W - tw - 90, total = tiles.length * th + (tiles.length - 1) * gap
   let y = (H - total) / 2
-  roughPanel(x - 36, y - 40, tw + 72, total + 80)
+  glassPanel(x - 36, y - 36, tw + 72, total + 72)
   for (const tl of tiles) {
     if (tl.qr) { rounded(x, y, th, th, 10); g.fillStyle = '#fff'; g.fill(); qr(tl.qr, x + 14, y + 14, th - 28) }
     const tx = tl.qr ? x + th + 34 : x + 10, mid = y + th / 2
@@ -201,7 +203,7 @@ function prayerOverlay() {
   const tw = link ? W - 640 : W - 300 // z kodem QR po prawej napisy węższe
   const clean = P.style === 'edit', ink = clean ? '#1a2a9a' : '#fff'
   if (clean) { g.fillStyle = '#fbf3e6'; g.fillRect(0, y, W, h); g.fillStyle = ink; g.fillRect(0, y, W, 4) }
-  else roughPanel(-50, y, W + 100, h + 60, 'rgba(20,12,8,0.92)', 't')
+  else bottomBand(y)
   const ly = y + (sub ? 92 : 112)
   g.save(); g.font = fontStr(700, 32, 'cond'); g.letterSpacing = '14px'; const lw = g.measureText(label).width; g.restore()
   text(label, W / 2 + 7, ly, { size: 32, weight: 700, font: 'cond', color: clean ? ink : '#f6c27a', align: 'center', spacing: 14 })
@@ -256,11 +258,12 @@ function drawBanner(B) {
   if (B.style === 'rock') {
     // poszarpany pas u dołu: logo, wielki napis, kody QR po prawej
     const bh = 280, y = H - bh, tw = 190, gap = 24, qrW = qs.length * tw + Math.max(0, qs.length - 1) * gap, tx0 = W - 70 - qrW
-    roughPanel(-50, y, W + 100, bh + 60, 'rgba(20,12,8,0.93)', 't')
+    bottomBand(y, 'rgba(16,10,6,0.92)', color)
     logo(70, y + 60, 130, true)
-    const maxT = tx0 - 320, big = title.toUpperCase(), size = roughFit(big, maxT, 104, 56)
-    roughText(big, 260, y + (sub || note ? 124 : 164), { size, color })
-    let ly = y + 186
+    // długi tytuł schodzi na dwie linie, żeby nie wejść pod kody QR
+    const maxT = tx0 - 320, big = title.toUpperCase(), fits = roughFit(big, maxT, 104, 56), two = big && fits <= 56, heads = two ? wrap(big, maxT, 62, 400, 2, 'poster') : [big]
+    heads.forEach((l, i) => roughText(l, 260, y + (two ? 92 + i * 66 : sub || note ? 124 : 164), { size: two ? Math.min(62, roughFit(l, maxT, 62, 30)) : fits, color }))
+    let ly = y + (two ? 212 : 186)
     for (const l of [sub, note].filter(Boolean)) { const f = fitLine(l, maxT, 36, 24, 600); text(f.str, 262, ly, { size: f.size, weight: 600, color: '#f4ecdf', shadow: 10 }); ly += 46 }
     qs.forEach((q, i) => qrTile(q, tx0 + i * (tw + gap), y + 26, tw - 10, q.head === 'Wesprzyj kościół' ? 'Wsparcie' : q.head))
     return
@@ -365,7 +368,7 @@ function lowerThird(t) {
   const x = -w + (w + 60) * e, y = H - 250
   g.save(); g.globalAlpha = e
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30
-  if (clean) { rounded(x, y, w, bh, 12); g.fillStyle = '#fbf3e6'; g.fill() } else roughPanel(x, y, w, bh, 'rgba(20,12,8,0.94)')
+  if (clean) { rounded(x, y, w, bh, 12); g.fillStyle = '#fbf3e6'; g.fill() } else glassPanel(x, y, w, bh, 'rgba(16,10,6,0.86)')
   g.shadowBlur = 0
   g.fillStyle = L.color || '#f6a836'; g.fillRect(x + 18, y + bh - 6, w - 36, 6)
   // logo: białe kółko wystające nad pasek

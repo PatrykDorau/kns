@@ -10,7 +10,7 @@ import { BACKGROUNDS, BG_IDS } from './backgrounds'
 import { drawCamera } from './camera'
 import { MOODS, drawPeak, isMood } from './peak'
 import { drawSketch, dust } from './rough'
-import { CLEAN, cleanBackground, isClean } from './clean'
+import { CLEAN, cleanBackground, hasBlock, isClean } from './clean'
 import { settings } from '@/stores'
 
 let slideBase = 0
@@ -173,8 +173,8 @@ export let armed = false, zeroAt = 0
 export function setArmed(v: boolean, at = 0) { armed = v; zeroAt = at }
 // Wygląd „Odliczania” (Studio → Scena): domyślnie papier z falą i ogłoszeniami w środku.
 export const CD_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'ZACZYNAMY ZA', done: 'ZARAZ ZACZYNAMY', sub: '', brand: 'KOŚCIÓŁ NA SKALE', foot: '{nabożeństwo}', layout: 'rock', timer: 'plain', accent: '#f6a836', show: 'ann', photo: '' } as const
-// tło spoza listy (np. dawne „Ciemne”) — papier
-const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'paper' })
+// tło spoza listy (np. dawne „Ciemne” albo „Góry”) — Szczyt
+const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'szczyt' })
 // wizja rysuje wygląd z chwili „Na wizję” (S.styles), podgląd — bieżące ustawienia
 export const styleOf = (k: 'cd' | 'end', live) => (S?.styles ? S.styles[k] : live)
 export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.cdLook) || {}) })
@@ -217,8 +217,16 @@ export function fill(str) {
 }
 // Tło planszy: namalowana góra (Szczyt, Świt, Noc, Żar), papier, szkic, góry, dwa kolory, grafika z Biblioteki albo kamera.
 export function cdBackground(L, t, side = true) {
-  if (isMood(L.bg)) { drawPeak(L.bg); drawSketch(t, demo || L.draw === false, MOODS[L.bg].line); dust(t); dimmed(L); return }
-  if (isClean(L.bg)) { cleanBackground(L.bg); g.save(); g.globalAlpha = 0.42; drawSketch(t, demo || L.draw === false, CLEAN[L.bg].line); g.restore(); return } // linia ma być tłem, nie treścią
+  if (isMood(L.bg)) { drawPeak(L.bg); drawSketch(t, demo || L.draw === false, MOODS[L.bg].line, MOODS[L.bg].at, MOODS[L.bg].cross); dust(t); dimmed(L); return }
+  if (isClean(L.bg)) {
+    const c = CLEAN[L.bg]
+    const block = hasBlock(L.bg, L.layout)
+    cleanBackground(L.bg, L.layout)
+    g.save(); g.globalAlpha = c.alpha // linia ma być tłem, nie treścią
+    if (block) { g.beginPath(); g.rect(c.clip[0], 0, c.clip[1], H); g.clip() }
+    drawSketch(t, demo || L.draw === false, c.clip && !block ? c.ink : c.line, c.at); g.restore()
+    return
+  }
   if (BACKGROUNDS[L.bg]) return BACKGROUNDS[L.bg](t)
   if (L.bg === 'camera') { drawCamera(); dimmed(L); return }
   if (L.bg === 'colors') {

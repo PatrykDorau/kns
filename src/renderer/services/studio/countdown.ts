@@ -3,10 +3,11 @@
 import { H, W, studio } from './state'
 import { fit, fitLine, fontStr, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
 import { carousel, cdBackground, countdownLeft, drawCarousel, fill, paper, setDemo, topWave } from './cards'
-import { clockWidth, roughClock, roughFit, roughPanel, roughText, shade, steady } from './rough'
+import { clockWidth, glassPanel, hairline, roughClock, roughFit, roughText, shade, steady } from './rough'
 import { cleanInk, pill } from './clean'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, LIGHT_BG } from './backgrounds'
+import { drawPeak } from './peak'
 
 export const LAYOUTS = [
   ['rock', 'Skała', 'Wielki napis i zegar z lewej, ogłoszenia w poszarpanym panelu'],
@@ -79,7 +80,7 @@ export function drawTimer(style: string, o: TimerOpt) {
     if (title) text(title, o.cx, o.cy - ch / 2 - 18 * s, { size: 36 * s, weight: 700, font: 'cond', align: 'center', color: ink, spacing: 8 * s, shadow: o.light ? 0 : 14 })
   } else if (style === 'plain') {
     // same duże cyfry
-    if (title) text(title, o.cx, o.cy - 120 * s, { size: 40 * s, weight: 700, font: 'cond', align: 'center', color: o.light ? '#2b2b2b' : '#f3e3c8', spacing: 10 * s, shadow: o.light ? 0 : 14 })
+    if (title) text(title, o.cx, o.cy - 168 * s, { size: 40 * s, weight: 700, font: 'cond', align: 'center', color: o.light ? '#2b2b2b' : '#f3e3c8', spacing: 10 * s, shadow: o.light ? 0 : 14 })
     roughClock(clock, o.cx, o.cy + 90 * s, { size: left ? 250 * s : roughFit(clock, 1500 * s, 250 * s, 80), align: 'center', color: o.light ? '#2b2b2b' : '#f4ecdf' })
   } else {
     // plakietka z falowanym brzegiem (kolor obwódki logo), cyfry w kolorze akcentu
@@ -92,8 +93,10 @@ export function drawTimer(style: string, o: TimerOpt) {
     }
     g.closePath(); shadow(30, 8, 'rgba(0,0,0,0.3)'); g.fillStyle = '#2b2b2b'; g.fill(); g.restore()
     const label = fitLine(title, rx * 1.5, 30 * s, 18 * s, 800)
-    text(label.str, o.cx, o.cy - 46 * s, { size: left ? label.size : 30 * s, weight: 800, color: '#f3e3c8', align: 'center' })
-    steady((c, x2) => text(c, x2, o.cy + (left ? 64 : 46) * s, { size: (left ? 112 : 64) * s, weight: 800, color: o.accent, align: 'center' }), clock, o.cx, (left ? 112 : 64) * s, 'ui', 800, 'center')
+    if (title) text(label.str, o.cx, o.cy - 46 * s, { size: left ? label.size : 30 * s, weight: 800, color: '#f3e3c8', align: 'center' })
+    // bez napisu cyfry dokładnie na środku plakietki
+    const big = (left ? 112 : 64) * s, base = title ? o.cy + (left ? 64 : 46) * s : o.cy + big * 0.36
+    steady((c, x2) => text(c, x2, base, { size: big, weight: 800, color: o.accent, align: 'center' }), clock, o.cx, big, 'ui', 800, 'center')
   }
   return left
 }
@@ -123,7 +126,7 @@ function photo(L, x, y, w, h) {
   else if (id === '@sketch') BACKGROUNDS.sketch()
   else if (id === '@paper') paper()
   else if (id === '@accent') { const a = g.createLinearGradient(x, y, x + w, y + h); a.addColorStop(0, L.accent || '#f6a836'); a.addColorStop(1, '#2b2b2b'); g.fillStyle = a; g.fillRect(x, y, w, h) }
-  else BACKGROUNDS.mountains(0)
+  else drawPeak('szczyt')
   // ciepłe przyciemnienie, żeby zegar się wyróżniał (na jasnych — delikatne)
   const gr = g.createLinearGradient(x, y, x, y + h); gr.addColorStop(0, lightSide ? 'rgba(30,18,10,0.04)' : 'rgba(30,18,10,0.15)'); gr.addColorStop(1, lightSide ? 'rgba(30,18,10,0.16)' : 'rgba(30,18,10,0.55)')
   g.fillStyle = gr; g.fillRect(x, y, w, h)
@@ -171,8 +174,8 @@ function layout(L, t) {
         annBox(t, rx, y + (h - bh) / 2, bw, bh, 14)
       }
       const nx = foot
-      if (nx) text(nx.toUpperCase(), rx + rw / 2, y + h - 50, { size: 30, weight: 700, font: 'cond', align: 'center', color: lightR ? '#5d5146' : '#f3e3c8', spacing: 4 })
-      return T(x + lw * 0.72, y + 250, 0.95, false)
+      if (nx) text(nx.toUpperCase(), rx + rw / 2, y + h - 46, { size: 42, weight: 700, font: 'cond', align: 'center', color: lightR ? '#5d5146' : '#f3e3c8', spacing: 4 })
+      return L.timer === 'plain' || L.timer === 'flip' ? T(x + lw / 2, y + 250, 0.6, false) : T(x + lw * 0.72, y + 250, 0.95, false)
     }
     case 'poster': {
       cdBackground(L, t, false)
@@ -195,7 +198,7 @@ function layout(L, t) {
         else drawTimer(L.timer, { cx: L.timer === 'pill' ? 380 : 400, cy: ty, scale: L.timer === 'pill' ? 1.3 : 0.95, title: '', accent, light })
       }
       const nx = foot
-      if (nx) text(nx.toUpperCase(), 120, H - 90, { size: 32, weight: 700, font: 'cond', color: light ? '#5d5146' : '#f3e3c8', spacing: 5 })
+      if (nx) text(nx.toUpperCase(), 120, H - 86, { size: 44, weight: 700, font: 'cond', color: light ? '#5d5146' : '#f3e3c8', spacing: 5 })
       return left
     }
     case 'bar': {
@@ -221,7 +224,7 @@ function layout(L, t) {
         g.save(); g.globalAlpha = 0.5 + 0.5 * Math.sin(t / 300); g.fillStyle = '#e5484d'; g.beginPath(); g.arc(dotX, y + 88, 12, 0, Math.PI * 2); g.fill(); g.restore()
       }
       const nx = foot, a0 = 200 + hw + 60, a1 = (clk ? dotX - 40 : W - 70)
-      if (nx && a1 - a0 > 200) { const f = fitLine(nx.toUpperCase(), a1 - a0 - 40, 30, 20, 700, 'cond'); text(f.str, (a0 + a1) / 2, y + 104, { size: f.size, weight: 700, font: 'cond', color: '#a9a39b', align: 'center' }) }
+      if (nx && a1 - a0 > 200) { const f = fitLine(nx.toUpperCase(), a1 - a0 - 40, 42, 22, 700, 'cond'); text(f.str, (a0 + a1) / 2, y + 104, { size: f.size, weight: 700, font: 'cond', color: '#a9a39b', align: 'center' }) }
       setHalo(prevHalo)
       return left
     }
@@ -233,7 +236,7 @@ function layout(L, t) {
       text(String((left ? L.title : L.done) || '').toUpperCase(), W / 2, 230, { size: 46, weight: 700, font: 'cond', align: 'center', color: light ? '#2b2b2b' : '#f3e3c8', spacing: 18, shadow: light ? 0 : 14 })
       if (left) drawTimer(L.timer, { cx: W / 2, cy: H / 2 + 10, scale: L.timer === 'plain' ? 1.6 : 1.4, title: '', accent, light })
       const bottom = foot
-      if (bottom) { const f = fitLine(bottom.toUpperCase(), W - 400, 38, 26, 700, 'cond'); text(f.str, W / 2, H - 170, { size: f.size, weight: 700, font: 'cond', align: 'center', color: ink, spacing: 6, shadow: light ? 0 : 12 }) }
+      if (bottom) { const f = fitLine(bottom.toUpperCase(), W - 400, 48, 28, 700, 'cond'); text(f.str, W / 2, H - 170, { size: f.size, weight: 700, font: 'cond', align: 'center', color: ink, spacing: 6, shadow: light ? 0 : 12 }) }
       logoAt(W / 2 - 34, H - 140, 68, !light)
       return left
     }
@@ -244,7 +247,7 @@ function layout(L, t) {
       if (showText) bigText(L.sub, px, py + 200, pw, { size: 140, color: ink, align: 'center', shadowPx: light ? 0 : 20 })
       else annBox(t, px, py, pw, ph)
       if (L.bg === 'paper') topWave()
-      return T(W / 2, 165, 1, L.bg === 'paper' ? false : light)
+      return L.timer === 'plain' ? T(W / 2, 196, 0.72, L.bg === 'paper' ? false : light) : T(W / 2, 165, 1, L.bg === 'paper' ? false : light)
     }
   }
 }
@@ -252,43 +255,92 @@ function layout(L, t) {
 // Skała: wielki napis z lewej, ogłoszenia w poszarpanym panelu, zegar z kreskami po bokach, stopka.
 function rockLayout(L, t, accent, foot, subText) {
   cdBackground(L, t, false)
-  shade()
+  const onLight = LIGHT_BG.includes(L.bg), ink = onLight ? cleanInk(L.bg).ink : '#f4ecdf'
+  if (!onLight) shade()
   const left = countdownLeft(), ann = L.show !== 'text' && !!carousel(t), lx = 104, lw = 900
   if (L.brand) {
     logoAt(lx + 6, 62, 78)
-    roughText(L.brand.toUpperCase(), lx + 118, 124, { size: 50, spacing: 5 })
-    roughPanel(lx, 176, lw, 4, 'rgba(244,236,223,0.8)', 'lr')
+    roughText(L.brand.toUpperCase(), lx + 118, 124, { size: 50, spacing: 5, color: ink })
+    hairline(lx, 176, lw, onLight ? ink : 'rgba(244,236,223,0.8)')
   }
-  const head = String((left ? L.title : L.done) || '').toUpperCase()
-  const big = wrap(head, lw, 232, 400, 2, 'poster').length > 1 || head.length > 12 ? 208 : 232
-  const lines = wrap(head, lw, big, 400, 3, 'poster')
-  lines.forEach((l, i) => roughText(l, lx, 396 + i * big * 1.03, { size: Math.min(big, roughFit(l, lw, big)), color: '#f4ecdf' }))
-  let y = 396 + (lines.length - 1) * big * 1.03 + 84
-  if (subText) { wrap(subText, lw, 46, 600, 2).forEach(l => { text(l, lx + 4, y, { size: 46, weight: 600, color: '#fbe3bd', shadow: 14 }); y += 58 }) }
-  // zegar zawsze z lewej, pod napisem — na spokojnym tle, góra zostaje widoczna
-  if (left) roughClock(clockStr(left), lx, Math.min(1000, Math.max(y + 170, 900)), { size: 236, color: accent })
+  const head = String((left ? L.title : L.done) || '').toUpperCase(), box = showBig(L), note = !box ? subText : ''
+  // największy napis, przy którym nad zegarem zostaje miejsce
+  let size = 232, lines = [], bottom = 0
+  for (size of [232, 208, 180, 150, 124]) {
+    lines = head ? wrap(head, lw, size, 400, 3, 'poster') : []
+    bottom = 190 + (lines.length ? size + (lines.length - 1) * size * 1.03 : 0)
+    if (bottom <= (note ? 690 : 750)) break
+  }
+  lines.forEach((l, i) => roughText(l, lx, 190 + size + i * size * 1.03, { size: Math.min(size, roughFit(l, lw, size)), color: ink }))
+  // zegar zawsze z lewej, pod napisem, z wyraźnym odstępem — góra zostaje widoczna; podpis pod zegarem
+  const clockY = Math.min(note ? 950 : 1006, bottom + 275), clockColor = onLight ? ink : accent
+  if (note) { const f = fitLine(note, lw, 46, 28, 600); text(f.str, lx + 4, clockY + 64, { size: f.size, weight: 600, color: onLight ? ink : '#fbe3bd', shadow: onLight ? 0 : 14 }) }
+  if (left) { if (L.timer === 'plain') roughClock(clockStr(left), lx, clockY, { size: 236, color: clockColor }); else drawTimer(L.timer, { cx: lx + 400, cy: clockY - 90, scale: 0.95, accent: clockColor, light: onLight }) }
   if (ann) {
-    roughPanel(1060, 58, 770, 480)
-    annBox(t, 1088, 80, 714, 402, 6)
-  } else if (showBig(L)) {
-    wrap(subBig(L), 760, 120, 700, 3, 'cond').forEach((l, i) => text(l, 1445, 300 + i * 124, { size: 120, weight: 700, font: 'cond', align: 'center', color: '#f4ecdf', shadow: 20 }))
+    glassPanel(1066, 58, 758, 446)
+    annBox(t, 1088, 80, 714, 402, 10)
+  } else if (box) {
+    const words = wrap(subBig(L), 760, 96, 700, 5, 'cond')
+    words.forEach((l, i) => text(l, 1445, 300 + i * 104, { size: 96, weight: 700, font: 'cond', align: 'center', color: ink, shadow: onLight ? 0 : 20 }))
   }
-  if (foot) roughText(foot.toUpperCase(), W - 60, H - 34, { size: 30, font: 'cond', weight: 700, align: 'right', color: '#fbe3bd', spacing: 3 })
+  if (foot) { const up = foot.toUpperCase(); roughText(up, W - 60, H - 44, { size: roughFit(up, 900, 52, 30, 'cond', 2), font: 'cond', weight: 700, align: 'right', color: onLight ? ink : '#fbe3bd', spacing: 2 }) }
   return left
 }
-// Czysty: logo w rogu, nazwa i termin w pigułkach, wielki elegancki napis, zegar, ogłoszenie w ramce.
+// Czysty: każde tło ma swoją kompozycję (Krem — podział, Piasek — napis u dołu, Czerń — środek).
+function cleanClock(L, x, y, size, color, align: 'left' | 'center' | 'right', onLight) {
+  const left = countdownLeft()
+  if (!left) return
+  const clock = clockStr(left)
+  if (L.timer === 'plain') { steady((c, cx) => text(c, cx, y, { size, weight: 400, font: 'display', color, align: 'center' }), clock, x, size, 'display', 400, align); return }
+  const w = 360
+  drawTimer(L.timer, { cx: align === 'left' ? x + w : align === 'right' ? x - w : x, cy: y - size * 0.34, scale: 0.9, accent: L.accent || color, light: onLight })
+}
+function cleanTitle(lines, x, y, size, ink, align: 'left' | 'center' = 'left') { lines.forEach((l, i) => text(l, x, y + i * size * 1.05, { size, weight: 400, font: 'display', color: ink, align })) }
+function cleanCard(t, x, y, w) { const h = w * 9 / 16, prev = setHalo(''); g.save(); rounded(x, y, w, h, 10); g.clip(); drawCarousel(carousel(t), x, y, w, h); g.restore(); setHalo(prev) }
 function cleanLayout(L, t, foot, subText) {
   cdBackground(L, t, false)
-  const { ink, accent } = cleanInk(L.bg), left = countdownLeft(), lx = 96, ann = L.show !== 'text' && !!carousel(t), lw = ann ? 900 : 1500
+  const { ink } = cleanInk(L.bg), accent = L.accent || '#f6a836', onLight = LIGHT_BG.includes(L.bg), left = countdownLeft(), ann = L.show !== 'text' && !!carousel(t)
+  if (!onLight && L.bg !== 'czern') shade(0.5)
+  const head = String((left ? L.title : L.done) || '')
+  const textBox = L.show === 'text' && subText
+  if (L.bg === 'czern') {
+    logoAt(W / 2 - 46, 46, 92)
+    const size = head.length > 24 ? 110 : 150, lines = wrap(head, 1560, size, 400, 2, 'display'), top = lines.length > 1 ? 240 : 270
+    cleanTitle(lines, W / 2, top, size, ink, 'center')
+    const y = top + (lines.length - 1) * size * 1.05 + 62
+    const line = [foot, L.brand].filter(Boolean).join('   ·   ').toUpperCase()
+    if (line) text(line, W / 2, y, { size: 36, weight: 700, font: 'sans', color: ink, align: 'center' })
+    if (ann) { cleanCard(t, W / 2 - 300, y + 36, 600); cleanClock(L, W / 2, 1040, 118, accent, 'center', false) }
+    else { if (subText) text(subText, W / 2, y + 66, { size: 40, weight: 700, font: 'sans', color: ink, align: 'center' }); cleanClock(L, W / 2, 900, 230, accent, 'center', false) }
+    return left
+  }
+  if (L.bg === 'piasek') {
+    logoAt(84, 64, 92)
+    const size = head.length > 22 ? 150 : 200, lines = wrap(head, ann ? 1000 : 1500, size, 400, 3, 'display'), bottom = 880
+    cleanTitle(lines, 84, bottom - (lines.length - 1) * size * 1.05, size, ink)
+    if (subText) text(subText, 90, bottom + 62, { size: 36, weight: 700, font: 'sans', color: ink })
+    let x = 90
+    const row = 1010
+    if (foot) { text(foot.toUpperCase(), x, row, { size: 36, weight: 700, font: 'sans', color: accent }); g.save(); g.font = fontStr(700, 36, 'sans'); x += g.measureText(foot.toUpperCase()).width + 34; g.restore() }
+    if (foot && L.brand) { g.fillStyle = ink; g.fillRect(x, row - 30, 2, 42); x += 34 }
+    if (L.brand) text(L.brand.toUpperCase(), x, row, { size: 36, weight: 700, font: 'sans', color: ink })
+    cleanClock(L, W - 84, 214, 170, accent, 'right', true)
+    if (ann) cleanCard(t, 1170, 300, 666)
+    return left
+  }
+  // Krem (i inne tła): z lewej napis i zegar, z prawej blok z ogłoszeniem
+  const lx = 96, lw = 940
   logoAt(lx, 64, 92)
   let px = lx + 130
-  if (foot) px += pill(foot, px, 74, ink) + 16
-  if (L.brand) pill(L.brand, px, 74, ink)
-  const head = String((left ? L.title : L.done) || ''), size = head.length > 22 ? 150 : 190, lines = wrap(head, lw, size, 400, 3, 'display')
-  lines.forEach((l, i) => text(l, lx, 380 + i * size * 1.04, { size, weight: 400, font: 'display', color: ink }))
-  if (subText) text(subText, lx + 4, 380 + lines.length * size * 1.04 - 40, { size: 40, weight: 700, font: 'sans', italic: true, color: ink })
-  if (left) steady((c, x) => text(c, x, 980, { size: 210, weight: 400, font: 'display', color: accent, align: 'center' }), clockStr(left), lx - 6, 210, 'display', 400)
-  if (ann) { const prev = setHalo(''); g.save(); rounded(1090, 170, 736, 414, 10); g.clip(); drawCarousel(carousel(t), 1090, 170, 736, 414); g.restore(); setHalo(prev) }
+  if (foot) px += pill(foot, px, 80, ink) + 16
+  if (L.brand && px < 900) pill(L.brand, px, 80, ink)
+  const size = head.length > 20 ? 136 : 170, lines = wrap(head, lw, size, 400, 3, 'display')
+  cleanTitle(lines, lx, 360, size, ink)
+  const y = 360 + (lines.length - 1) * size * 1.05
+  if (subText && !textBox) text(subText, lx + 4, y + 74, { size: 38, weight: 700, font: 'sans', italic: true, color: ink })
+  cleanClock(L, lx - 6, 990, 200, accent, 'left', onLight)
+  if (ann) cleanCard(t, 1180, 150, 680)
+  else if (textBox) wrap(subText, 620, 84, 400, 4, 'display').forEach((l, i) => text(l, 1210, 340 + i * 96, { size: 84, weight: 400, font: 'display', color: L.bg === 'krem' ? '#fbf3e6' : ink }))
   return left
 }
 const showBig = L => L.show === 'text' && !!L.sub

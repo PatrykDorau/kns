@@ -124,11 +124,14 @@ try {
   await shot('1-studio-baner.png')
   await ev(`await clk('Baner','.ovl-btn'); await w(200); return 1`)
 
+  /* ---------- każdy układ i tło rysują się bez błędu ---------- */
+  ok('wszystkie układy i tła rysują się', await ev(`const T=window.rzutnikStream.presetThumb, bgs=['szczyt','swit','noc','zar','krem','piasek','czern','paper','sketch','colors'], base={title:'A',done:'B',sub:'C',brand:'D',foot:'{nabożeństwo}',accent:'#f6a836',show:'text',draw:false,dim:0}; let n=0; for(const bg of bgs){ for(const layout of ['rock','edit','top','center','split','poster','bar','minimal']) for(const timer of ['blob','bubble','pill','flip','plain']){T({id:'x',name:'',desc:'',kind:'cd',data:{...base,bg,layout,timer}});n++} for(const layout of ['rock','edit','cards','side','center']){T({id:'x',name:'',desc:'',kind:'end',data:{...base,bg,layout}});n++} } return n>400`))
+
   /* ---------- Przygotowanie: po jednym nowym presecie każdego rodzaju ---------- */
   await ev(`await clk('Przygotowanie','.desk-mode button'); await w(500); return 1`)
   ok('Przygotowanie otwarte, sceny schowane', await ev(`return !!document.querySelector('.prep')&&!document.querySelector('.desk-scenes')`))
   const makers = [
-    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); await clk('Duży zegar','.desk-layout'); await clk('Góry','.desk-bg');`],
+    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); await clk('Duży zegar','.desk-layout'); await clk('Noc','.desk-bg');`],
     ['Koniec', 'Koniec kamera', 'Z kamerą w tle', `await clk('Duży napis','.desk-opt-group button'); await clk('Kamera','.desk-bg'); await setv($$('.desk-cd-text input')[0],'TEST KONIEC');`],
     ['Baner', 'Zbiórka test', 'Po kazaniu', `await setv($$('.desk-cd-text input')[0],'TEST BANER'); await clk('Pasek','.desk-opt-group button');`],
     ['Modlitwa', 'Modlitwa test', 'Czas modlitwy', `await setv($$('.desk-cd-text input')[1],'TEST MODLITWA');`],

@@ -40,7 +40,7 @@ const banner = (title: string, sub: string, qr: string) => ({ banner: { ...BANNE
 const STARTERS = (): Preset[] => [
   starter('cd', 'Szczyt', 'Zegar z ogłoszeniami, góra się rysuje', { ...CD_DEFAULT }),
   starter('cd', 'Noc', 'Spokojnie, na wieczorne spotkania', { ...CD_DEFAULT, bg: 'noc' }),
-  starter('cd', 'Świt', 'Duży zegar na środku', { ...CD_DEFAULT, bg: 'swit', layout: 'center', timer: 'plain' }),
+  starter('cd', 'Świt', 'Góra nad chmurami', { ...CD_DEFAULT, bg: 'swit' }),
   starter('end', 'Podziękowanie', 'Napis i kody QR', { ...END_DEFAULT }),
   starter('end', 'Żar', 'Mocne zakończenie', { ...END_DEFAULT, bg: 'zar' }),
   starter('banner', 'Podziękowanie', 'Wszystkie kody QR', banner('Dziękujemy, że byliście z nami!', BANNER_DEFAULT.sub, 'all')),
@@ -52,9 +52,9 @@ const STARTERS = (): Preset[] => [
 ]
 // Czyste presety: kremowe plansze z elegancką typografią i linią gór
 const CLEAN_STARTERS = (): Preset[] => [
-  starter('cd', 'Krem', 'Czysto, niebieska typografia', { ...CD_DEFAULT, bg: 'krem', layout: 'edit', title: 'Zaczynamy za', done: 'Zaraz zaczynamy' }),
-  starter('cd', 'Piasek', 'Czysto, ciepłe kolory', { ...CD_DEFAULT, bg: 'piasek', layout: 'edit', title: 'Zaczynamy za', done: 'Zaraz zaczynamy' }),
-  starter('cd', 'Uwielbienie', 'Czarno-żółty, na wieczory', { ...CD_DEFAULT, bg: 'czern', layout: 'edit', title: 'Wieczór uwielbienia', done: 'Zaraz zaczynamy' }),
+  starter('cd', 'Krem', 'Czysto, niebieska typografia', { ...CD_DEFAULT, accent: '#1a2a9a', bg: 'krem', layout: 'edit', title: 'Zaczynamy za', done: 'Zaraz zaczynamy' }),
+  starter('cd', 'Piasek', 'Czysto, ciepłe kolory', { ...CD_DEFAULT, accent: '#e8525f', bg: 'piasek', layout: 'edit', title: 'Zaczynamy za', done: 'Zaraz zaczynamy' }),
+  starter('cd', 'Uwielbienie', 'Czarno-żółty, na wieczory', { ...CD_DEFAULT, accent: '#f5e66c', bg: 'czern', layout: 'edit', title: 'Wieczór uwielbienia', done: 'Zaraz zaczynamy' }),
   starter('end', 'Krem', 'Czysto, kody QR obok', { ...END_DEFAULT, bg: 'krem', layout: 'edit', title: 'Dziękujemy, że byliście z nami' }),
   starter('end', 'Piasek', 'Czysto, ciepłe kolory', { ...END_DEFAULT, bg: 'piasek', layout: 'edit', title: 'Do zobaczenia' }),
   starter('banner', 'Czysty', 'Kremowy pas', { banner: { ...BANNER_DEFAULT, style: 'edit', color: '#1a2a9a' }, queue: [], cycle: false, sec: 10 }),
@@ -125,6 +125,6 @@ export function dropPreset(p: Preset) {
 export function presetThumb(p: Preset) {
   const c = document.createElement('canvas'); c.width = 480; c.height = 270
   const ctx = c.getContext('2d'); ctx.scale(480 / W, 270 / H)
-  try { drawPreset(ctx, p.kind, p.data, 4000) } catch { /* bez miniatury */ }
+  try { drawPreset(ctx, p.kind, p.data, 4000) } catch (e) { console.error('Miniatura presetu:', e) } // kafelek bez obrazka, ale reszta działa
   return c.toDataURL('image/jpeg', 0.85)
 }

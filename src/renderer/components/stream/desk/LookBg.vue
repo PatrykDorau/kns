@@ -7,7 +7,7 @@ import { useDesk } from '@/composables/stream/useStreamDesk'
 // Wybór tła planszy (Odliczanie, Koniec): miniatury gotowych teł, dwa kolory, grafika z Biblioteki albo kamera na żywo.
 const props = defineProps<{ look: { bg: string, draw?: boolean, c1: string, c2: string, image: string, dim: number } }>()
 const { mediaList, deskTab } = useDesk()
-const BGS = [['szczyt', 'Szczyt'], ['swit', 'Świt'], ['noc', 'Noc'], ['zar', 'Żar'], ['krem', 'Krem'], ['piasek', 'Piasek'], ['czern', 'Czerń'], ['paper', 'Papier'], ['sketch', 'Szkic'], ['mountains', 'Góry'], ['colors', 'Kolory'], ['image', 'Grafika'], ['camera', 'Kamera']] as const
+const BGS = [['szczyt', 'Szczyt'], ['swit', 'Świt'], ['noc', 'Noc'], ['zar', 'Żar'], ['krem', 'Krem'], ['piasek', 'Piasek'], ['czern', 'Czerń'], ['paper', 'Papier'], ['sketch', 'Szkic'], ['colors', 'Kolory'], ['image', 'Grafika'], ['camera', 'Kamera']] as const
 const moods = ['szczyt', 'swit', 'noc', 'zar', 'krem', 'piasek', 'czern']
 const thumbs = Object.fromEntries(BGS.filter(([id]) => !['colors', 'image', 'camera'].includes(id)).map(([id]) => [id, bgThumb(id)]))
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
@@ -17,9 +17,11 @@ const swatch = (id: string) => id === 'colors' ? { background: `linear-gradient(
 <template>
   <div class="desk-opt-group desk-bgs" role="group" aria-label="Tło">
     <small class="muted">Tło</small>
-    <button v-for="[id, name] in BGS" :key="id" class="desk-bg" :class="{ on: look.bg === id }" :aria-pressed="look.bg === id" :title="name" @click="look.bg = id">
-      <span class="desk-bg-pic" :class="'bg-' + id" :style="swatch(id)"></span>{{ name }}
-    </button>
+    <div class="desk-bg-list">
+      <button v-for="[id, name] in BGS" :key="id" class="desk-bg" :class="{ on: look.bg === id }" :aria-pressed="look.bg === id" :title="name" @click="look.bg = id">
+        <span class="desk-bg-pic" :class="'bg-' + id" :style="swatch(id)"></span>{{ name }}
+      </button>
+    </div>
   </div>
   <div v-if="moods.includes(look.bg)" class="desk-opt-group">
     <label class="check" title="Góra rysuje się kreską jak w tle aplikacji"><input :checked="look.draw !== false" type="checkbox" @change="look.draw = ($event.target as HTMLInputElement).checked"> Animacja rysowania</label>

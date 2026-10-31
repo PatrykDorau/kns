@@ -80,26 +80,22 @@ export function roughFit(str: string, maxW: number, size: number, min = 32, font
   return s
 }
 
-// Panel z poszarpaną krawędzią (jak pociągnięcia pędzla), lekko przetarty.
-export function roughPanel(x: number, y: number, w: number, h: number, color = 'rgba(24,15,9,0.93)', sides = 'tblr') {
-  const bleed = 34, W2 = Math.round(w), H2 = Math.round(h)
-  const c = kept(['p', W2, H2, color, sides].join('|'), () => {
-    const cv = canvas(W2 + bleed * 2, H2 + bleed * 2), p = cv.getContext('2d'), r = seeded(hash(W2 + 'x' + H2))
-    const jag = (on: boolean) => (on ? (r() - 0.5) * 26 + (r() < 0.14 ? (r() - 0.5) * 34 : 0) : 0)
-    const step = 11, L = bleed, T = bleed, R = bleed + W2, B = bleed + H2
-    p.beginPath(); p.moveTo(L, T)
-    for (let a = L; a < R; a += step) p.lineTo(a, T + jag(sides.includes('t')))
-    for (let a = T; a < B; a += step) p.lineTo(R + jag(sides.includes('r')), a)
-    for (let a = R; a > L; a -= step) p.lineTo(a, B + jag(sides.includes('b')))
-    for (let a = B; a > T; a -= step) p.lineTo(L + jag(sides.includes('l')), a)
-    p.closePath(); p.fillStyle = color; p.fill()
-    scuff(p, cv.width, cv.height, hash(color) + W2)
-    return cv
-  })
-  g.drawImage(c, x - bleed, y - bleed)
+// Panel z matowego szkła: półprzezroczysty, zaokrąglony, z cienką jasną obwódką — tło prześwituje pod spodem.
+export function glassPanel(x: number, y: number, w: number, h: number, tint = 'rgba(16,10,6,0.66)') {
+  g.save()
+  g.beginPath(); g.roundRect(x, y, w, h, 20); g.fillStyle = tint; g.fill()
+  g.lineWidth = 1.5; g.strokeStyle = 'rgba(255,240,220,0.26)'; g.stroke()
+  g.restore()
 }
-// Pociągnięcie pędzlem: krótki, poszarpany pasek w kolorze akcentu.
-export function roughRule(x: number, y: number, w: number, color: string, h = 8) { roughPanel(x, y, w, h, color) }
+// Pas u dołu kadru: miękko wyłania się z obrazu, od góry cienka linia w kolorze akcentu.
+export function bottomBand(y: number, color = 'rgba(16,10,6,0.9)', line = '') {
+  const gr = g.createLinearGradient(0, y - 90, 0, y + 50), clear = color.replace(/[\d.]+\)$/, '0)')
+  gr.addColorStop(0, clear); gr.addColorStop(1, color)
+  g.fillStyle = gr; g.fillRect(0, y - 90, W, H - y + 90)
+  if (line) { g.fillStyle = line; g.fillRect(0, H - 6, W, 6) }
+}
+// cienka linia pod nazwą
+export const hairline = (x: number, y: number, w: number, color: string) => { g.fillStyle = color; g.fillRect(x, y, w, 3) }
 
 // Unoszący się kurz: spokojny, mało widoczny ruch w tle plansz.
 const MOTES = (() => { const r = seeded(77); return Array.from({ length: 46 }, () => ({ x: r() * W, y: r() * H, s: 1 + r() * 2.6, v: 6 + r() * 16, a: 0.12 + r() * 0.3 })) })()
@@ -130,34 +126,36 @@ function sketchStrokes() {
   return strokes
 }
 // te same proporcje co tło aplikacji: rysunek przy dolnej krawędzi; szczyt z prawej, po lewej miejsce na napisy
-export const PEAK_X = W * 0.66, PEAK_S = H / 840
-const place = (p: CanvasRenderingContext2D) => p.transform(PEAK_S, 0, 0, PEAK_S, PEAK_X - 700 * PEAK_S, H - 1000 * PEAK_S)
-function stroke(p: CanvasRenderingContext2D, s, color: string, part = 1, base = 1) {
-  p.lineWidth = s.width; p.globalAlpha = s.alpha * base; p.strokeStyle = s.cross ? '#f6a836' : color
+// gdzie stoi góra: [x szczytu, skala, y podnóża rysunku]
+export type Place = [number, number, number]
+export const PEAK_AT: Place = [W * 0.66, H / 840, H]
+const place = (p: CanvasRenderingContext2D, [x, s, bottom]: Place) => p.transform(s, 0, 0, s, x - 700 * s, bottom - 1000 * s)
+function stroke(p: CanvasRenderingContext2D, s, color: string, part = 1, base = 1, cross = '#f6a836') {
+  p.lineWidth = s.width; p.globalAlpha = s.alpha * base; p.strokeStyle = s.cross ? cross : color
   p.setLineDash(part < 1 ? [s.len * part, s.len] : [])
-  if (s.cross) { p.shadowColor = '#f6a836'; p.shadowBlur = 16 }
+  if (s.cross) { p.shadowColor = cross; p.shadowBlur = 16 }
   p.stroke(s.path)
   p.shadowBlur = 0
 }
 const CYCLE = 60000, FADE = 2500 // rysunek powstaje przez ok. 7 s, stoi, a pod koniec minuty gaśnie i rysuje się od nowa
-let live: HTMLCanvasElement = null, liveColor = '', drawn = 0, lastT = 0
+let live: HTMLCanvasElement = null, liveKey = '', drawn = 0, lastT = 0
 const whole = new Map<string, HTMLCanvasElement>()
-const sketchLayer = () => { const c = canvas(W, H), p = c.getContext('2d'); p.lineCap = 'round'; p.lineJoin = 'round'; place(p); return c }
+const sketchLayer = (at: Place) => { const c = canvas(W, H), p = c.getContext('2d'); p.lineCap = 'round'; p.lineJoin = 'round'; place(p, at); return c }
 // Góry rysujące się kreską na tle planszy; full — od razu cały rysunek (miniatury).
-export function drawSketch(t: number, full = false, color = '#f3e3c8') {
-  const list = sketchStrokes()
+export function drawSketch(t: number, full = false, color = '#f3e3c8', at: Place = PEAK_AT, cross = '#f6a836') {
+  const list = sketchStrokes(), key = color + cross + at.join()
   if (full) {
-    if (!whole.has(color)) { const c = sketchLayer(), p = c.getContext('2d'); for (const s of list) stroke(p, s, color); whole.set(color, c) }
-    g.drawImage(whole.get(color), 0, 0, W, H); return
+    if (!whole.has(key)) { const c = sketchLayer(at), p = c.getContext('2d'); for (const s of list) stroke(p, s, color, 1, 1, cross); whole.set(key, c) }
+    g.drawImage(whole.get(key), 0, 0, W, H); return
   }
   const T = t % CYCLE
-  if (!live || T < lastT || color !== liveColor) { live = sketchLayer(); liveColor = color; drawn = 0 }
+  if (!live || T < lastT || key !== liveKey) { live = sketchLayer(at); liveKey = key; drawn = 0 }
   lastT = T
   const p = live.getContext('2d')
-  while (drawn < list.length && list[drawn].at + list[drawn].dur <= T) stroke(p, list[drawn++], color)
+  while (drawn < list.length && list[drawn].at + list[drawn].dur <= T) stroke(p, list[drawn++], color, 1, 1, cross)
   g.save(); g.globalAlpha *= T > CYCLE - FADE ? (CYCLE - T) / FADE : 1
   g.drawImage(live, 0, 0, W, H)
-  g.lineCap = 'round'; g.lineJoin = 'round'; place(g)
-  for (let i = drawn; i < list.length; i++) { const s = list[i]; if (s.at < T) { const a = g.globalAlpha; stroke(g, s, color, (T - s.at) / s.dur, a); g.globalAlpha = a } }
+  g.lineCap = 'round'; g.lineJoin = 'round'; place(g, at)
+  for (let i = drawn; i < list.length; i++) { const s = list[i]; if (s.at < T) { const a = g.globalAlpha; stroke(g, s, color, (T - s.at) / s.dur, a, cross); g.globalAlpha = a } }
   g.restore()
 }

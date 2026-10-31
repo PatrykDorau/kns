@@ -52,7 +52,7 @@ const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w Å
         <small class="muted">Z lewej</small>
         <select v-model="cd.photo" aria-label="Co z lewej">
           <optgroup label="Gotowe">
-            <option value="">GÃ³ry</option>
+            <option value="">Szczyt</option>
             <option value="@sketch">Szkic</option>
             <option value="@paper">Papier</option>
             <option value="@accent">Kolor akcentu</option>
