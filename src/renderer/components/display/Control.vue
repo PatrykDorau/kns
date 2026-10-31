@@ -13,7 +13,7 @@ import TextPopup from '@/components/display/TextPopup.vue'
 import ServiceImport from '@/components/display/ServiceImport.vue'
 import BiblePopup from '@/components/display/BiblePopup.vue'
 import {
-  bibleOpen, view, addFiles, api, busy, canGo, displayId, displays, followStep, frozen, frozenLabel, goLive, jumpToKey, role, loopPlaying, loopStep, selectedStep, stepLoop, hidden, init, label, liveId, liveIsVideo,
+  bibleOpen, view, addFiles, api, busy, canGo, displayId, displays, followStep, frozen, frozenAt, frozenLabel, goLive, jumpToKey, role, loopPlaying, loopStep, selectedStep, stepLoop, hidden, init, label, liveId, liveIsVideo, liveItem, liveView,
   managerOpen, mirroring, notice, output, selected, selectedId, selectedIndex, selectedView, previewVideo, selectedFrozen, sendText, serviceList, serviceModal, startRename, stepBy, tab, textPopup, toggleFrozen, toggleHidden,
   textDirty, toggleOutput, verses, video, volume,
 } from '@/stores'
@@ -75,6 +75,21 @@ watch([video, mirroring], () => {
   const v = previewStage.value?.video
   if (!mirroring.value || !v) return
   if (Math.abs(v.currentTime - video.value.time) > 0.3) v.currentTime = video.value.time
+  if (video.value.paused !== v.paused) video.value.paused ? v.pause() : v.play().catch(() => {})
+}, { flush: 'post' })
+
+/* ---------- okienko „na żywo” ---------- */
+// Podgląd pokazuje inny materiał niż rzutnik — w rogu małe okienko z tym, co widzi sala. Kliknięcie wraca do tego materiału.
+const liveStage = ref(null)
+const showLive = computed(() => !!liveId.value && selected.value?.id !== liveId.value && !!liveView.value)
+// zamrożony rzutnik stoi na swoim slajdzie, nawet gdy pieśń idzie dalej
+const liveMini = computed(() => (frozen.value && frozenAt.value && liveItem.value?.type === 'song' ? view(liveItem.value, frozenAt.value.index) : liveView.value))
+const liveFollow = computed(() => (liveMini.value?.type !== 'scene' ? null : frozen.value && frozenAt.value ? frozenAt.value.step : video.value.step || 0))
+// film w okienku idzie za filmem na rzutniku (bez dźwięku)
+watch([video, showLive], () => {
+  const v = liveStage.value?.video
+  if (!showLive.value || !v) return
+  if (Math.abs(v.currentTime - video.value.time) > 1) v.currentTime = video.value.time
   if (video.value.paused !== v.paused) video.value.paused ? v.pause() : v.play().catch(() => {})
 }, { flush: 'post' })
 
@@ -174,6 +189,10 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
             <div v-else-if="selected.missing" class="placeholder">Nie znaleziono pliku:<br>{{ selected.path }}</div>
             <div v-else-if="!canGo" class="placeholder">{{ selected.type === 'song' ? 'Pieśń nie ma jeszcze tekstu' : selected.type === 'web' ? 'Wpisz adres strony po prawej' : 'Pętla jest pusta — dodaj slajdy po prawej' }}</div>
             <Stage v-else ref="previewStage" instant :item="selectedView" :mirror="mirroring" :follow-step="followStep" @video="onPreviewVideo" @step="onPreviewStep" @webmax="m => { if (selected?.type === 'web') selected.webMax = m }" />
+            <button v-if="showLive" class="livepip" :title="'Na rzutniku: ' + label(liveItem) + ' — kliknij, aby wrócić do tego materiału'" :aria-label="'Wróć do materiału na rzutniku: ' + label(liveItem)" @click="selectedId = liveId">
+              <Stage ref="liveStage" :item="liveMini" :follow-step="liveFollow" :frozen="frozen" />
+              <span class="lp-tag" :class="{ off: hidden, ice: frozen && !hidden }">{{ hidden ? 'UKRYTE' : frozen ? 'ZAMROŻONE' : 'NA ŻYWO' }}</span>
+            </button>
           </div>
         </div>
 
