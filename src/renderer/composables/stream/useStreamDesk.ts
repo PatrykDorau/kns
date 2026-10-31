@@ -16,7 +16,7 @@ import { useYouTube } from './useYouTube'
 
 export const SCENE_NAME: Record<string, string> = Object.fromEntries(SCENES)
 export const CORNERS = [['tl', '↖', 'Lewy górny róg'], ['tr', '↗', 'Prawy górny róg'], ['bl', '↙', 'Lewy dolny róg'], ['br', '↘', 'Prawy dolny róg']]
-export type DeskTab = 'media' | 'slides' | 'music'
+export type DeskTab = 'media' | 'proj' | 'slides' | 'music'
 
 function createDesk(service: Ref<Service | null>) {
   const atem = useAtem()

@@ -59,6 +59,9 @@ export interface KnsApi {
   mirrorUpload: Invoke
   mirrorFetch: Invoke
   mirrorClean: Invoke
+  mirrorHave: Invoke
+  mirrorWipe: Invoke
+  onMirrorProgress: (cb: (p: { name: string, got: number, total: number }) => void) => () => void
   googleLogin: Invoke
   googleLogout: Invoke
   googleStatus: Invoke

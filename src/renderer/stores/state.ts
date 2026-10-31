@@ -23,6 +23,7 @@ export const settings = reactive<Settings>({
   lyrics: false, lyricsPos: 'dol', lyricsSize: 6, lyricsBar: false, // dawne napisy dla OBS — nieużywane, zostają w zapisanych ustawieniach
   lyricsOnline: false, lyricsKey: '', // napisy przez internet (kns-nabo.netlify.app/napisy?k=…)
   mirrorStream: false, // materiały rzutnika dla Streamu na innym komputerze (Dysk Google + kanał na żywo)
+  mirrorLive: false, // Stream: nowe pliki z rzutnika pobierane same także w trakcie transmisji (domyślnie czekają na decyzję)
   remoteToken: '',
   songSort: 'number', // 'number' | 'title'
   service: [], // pieśni na najbliższe nabożeństwo: [{ key, songId }]

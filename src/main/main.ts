@@ -1099,7 +1099,7 @@ app.whenReady().then(() => {
         if (typeof p !== 'string' || /^https?:/.test(p)) continue
         const st = await fs.promises.stat(p)
         const ext = (path.extname(p).slice(1).toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin').slice(0, 5)
-        out[p] = crypto.createHash('sha1').update(path.basename(p) + '|' + st.size + '|' + Math.round(st.mtimeMs)).digest('hex').slice(0, 20) + '.' + ext
+        out[p] = { name: crypto.createHash('sha1').update(path.basename(p) + '|' + st.size + '|' + Math.round(st.mtimeMs)).digest('hex').slice(0, 20) + '.' + ext, size: st.size }
       } catch { /* plik zniknął */ }
     }
     return out
@@ -1111,11 +1111,29 @@ app.whenReady().then(() => {
     mirrorQueue = job.catch(() => {})
     return job
   })
-  ipcMain.handle('mirror:fetch', (e, name) => {
+  // pobieranie: jeden plik — jedno pobieranie (rzutnik przypomina co 5 s, co pokazuje), postęp do okna
+  const mirrorCopy = name => path.join(mediaDir(), 'rzutnik', name)
+  const mirrorJobs = new Map()
+  ipcMain.handle('mirror:fetch', (e, name, opt) => {
     if (!MIRROR_NAME.test(String(name))) return { error: 'Nieprawidłowa nazwa.' }
-    return viaGoogle(() => gdrive.mirrorFetch(name, path.join(mediaDir(), 'rzutnik', name)))
+    if (mirrorJobs.has(name)) return mirrorJobs.get(name)
+    let last = 0
+    const onProgress = (got, total) => { if (Date.now() - last > 300) { last = Date.now(); toControl('mirror:progress', { name, got, total }) } }
+    const job = viaGoogle(() => gdrive.mirrorFetch(name, mirrorCopy(name), { onProgress, limit: +opt?.limit || 0 })).finally(() => mirrorJobs.delete(name))
+    mirrorJobs.set(name, job)
+    return job
   })
+  // które pliki są już na tym komputerze (nazwa → ścieżka)
+  ipcMain.handle('mirror:have', (e, names) => Object.fromEntries((Array.isArray(names) ? names : []).filter(n => MIRROR_NAME.test(String(n)) && fs.existsSync(mirrorCopy(n))).map(n => [n, mirrorCopy(n)])))
   ipcMain.handle('mirror:clean', () => viaGoogle(() => gdrive.mirrorClean(7)))
+  // po nabożeństwie: wszystko z Dysku i kopie na tym komputerze (poza tym, co jest teraz na wizji)
+  ipcMain.handle('mirror:wipe', async (e, keep) => {
+    const res = await viaGoogle(() => gdrive.mirrorClean(0))
+    const dir = path.join(mediaDir(), 'rzutnik')
+    const local = await fs.promises.readdir(dir).catch(() => [])
+    for (const f of local) if (!(Array.isArray(keep) && keep.includes(f))) await fs.promises.rm(path.join(dir, f), { force: true }).catch(() => {})
+    return res
+  })
   ipcMain.handle('shared:account', (e, dir) => {
     if (dir !== GOOGLE) return sharedAccount(dir)
     const { email } = gdrive.status()

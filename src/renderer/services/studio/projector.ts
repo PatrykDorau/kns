@@ -1,7 +1,7 @@
 // Scena „Rzutnik”: obraz rzutnika przez sieć (WebRTC z laptopa przy rzutniku) albo to, co pokazuje Rzutnik
 // w tej aplikacji (grafika, film, tekst).
 import { H, W, studio } from './state'
-import { background, fit, fullImage, g, img, text } from './paint'
+import { S, background, fit, fullImage, g, img, text } from './paint'
 import { connectMedia } from './audio'
 
 let projVideo: HTMLVideoElement = null, remoteVideo: HTMLVideoElement = null
@@ -28,7 +28,9 @@ export function projectorFrame(t) {
   if (!mirror && studio.remoteScreen && remoteVideo?.readyState >= 2) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); fit(remoteVideo, remoteVideo.videoWidth, remoteVideo.videoHeight, 0, 0, W, H); return }
   if (p.kind === 'loading') {
     if (projVideo && !projVideo.paused) projVideo.pause()
-    background(t); text(p.missing ? 'Rzutnik jeszcze wysyła ten materiał…' : 'Wczytuję materiał z rzutnika…', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return
+    background(t) // napis tylko na podglądzie — widzowie nie muszą go czytać
+    if (S !== studio.program) text(p.ask ? 'Rzutnik pokazuje materiał, którego tu nie ma — zakładka „Z rzutnika”' : p.missing ? 'Rzutnik jeszcze wysyła ten materiał…' : 'Wczytuję materiał z rzutnika…', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' })
+    return
   }
   if (p.kind === 'image' && p.url) { const im = img(p.url) || lastImage; if (im) { lastImage = im; fullImage(im); return } }
   if (p.kind === 'video' && p.url) {

@@ -60,6 +60,7 @@ export interface ProjectorShown {
   playing?: boolean
   time?: number
   at?: number
+  ask?: boolean // materiału nie ma na tym komputerze, a pobranie czeka na decyzję (w trakcie transmisji)
   fit?: string
   remote?: boolean // materiał z rzutnika na innym komputerze (własna kopia Streamu)
   missing?: boolean // pliku nie ma jeszcze na Dysku

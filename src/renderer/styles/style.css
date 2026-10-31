@@ -989,6 +989,17 @@ main.stream > section:first-child { overflow-y: auto; }
 .desk-proj { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 10px; margin: 8px 0; }
 .desk-proj label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 260px; flex: 1; }
 .desk-proj small { flex-basis: 100%; }
+/* zakładka „Z rzutnika”: pliki, postęp, ponawianie */
+.desk-pfiles { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.desk-pfiles li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.desk-pfiles li.error { border-color: var(--bad, #e5484d); }
+.pf-name { min-width: 0; display: flex; flex-direction: column; }
+.pf-name b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pf-name small, .pf-state { color: var(--muted); font-size: 12.5px; }
+.desk-pfiles li.done .pf-state { color: var(--ok, #3fb950); }
+.desk-pfiles li.error .pf-state { color: var(--bad, #e5484d); }
+.pf-bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, .1); }
+.pf-bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
 .desk-media-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .desk-media-txt { flex: 1; min-width: 200px; padding: 6px 10px; font-size: 13px; }
 .desk-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; max-height: 340px; overflow-y: auto; padding: 2px; }

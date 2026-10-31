@@ -174,10 +174,22 @@ export default function createGoogleDrive({ serviceFolderName, safeId }) {
   }
   const writeJson = (id, data) => upload(id, Buffer.from(JSON.stringify(data)), 'application/json')
 
-  async function download(id, dest) {
+  // limit (bajty/s): przycięte pobieranie — w trakcie transmisji internet ma zostać dla streamu
+  async function download(id, dest, { onProgress = null, limit = 0 } = {}) {
     const res = await call(`${API}/files/${id}?alt=media&supportsAllDrives=true`)
     await fs.promises.mkdir(path.dirname(dest), { recursive: true })
-    await pipeline(Readable.fromWeb(res.body as any), fs.createWriteStream(dest + '.part'))
+    const total = +res.headers.get('content-length') || 0, t0 = Date.now()
+    let got = 0
+    const paced = async function* (src) {
+      for await (const chunk of src) {
+        got += chunk.length
+        onProgress?.(got, total)
+        const wait = limit ? (got / limit) * 1000 - (Date.now() - t0) : 0
+        if (wait > 0) await new Promise(r => setTimeout(r, wait))
+        yield chunk
+      }
+    }
+    await pipeline(Readable.fromWeb(res.body as any), paced, fs.createWriteStream(dest + '.part'))
     await fs.promises.rename(dest + '.part', dest)
   }
 
@@ -433,18 +445,19 @@ export default function createGoogleDrive({ serviceFolderName, safeId }) {
     return { ok: true }
   }
   // pobranie do pamięci podręcznej Streamu (dest); brak pliku na Dysku — { missing }
-  async function mirrorFetch(name, dest) {
+  async function mirrorFetch(name, dest, opt = {}) {
     if (fs.existsSync(dest)) return { path: dest }
     const f = await mirrorFind(name)
     if (!f) return { missing: true }
-    await download(f.id, dest)
+    await download(f.id, dest, opt)
     return { path: dest }
   }
-  // sprzątanie: pliki starsze niż tydzień i porzucone „.part”
+  // sprzątanie: pliki starsze niż tydzień i porzucone „.part”; 0 dni — wszystko (przycisk po nabożeństwie)
   async function mirrorClean(days = 7) {
     const dir = await mirrorFolder(), before = new Date(Date.now() - days * 864e5).toISOString()
-    for (const f of await list(`${q(dir)} in parents and modifiedTime < ${q(before)} and trashed=false`)) await call(`${API}/files/${f.id}?supportsAllDrives=true`, { method: 'DELETE' }).catch(() => {})
-    return { ok: true }
+    let removed = 0
+    for (const f of await list(`${q(dir)} in parents and modifiedTime < ${q(before)} and trashed=false`)) await call(`${API}/files/${f.id}?supportsAllDrives=true`, { method: 'DELETE' }).then(() => removed++, () => {})
+    return { ok: true, removed }
   }
 
   return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles, idToken, mapFiles, storeFiles, mirrorUpload, mirrorFetch, mirrorClean }

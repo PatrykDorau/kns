@@ -15,6 +15,7 @@ export interface Settings {
   lyricsBar: boolean
   lyricsOnline: boolean
   mirrorStream?: boolean
+  mirrorLive?: boolean
   lyricsKey: string
   remoteToken: string
   songSort: 'number' | 'title'

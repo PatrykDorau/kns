@@ -8,6 +8,7 @@ import { END_DEFAULT } from '@/services/studio/cards'
 import LookBg from './LookBg.vue'
 import CountdownLook from './CountdownLook.vue'
 import { useDesk } from '@/composables/stream/useStreamDesk'
+import { fetchAllProjFiles, projFiles } from '@/services/projectorMirror'
 
 // Ustawienia sceny w podglądzie (stale pod przyciskami scen) (odliczanie, kamera w okienku, okienko z materiałem).
 const { mediaList, pvFull, deskTab, addMediaFiles } = useDesk()
@@ -29,9 +30,12 @@ const END_LAYOUTS = [['cards', 'Karta z kafelkami', 'Jak grafiki ogłoszeń: kar
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 // grafika z dysku: dodaje do Biblioteki i od razu wybiera
 async function addPic() { const before = new Set(mediaList.value.map(x => x.id)); if (await addMediaFiles()) { const n = mediaList.value.find(x => x.type === 'image' && !before.has(x.id)); if (n) en.pic = n.id } }
+// rzutnik przysłał pliki, a w trakcie transmisji pobranie to decyzja operatora
+const waiting = computed(() => projFiles.list.filter(f => f.state === 'new'))
+const waitMb = computed(() => Math.round(waiting.value.reduce((s, f) => s + f.size, 0) / 1e6))
 // co widać na scenie „Rzutnik”
 const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z rzutnika przez sieć'
-  : studio.projector.kind !== 'none' ? '● Rzutnik na tym komputerze'
+  : studio.projector.kind !== 'none' ? (studio.projector.remote ? '● Rzutnik na innym komputerze' : '● Rzutnik na tym komputerze')
   : remoteScreen.state === 'connecting' ? 'Obraz z rzutnika przez sieć: ' + (remoteScreen.error || remoteScreen.step)
   : settings.studioLocalProjector ? 'Rzutnik w tej aplikacji nic teraz nie pokazuje.'
   : settings.streamLyrics === 'remote' ? 'Rzutnik na innym komputerze nic nie wysyła — tam w Ustawieniach aplikacji włącz „Udostępniaj obraz rzutnika”.'
@@ -72,6 +76,14 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
     </div>
   </div>
   <p v-if="studio.preview.scene === 'projector'" class="desk-ov-note" :class="remoteScreen.state === 'on' || studio.projector.kind !== 'none' ? 'ok' : 'muted'">{{ projectorNote }}</p>
+  <div v-if="studio.preview.scene === 'projector' && (waiting.length || projFiles.sending)" class="desk-opt-group" role="status">
+    <small v-if="projFiles.sending" class="muted">Rzutnik wysyła: {{ projFiles.sending.label }}<template v-if="projFiles.sending.left > 1"> (i {{ projFiles.sending.left - 1 }} więcej)</template></small>
+    <template v-if="waiting.length">
+      <span>Rzutnik przesłał {{ waiting.length }} {{ waiting.length === 1 ? 'plik' : 'pliki' }}<template v-if="waitMb"> ({{ waitMb }} MB)</template> — pobranie zajmie internet transmisji.</span>
+      <button @click="fetchAllProjFiles">Pobierz</button>
+      <button @click="deskTab = 'proj'">Zobacz listę</button>
+    </template>
+  </div>
   <div v-if="studio.preview.scene === 'media'" class="desk-opt-group">
     <template v-if="studio.preview.media === ANN_MEDIA"><b>Ogłoszenia w pętli</b><button @click="deskTab = 'slides'">Które ogłoszenia…</button><button @click="deskTab = 'media'">Zmień</button></template>
     <template v-else-if="pvFull"><Thumb :item="pvFull" /><b>{{ label(pvFull) }}</b><button @click="deskTab = 'media'">Zmień</button></template>
