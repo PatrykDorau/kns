@@ -225,16 +225,28 @@ export function fill(str) {
   put('{kazanie}', [near?.sermonTitle, near?.passage].filter(Boolean).join(' · '), 'Tytuł kazania')
   return empty ? '' : s
 }
+// Rysowanie gór zaczyna się, gdy plansza wchodzi na ekran: osobny zegar dla podglądu i wizji; kopia przy przenikaniu
+// i miniatury pokazują gotowy rysunek, a podgląd w Przygotowaniu (S.loop) rysuje w kółko.
+const sketchSeen = new WeakMap<object, { start: number, last: number }>()
+function sketchLine(L, t, color, at, cross = undefined) {
+  const onAir = S === studio.program || S === studio.preview
+  if (S?.loop) { drawSketch(t, false, color, at, cross, 'x'); return }
+  if (demo || L.draw === false || !onAir) { drawSketch(t, true, color, at, cross); return }
+  let c = sketchSeen.get(S)
+  if (!c || t - c.last > 400) { c = { start: t, last: t }; sketchSeen.set(S, c) }
+  c.last = t
+  drawSketch(t - c.start, false, color, at, cross, S === studio.program ? 'p' : 'v')
+}
 // Tło planszy: namalowana góra (Szczyt, Świt, Noc, Żar), papier, szkic, góry, dwa kolory, grafika z Biblioteki albo kamera.
 export function cdBackground(L, t, side = true) {
-  if (isMood(L.bg)) { drawPeak(L.bg); drawSketch(t, demo || L.draw === false, MOODS[L.bg].line, MOODS[L.bg].at, MOODS[L.bg].cross); dust(t); dimmed(L); return }
+  if (isMood(L.bg)) { drawPeak(L.bg); sketchLine(L, t, MOODS[L.bg].line, MOODS[L.bg].at, MOODS[L.bg].cross); dust(t); dimmed(L); return }
   if (isClean(L.bg)) {
     const c = CLEAN[L.bg]
     const block = hasBlock(L.bg, L.layout)
     cleanBackground(L.bg, L.layout)
     g.save(); g.globalAlpha = c.alpha // linia ma być tłem, nie treścią
     if (block) { g.beginPath(); g.rect(c.clip[0], 0, c.clip[1], H); g.clip() }
-    drawSketch(t, demo || L.draw === false, c.clip && !block ? c.ink : c.line, c.at); g.restore()
+    sketchLine(L, t, c.clip && !block ? c.ink : c.line, c.at); g.restore()
     return
   }
   if (BACKGROUNDS[L.bg]) return BACKGROUNDS[L.bg](t)

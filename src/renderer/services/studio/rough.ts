@@ -138,24 +138,27 @@ function stroke(p: CanvasRenderingContext2D, s, color: string, part = 1, base = 
   p.shadowBlur = 0
 }
 const CYCLE = 60000, FADE = 2500 // rysunek powstaje przez ok. 7 s, stoi, a pod koniec minuty gaśnie i rysuje się od nowa
-let live: HTMLCanvasElement = null, liveKey = '', drawn = 0, lastT = 0
+// osobna warstwa dla każdego tła — podgląd i wizja mogą mieć różne i obie rysują się dalej
+const layers = new Map<string, { c: HTMLCanvasElement, drawn: number, lastT: number }>()
 const whole = new Map<string, HTMLCanvasElement>()
 const sketchLayer = (at: Place) => { const c = canvas(W, H), p = c.getContext('2d'); p.lineCap = 'round'; p.lineJoin = 'round'; place(p, at); return c }
-// Góry rysujące się kreską na tle planszy; full — od razu cały rysunek (miniatury).
-export function drawSketch(t: number, full = false, color = '#f3e3c8', at: Place = PEAK_AT, cross = '#f6a836') {
-  const list = sketchStrokes(), key = color + cross + at.join()
+// Góry rysujące się kreską na tle planszy; t — od wejścia planszy na ekran; full — od razu cały rysunek (miniatury).
+export function drawSketch(t: number, full = false, color = '#f3e3c8', at: Place = PEAK_AT, cross = '#f6a836', layer = '') {
+  const list = sketchStrokes(), key = layer + color + cross + at.join()
   if (full) {
     if (!whole.has(key)) { const c = sketchLayer(at), p = c.getContext('2d'); for (const s of list) stroke(p, s, color, 1, 1, cross); whole.set(key, c) }
     g.drawImage(whole.get(key), 0, 0, W, H); return
   }
   const T = t % CYCLE
-  if (!live || T < lastT || key !== liveKey) { live = sketchLayer(at); liveKey = key; drawn = 0 }
-  lastT = T
-  const p = live.getContext('2d')
-  while (drawn < list.length && list[drawn].at + list[drawn].dur <= T) stroke(p, list[drawn++], color, 1, 1, cross)
+  let L = layers.get(key)
+  // nowy obieg rysowania; drobne różnice czasu między płótnami (podgląd, wizja) go nie zaczynają
+  if (!L || T < L.lastT - 2000) { L = { c: sketchLayer(at), drawn: 0, lastT: T }; layers.set(key, L) }
+  L.lastT = Math.max(L.lastT, T)
+  const p = L.c.getContext('2d')
+  while (L.drawn < list.length && list[L.drawn].at + list[L.drawn].dur <= T) stroke(p, list[L.drawn++], color, 1, 1, cross)
   g.save(); g.globalAlpha *= T > CYCLE - FADE ? (CYCLE - T) / FADE : 1
-  g.drawImage(live, 0, 0, W, H)
+  g.drawImage(L.c, 0, 0, W, H)
   g.lineCap = 'round'; g.lineJoin = 'round'; place(g, at)
-  for (let i = drawn; i < list.length; i++) { const s = list[i]; if (s.at < T) { const a = g.globalAlpha; stroke(g, s, color, (T - s.at) / s.dur, a, cross); g.globalAlpha = a } }
+  for (let i = L.drawn; i < list.length; i++) { const s = list[i]; if (s.at < T) { const a = g.globalAlpha; stroke(g, s, color, (T - s.at) / s.dur, a, cross); g.globalAlpha = a } }
   g.restore()
 }

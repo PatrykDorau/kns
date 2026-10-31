@@ -21,6 +21,7 @@ export interface Look {
   scene: SceneId | string
   lyricsOn: boolean
   lowerThird: boolean
+  loop?: boolean // tylko podgląd w Przygotowaniu: rysowanie gór w kółko
   lowerLook?: { ink?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
   pip: Pip
   lowerAt: number

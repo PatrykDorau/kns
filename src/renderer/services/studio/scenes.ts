@@ -68,7 +68,7 @@ export const SCENE_DRAW = {
 }
 // Preset na osobnym płótnie (miniatura, podgląd w Przygotowaniu): plansza z jego wyglądem, nakładka na neutralnym tle.
 export function drawPreset(ctx, kind, data, t, edit = false) {
-  const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerOff: 0, styles: { cd: data, end: data, life: data },
+  const look = { ...studio.preview, loop: edit, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerOff: 0, styles: { cd: data, end: data, life: data },
     scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : kind === 'life' ? 'life' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
     lowerAt: 0, lowerThird: kind === 'lower', lowerLook: kind === 'lower' ? data : null,
     endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit).slice(0, 1), sec: 10, at: 0 } : null }
@@ -239,7 +239,7 @@ function endOverlay() {
   const { list, sec, at = 0 } = bannerNow()
   if (list.length < 2) { drawBanner(list[0]); return }
   const t = performance.now() - at, slot = sec * 1000, i = Math.floor(t / slot) % list.length, k = t < slot ? 1 : Math.min(1, (t % slot) / 600)
-  if (k < 1) { g.save(); g.globalAlpha = 1 - k; drawBanner(list[(i - 1 + list.length) % list.length]); g.restore() }
+  if (k < 1) drawBanner(list[(i - 1 + list.length) % list.length]) // poprzedni stoi pod spodem, nowy wchodzi na niego — pas nie prześwituje
   g.save(); g.globalAlpha = k; drawBanner(list[i]); g.restore()
 }
 function drawBanner(B) {
