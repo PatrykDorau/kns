@@ -8,12 +8,16 @@ import { CD_DEFAULT, END_DEFAULT, bannerSet } from './cards'
 // Bieżący wygląd plansz z ustawień (kopia) — wizja dostaje go przy „Na wizję”, podgląd zawsze rysuje z ustawień.
 const copy = x => (x == null ? x : JSON.parse(JSON.stringify(x)))
 export const liveStyles = () => ({ cd: { ...CD_DEFAULT, ...copy(settings.cdLook || {}) }, end: { ...END_DEFAULT, ...copy(settings.endLook || {}) } }) // plansze; nakładki działają od razu
-const stylesOf = l => JSON.stringify(l.styles || liveStyles())
+// wygląd planszy liczy się tylko, gdy ta plansza jest na podglądzie albo na wizji — inaczej nie ma czego wysyłać
+const sameStyles = (a, b) => {
+  const x = a.styles || liveStyles(), y = b.styles || liveStyles(), shown = scene => a.scene === scene || b.scene === scene
+  return (!shown('countdown') || JSON.stringify(x.cd) === JSON.stringify(y.cd)) && (!shown('end') || JSON.stringify(x.end) === JSON.stringify(y.end))
+}
 // przejście na wizji: poprzedni wygląd znika przez pół sekundy
 export const fade: { from: Look | null; at: number } = { from: null, at: 0 }
 const snap = l => ({ ...l, pip: { ...l.pip }, mpos: { ...l.mpos }, styles: l.styles ? copy(l.styles) : l.styles })
 const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size && !!a.pip.on === !!b.pip.on
-  && !!a.endOvl === !!b.endOvl && !!a.prayer === !!b.prayer && stylesOf(a) === stylesOf(b) && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
+  && !!a.endOvl === !!b.endOvl && !!a.prayer === !!b.prayer && sameStyles(a, b) && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
 export const differs = () => !same(studio.preview, studio.program) || bannerPending() || prayerPending()
 export function toProgram(fn) {
   const before = snap(studio.program)
