@@ -9,9 +9,9 @@ import { useDesk } from '@/composables/stream/useStreamDesk'
 const props = defineProps<{ look: { ink?: string, bg: string, draw?: boolean, c1: string, c2: string, image: string, dim: number } }>()
 const { mediaList, deskTab } = useDesk()
 // Góra to jeden kafelek; pora dnia to jej motyw, wybierany pod spodem.
-const PEAKS = [['szczyt', 'Szczyt'], ['swit', 'Świt'], ['noc', 'Noc'], ['zar', 'Żar']] as const
+const PEAKS = [['szczyt', 'Szczyt'], ['swit', 'Świt'], ['noc', 'Noc'], ['zar', 'Żar'], ['czern', 'Czerń']] as const
 const isPeak = computed(() => PEAKS.some(([id]) => id === props.look.bg))
-const BGS = [['gora', 'Góra'], ['krem', 'Krem'], ['piasek', 'Piasek'], ['czern', 'Czerń'], ['paper', 'Papier'], ['sketch', 'Szkic'], ['colors', 'Kolory'], ['image', 'Grafika'], ['camera', 'Kamera']] as const
+const BGS = [['gora', 'Góra'], ['krem', 'Krem'], ['piasek', 'Piasek'], ['paper', 'Papier'], ['sketch', 'Szkic'], ['colors', 'Kolory'], ['image', 'Grafika'], ['camera', 'Kamera']] as const
 const palettes = computed(() => PALETTES[props.look.bg] || [])
 const isOn = ([ink, accent]) => (props.look as any).accent === accent && props.look.ink === ink
 function usePalette([ink, accent]) { props.look.ink = ink; (props.look as any).accent = accent }
