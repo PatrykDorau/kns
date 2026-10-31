@@ -189,7 +189,7 @@ export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.c
 export const END_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'DZIĘKUJEMY, ŻE BYLIŚCIE Z NAMI', sub: 'Do zobaczenia: {nabożeństwo}', brand: 'KOŚCIÓŁ NA SKALE', layout: 'rock', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
 // Ramka sceny „Życie kościoła”: tło jak w planszach, napisy, ogłoszenia, wydarzenia i kod QR.
-export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, layout: 'side', title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
+export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, layout: 'side', banner: true, title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
 export const lifeLook = () => safeBg({ ...LIFE_DEFAULT, ...(styleOf('life', settings.lifeLook) || {}) })
 // Pasek mówcy: {mówca} i {kazanie} — z najbliższego nabożeństwa; puste pole — nic.
 export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true } as const

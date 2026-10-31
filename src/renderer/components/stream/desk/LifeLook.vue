@@ -12,6 +12,7 @@ const QRS = [['bank', 'Wsparcie (przelew / BLIK)'], ['youtube', 'YouTube'], ['sp
     <div class="desk-opt-group">
       <small class="muted">Układ</small>
       <button :class="{ on: look.layout !== 'frame' }" title="Kamera na całą wysokość, ogłoszenia jadą z prawej i nachodzą na obraz" @click="look.layout = 'side'">Boczny</button>
+      <button :class="{ on: look.layout === 'float' }" title="Kamera w oknie na tle, ogłoszenie nachodzi na nią z prawej, baner w rogu" @click="look.layout = 'float'">Pływający</button>
       <button :class="{ on: look.layout === 'frame' }" title="Kamera w oknie, ogłoszenia obok, u dołu pas z wydarzeniami" @click="look.layout = 'frame'">Ramka</button>
     </div>
     <LookBg :look="look" />
@@ -21,6 +22,7 @@ const QRS = [['bank', 'Wsparcie (przelew / BLIK)'], ['youtube', 'YouTube'], ['sp
       <label>Nazwa <input v-model="look.brand" maxlength="40"></label>
     </div>
     <div class="desk-opt-group">
+      <label class="check" title="Plakietka z napisem, logo i kodem QR"><input :checked="look.banner !== false" type="checkbox" @change="look.banner = ($event.target as HTMLInputElement).checked"> Baner</label>
       <label class="check"><input v-model="look.ann" type="checkbox"> Ogłoszenia</label>
       <label class="check" title="Tylko wydarzenia zaznaczone „Pokaż na nabożeństwie” i dostępne dla wszystkich"><input v-model="look.events" type="checkbox"> Najbliższe wydarzenia</label>
       <small class="muted">Kod QR</small>
