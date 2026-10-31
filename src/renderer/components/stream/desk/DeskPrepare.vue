@@ -11,6 +11,7 @@ import type { Preset } from '@/types'
 import BannerSettings from './BannerSettings.vue'
 import CountdownLook from './CountdownLook.vue'
 import EndLook from './EndLook.vue'
+import LowerLook from './LowerLook.vue'
 import PrayerLook from './PrayerLook.vue'
 
 // Przygotowanie: tu powstają presety (cały wygląd plansz i nakładek) — w Studio zostaje już tylko ich wybór.
@@ -60,6 +61,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
         <CountdownLook v-if="preset.kind === 'cd'" :key="preset.id" :cd="preset.data" />
         <EndLook v-else-if="preset.kind === 'end'" :key="preset.id" :en="preset.data" />
         <BannerSettings v-else-if="preset.kind === 'banner'" :key="preset.id" :preset="preset.data" />
+        <LowerLook v-else-if="preset.kind === 'lower'" :key="preset.id" :look="preset.data" />
         <PrayerLook v-else :key="preset.id" :look="preset.data" />
       </div>
       <p v-else class="desk-help">Dodaj pierwszy preset.</p>

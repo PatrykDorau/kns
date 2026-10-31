@@ -3,7 +3,7 @@
 import { itemById, settings } from '@/stores'
 import type { Look } from '@/types'
 import { studio } from './state'
-import { CD_DEFAULT, END_DEFAULT, bannerSet } from './cards'
+import { CD_DEFAULT, END_DEFAULT, LOWER_DEFAULT, bannerSet } from './cards'
 
 // Bieżący wygląd plansz z ustawień (kopia) — wizja dostaje go przy „Na wizję”, podgląd zawsze rysuje z ustawień.
 const copy = x => (x == null ? x : JSON.parse(JSON.stringify(x)))
@@ -18,7 +18,7 @@ export const fade: { from: Look | null; at: number } = { from: null, at: 0 }
 const snap = l => ({ ...l, pip: { ...l.pip }, mpos: { ...l.mpos }, styles: l.styles ? copy(l.styles) : l.styles })
 const same = (a, b) => a.scene === b.scene && a.lowerThird === b.lowerThird && a.pip.corner === b.pip.corner && a.pip.size === b.pip.size && !!a.pip.on === !!b.pip.on
   && !!a.endOvl === !!b.endOvl && !!a.prayer === !!b.prayer && sameStyles(a, b) && a.media === b.media && a.omedia === b.omedia && a.ovl === b.ovl && a.mpos.corner === b.mpos.corner && a.mpos.size === b.mpos.size
-export const differs = () => !same(studio.preview, studio.program) || bannerPending() || prayerPending()
+export const differs = () => !same(studio.preview, studio.program) || bannerPending() || prayerPending() || lowerPending()
 export function toProgram(fn) {
   const before = snap(studio.program)
   fn(studio.program)
@@ -41,7 +41,13 @@ export function setScene(id) { change(l => { l.scene = id }) }
 function both(fn) { fn(studio.preview); toProgram(fn) }
 // wyjazd tylko tam, gdzie pasek był — schowanie z samego podglądu nie gra animacji na wizji
 const lt = v => l => { if (v) l.lowerAt = performance.now(); else if (l.lowerThird) l.lowerOff = performance.now(); l.lowerThird = v }
-export function setLowerThird(v: boolean) { both(lt(v)) }
+export function setLowerThird(v: boolean) {
+  both(lt(v))
+  if (v) { studio.program.lowerLook = lowerSet(); onAirPreset('lower') }
+}
+// pasek mówcy: wizja dostaje kopię z chwili wysłania
+const lowerSet = () => JSON.parse(JSON.stringify({ ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }))
+export const lowerPending = () => !!studio.program.lowerThird && JSON.stringify(studio.program.lowerLook || null) !== JSON.stringify(lowerSet())
 // tylko podgląd — nakładka czeka na potwierdzenie (ustawienia widać pod paskiem nakładek)
 export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boolean) { change(key === 'lowerThird' ? lt(v) : l => { l[key] = v }) }
 export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
@@ -69,7 +75,7 @@ export function pipToProgram() { const p = { ...studio.preview.pip }; toProgram(
 export function mediaPipToProgram() { const { omedia, ovl } = studio.preview, mpos = { ...studio.preview.mpos }; toProgram(l => { l.omedia = omedia; l.ovl = ovl; l.mpos = mpos }) }
 // „Na wizję”: podgląd przechodzi na wizję (przenikanie), podgląd zostaje bez zmian.
 // (napisy mają jeden przełącznik dla podglądu i wizji — „Na wizję” ich nie zmienia)
-export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, endOvl: p.endOvl, banner: p.endOvl ? bannerCopy() : null, prayer: p.prayer, prayerLook: p.prayer ? prayerSet() : null, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }); onAirPreset('cd', 'end', 'banner', 'prayer') }
+export function take() { const p = snap(studio.preview); toProgram(l => { Object.assign(l, { scene: p.scene, lowerThird: p.lowerThird, lowerLook: p.lowerThird ? lowerSet() : l.lowerLook, endOvl: p.endOvl, banner: p.endOvl ? bannerCopy() : null, prayer: p.prayer, prayerLook: p.prayer ? prayerSet() : null, styles: studio.direct ? null : liveStyles(), pip: p.pip, media: p.media, omedia: p.omedia, ovl: p.ovl, mpos: p.mpos }) }); onAirPreset('cd', 'end', 'banner', 'prayer', 'lower') }
 export function setDirect(v) { studio.direct = !!v; if (v) take(); else studio.program.styles = liveStyles() }
 // Wygląd na start (zapamiętane okienko): ten sam na podglądzie i wizji.
 export function initLook(pip) { for (const l of [studio.preview, studio.program]) l.pip = { ...l.pip, ...pip }; studio.program.styles = studio.direct ? null : liveStyles() }

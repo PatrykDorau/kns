@@ -10,8 +10,8 @@ import { mediaKind } from '@/composables/stream/useStudioMedia'
 import PresetPicker from './PresetPicker.vue'
 
 // Nakładki: zawsze pod ręką (napisy, pasek mówcy, modlitwa, PIP z materiałem, grafika na cały kadr, PIP z kamerą, baner).
-// Pasek mówcy, napis na cały kadr — od razu na wizję, po potwierdzeniu; wyłączenie — od razu.
-// Modlitwa i baner — pod przyciskiem wybór presetu i własne „Na wizję”; wyłączenie — od razu.
+// Napis na cały kadr — od razu na wizję, po potwierdzeniu; wyłączenie — od razu.
+// Pasek mówcy, modlitwa i baner — pod przyciskiem wybór presetu i własne „Na wizję”; wyłączenie — od razu.
 // PIP (kamera, materiał) — najpierw na podgląd (zielony), na wizję przyciskiem „Na wizję” przy PIP (z potwierdzeniem).
 // Na wizji — czerwone z kropką. Napisy pieśni — od razu, bez pytania.
 const { pvOver, pgOver, mediaList, deskTab, pip } = useDesk()
@@ -31,7 +31,7 @@ function flip(now: boolean, what: string, set: (v: boolean) => void, key: 'lower
   confirmLive(what, () => set(true), () => previewOverlay(key, false))
 }
 // nakładka z presetami: włączenie otwiera wybór na podglądzie, wyłączenie zdejmuje od razu
-function toggleOverlay(now: boolean, set: (v: boolean) => void, key: 'prayer' | 'endOvl') { if (now) set(false); else if (studio.direct) set(true); else previewOverlay(key, true) }
+function toggleOverlay(now: boolean, set: (v: boolean) => void, key: 'lowerThird' | 'prayer' | 'endOvl') { if (now) set(false); else if (studio.direct) set(true); else previewOverlay(key, true) }
 const ltOn = computed(() => studio.program.lowerThird || studio.preview.lowerThird)
 const prOn = computed(() => !!(studio.program.prayer || studio.preview.prayer))
 const bnOn = computed(() => !!(studio.program.endOvl || studio.preview.endOvl))
@@ -48,7 +48,7 @@ function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMod
     <button v-if="on('lyrics')" class="ovl-btn" :class="{ live: studio.program.lyricsOn && air('lyrics'), on: studio.program.lyricsOn }" :aria-pressed="studio.program.lyricsOn"
             title="Napisy pieśni — włączają się i wyłączają od razu na wizji (Kamera, Rzutnik, Materiał)" @click="toggleLyrics"><Icon name="music" />Napisy</button>
     <button v-if="on('lowerThird')" class="ovl-btn" :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird && air('lowerThird') }" :aria-pressed="studio.preview.lowerThird"
-            title="Pasek z mówcą — od razu na wizję (po potwierdzeniu), wyłączenie od razu" @click="flip(ltOn, 'pasek mówcy', setLowerThird, 'lowerThird')"><Icon name="text" />Pasek mówcy</button>
+            title="Pasek z mówcą — wybierz preset i wyślij na wizję; wyłączenie od razu" @click="toggleOverlay(ltOn, setLowerThird, 'lowerThird')"><Icon name="text" />Pasek mówcy</button>
     <button v-if="on('prayer')" class="ovl-btn" :class="{ on: studio.preview.prayer, live: studio.program.prayer && air('prayer') }" :aria-pressed="!!studio.preview.prayer"
             title="Czas modlitwy: napis u dołu obrazu — wybierz preset i wyślij na wizję; wyłączenie od razu" @click="toggleOverlay(prOn, setPrayer, 'prayer')"><Icon name="heart" />Modlitwa</button>
     <!-- PIP: materiał z Biblioteki w okienku w rogu -->
@@ -88,6 +88,7 @@ function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMod
     </span>
     <button v-if="on('end')" class="ovl-btn" :class="{ on: studio.preview.endOvl, live: studio.program.endOvl && air('end') }" :aria-pressed="!!studio.preview.endOvl" title="Baner na obrazie z kamery: napis i kod QR — wybierz preset i wyślij na wizję; wyłączenie od razu" @click="toggleOverlay(bnOn, setEndOverlay, 'endOvl')"><Icon name="qr" />Baner</button>
   </div>
+  <PresetPicker v-if="anyOverlay && on('lowerThird') && studio.preview.lowerThird" kind="lower" />
   <PresetPicker v-if="anyOverlay && on('prayer') && studio.preview.prayer" kind="prayer" />
   <PresetPicker v-if="anyOverlay && on('end') && studio.preview.endOvl" kind="banner" />
 </template>

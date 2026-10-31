@@ -19,6 +19,7 @@ export interface Settings {
   mirrorLive?: boolean
   studioPresets?: Preset[] // przygotowane plansze i nakładki (Przygotowanie)
   presetOn?: Partial<Record<PresetKind, string>> // wybrany preset (na podglądzie)
+  lowerLook?: { name: string, sub: string, color: string, logo: boolean } // pasek mówcy: napisy (puste — z nabożeństwa), kolor, logo
   lyricsKey: string
   remoteToken: string
   songSort: 'number' | 'title'

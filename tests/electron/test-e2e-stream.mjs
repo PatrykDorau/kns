@@ -132,6 +132,7 @@ try {
     ['Koniec', 'Koniec kamera', 'Z kamerą w tle', `await clk('Duży napis','.desk-opt-group button'); await clk('Kamera','.desk-bg'); await setv($$('.desk-cd-text input')[0],'TEST KONIEC');`],
     ['Baner', 'Zbiórka test', 'Po kazaniu', `await setv($$('.desk-cd-text input')[0],'TEST BANER'); await clk('Pasek','.desk-opt-group button');`],
     ['Modlitwa', 'Modlitwa test', 'Czas modlitwy', `await setv($$('.desk-cd-text input')[0],'TEST MODLITWA');`],
+    ['Pasek mówcy', 'Gość test', 'Gość z daleka', `await setv($$('.desk-cd-text input')[0],'TEST MÓWCA'); await setv($$('.desk-cd-text input')[1],'Gość specjalny');`],
   ]
   for (const [kind, name, desc, edit] of makers) {
     await ev(`await clk(${JSON.stringify(kind)},'.prep-kinds button'); await clk('Nowy preset','.prep-add'); await w(300); const f=$$('.prep-head input'); await setv(f[0],${JSON.stringify(name)}); await setv(f[1],${JSON.stringify(desc)}); ${edit} await w(300); return 1`)
@@ -176,6 +177,13 @@ try {
   ok('inny baner: wizja stoi, przycisk gotowy', await ev(`return st.program.banner.list[0].title==='TEST BANER'&&!!document.querySelector('.pz-acts .desk-send')&&!$$('.ovl-ask').length`))
   await ev(`await clk('Baner','.ovl-btn'); await w(400); return 1`)
   ok('wyłączenie banera od razu', await ev(`return !st.program.endOvl&&!st.preview.endOvl`))
+  await ev(`await clk('Pasek mówcy','.ovl-btn'); await w(400); await clk('Gość test','.pz-main'); await w(400); return 1`)
+  ok('pasek mówcy na podglądzie, nie na wizji', await ev(`return st.preview.lowerThird&&!st.program.lowerThird`))
+  await ev(`document.querySelector('.pz-acts .desk-send').click(); await w(900); return 1`)
+  ok('pasek mówcy na wizji z kopią', await ev(`return st.program.lowerThird&&st.program.lowerLook.name==='TEST MÓWCA'&&!!document.querySelector('.pz-card.live')`))
+  await wait(3000)
+  await ev(`await clk('Pasek mówcy','.ovl-btn'); await w(400); return 1`)
+  ok('wyłączenie paska od razu', await ev(`return !st.program.lowerThird&&!st.preview.lowerThird`))
   await ev(`await clk('Modlitwa','.ovl-btn'); await w(400); await clk('Modlitwa test','.pz-main'); await w(300); document.querySelector('.pz-acts .desk-send').click(); await w(900); return 1`)
   ok('modlitwa na wizji z kopią', await ev(`return st.program.prayer&&st.program.prayerLook.text==='TEST MODLITWA'`))
   await wait(4000); await shot('4-modlitwa-na-wizji.png')

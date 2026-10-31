@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
-import { bannerPending, differs, prayerPending, studio, take } from '@/services/studio'
+import { bannerPending, differs, lowerPending, prayerPending, studio, take } from '@/services/studio'
 import { bannerSet } from '@/services/studio/cards'
 import { ensurePresets, pickPreset, presetThumb, presetsOf, sendOverlay, stepBanner } from '@/services/studio/presets'
 import { useDesk } from '@/composables/stream/useStreamDesk'
@@ -15,11 +15,12 @@ const { deskMode, prepKind, prepId } = useDesk()
 ensurePresets()
 const list = computed(() => presetsOf(props.kind))
 const chosen = computed(() => settings.presetOn?.[props.kind] || '')
-const overlay = computed(() => props.kind === 'banner' || props.kind === 'prayer')
-const onAir = computed(() => ({ cd: studio.program.scene === 'countdown', end: studio.program.scene === 'end', banner: !!studio.program.endOvl, prayer: !!studio.program.prayer })[props.kind])
+const overlay = computed(() => props.kind !== 'cd' && props.kind !== 'end')
+const onAir = computed(() => ({ cd: studio.program.scene === 'countdown', end: studio.program.scene === 'end', banner: !!studio.program.endOvl, prayer: !!studio.program.prayer, lower: !!studio.program.lowerThird })[props.kind])
 const isAir = (id: string) => onAir.value && studio.airPreset[props.kind] === id
 const pending = computed(() => {
   if (!overlay.value) return !studio.direct && differs()
+  if (props.kind === 'lower') return !!studio.preview.lowerThird && (!studio.program.lowerThird || lowerPending())
   return props.kind === 'banner' ? !!studio.preview.endOvl && (!studio.program.endOvl || bannerPending()) : !!studio.preview.prayer && (!studio.program.prayer || prayerPending())
 })
 function send() { if (overlay.value) sendOverlay(props.kind); else take() }

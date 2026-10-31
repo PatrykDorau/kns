@@ -178,6 +178,9 @@ export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.c
 // Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
 export const END_DEFAULT = { bg: 'paper', c1: '#1d2a44', c2: '#e8952f', image: '', dim: 45, title: 'Dziękujemy, że byliście z nami!', sub: '', layout: 'cards', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
+// Pasek mówcy: puste napisy — mówca, tytuł kazania i fragment z najbliższego nabożeństwa.
+export const LOWER_DEFAULT = { name: '', sub: '', color: '#f6a836', logo: true } as const
+export const lowerLookOf = () => S?.lowerLook || { ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }
 // Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
 export const BANNER_DEFAULT = { style: 'frame', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: '', note: '', qr: 'all', link: '' } as const
 // Banery: jeden albo kolejka kilku (slajdy w kółko co „sec” sekund). Podgląd — bieżące ustawienia; wizja — kopia z chwili

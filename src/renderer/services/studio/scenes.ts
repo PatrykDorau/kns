@@ -2,7 +2,7 @@
 import { nearestService, servicePlace, settings } from '@/stores'
 import { ANN_MEDIA, H, W, studio } from './state'
 import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, setHalo, text, wrap } from './paint'
-import { CARD, armed, bankQr, bannerNow, prayerLook, presetBanners, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
+import { CARD, armed, bankQr, bannerNow, lowerLookOf, prayerLook, presetBanners, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, svcWhen, upcomingService, zeroAt } from './cards'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
@@ -62,13 +62,14 @@ export const SCENE_DRAW = {
 }
 // Preset na osobnym płótnie (miniatura, podgląd w Przygotowaniu): plansza z jego wyglądem, nakładka na neutralnym tle.
 export function drawPreset(ctx, kind, data, t, edit = false) {
-  const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerThird: false, lowerOff: 0, styles: { cd: data, end: data },
+  const look = { ...studio.preview, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerOff: 0, styles: { cd: data, end: data },
     scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
+    lowerAt: 0, lowerThird: kind === 'lower', lowerLook: kind === 'lower' ? { ...data, name: data.name || nearestService.value?.speaker || 'Imię mówcy', sub: data.sub || [nearestService.value?.sermonTitle, nearestService.value?.passage].filter(Boolean).join(' · ') || 'Tytuł kazania' } : null,
     endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit).slice(0, 1), sec: 10, at: 0 } : null }
   const prev = paintOn(ctx, look as Look)
   try {
     if (kind === 'cd') SCENE_DRAW.countdown(t); else if (kind === 'end') SCENE_DRAW.end(t)
-    else { background(t); endOverlay(); prayerOverlay() }
+    else { background(t); endOverlay(); prayerOverlay(); lowerThird(t) }
   } finally { paintOn(prev.ctx, prev.look) }
 }
 // Kamera w okienku (nakładka na każdej scenie poza Kamerą): wybrany róg, małe albo duże.
@@ -273,30 +274,34 @@ function lyrics(t) {
 }
 // Pasek z mówcą i tytułem kazania (wjeżdża z lewej), z logo kościoła w białym kółku.
 function lowerThird(t) {
-  const svc = nearestService.value
-  if (!svc || !(svc.speaker || svc.sermonTitle)) return
+  const svc = nearestService.value, L = lowerLookOf()
+  const who = L.name || svc?.speaker || '', what = L.sub || [svc?.sermonTitle, svc?.passage].filter(Boolean).join(' · ')
+  if (!who && !what) return
   // po wyłączeniu pasek wyjeżdża w lewo (pół sekundy)
   const off = !S.lowerThird
   if (off && !(S.lowerOff && t - S.lowerOff < 500)) return
   const k = off ? 1 - Math.min(1, (t - S.lowerOff) / 500) : Math.min(1, (t - S.lowerAt) / 500), e = 1 - Math.pow(1 - k, 3)
-  const maxText = 1500 - 282
-  const name = fitLine(svc.speaker || 'Kazanie', maxText, 46, 34, 800)
-  const sub = fitLine([svc.sermonTitle, svc.passage].filter(Boolean).join(' · '), maxText, 32, 24, 500)
+  const logo = L.logo !== false, tx = logo ? 222 : 44 // napisy zaczynają się za logo
+  const maxText = 1500 - tx - 60
+  const name = fitLine(who || 'Kazanie', maxText, 46, 34, 800)
+  const sub = fitLine(what, maxText, 32, 24, 500)
   g.save(); g.font = `800 ${name.size}px "Segoe UI", system-ui, sans-serif`; const w1 = g.measureText(name.str).width
   g.font = `500 ${sub.size}px "Segoe UI", system-ui, sans-serif`; const w2 = g.measureText(sub.str).width; g.restore()
-  const w = Math.min(1500, Math.max(620, 222 + Math.max(w1, w2) + 60)), bh = 150
+  const w = Math.min(1500, Math.max(logo ? 620 : 420, tx + Math.max(w1, w2) + 60)), bh = 150
   const x = -w + (w + 60) * e, y = H - 250
   g.save(); g.globalAlpha = e
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30
   rounded(x, y, w, bh, 18); g.fillStyle = 'rgba(15,16,19,0.88)'; g.fill(); g.shadowBlur = 0
-  g.fillStyle = '#f6a836'; g.fillRect(x + 18, y + bh - 6, w - 36, 6)
+  g.fillStyle = L.color || '#f6a836'; g.fillRect(x + 18, y + bh - 6, w - 36, 6)
   // logo: białe kółko wystające nad pasek
-  const cx = x + 100, cy = y + bh / 2, r = 92
-  g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 24
-  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0
-  const lg = img('./znak-obrys.png')
-  if (lg) g.drawImage(lg, cx - 72, cy - 72, 144, 144)
+  if (logo) {
+    const cx = x + 100, cy = y + bh / 2, r = 92
+    g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 24
+    g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0
+    const lg = img('./znak-obrys.png')
+    if (lg) g.drawImage(lg, cx - 72, cy - 72, 144, 144)
+  }
   g.restore()
-  text(name.str, x + 222, y + 66, { size: name.size, weight: 800, alpha: e })
-  text(sub.str, x + 222, y + 116, { size: sub.size, weight: 500, color: '#d6d8e0', alpha: e })
+  text(name.str, x + tx, y + (what ? 66 : 88), { size: name.size, weight: 800, alpha: e })
+  if (what) text(sub.str, x + tx, y + 116, { size: sub.size, weight: 500, color: '#d6d8e0', alpha: e })
 }

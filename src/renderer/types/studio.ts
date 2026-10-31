@@ -13,7 +13,7 @@ export interface Pip {
 
 // Wygląd plansz (kopia ustawień): odliczanie, koniec.
 export interface LookStyles { cd: any, end: any }
-export type PresetKind = 'cd' | 'end' | 'banner' | 'prayer'
+export type PresetKind = 'cd' | 'end' | 'banner' | 'prayer' | 'lower'
 export interface Preset { id: string, kind: PresetKind, name: string, desc: string, data: any }
 
 // Wygląd jednej strony (podgląd albo wizja).
@@ -21,6 +21,7 @@ export interface Look {
   scene: SceneId | string
   lyricsOn: boolean
   lowerThird: boolean
+  lowerLook?: { name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
   pip: Pip
   lowerAt: number
   lowerOff: number
