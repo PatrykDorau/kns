@@ -22,7 +22,11 @@ const redraw = () => { clearTimeout(timer); timer = window.setTimeout(() => { th
 watch(() => JSON.stringify(cd), redraw, { immediate: true })
 const late = window.setTimeout(redraw, 2000)
 onBeforeUnmount(() => { clearTimeout(timer); clearTimeout(late) })
-const content = computed(() => ['rock', 'top', 'split', 'poster', 'bar'].includes(cd.layout)) // układy z ogłoszeniami w środku
+const content = computed(() => ['rock', 'edit', 'top', 'split', 'poster', 'bar'].includes(cd.layout))
+// które pola dany układ naprawdę pokazuje; podpis „text” — tylko gdy w środku jest napis zamiast ogłoszeń
+const FIELDS = { rock: { sub: true, brand: true, foot: true }, edit: { sub: true, brand: true, foot: true }, top: { sub: 'text' }, center: { sub: true }, split: { sub: 'text', foot: true }, poster: { sub: 'text', brand: true, foot: true }, bar: { sub: 'text', foot: true }, minimal: { foot: true } }
+const fields = computed(() => FIELDS[cd.layout] || {})
+const showSub = computed(() => fields.value.sub === true || (fields.value.sub === 'text' && cd.show === 'text')) // układy z ogłoszeniami w środku
 const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w środku' : 'Podpis')
 </script>
 
@@ -69,11 +73,11 @@ const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w �
     <div class="desk-opt-group desk-cd-text">
       <label>Napis przy zegarze <input v-model="cd.title" maxlength="40"></label>
       <label>Po zerze <input v-model="cd.done" maxlength="40"></label>
-      <label>{{ subLabel }} <input v-model="cd.sub" maxlength="90"></label>
-      <label>Nazwa <input v-model="cd.brand" maxlength="40"></label>
-      <label>Stopka <input v-model="cd.foot" maxlength="90"></label>
+      <label v-if="showSub">{{ subLabel }} <input v-model="cd.sub" maxlength="90"></label>
+      <label v-if="fields.brand">Nazwa <input v-model="cd.brand" maxlength="40"></label>
+      <label v-if="fields.foot">Stopka <input v-model="cd.foot" maxlength="90"></label>
       <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(cd, CD_DEFAULT)">Domyślny</button>
     </div>
-    <p class="desk-help">Puste pole nic nie pokazuje. {nabożeństwo} wstawia najbliższe nabożeństwo.</p>
+    <p class="desk-help">Puste pole nic nie pokazuje.<template v-if="fields.foot"> {nabożeństwo} wstawia najbliższe nabożeństwo.</template></p>
   </div>
 </template>

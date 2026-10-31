@@ -35,7 +35,7 @@ async function addPic() { const before = new Set(mediaList.value.map(x => x.id))
     <div v-if="en.layout !== 'image'" class="desk-opt-group desk-cd-text">
       <label>Napis <input v-model="en.title" maxlength="60"></label>
       <label>Podpis <input v-model="en.sub" maxlength="90"></label>
-      <label>Nazwa <input v-model="en.brand" maxlength="40"></label>
+      <label v-if="en.layout === 'rock' || en.layout === 'edit'">Nazwa <input v-model="en.brand" maxlength="40"></label>
       <button class="small" title="Przywróć domyślny wygląd" @click="Object.assign(en, END_DEFAULT)">Domyślny</button>
     </div>
     <p class="desk-help">Puste pole nic nie pokazuje. {nabożeństwo} wstawia najbliższe nabożeństwo.</p>

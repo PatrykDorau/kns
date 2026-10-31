@@ -24,7 +24,7 @@ const QRS = [['bank', 'Wsparcie (przelew / BLIK)'], ['youtube', 'YouTube'], ['sp
     <div class="desk-opt-group">
       <label class="check" title="Plakietka z napisem, logo i kodem QR"><input :checked="look.banner !== false" type="checkbox" @change="look.banner = ($event.target as HTMLInputElement).checked"> Baner</label>
       <label class="check"><input v-model="look.ann" type="checkbox"> Ogłoszenia</label>
-      <label class="check" title="Tylko wydarzenia zaznaczone „Pokaż na nabożeństwie” i dostępne dla wszystkich"><input v-model="look.events" type="checkbox"> Najbliższe wydarzenia</label>
+      <label v-if="look.layout !== 'float'" class="check" title="Tylko wydarzenia zaznaczone „Pokaż na nabożeństwie” i dostępne dla wszystkich"><input v-model="look.events" type="checkbox"> Najbliższe wydarzenia</label>
       <small class="muted">Kod QR</small>
       <select v-model="look.qr" aria-label="Kod QR">
         <option v-for="[id, name] in QRS" :key="id" :value="id">{{ name }}</option>

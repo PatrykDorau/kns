@@ -131,7 +131,7 @@ try {
   await ev(`await clk('Przygotowanie','.desk-mode button'); await w(500); return 1`)
   ok('Przygotowanie otwarte, sceny schowane', await ev(`return !!document.querySelector('.prep')&&!document.querySelector('.desk-scenes')`))
   const makers = [
-    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); await clk('Duży zegar','.desk-layout'); await clk('Noc','.desk-bg');`],
+    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); await clk('Duży zegar','.desk-layout'); await clk('Noc','.desk-motif button');`],
     ['Koniec', 'Koniec kamera', 'Z kamerą w tle', `await clk('Duży napis','.desk-opt-group button'); await clk('Kamera','.desk-bg'); await setv($$('.desk-cd-text input')[0],'TEST KONIEC');`],
     ['Baner', 'Zbiórka test', 'Po kazaniu', `await setv($$('.desk-cd-text input')[0],'TEST BANER'); await clk('Pasek','.desk-opt-group button');`],
     ['Modlitwa', 'Modlitwa test', 'Czas modlitwy', `await setv($$('.desk-cd-text input')[1],'TEST MODLITWA');`],
