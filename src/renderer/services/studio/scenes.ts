@@ -167,9 +167,9 @@ function qrTile(q, x, y, size, label = '') {
 // baner albo kolejka banerów — kolejny wchodzi płynnie (0,6 s przenikania)
 function endOverlay() {
   if (!S.endOvl) return
-  const { list, sec } = bannerNow()
+  const { list, sec, at = 0 } = bannerNow()
   if (list.length < 2) { drawBanner(list[0]); return }
-  const t = performance.now(), slot = sec * 1000, i = Math.floor(t / slot) % list.length, k = Math.min(1, (t % slot) / 600)
+  const t = performance.now() - at, slot = sec * 1000, i = Math.floor(t / slot) % list.length, k = t < slot ? 1 : Math.min(1, (t % slot) / 600)
   if (k < 1) { g.save(); g.globalAlpha = 1 - k; drawBanner(list[(i - 1 + list.length) % list.length]); g.restore() }
   g.save(); g.globalAlpha = k; drawBanner(list[i]); g.restore()
 }

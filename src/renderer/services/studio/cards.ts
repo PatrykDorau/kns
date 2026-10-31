@@ -186,7 +186,8 @@ export const bannerSet = () => ({
   list: (settings.bannerCycle && settings.bannerQueue?.length ? settings.bannerQueue : [settings.banner || {}]).map(b => ({ ...BANNER_DEFAULT, ...b })),
   sec: Math.max(4, Math.min(120, +settings.bannerSec || 10)),
 })
-export const bannerNow = () => S?.banner || bannerSet()
+// podgląd: sam edytowany baner, bez przełączania — zmiany stylu i napisów widać od razu (kolejka rusza dopiero na wizji)
+export const bannerNow = () => S?.banner || { list: [{ ...BANNER_DEFAULT, ...settings.banner }], sec: 10, at: 0 }
 export const prayerLook = () => ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
 const dimmed = L => { g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H) }
 // Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów, grafika z Biblioteki albo kamera na żywo.

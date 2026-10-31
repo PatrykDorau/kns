@@ -43,11 +43,12 @@ export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
 export function setPrayer(v: boolean) { both(l => { l.prayer = v }) }
 // baner: wizja dostaje kopię ustawień z chwili wysłania (kolejne zmiany — najpierw na podglądzie, potem bannerToProgram)
-const bannerCopy = () => copy(bannerSet())
+// „at”: kolejka na wizji zawsze rusza od pierwszego banera
+const bannerCopy = () => ({ ...copy(bannerSet()), at: performance.now() })
 export function setEndOverlay(v: boolean) { studio.preview.endOvl = v; toProgram(l => { l.endOvl = v; l.banner = v ? bannerCopy() : null }) }
 export function bannerToProgram() { if (studio.program.endOvl) studio.program.banner = bannerCopy() }
 // czy baner na wizji różni się od ustawień (zmiany czekają na podglądzie)
-export const bannerPending = () => !!studio.program.endOvl && JSON.stringify(studio.program.banner || null) !== JSON.stringify(bannerSet())
+export const bannerPending = () => { const b = studio.program.banner; return !!studio.program.endOvl && JSON.stringify(b ? { list: b.list, sec: b.sec } : null) !== JSON.stringify(bannerSet()) }
 export function setPip(p) { if (p.on === false) both(l => { l.pip = { ...l.pip, on: false } }); else change(l => { l.pip = { ...l.pip, ...p } }) }
 // PIP z podglądu na wizję (tylko PIP — reszta wizji bez zmian)
 export function pipToProgram() { const p = { ...studio.preview.pip }; toProgram(l => { l.pip = p }) }
