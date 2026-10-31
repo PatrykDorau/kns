@@ -27,6 +27,7 @@ const clockStr = (left: number) => {
   const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), s = left % 60
   return (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(s).padStart(2, '0')
 }
+const luminance = (hex: string) => { const n = parseInt(String(hex || '#f6a836').slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 }
 const shadow = (blur = 30, y = 10, c = 'rgba(0,0,0,0.35)') => { g.shadowColor = c; g.shadowBlur = blur; g.shadowOffsetY = y }
 
 /* ---------- zegary ---------- */
@@ -37,6 +38,8 @@ export function drawTimer(style: string, o: TimerOpt) {
   const title = left ? String(o.title || '').toUpperCase() : after.join(' ')
   if (!clock) return left
   const ink = o.ink || (o.light ? '#2b2b2b' : '#fff')
+  // czytelność: cyfry na ciemnej plakietce nie mogą być ciemne, a napisy na jasnym dymku — jasne
+  const glow = luminance(o.accent), onPlate = glow < 0.22 ? '#f4ecdf' : o.accent, onBubble = glow > 0.55 ? '#1a1208' : '#fff'
   if (style === 'bubble') {
     // dymek w kolorze akcentu, cyfry szeryfową kursywą (jak w zapowiedziach na plakatach)
     const cw = clockWidth(clock, 170 * s, 'serif', 400, true) // szerokość z komórek cyfr — dymek nie zmienia się co sekundę
@@ -45,9 +48,9 @@ export function drawTimer(style: string, o: TimerOpt) {
     g.save(); shadow(34, 14); g.beginPath(); g.roundRect(x, y, w, h, 18 * s)
     g.moveTo(x + 130 * s, y + h - 24 * s); g.lineTo(x + 56 * s, y + h + 70 * s); g.lineTo(x + 60 * s, y + h - 24 * s); g.closePath()
     g.fillStyle = o.accent; g.fill(); g.restore()
-    if (title) text(title, o.cx, y + 58 * s, { size: 30 * s, weight: 700, font: 'cond', align: 'center', color: 'rgba(255,255,255,0.85)', spacing: 6 * s })
+    if (title) text(title, o.cx, y + 58 * s, { size: 30 * s, weight: 700, font: 'cond', align: 'center', color: onBubble, spacing: 6 * s })
     const f = { size: left ? 170 * s : fitLine(clock, w - 60 * s, 170 * s, 60 * s, 400, 'serif', true).size }
-    steady((c, x2) => text(c, x2, y + h - 50 * s, { size: f.size, weight: 400, font: 'serif', italic: true, align: 'center' }), clock, o.cx, f.size, 'serif', 400, 'center', true)
+    steady((c, x2) => text(c, x2, y + h - 50 * s, { size: f.size, weight: 400, font: 'serif', italic: true, align: 'center', color: onBubble }), clock, o.cx, f.size, 'serif', 400, 'center', true)
     g.restore()
   } else if (style === 'pill') {
     // ciemna pigułka z obwódką: napis z lewej, cyfry z prawej
@@ -55,9 +58,9 @@ export function drawTimer(style: string, o: TimerOpt) {
     g.save(); g.font = fontStr(700, 34 * s, 'cond'); const tw = title ? Math.min(260 * s, g.measureText(title).width) : 0; g.restore()
     const h = 170 * s, w = cw + tw + (title ? 150 : 100) * s, x = o.cx - w / 2, y = o.cy - h / 2
     g.save(); shadow(30, 10); rounded(x, y, w, h, h / 2); g.fillStyle = 'rgba(17,17,20,0.9)'; g.fill(); g.restore()
-    g.save(); g.lineWidth = 5 * s; g.strokeStyle = o.accent; rounded(x + 8 * s, y + 8 * s, w - 16 * s, h - 16 * s, h / 2 - 8 * s); g.stroke(); g.restore()
+    g.save(); g.lineWidth = 5 * s; g.strokeStyle = onPlate; rounded(x + 8 * s, y + 8 * s, w - 16 * s, h - 16 * s, h / 2 - 8 * s); g.stroke(); g.restore()
     if (title) wrap(title, 260 * s, 34 * s, 700, 2, 'cond').forEach((l, i, a) => text(l, x + 60 * s, o.cy + (i - (a.length - 1) / 2) * 38 * s + 12 * s, { size: 34 * s, weight: 700, font: 'cond', color: '#f3e3c8', spacing: 2 * s }))
-    steady((c, x2) => text(c, x2, o.cy + 42 * s, { size: 120 * s, weight: 700, font: 'cond', color: o.accent, align: 'center' }), clock, x + w - 50 * s, 120 * s, 'cond', 700, 'right')
+    steady((c, x2) => text(c, x2, o.cy + 42 * s, { size: 120 * s, weight: 700, font: 'cond', color: onPlate, align: 'center' }), clock, x + w - 50 * s, 120 * s, 'cond', 700, 'right')
   } else if (style === 'flip') {
     // każda cyfra na swojej klapce (jak tablica odlotów)
     const cw = 118 * s, ch = 168 * s, gap = 12 * s, colon = 44 * s
@@ -72,7 +75,7 @@ export function drawTimer(style: string, o: TimerOpt) {
         g.save(); shadow(18, 8, 'rgba(0,0,0,0.4)'); rounded(x, y, cw, ch, 14 * s)
         const gr = g.createLinearGradient(0, y, 0, y + ch); gr.addColorStop(0, '#2c2c30'); gr.addColorStop(0.5, '#1d1d20'); gr.addColorStop(0.5, '#151517'); gr.addColorStop(1, '#202024')
         g.fillStyle = gr; g.fill(); g.restore()
-        text(c, x + cw / 2, y + ch * 0.77, { size: 140 * s, weight: 700, font: 'cond', align: 'center', color: o.accent })
+        text(c, x + cw / 2, y + ch * 0.77, { size: 140 * s, weight: 700, font: 'cond', align: 'center', color: onPlate })
         g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, y + ch / 2 - 1.5 * s, cw, 3 * s)
         x += cw + gap
       }
@@ -96,7 +99,7 @@ export function drawTimer(style: string, o: TimerOpt) {
     if (title) text(label.str, o.cx, o.cy - 46 * s, { size: left ? label.size : 30 * s, weight: 800, color: '#f3e3c8', align: 'center' })
     // bez napisu cyfry dokładnie na środku plakietki
     const big = (left ? 112 : 64) * s, base = title ? o.cy + (left ? 64 : 46) * s : o.cy + big * 0.36
-    steady((c, x2) => text(c, x2, base, { size: big, weight: 800, color: o.accent, align: 'center' }), clock, o.cx, big, 'ui', 800, 'center')
+    steady((c, x2) => text(c, x2, base, { size: big, weight: 800, color: onPlate, align: 'center' }), clock, o.cx, big, 'ui', 800, 'center')
   }
   return left
 }
@@ -194,8 +197,10 @@ function layout(L, t) {
       hl.forEach((l, i) => text(l, 116, 420 + i * 116, { size: 120, weight: 700, font: 'cond', color: ink, shadow: light ? 0 : 20 }))
       const ty = 420 + hl.length * 116 + 110
       if (left) {
-        if (L.timer === 'plain' || L.timer === 'flip') steady((c, x2) => text(c, x2, ty + 70, { size: 230, weight: 700, font: 'cond', color: accent, align: 'center', shadow: light ? 0 : 24 }), clockStr(left), 112, 230, 'cond', 700)
-        else drawTimer(L.timer, { cx: L.timer === 'pill' ? 380 : 400, cy: ty, scale: L.timer === 'pill' ? 1.3 : 0.95, title: '', accent, light })
+        // z godzinami cyfry mniejsze, żeby nie wejść pod ogłoszenie
+        if (L.timer === 'plain') { const size = left >= 3600 ? 170 : 230; steady((c, x2) => text(c, x2, ty + 70, { size, weight: 700, font: 'cond', color: accent, align: 'center', shadow: light ? 0 : 24 }), clockStr(left), 112, size, 'cond', 700) }
+        else if (L.timer === 'flip') drawTimer('flip', { cx: 450, cy: ty, scale: left >= 3600 ? 0.8 : 1, title: '', accent, light })
+        else drawTimer(L.timer, { cx: L.timer === 'pill' ? 380 : 430, cy: ty, scale: L.timer === 'pill' ? 1.3 : left >= 3600 ? 0.82 : 0.95, title: '', accent, light })
       }
       const nx = foot
       if (nx) text(nx.toUpperCase(), 120, H - 86, { size: 44, weight: 700, font: 'cond', color: light ? '#5d5146' : '#f3e3c8', spacing: 5 })
@@ -317,8 +322,9 @@ function cleanLayout(L, t, foot, subText) {
   }
   if (L.bg === 'piasek') {
     logoAt(84, 64, 92)
-    const lw = ann ? 960 : 1600, fit = titleFit(head, lw, 170, 110, 'display'), clock = 200, h = height(fit, clock), bottom = subText && !textBox ? 900 : 950, y = block(84, bottom - h, fit, clock, 'left')
-    if (subText && !textBox) text(subText, 90, y + 52, { size: 36, weight: 700, font: 'sans', color: ink })
+    // napis z zegarem na środku wolnego miejsca (obok ogłoszenia albo całego kadru), informacje na dole
+    const lw = ann ? 960 : 1600, cx = ann ? 590 : W / 2, fit = titleFit(head, lw, 170, 110, 'display'), clock = 220, h = height(fit, clock), note = subText && !textBox, y = block(cx, (H - h - (note ? 60 : 0)) / 2 - 20, fit, clock, 'center')
+    if (note) text(subText, cx, y + 58, { size: 36, weight: 700, font: 'sans', color: ink, align: 'center' })
     let x = 90
     const row = 1016
     if (foot) { text(foot.toUpperCase(), x, row, { size: 36, weight: 700, font: 'sans', color: accent }); g.save(); g.font = fontStr(700, 36, 'sans'); x += g.measureText(foot.toUpperCase()).width + 34; g.restore() }

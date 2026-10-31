@@ -21,8 +21,8 @@ export const settings = reactive<Settings>({
   copyFiles: true,
   remote: false,
   lyrics: false, lyricsPos: 'dol', lyricsSize: 6, lyricsBar: false, // dawne napisy dla OBS — nieużywane, zostają w zapisanych ustawieniach
-  lyricsOnline: false, lyricsKey: '', // napisy przez internet (kns-nabo.netlify.app/napisy?k=…)
-  mirrorStream: false, // materiały rzutnika dla Streamu na innym komputerze (Dysk Google + kanał na żywo)
+  lyricsOnline: true, lyricsKey: '', // napisy przez internet (kns-nabo.netlify.app/napisy?k=…)
+  mirrorStream: true, // materiały rzutnika dla Streamu na innym komputerze (Dysk Google + kanał na żywo)
   mirrorLive: false, // Stream: nowe pliki z rzutnika pobierane same także w trakcie transmisji (domyślnie czekają na decyzję)
   remoteToken: '',
   songSort: 'number', // 'number' | 'title'
