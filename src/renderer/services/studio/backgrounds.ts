@@ -60,5 +60,5 @@ function sketch() {
 }
 
 export const BACKGROUNDS = { mountains, sketch }
-export const BG_IDS = ['paper', 'sketch', 'mountains', 'colors', 'image']
+export const BG_IDS = ['paper', 'sketch', 'mountains', 'colors', 'image', 'camera']
 export const LIGHT_BG = ['paper', 'sketch'] // jasne tła — tekst na nich ciemny

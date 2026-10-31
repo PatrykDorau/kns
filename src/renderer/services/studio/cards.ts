@@ -7,6 +7,7 @@ import { H, W, studio } from './state'
 import { S, background, fit, fitLine, g, img, paintOn, rounded, text, wrap } from './paint'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, BG_IDS } from './backgrounds'
+import { drawCamera } from './camera'
 import { settings } from '@/stores'
 
 let slideBase = 0
@@ -187,9 +188,11 @@ export const bannerSet = () => ({
 })
 export const bannerNow = () => S?.banner || bannerSet()
 export const prayerLook = () => ({ text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })
-// Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów albo grafika z Biblioteki.
+const dimmed = L => { g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H) }
+// Tło planszy: papier z grafikami po bokach, szkic, góry, gradient dwóch kolorów, grafika z Biblioteki albo kamera na żywo.
 export function cdBackground(L, t, side = true) {
   if (BACKGROUNDS[L.bg]) return BACKGROUNDS[L.bg](t)
+  if (L.bg === 'camera') { drawCamera(); dimmed(L); return }
   if (L.bg === 'colors') {
     const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, L.c1 || CD_DEFAULT.c1); gr.addColorStop(1, L.c2 || CD_DEFAULT.c2)
     g.fillStyle = gr; g.fillRect(0, 0, W, H); return
@@ -198,7 +201,7 @@ export function cdBackground(L, t, side = true) {
     const it = mediaSlide(L.image), im = it?.type === 'image' && img(mediaUrl(it.path))
     if (!im) { paper(); return }
     fit(im, im.naturalWidth, im.naturalHeight, 0, 0, W, H, 'cover')
-    g.fillStyle = 'rgba(0,0,0,' + Math.max(0, Math.min(0.8, (L.dim ?? 45) / 100)) + ')'; g.fillRect(0, 0, W, H); return
+    dimmed(L); return
   }
   paper(); if (side) sideArt()
 }
