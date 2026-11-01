@@ -1,7 +1,7 @@
 // Odliczanie: układy planszy i style zegara (wybierane w Studio → Odliczanie). Każdy układ rysuje tło,
 // treść (ogłoszenia w pętli albo własny napis) i zegar w wybranym stylu; zwraca, ile sekund zostało.
 import { H, W, studio } from './state'
-import { fit, fitLine, fontStr, g, img, paintOn, rounded, setHalo, setOutline, text, withOutline, wrap } from './paint'
+import { fit, fitLine, fontStr, g, img, luminance, paintOn, rounded, setHalo, setOutline, text, withOutline, wrap } from './paint'
 import { carousel, cdBackground, countdownLeft, drawCarousel, fill, paper, setDemo, topWave } from './cards'
 import { clockFor, clockWidth, glassPanel, hairline, roughClock, roughFit, roughText, shade, steady, textWidth, titleFit } from './rough'
 import { cleanInk, pill } from './clean'
@@ -28,7 +28,6 @@ const clockStr = (left: number) => {
   const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), s = left % 60
   return (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(s).padStart(2, '0')
 }
-const luminance = (hex: string) => { const n = parseInt(String(hex || '#f6a836').slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 }
 const shadow = (blur = 30, y = 10, c = 'rgba(0,0,0,0.35)') => { g.shadowColor = c; g.shadowBlur = blur; g.shadowOffsetY = y }
 
 /* ---------- zegary ---------- */

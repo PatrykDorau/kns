@@ -3,11 +3,12 @@ import { computed } from 'vue'
 import { label } from '@/stores'
 import { LOWER_DEFAULT } from '@/services/studio/cards'
 import { useDesk } from '@/composables/stream/useStreamDesk'
+import SpeakerPhotos from './SpeakerPhotos.vue'
 import TextColor from './TextColor.vue'
 
 // Pasek mówcy w presecie: napisy, kolor, logo i zdjęcie mówcy.
 const props = defineProps<{ look: { ink?: string, photo?: string, style?: string, name: string, sub: string, color: string, logo: boolean } }>()
-if (props.look.photo === undefined) props.look.photo = '' // nowe pole po aktualizacji
+if (props.look.photo === undefined) props.look.photo = LOWER_DEFAULT.photo // nowe pole po aktualizacji
 const { mediaList, addMediaFiles } = useDesk()
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 // zdjęcie z dysku: dodaje do Biblioteki i od razu wybiera
@@ -29,18 +30,20 @@ async function addPhoto() { const before = new Set(mediaList.value.map(x => x.id
     <div class="desk-opt-group">
       <small class="muted">Zdjęcie mówcy</small>
       <select v-model="look.photo" aria-label="Zdjęcie mówcy">
+        <option value="@speaker">Mówca z nabożeństwa</option>
         <option value="">Bez zdjęcia</option>
         <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
       </select>
       <button class="small" title="Zdjęcie z dysku — trafi też do Biblioteki" @click="addPhoto">Z dysku…</button>
     </div>
+    <SpeakerPhotos />
     <div class="desk-opt-group">
       <small class="muted">Kolor</small>
       <label class="desk-color" title="Kolor paska"><input v-model="look.color" type="color" aria-label="Kolor paska"></label>
       <button v-for="c in ['#f6a836', '#f5e532', '#e5484d', '#4f8ef7', '#ffffff']" :key="c" class="desk-swatch" :class="{ on: look.color === c }" :style="{ background: c }" :title="c" :aria-label="'Kolor ' + c" @click="look.color = c"></button>
-      <label v-if="!look.photo" class="check"><input v-model="look.logo" type="checkbox"> Logo kościoła</label>
+      <label class="check"><input v-model="look.logo" type="checkbox"> Logo kościoła</label>
       <button class="small" title="Przywróć domyślny pasek" @click="Object.assign(look, LOWER_DEFAULT)">Domyślny</button>
     </div>
-    <p class="desk-help">Puste pole nic nie pokazuje. {mówca} i {kazanie} wstawiają dane z najbliższego nabożeństwa. Zdjęcie: PNG z wyciętym tłem stoi na pasku i wychodzi nad niego, zamiast logo.</p>
+    <p class="desk-help">Puste pole nic nie pokazuje. {mówca} i {kazanie} wstawiają dane z najbliższego nabożeństwa. PNG z wyciętym tłem stoi na pasku i wychodzi nad niego, zamiast logo. Gdy mówca ma kilka zdjęć, kliknij to, które ma się pokazać — także w Studio.</p>
   </div>
 </template>

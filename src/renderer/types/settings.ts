@@ -17,6 +17,7 @@ export interface Settings {
   lyricsOnline: boolean
   mirrorStream?: boolean
   mirrorLive?: boolean
+  speakerPhotos?: { id: string, name: string, pic: string, on?: boolean }[] // galeria mówców: imię, grafika z Biblioteki, wybrane zdjęcie
   studioPresets?: Preset[] // przygotowane plansze i nakładki (Przygotowanie)
   presetsV?: number // wersja presetów (uzupełnienie starych, nowe gotowe)
   lifeLook?: any // scena „Życie kościoła”: ramka

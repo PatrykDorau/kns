@@ -7,6 +7,7 @@ import { bannerSet } from '@/services/studio/cards'
 import { ensurePresets, pickPreset, presetThumb, presetsOf, sendOverlay, stepBanner } from '@/services/studio/presets'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import type { Preset, PresetKind } from '@/types'
+import SpeakerPhotos from './SpeakerPhotos.vue'
 
 // Studio: wybór gotowego presetu — miniatura, nazwa, opis. Kliknięcie: na podgląd; na wizję przyciskiem na wybranym kafelku.
 // Plansze idą na wizję jak główne „Na wizję”, nakładki (baner, modlitwa) — same, bez zmiany reszty wizji.
@@ -59,5 +60,6 @@ function open(p: Preset | null) { prepKind.value = props.kind; prepId.value = p?
         <button v-if="pending" class="desk-send ready" :title="overlay ? 'Ten preset na wizję (reszta wizji bez zmian)' : 'Podgląd na wizję'" @click="send"><Icon name="play" />Na wizję</button>
       </div>
     </div>
+    <SpeakerPhotos v-if="kind === 'lower'" quick />
   </div>
 </template>

@@ -82,6 +82,7 @@ export const outlineNow = () => outline
 export const outlineWidth = (size: number) => Math.min(14, Math.max(3, size * 0.09))
 export function setOutline(c?: string) { const p = outline; outline = c || ''; return p }
 export function withOutline<R>(c: string | undefined, draw: () => R) { const p = setOutline(c); try { return draw() } finally { setOutline(p) } }
+export const luminance = (hex: string) => { const n = parseInt(String(hex || '#f6a836').slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 }
 const darkHex = (c: string) => { const m = /^#([0-9a-f]{6})$/i.exec(c); if (!m) return false; const n = parseInt(m[1], 16); return ((n >> 16) * 0.3 + (n >> 8 & 255) * 0.59 + (n & 255) * 0.11) < 120 }
 export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'left', alpha = 1, shadow = 0, font = 'ui' as Font, italic = false, spacing = 0 } = {}) {
   g.save()

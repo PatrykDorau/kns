@@ -1,10 +1,10 @@
 // Plansze: ogłoszenia w pętli (grafiki, karty z tekstem, karta najbliższego nabożeństwa), odliczanie
 // w stylu grafik ogłoszeń (papier, fala, timer), plansza końcowa z kodami QR.
 import qrcode from 'qrcode-generator'
-import { currentAnnouncements, nearestService, projectorGraphics, servicePlace, serviceTime, sortedServices } from '@/stores'
+import { currentAnnouncements, nearestService, projectorGraphics, servicePlace, serviceTime, sortedServices, today } from '@/stores'
 import type { StudioSlide } from '@/types'
 import { H, W, studio } from './state'
-import { S, background, fit, fitLine, g, img, paintOn, rounded, text, withOutline, wrap } from './paint'
+import { S, background, fit, fitLine, g, img, luminance, paintOn, rounded, text, trimmed, withOutline, wrap } from './paint'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, BG_IDS } from './backgrounds'
 import { drawCamera } from './camera'
@@ -20,6 +20,7 @@ export const svcWhen = svc => (svc ? new Date(svc.date + 'T12:00').toLocaleDateS
 export function slideCandidates(): StudioSlide[] {
   const pub = currentAnnouncements.value.filter(a => a.projector && (a.audience || 'public') === 'public')
   return [
+    { id: 'sermon', title: 'Kazanie i kaznodzieja', sermon: true },
     ...pub.filter(a => a.image).map(a => ({ id: 'a' + a.id, title: a.title, image: a.image })),
     ...projectorGraphics.value.filter(x => x.key.startsWith('e')).map(x => ({ id: x.key, title: x.name, image: x.image })),
     ...pub.filter(a => !a.image).map(a => ({ id: 'a' + a.id, title: a.title, text: a.text || '' })),
@@ -33,8 +34,10 @@ export function carouselStack(t, count) {
   const every = Math.max(3, +studio.slideEvery || 8) * 1000, i = Math.floor(Math.max(0, t - slideBase) / every)
   return Array.from({ length: Math.min(count, list.length) }, (_, n) => list[(i + n) % list.length])
 }
+// karta kazania tylko przed nabożeństwem i gdy w planie jest co pokazać
+const hasSermon = () => { const n = nearestService.value; return !!(n?.sermonTitle || n?.passage || n?.speaker) }
 export function slides() {
-  return slideCandidates().filter(c => !studio.hidden.includes(c.id))
+  return slideCandidates().filter(c => !studio.hidden.includes(c.id) && (!c.sermon || (S?.scene === 'countdown' && hasSermon())))
     .map(c => (c.image ? (img(c.image) ? { ...c, im: img(c.image) } : null) : c)).filter(Boolean)
 }
 export function carousel(t) {
@@ -69,6 +72,7 @@ export function textSlide(sl, x, y, w, h) {
 export const drawSlide = (sl, x, y, w, h) => withOutline('', () => slideOn(sl, x, y, w, h))
 function slideOn(sl, x, y, w, h) {
   if (sl.im) fit(sl.im, sl.im.naturalWidth, sl.im.naturalHeight, x, y, w, h, 'cover')
+  else if (sl.sermon) sermonCard(x, y, w, h)
   else if (sl.service) serviceCard(x, y, w, h)
   else textSlide(sl, x, y, w, h)
 }
@@ -77,34 +81,77 @@ export function upcomingService() {
   const now = Date.now()
   return [...sortedServices.value].reverse().find(s => s.date && new Date(`${s.date}T${serviceTime(s)}`).getTime() > now) || null
 }
-// Karta najbliższego nabożeństwa (gdy nie ma ogłoszeń albo włączona w pętli): logo, data, godzina i miejsce, kazanie.
+// Tło kart nabożeństwa i kazania: ciemne, z prawej słońce i góry z logo kościoła.
+function darkCard(x, y, w, h) {
+  const k = w / 1240, look = cdLook().accent || '#f6a836', accent = luminance(look) < 0.25 ? '#f6a836' : look // ciemny akcent zniknąłby na ciemnej karcie
+  const back = g.createLinearGradient(x, y, x + w, y + h); back.addColorStop(0, '#2a1b11'); back.addColorStop(1, '#120c07')
+  g.fillStyle = back; g.fillRect(x, y, w, h)
+  const cx = x + w * 0.74, cy = y + h * 0.47, r = h * 0.42, sun = g.createLinearGradient(0, cy - r, 0, cy + r)
+  sun.addColorStop(0, accent); sun.addColorStop(1, '#a2471a')
+  g.fillStyle = sun; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill()
+  const ridge: [number, number][] = [[0.44, 1], [0.55, 0.74], [0.62, 0.82], [0.74, 0.62], [0.86, 0.8], [0.93, 0.72], [1, 0.8], [1, 1]]
+  g.fillStyle = '#0d0805'; g.beginPath(); ridge.forEach(([px, py], i) => (i ? g.lineTo(x + w * px, y + h * py) : g.moveTo(x + w * px, y + h * py))); g.closePath(); g.fill()
+  return { k, accent, cx, cy, r }
+}
+function sunLogo(cx, cy, r) {
+  const lg = img('./znak-obrys.png'), ls = r * 1.05
+  g.save(); g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, cy, ls * 0.62, 0, Math.PI * 2); g.fill(); g.restore()
+  if (lg) g.drawImage(lg, cx - ls / 2, cy - ls / 2, ls, ls)
+}
+// Karta najbliższego nabożeństwa: z lewej dzień, godzina i miejsce, pod spodem kazanie; z prawej logo na słońcu.
 export function serviceCard(x, y, w, h) {
-  const k = w / 1240, svc = upcomingService(), cx = x + w / 2
-  const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, '#f0a24f'); gr.addColorStop(1, '#d9733a')
-  g.fillStyle = gr; g.fillRect(x, y, w, h)
-  // delikatne koło w tle (jak słońce w logo)
-  g.save(); g.globalAlpha = 0.12; g.fillStyle = '#fff'; g.beginPath(); g.arc(x + w * 0.86, y + h * 0.18, 260 * k, 0, Math.PI * 2); g.fill(); g.restore()
-  // logo w białym kółku
-  g.save(); g.shadowColor = 'rgba(60,30,10,0.35)'; g.shadowBlur = 24 * k; g.shadowOffsetY = 6 * k
-  g.beginPath(); g.arc(cx, y + 118 * k, 74 * k, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.restore()
-  const lg = img('./znak-obrys.png')
-  if (lg) g.drawImage(lg, cx - 56 * k, y + 62 * k, 112 * k, 112 * k)
-  text('NAJBLIŻSZE NABOŻEŃSTWO', cx, y + 248 * k, { size: Math.round(28 * k), weight: 800, color: '#5c2d0c', align: 'center' })
-  if (!svc) {
-    text('Termin wkrótce', cx, y + 360 * k, { size: Math.round(88 * k), weight: 800, color: '#2a1a10', align: 'center' })
-    text('Szczegóły na kns-nabo.netlify.app', cx, y + 440 * k, { size: Math.round(38 * k), weight: 600, color: '#3b2312', align: 'center' })
-    return
-  }
-  const day = new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase())
-  const d = fitLine(day, w - 140 * k, Math.round(84 * k), Math.round(56 * k), 800)
-  text(d.str, cx, y + 350 * k, { size: d.size, weight: 800, color: '#2a1a10', align: 'center' })
-  text('godz. ' + serviceTime(svc) + ' · ' + servicePlace(svc), cx, y + 418 * k, { size: Math.round(42 * k), weight: 600, color: '#3b2312', align: 'center' })
-  const sermon = svc.sermonTitle || '', more = [svc.passage, svc.speaker].filter(Boolean).join(' · ')
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip()
+  const { k, accent, cx, cy, r } = darkCard(x, y, w, h), svc = upcomingService()
+  sunLogo(cx, cy, r)
+  const tx = x + 76 * k, tw = w * 0.45
+  const day = svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()) : 'Termin wkrótce'
+  const size = Math.round(84 * k), lines = wrap(day.replace(', ', ',\n'), tw, size, 400, 2, 'display'), lh = size * 1.14
+  const where = svc ? wrap('godz. ' + serviceTime(svc) + ' · ' + servicePlace(svc), tw, Math.round(40 * k), 600, 2, 'sans') : wrap('Szczegóły na kns-nabo.netlify.app', tw, Math.round(34 * k), 600, 2, 'sans')
+  const sermon = svc?.sermonTitle || '', more = svc ? [svc.passage, svc.speaker].filter(Boolean).join(' · ') : ''
+  const head = 46 * k, whereH = where.length * 52 * k, sermonH = sermon || more ? 34 * k + (sermon ? 60 * k : 0) + (more ? 50 * k : 0) : 0
+  let ty = y + (h - head - lines.length * lh - whereH - sermonH) / 2 + 24 * k
+  const eye = fitLine('NAJBLIŻSZE NABOŻEŃSTWO', tw, Math.round(40 * k), Math.round(26 * k), 700, 'cond')
+  text(eye.str, tx, ty, { size: eye.size, weight: 700, font: 'cond', color: accent, spacing: 5 * k })
+  ty += head
+  lines.forEach((l, i) => text(l, tx, ty + (i + 0.82) * lh, { size, weight: 400, font: 'display', color: '#fbf3e6' }))
+  ty += lines.length * lh
+  where.forEach((l, i) => text(l, tx, ty + 42 * k + i * 52 * k, { size: Math.round((svc ? 40 : 34) * k), weight: 600, font: 'sans', color: '#fbf3e6' }))
+  ty += whereH
   if (sermon || more) {
-    g.fillStyle = 'rgba(42,26,16,0.25)'; g.fillRect(cx - 90 * k, y + 458 * k, 180 * k, 4 * k)
-    if (sermon) { const t = fitLine('„' + sermon + '”', w - 160 * k, Math.round(48 * k), Math.round(32 * k), 800); text(t.str, cx, y + 540 * k, { size: t.size, weight: 800, color: '#fff', align: 'center', shadow: 8 * k }) }
-    if (more) { const m = fitLine(more, w - 160 * k, Math.round(36 * k), Math.round(26 * k), 600); text(m.str, cx, y + (sermon ? 600 : 540) * k, { size: m.size, weight: 600, color: '#fff3e0', align: 'center' }) }
+    g.fillStyle = accent; g.fillRect(tx, ty + 20 * k, 72 * k, 5 * k); ty += 34 * k
+    if (sermon) { const t = fitLine('„' + sermon + '”', tw, Math.round(44 * k), Math.round(28 * k), 400, 'serif', true); text(t.str, tx, ty + 46 * k, { size: t.size, weight: 400, font: 'serif', italic: true, color: accent }); ty += 60 * k }
+    if (more) { const m = fitLine(more, tw, Math.round(36 * k), Math.round(26 * k), 600, 'sans'); text(m.str, tx, ty + 38 * k, { size: m.size, weight: 600, font: 'sans', color: '#fbf3e6' }) }
   }
+  g.restore()
+}
+// Karta kazania: z prawej kaznodzieja na tle słońca i gór z logo kościoła, z lewej tytuł, fragment i imię.
+function sermonCard(x, y, w, h) {
+  const n = nearestService.value
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip()
+  const { k, accent, cx, cy, r } = darkCard(x, y, w, h)
+  const it = mediaSlide(speakerPic(n?.speaker)), pic = it?.type === 'image' && img(mediaUrl(it.path))
+  if (pic) {
+    const box = trimmed(pic), s = Math.min(w * 0.46 / box.w, h * 0.92 / box.h), pw = box.w * s, ph = box.h * s
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 30 * k
+    g.drawImage(pic, box.x, box.y, box.w, box.h, cx - pw / 2, y + h - ph, pw, ph); g.restore()
+  } else sunLogo(cx, cy, r)
+  const when = n?.date === today() ? 'DZIŚ KAZANIE' : 'KAZANIE · ' + new Date(n.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()
+  const main = n.sermonTitle || n.passage || n.speaker, verse = n.sermonTitle ? n.passage : '', who = main === n.speaker ? '' : n.speaker
+  const tx = x + 76 * k, tw = w * 0.45, sizes = [86, 74, 62, 52].map(v => Math.round(v * k))
+  const size = sizes.find(v => !wrap(main, tw, v, 400, 3, 'display').at(-1).endsWith('…')) || sizes[3], lines = wrap(main, tw, size, 400, 4, 'display'), lh = size * 1.14
+  const head = 46 * k, verseH = verse ? 66 * k : 0, whoH = who ? 112 * k : 0
+  let ty = y + (h - head - lines.length * lh - verseH - whoH) / 2 + 24 * k
+  const eye = fitLine(when, tw, Math.round(40 * k), Math.round(26 * k), 700, 'cond')
+  text(eye.str, tx, ty, { size: eye.size, weight: 700, font: 'cond', color: accent, spacing: 5 * k })
+  ty += head
+  lines.forEach((l, i) => text(l, tx, ty + (i + 0.82) * lh, { size, weight: 400, font: 'display', color: '#fbf3e6' }))
+  ty += lines.length * lh
+  if (verse) { const f = fitLine(verse, tw, Math.round(44 * k), Math.round(28 * k), 400, 'serif', true); text(f.str, tx, ty + 50 * k, { size: f.size, weight: 400, font: 'serif', italic: true, color: accent }); ty += verseH }
+  if (who) {
+    g.fillStyle = accent; g.fillRect(tx, ty + 34 * k, 72 * k, 5 * k)
+    const f = fitLine(who, tw, Math.round(48 * k), Math.round(30 * k), 700, 'sans'); text(f.str, tx, ty + 100 * k, { size: f.size, weight: 700, font: 'sans', color: '#fbf3e6' })
+  }
+  g.restore()
 }
 export const drawCarousel = (c, x, y, w, h) => withOutline('', () => carouselOn(c, x, y, w, h))
 function carouselOn(c, x, y, w, h) {
@@ -195,8 +242,19 @@ export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', setting
 export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, layout: 'side', banner: true, title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
 export const lifeLook = () => safeBg({ ...LIFE_DEFAULT, ...(styleOf('life', settings.lifeLook) || {}) })
 // Pasek mówcy: {mówca} i {kazanie} — z najbliższego nabożeństwa; puste pole — nic.
-export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true, photo: '' } as const
-export const lowerLookOf = () => S?.lowerLook || { ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }
+export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true, photo: '@speaker' } as const
+// Zdjęcia mówców: imię w planie bywa krótsze niż przy zdjęciu („Piotr” i „Piotr Gruchała” to ta sama osoba).
+const nameKey = n => String(n || '').toLowerCase().replace(/\s+/g, ' ').trim()
+const sameName = (a, b) => { const x = nameKey(a), y = nameKey(b); return !!x && !!y && (x === y || x.startsWith(y + ' ') || y.startsWith(x + ' ')) }
+export const photosOf = name => (settings.speakerPhotos || []).filter(p => sameName(p.name, name))
+export const currentSpeaker = () => nearestService.value?.speaker || ''
+export function speakerPic(name) { const own = photosOf(name), list = !own.length && demo ? settings.speakerPhotos || [] : own; return (list.find(p => p.on) || list[0])?.pic || '' }
+export function choosePhoto(entry) { for (const p of photosOf(entry.name)) p.on = p.id === entry.id }
+// zdjęcie na pasku: stałe z presetu, wybrane zdjęcie mówcy z nabożeństwa albo żadne
+const photoFor = L => (L.photo === '' ? '' : L.photo && L.photo !== '@speaker' ? L.photo : speakerPic(fill(L.name)))
+export const lowerPic = L => L.pic ?? photoFor(L)
+export const lowerNow = () => { const L = { ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }; return { ...L, pic: photoFor(L) } }
+export const lowerLookOf = () => S?.lowerLook || lowerNow()
 // Baner (nakładka na Kamerze i Rzutniku): styl, kolor, napis, podpis, dopisek i kod QR.
 export const BANNER_DEFAULT = { style: 'rock', color: '#f6a836', title: 'Dziękujemy, że byliście z nami!', sub: 'Do zobaczenia: {nabożeństwo}', note: '', qr: 'all', link: '', pic: '', place: 'bottom' } as const
 // Banery: jeden albo kolejka kilku (slajdy w kółko co „sec” sekund). Podgląd — bieżące ustawienia; wizja — kopia z chwili

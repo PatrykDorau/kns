@@ -1,7 +1,7 @@
 // Sceny: co rysujemy na płótnie dla każdej sceny, napisy pieśni i pasek z mówcą.
 import { ANN_MEDIA, H, W, studio } from './state'
 import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, setHalo, setOutline, text, trimmed, withOutline, wrap } from './paint'
-import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, prayerLook, presetBanners, setDemo, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, zeroAt } from './cards'
+import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, lowerPic, prayerLook, presetBanners, setDemo, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, zeroAt } from './cards'
 import { bottomBand, glassPanel, hairline, roughFit, roughText, shade } from './rough'
 import { cleanInk, pill } from './clean'
 import { drawLife } from './life'
@@ -395,7 +395,7 @@ function lowerThird(t) {
   if (off && !(S.lowerOff && t - S.lowerOff < 500)) return
   const k = off ? 1 - Math.min(1, (t - S.lowerOff) / 500) : Math.min(1, (t - S.lowerAt) / 500), e = 1 - Math.pow(1 - k, 3)
   // zdjęcie mówcy wycięte z tła (PNG) stoi na pasku i wychodzi nad niego — zajmuje miejsce logo
-  const it = L.photo && mediaSlide(L.photo), pic = it?.type === 'image' && img(mediaUrl(it.path)), box = pic && trimmed(pic), pk = box ? Math.min(PHOTO.w / box.w, PHOTO.h / box.h) : 0, pw = box ? box.w * pk : 0, ph = box ? box.h * pk : 0
+  const it = mediaSlide(lowerPic(L)), pic = it?.type === 'image' && img(mediaUrl(it.path)), box = pic && trimmed(pic), pk = box ? Math.min(PHOTO.w / box.w, PHOTO.h / box.h) : 0, pw = box ? box.w * pk : 0, ph = box ? box.h * pk : 0
   const hasLogo = L.logo !== false && !box, tx = box ? PHOTO.x + pw + 30 : hasLogo ? 222 : 44, clean = L.style === 'edit' // napisy zaczynają się za logo
   const maxText = 1500 - tx - 60
   const name = fitLine(who, maxText, 46, 34, 800)

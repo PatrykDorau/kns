@@ -22,7 +22,7 @@ export interface Look {
   lyricsOn: boolean
   lowerThird: boolean
   loop?: boolean // tylko podgląd w Przygotowaniu: rysowanie gór w kółko
-  lowerLook?: { ink?: string, outline?: string, photo?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
+  lowerLook?: { ink?: string, outline?: string, photo?: string, pic?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
   pip: Pip
   lowerAt: number
   lowerOff: number
@@ -51,6 +51,7 @@ export interface MediaPlay {
 export interface StudioSlide {
   id: string
   title: string
+  sermon?: boolean // karta kazania (w pętli odliczania)
   image?: string
   text?: string
   service?: boolean

@@ -3,7 +3,7 @@
 import { itemById, settings } from '@/stores'
 import type { Look } from '@/types'
 import { studio } from './state'
-import { CD_DEFAULT, END_DEFAULT, LIFE_DEFAULT, LOWER_DEFAULT, bannerSet } from './cards'
+import { CD_DEFAULT, END_DEFAULT, LIFE_DEFAULT, bannerSet, lowerNow } from './cards'
 
 // Bieżący wygląd plansz z ustawień (kopia) — wizja dostaje go przy „Na wizję”, podgląd zawsze rysuje z ustawień.
 const copy = x => (x == null ? x : JSON.parse(JSON.stringify(x)))
@@ -46,7 +46,7 @@ export function setLowerThird(v: boolean) {
   if (v) { studio.program.lowerLook = lowerSet(); onAirPreset('lower') }
 }
 // pasek mówcy: wizja dostaje kopię z chwili wysłania
-const lowerSet = () => JSON.parse(JSON.stringify({ ...LOWER_DEFAULT, ...(settings.lowerLook || {}) }))
+const lowerSet = () => JSON.parse(JSON.stringify(lowerNow()))
 export const lowerPending = () => !!studio.program.lowerThird && JSON.stringify(studio.program.lowerLook || null) !== JSON.stringify(lowerSet())
 // tylko podgląd — nakładka czeka na potwierdzenie (ustawienia widać pod paskiem nakładek)
 export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boolean) { change(key === 'lowerThird' ? lt(v) : l => { l[key] = v }) }
