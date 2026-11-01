@@ -193,6 +193,7 @@ create policy people_read on public.people for select to authenticated using (id
 create policy services_read on public.services for select to authenticated using (is_active());
 create policy services_write on public.services for all to authenticated using (has_flag('edit')) with check (has_flag('edit'));
 alter table public.songs add column if not exists chords jsonb not null default '{}'::jsonb; -- akordy: { "linijka": { "pozycja": "Am" } }
+alter table public.songs add column if not exists meta jsonb not null default '{}'::jsonb; -- { key, bpm, authors, intro, progression }
 create policy songs_read on public.songs for select to authenticated using (is_active());
 create policy songs_write on public.songs for all to authenticated using (has_flag('edit')) with check (has_flag('edit'));
 create policy events_read on public.events for select to authenticated using (is_active());

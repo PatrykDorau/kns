@@ -586,12 +586,12 @@ export default defineComponent({
     function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
-      song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '', chords: s.chords || {} }
+      song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '', chords: s.chords || {}, meta: s.meta || {} }
       songSaved = JSON.stringify(song.value); songBase = s.updated || 0
       status.value = ''; confirmDelete.value = false; scrollTo(0, 0)
     }
     function newSong() {
-      song.value = { id: uid(), number: '', title: '', text: '', chords: {}, isNew: true }
+      song.value = { id: uid(), number: '', title: '', text: '', chords: {}, meta: {}, isNew: true }
       songSaved = ''; songBase = 0; status.value = ''; confirmDelete.value = false
     }
     async function closeSong() {

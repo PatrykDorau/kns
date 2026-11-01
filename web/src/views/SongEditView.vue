@@ -34,13 +34,15 @@ export default defineComponent({
       })
     })
     const tab = ref('text') // edycja: tekst albo akordy
+    const facts = computed(() => { const m = app.song.value?.meta || {}; return [m.key && 'Tonacja ' + m.key, m.bpm && m.bpm + ' BPM', m.authors].filter(Boolean).join(' · ') })
+    const layout = computed(() => { const m = app.song.value?.meta || {}; return [...(m.intro || []), ...(m.progression || [])] })
     const hasChords = computed(() => Object.keys(app.song.value?.chords || {}).length > 0)
     let saved = null
     try { saved = localStorage.getItem('kns-chords') } catch { /* tryb prywatny */ }
     const showChords = ref(saved !== 'off')
     function toggleChords() { showChords.value = !showChords.value; try { localStorage.setItem('kns-chords', showChords.value ? 'on' : 'off') } catch { /* tryb prywatny */ } }
     const words = l => tokens(l, app.song.value?.chords?.[l.trim()] || {})
-    return { ...app, sung, editing, parts, tab, hasChords, showChords, toggleChords, words }
+    return { ...app, sung, editing, parts, tab, facts, layout, hasChords, showChords, toggleChords, words }
   },
 })
 </script>
@@ -56,6 +58,8 @@ export default defineComponent({
         </div>
         <button v-if="canEdit" class="sv-edit" @click="editing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
       </div>
+      <p v-if="facts" class="sv-facts">{{ facts }}</p>
+      <details v-if="layout.length" class="sv-layout"><summary>Układ dla zespołu<svg class="i"><use href="#down"/></svg></summary><p v-for="(l, i) in layout" :key="i">{{ l }}</p></details>
       <button v-if="hasChords" class="ghost small sv-toggle" :aria-pressed="showChords" @click="toggleChords"><svg class="i"><use href="#music"/></svg>{{ showChords ? 'Ukryj akordy' : 'Pokaż akordy' }}</button>
       <p v-if="!parts.length" class="note">Pieśń nie ma jeszcze tekstu.</p>
       <section v-for="(p, i) in parts" :key="i" class="sv-part" :class="{ chorus: p.chorus }">
@@ -76,6 +80,8 @@ export default defineComponent({
     <div style="flex:0 0 96px"><label for="sNum">Numer</label><input id="sNum" v-model="song.number" inputmode="numeric" autocomplete="off"></div>
     <div><label for="sTitle">Tytuł <span class="req">*</span></label><input id="sTitle" v-model="song.title" :class="{ invalid: !song.title.trim() }" autocomplete="off"></div>
   </div>
+  <label for="sKey">Tonacja</label>
+  <input id="sKey" :value="song.meta?.key || ''" autocomplete="off" placeholder="np. Eb" style="max-width:140px" @input="song.meta = { ...song.meta, key: $event.target.value }">
   <p v-if="numberTaken" class="note error">Numer {{ song.number }} ma już pieśń „{{ numberTaken.title }}”.</p>
   <div class="sv-tabs" role="tablist" aria-label="Edycja pieśni">
     <button type="button" role="tab" :aria-selected="tab === 'text'" :class="{ on: tab === 'text' }" @click="tab = 'text'">Tekst i części</button>
@@ -113,6 +119,12 @@ export default defineComponent({
 .sv-part.chorus .sv-label { color: var(--accent-text); }
 .sv-part.chorus p { font-style: italic; }
 .sv-back { margin: 0 0 10px; }
+.sv-facts { margin: -10px 0 12px; color: var(--muted); font-size: 14px; }
+.sv-layout { margin: 0 0 12px; padding: 0 14px; border-radius: 14px; background: var(--panel); }
+.sv-layout summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; font-size: 15px; font-weight: 500; list-style: none; cursor: pointer; }
+.sv-layout summary::-webkit-details-marker { display: none; }
+.sv-layout summary .i { width: 18px; height: 18px; color: var(--muted); }
+.sv-layout p { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
 .sv-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin: 0 0 12px; }
 .sv-chords { display: flex; flex-wrap: wrap; column-gap: 6px; margin: 2px 0 0 !important; font-size: 18px; line-height: 1.3; }
 .sv-chords span { display: inline-flex; flex-direction: column; }
