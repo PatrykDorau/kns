@@ -15,7 +15,7 @@ export default defineComponent({
     watch(inviteEnd, el => {
       io?.disconnect(); io = null
       if (!el) return
-      io = new IntersectionObserver(([e]) => { inviteStuck.value = !e.isIntersecting })
+      io = new IntersectionObserver(([e]) => { inviteStuck.value = !e.isIntersecting }, { rootMargin: '0px 0px -90px 0px' }) // margines: dolne menu zasłania koniec listy
       io.observe(el)
     }, { flush: 'post' })
     onBeforeUnmount(() => io?.disconnect())

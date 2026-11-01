@@ -86,10 +86,35 @@ export default defineComponent({
       else { clearTimeout(lbTimer); im.decode().then(show, show) }
     })
     watch(lbPaused, lbArm)
+    // przesuwanie palcem: zdjęcie idzie za palcem, sąsiednie wjeżdża z boku; dłuższe przytrzymanie tylko wstrzymuje
+    const lbDx = ref(0), lbSliding = ref(false), SLIDE_MS = 220
+    let press = null, dragged = false, held = false
+    function lbDown(e) {
+      if (lbSliding.value || e.target.closest('.hm-st-x')) return
+      press = { x: e.clientX, at: performance.now() }; dragged = false; held = false; lbPaused.value = true
+    }
+    function lbMove(e) {
+      if (!press) return
+      const d = e.clientX - press.x
+      if (!dragged && Math.abs(d) < 8) return
+      dragged = true
+      lbDx.value = shown.value === 0 && d > 0 ? d * 0.3 : d // przed pierwszym nic nie ma — lekki opór
+    }
+    function lbUp(e) {
+      if (!press) return
+      const d = e.clientX - press.x, ms = performance.now() - press.at, dir = d < 0 ? 1 : -1, width = window.innerWidth
+      press = null; lbPaused.value = false; held = ms > 350
+      if (!dragged) return
+      const go = e.type === 'pointerup' && (Math.abs(d) > width * 0.22 || (Math.abs(d) > 30 && Math.abs(d) / ms > 0.5)) && !(shown.value === 0 && dir < 0)
+      lbSliding.value = true; lbDx.value = go ? -dir * width : 0
+      setTimeout(() => { lbSliding.value = false; if (go) lbStep(dir); lbDx.value = 0 }, SLIDE_MS)
+    }
+    // stuknięcie w pole wstecz/dalej; po przesunięciu albo przytrzymaniu przeglądarka też wysyła kliknięcie — ono nic nie robi
+    const lbTap = d => { if (!dragged && !held) lbStep(d) }
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, hasThoughts, hasPhotos }
+    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, hasThoughts, hasPhotos }
   },
 })
 </script>
@@ -130,13 +155,17 @@ export default defineComponent({
         </button>
       </div>
     </section>
-    <!-- zdjęcia na cały ekran jak relacja: pasek postępu, same przechodzą dalej; stuknięcie w lewą/prawą część — wstecz/dalej -->
-    <div v-if="lb !== null" class="hm-story" role="dialog" aria-modal="true" aria-label="Zdjęcia z ostatniego nabożeństwa" tabindex="-1" @keydown.esc="lb = null" @keydown.left="lbStep(-1)" @keydown.right="lbStep(1)">
+    <!-- zdjęcia na cały ekran jak relacja: pasek postępu, same przechodzą dalej; przesunięcie palcem albo stuknięcie w lewą/prawą część — wstecz/dalej -->
+    <div v-if="lb !== null" class="hm-story" role="dialog" aria-modal="true" aria-label="Zdjęcia z ostatniego nabożeństwa" tabindex="-1" @keydown.esc="lb = null" @keydown.left="lbStep(-1)" @keydown.right="lbStep(1)" @pointerdown="lbDown" @pointermove="lbMove" @pointerup="lbUp" @pointercancel="lbUp" @dragstart.prevent>
       <div class="hm-st-bars"><i v-for="(u, i) in HERO_ART" :key="u" :class="{ done: i < shown }"><b v-if="i === shown" :key="'b' + shown" :class="{ run: !lbPaused && shown === lb }"></b></i></div>
       <div class="hm-st-top"><b>Ostatnia niedziela</b><small v-if="photos?.date">{{ shortDate(photos.date) }}</small><button class="hm-st-x" aria-label="Zamknij" @click="lb = null"><svg class="i"><use href="#x"/></svg></button></div>
-      <img :src="HERO_ART[shown]" alt="" @pointerdown="lbPaused = true" @pointerup="lbPaused = false" @pointerleave="lbPaused = false">
-      <button class="hm-st-tap prev" aria-label="Poprzednie zdjęcie" @click="lbStep(-1)"></button>
-      <button class="hm-st-tap next" aria-label="Następne zdjęcie" @click="lbStep(1)"></button>
+      <div class="hm-st-track" :class="{ sliding: lbSliding }" :style="lbDx ? { transform: 'translate3d(' + lbDx + 'px, 0, 0)' } : null">
+        <img v-if="HERO_ART[shown - 1]" :key="HERO_ART[shown - 1]" class="prev" :src="HERO_ART[shown - 1]" alt="">
+        <img :key="HERO_ART[shown]" :src="HERO_ART[shown]" alt="">
+        <img v-if="HERO_ART[shown + 1]" :key="HERO_ART[shown + 1]" class="next" :src="HERO_ART[shown + 1]" alt="">
+      </div>
+      <button class="hm-st-tap prev" aria-label="Poprzednie zdjęcie" @click="lbTap(-1)"></button>
+      <button class="hm-st-tap next" aria-label="Następne zdjęcie" @click="lbTap(1)"></button>
     </div>
 
     <!-- 1. Dla Ciebie: to, co czeka właśnie na tę osobę -->

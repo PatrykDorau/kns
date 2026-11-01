@@ -78,8 +78,8 @@ export default defineComponent({
         </button>
       </div>
     </template>
-    <!-- grafik: kto w którą niedzielę -->
-    <div v-if="planDays.length" class="avail-plan">
+    <!-- grafik: kto w którą niedzielę; przy otwartej tabeli pod nią, żeby nowe wiersze nie przesuwały komórek pod palcem -->
+    <div v-if="planDays.length && !av.open[m.id]" class="avail-plan">
       <small class="mm-lbl">Grafik</small>
       <p v-for="d in planDays" :key="d" :class="{ me: inPlan(m, d, m.you) }"><b>{{ dayLabel(d) }}</b><span>{{ names(m, d) }}</span></p>
     </div>
@@ -102,6 +102,10 @@ export default defineComponent({
         <button class="small" :disabled="av.busy || !planDays.length" title="Każdy z grafiku dostanie powiadomienie ze swoimi niedzielami" @click="publish(m)"><svg class="i"><use href="#megaphone"/></svg>Wyślij grafik</button>
       </div>
       <p v-if="m.lead && av.planning[m.id]" class="avail-hint">Kliknij komórkę, żeby dodać osobę do grafiku na tę niedzielę (albo ją zdjąć). Po ułożeniu — „Wyślij grafik”.</p>
+    </div>
+    <div v-if="planDays.length && av.open[m.id]" class="avail-plan">
+      <small class="mm-lbl">Grafik</small>
+      <p v-for="d in planDays" :key="d" :class="{ me: inPlan(m, d, m.you) }"><b>{{ dayLabel(d) }}</b><span>{{ names(m, d) }}</span></p>
     </div>
   </div>
 </template>

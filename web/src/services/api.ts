@@ -47,6 +47,7 @@ export function createDemoApi() {
   people = people || start()
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(people)) } catch { /* tryb prywatny */ } }
   const copy = x => JSON.parse(JSON.stringify(x))
+  const demoPlan = {}
   const inDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return new Date(+d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   const ACTIONS = {
     me: () => ({ person: people[0], ranks: RANKS }),
@@ -57,8 +58,14 @@ export function createDemoApi() {
       types: [{ id: 'nabozenstwo', name: 'Nabożeństwo', color: '#5b8cff' }, { id: 'studenckie', name: 'Spotkanie studenckie', color: '#3ddc97' }],
     }),
     calendarToken: () => ({ token: '00000000-0000-4000-8000-000000000000' }),
+    availability: () => [{ id: 'd1', name: 'Administracyjno-gospodarcza', member: true, lead: true, you: 'o1', mine: {}, plan: copy(demoPlan),
+      days: [7, 14, 21, 28].map(n => inDays(((7 - new Date().getDay()) % 7) + n)),
+      people: [['o1', 'Ty'], ['o2', 'Anna Nowak'], ['o3', 'Jan Zieliński'], ['o4', 'Marta Kowalska']].map(([id, name]) => ({ id, name, states: {} })) }],
+    availabilitySet: () => null,
+    scheduleToggle({ day, person }) { const l = demoPlan[day] || (demoPlan[day] = []), i = l.indexOf(person); if (i >= 0) l.splice(i, 1); else l.push(person); return null },
+    schedulePublish: () => 0,
     ministries: () => [
-      { id: 'd1', name: 'Administracyjno-gospodarcza', description: 'Dbamy o salę i sprzęt przed nabożeństwem.', seeking: true, lead: true, mine: '', leaders: [{ id: 'l1', name: 'Jan Zieliński' }], members: [], people: [], pending: [] },
+      { id: 'd1', name: 'Administracyjno-gospodarcza', description: 'Dbamy o salę i sprzęt przed nabożeństwem.', seeking: true, lead: true, mine: 'active', leaders: [{ id: 'l1', name: 'Jan Zieliński' }], members: [], people: [], pending: [] },
       { id: 'd2', name: 'Powitania', description: 'Witamy gości w drzwiach.', seeking: true, lead: false, mine: 'pending', leaders: [{ id: 'l2', name: 'Marta Kowalska' }], members: [], people: [], pending: [] },
       { id: 'd3', name: 'Dźwięk', description: '', seeking: false, lead: false, mine: '', leaders: [], members: [], people: [], pending: [] },
     ],
