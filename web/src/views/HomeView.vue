@@ -63,6 +63,9 @@ export default defineComponent({
     const preload = u => { if (!pre.has(u)) { const im = new Image(); im.decoding = 'async'; im.src = u; pre.set(u, im) } return pre.get(u) }
     const hasThoughts = computed(() => !!(app.lastSermon.value && app.thoughtList(app.lastSermon.value).length))
     const hasPhotos = computed(() => !!(app.heroIsPhoto.value && app.HERO_ART.value.length))
+    // pionowe kafelki: tyle, ile mieści się bez ucinania ludzi (obok myśli z kazania miejsca jest mniej)
+    const wide = matchMedia('(min-width: 900px)').matches
+    const photoTiles = computed(() => (wide && !hasThoughts.value ? 5 : 3))
     // relacja: dalej co 5 s (koniec — zamknij), wstecz na pierwszym — zostaje; przytrzymanie wstrzymuje
     let lbTimer = 0
     function lbStep(d) {
@@ -114,7 +117,7 @@ export default defineComponent({
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, hasThoughts, hasPhotos }
+    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, photoTiles, hasThoughts, hasPhotos }
   },
 })
 </script>
@@ -145,13 +148,12 @@ export default defineComponent({
           <p class="kh-th-sermon"><b>{{ lastSermon.sermonTitle || 'Kazanie' }}</b><template v-if="lastSermon.passage"> · {{ lastSermon.passage }}</template><template v-if="lastSermon.speaker"> · {{ lastSermon.speaker }}</template></p>
           <ul class="kh-th-list"><li v-for="(t, i) in thoughtList(lastSermon)" :key="i">{{ t }}</li></ul>
         </template>
-        <p v-else class="kh-th-sermon">Zdjęcia z nabożeństwa. Kliknij, żeby obejrzeć wszystkie.</p>
         <a v-if="recording" class="hm-pill" :href="recording" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Nagranie kazania</a>
       </div>
-      <div v-if="hasPhotos" class="hm-mosaic" :class="'n' + Math.min(HERO_ART.length, 3)">
-        <button v-for="(u, i) in HERO_ART.slice(0, 3)" :key="u" class="hm-ph" :aria-label="'Zdjęcie ' + (i + 1) + ' z ' + HERO_ART.length" @click="lb = i">
+      <div v-if="hasPhotos" class="hm-mosaic" :style="{ '--n': Math.min(HERO_ART.length, photoTiles) }">
+        <button v-for="(u, i) in HERO_ART.slice(0, photoTiles)" :key="u" class="hm-ph" :aria-label="'Zdjęcie ' + (i + 1) + ' z ' + HERO_ART.length" @click="lb = i">
           <img :src="u" alt="" loading="lazy">
-          <span v-if="i === 2 && HERO_ART.length > 3" class="hm-more">+{{ HERO_ART.length - 3 }}</span>
+          <span v-if="i === photoTiles - 1 && HERO_ART.length > photoTiles" class="hm-more">+{{ HERO_ART.length - photoTiles }}</span>
         </button>
       </div>
     </section>
