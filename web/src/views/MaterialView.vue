@@ -45,8 +45,8 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     <input ref="protoFileIn" type="file" accept=".pdf,.doc,.docx,.odt,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,image/*,audio/*,.mp3,.m4a,.wav,.ogg,.flac" hidden @change="pickProtoFile">
     <label for="prTitle">Tytuł <span class="req">*</span></label>
     <input id="prTitle" v-model="currentProto.title" :class="{ invalid: !currentProto.title.trim() }" autocomplete="off">
-    <label for="prDate">{{ currentProto.type === 'protokol' ? 'Data spotkania' : 'Data' }}</label>
-    <input id="prDate" v-model="currentProto.date" type="date">
+    <label v-if="currentProto.type === 'protokol'" for="prDate">Data spotkania</label>
+    <input v-if="currentProto.type === 'protokol'" id="prDate" v-model="currentProto.date" type="date">
     <label for="prKind">Kto widzi</label>
     <UiSelect id="prKind" :model-value="currentProto.kind === 'rada' ? 'rada' : 'all'" label="Kto widzi" :options="[{ value: 'all', label: (currentProto.ministries || []).length ? 'Wybrane służby (poniżej)' : 'Wszyscy członkowie' }, ...(hasCouncil ? [{ value: 'rada', label: 'Tylko rada zboru' }] : [])]" @update:model-value="v => { protoAudience(v); if (v === 'rada') currentProto.ministries = [] }" />
     <MinistryPicker v-if="currentProto.kind !== 'rada'" :model-value="currentProto.ministries || []" @update:model-value="v => currentProto.ministries = v" />

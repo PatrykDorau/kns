@@ -9,6 +9,7 @@ import { SCENES, initLook, pauseIdle, setFps, setPip, studio } from '@/services/
 import type { Pip, Service } from '@/types'
 import { useAtem } from './useAtem'
 import { useBroadcast } from './useBroadcast'
+import { useLiveChat } from './useLiveChat'
 import { useProjectorList } from './useProjectorList'
 import { useStreamDevices } from './useStreamDevices'
 import { useStreamHealth } from './useStreamHealth'
@@ -22,6 +23,7 @@ export type DeskTab = 'media' | 'proj' | 'slides' | 'music'
 function createDesk(service: Ref<Service | null>) {
   const atem = useAtem()
   const youtube = useYouTube(service)
+  const liveChat = useLiveChat(youtube)
   const devices = useStreamDevices()
   const broadcast = useBroadcast(service, youtube, devices)
   const health = useStreamHealth(youtube, broadcast, devices)
@@ -85,7 +87,7 @@ function createDesk(service: Ref<Service | null>) {
     ]
   })
 
-  return { service, ...atem, ...youtube, ...devices, ...broadcast, ...health, ...projectors, ...media, pip, deskTab, deskMode, prepKind, prepId, unrail, openCfg, lyricsInfo, readiness }
+  return { service, ...atem, ...youtube, ...devices, ...broadcast, ...liveChat, ...health, ...projectors, ...media, pip, deskTab, deskMode, prepKind, prepId, unrail, openCfg, lyricsInfo, readiness }
 }
 
 export type Desk = ReturnType<typeof createDesk>

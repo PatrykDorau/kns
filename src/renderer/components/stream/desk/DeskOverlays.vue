@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
@@ -8,6 +8,7 @@ import { answerLive, confirmLive, ovlAsk } from '@/composables/stream/ovlAsk'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
 import PresetPicker from './PresetPicker.vue'
+import VersePanel from './VersePanel.vue'
 
 // Nakładki: zawsze pod ręką (napisy, pasek mówcy, modlitwa, PIP z materiałem, grafika na cały kadr, PIP z kamerą, baner).
 // Napis na cały kadr — od razu na wizję, po potwierdzeniu; wyłączenie — od razu.
@@ -32,6 +33,7 @@ function flip(now: boolean, what: string, set: (v: boolean) => void, key: 'lower
 }
 // nakładka z presetami: włączenie otwiera wybór na podglądzie, wyłączenie zdejmuje od razu
 function toggleOverlay(now: boolean, set: (v: boolean) => void, key: 'lowerThird' | 'prayer' | 'endOvl') { if (now) set(false); else if (studio.direct) set(true); else previewOverlay(key, true) }
+const verseOpen = ref(false)
 const ltOn = computed(() => studio.program.lowerThird || studio.preview.lowerThird)
 const prOn = computed(() => !!(studio.program.prayer || studio.preview.prayer))
 const bnOn = computed(() => !!(studio.program.endOvl || studio.preview.endOvl))
@@ -46,13 +48,15 @@ function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMod
     <small class="desk-lbl">Nakładki</small>
     <span v-if="ovlAsk" class="ovl-ask" role="alertdialog" aria-label="Potwierdź"><Icon name="info" /><span>Na podglądzie: <b>{{ ovlAsk.what }}</b> — dopasuj i wyślij na wizję?</span><button class="primary small" @click="answerLive(true)">Tak, na wizję</button><button class="small" @click="answerLive(false)">Nie</button></span>
     <button v-if="on('musicTag')" class="ovl-btn" :class="{ live: studio.program.musicTag, on: studio.program.musicTag }" :aria-pressed="!!studio.program.musicTag"
-            title="Plakietka „Teraz gra” z nazwą utworu — od razu na wizji, widać ją tylko, gdy gra podkład" @click="toggleMusicTag"><Icon name="music" />Teraz gra</button>
+            title="Plakietka z tytułem i wykonawcą (i kodem QR, gdy utwór ma link) — od razu na wizji, widać ją tylko, gdy gra podkład" @click="toggleMusicTag"><Icon name="music" />Teraz gra</button>
     <button v-if="on('lyrics')" class="ovl-btn" :class="{ live: studio.program.lyricsOn && air('lyrics'), on: studio.program.lyricsOn }" :aria-pressed="studio.program.lyricsOn"
             title="Napisy pieśni — włączają się i wyłączają od razu na wizji (Kamera, Rzutnik, Materiał)" @click="toggleLyrics"><Icon name="music" />Napisy</button>
     <button v-if="on('lowerThird')" class="ovl-btn" :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird && air('lowerThird') }" :aria-pressed="studio.preview.lowerThird"
             title="Pasek z mówcą — wybierz preset i wyślij na wizję; wyłączenie od razu" @click="toggleOverlay(ltOn, setLowerThird, 'lowerThird')"><Icon name="text" />Pasek mówcy</button>
     <button v-if="on('prayer')" class="ovl-btn" :class="{ on: studio.preview.prayer, live: studio.program.prayer && air('prayer') }" :aria-pressed="!!studio.preview.prayer"
             title="Czas modlitwy: napis u dołu obrazu — wybierz preset i wyślij na wizję; wyłączenie od razu" @click="toggleOverlay(prOn, setPrayer, 'prayer')"><Icon name="heart" />Modlitwa</button>
+    <button v-if="on('verse')" class="ovl-btn" :class="{ on: verseOpen, live: studio.program.verse && air('verse') }" :aria-pressed="verseOpen"
+            title="Fragment Biblii na dolnym pasie obrazu — wybierz odnośnik i wyślij na wizję" @click="verseOpen = !verseOpen"><Icon name="book" />Werset</button>
     <!-- PIP: materiał z Biblioteki w okienku w rogu -->
     <span v-if="on('media')" class="desk-ovl-media" :class="{ on: pvCorner, live: pgCorner }">
       <Icon name="layers" /><b class="desk-ovl-tag">PIP</b>
@@ -90,6 +94,7 @@ function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMod
     </span>
     <button v-if="on('end')" class="ovl-btn" :class="{ on: studio.preview.endOvl, live: studio.program.endOvl && air('end') }" :aria-pressed="!!studio.preview.endOvl" title="Baner na obrazie z kamery: napis i kod QR — wybierz preset i wyślij na wizję; wyłączenie od razu" @click="toggleOverlay(bnOn, setEndOverlay, 'endOvl')"><Icon name="qr" />Baner</button>
   </div>
+  <VersePanel v-if="anyOverlay && on('verse') && verseOpen" />
   <PresetPicker v-if="anyOverlay && on('lowerThird') && studio.preview.lowerThird" kind="lower" />
   <PresetPicker v-if="anyOverlay && on('prayer') && studio.preview.prayer" kind="prayer" />
   <PresetPicker v-if="anyOverlay && on('end') && studio.preview.endOvl" kind="banner" />

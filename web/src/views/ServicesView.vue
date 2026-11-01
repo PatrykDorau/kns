@@ -38,12 +38,12 @@ export default defineComponent({
   <template v-else>
   <div class="section"><h2>Zaplanowane</h2></div>
   <p v-if="!upcoming.length" class="note">Nie ma jeszcze zaplanowanych nabożeństw.</p>
-  <button v-for="s in upcoming" :key="s.id" class="ev svc-row" :class="{ next: s.id === nextService?.id }" @click="open(s)">
+  <button v-for="s in upcoming" :key="s.id" class="ev svc-row" :class="{ next: s.id === nextService?.id, lacking: canEdit && missing(s).length }" @click="open(s)">
     <span class="when"><small>{{ wd(s.date) }}</small><b>{{ day(s.date) }}</b><small>{{ month(s.date) }}</small></span>
     <span class="body">
       <b>{{ s.sermonTitle || 'Nabożeństwo' }}</b>
       <small>{{ s.time || DEFAULT_TIME }}<template v-if="s.passage"> · {{ s.passage }}</template><template v-if="s.speaker"> · {{ s.speaker }}</template></small>
-      <span v-if="canEdit && missing(s).length" class="tag svc-miss">brakuje: {{ missing(s).join(', ') }}</span>
+      <span v-if="canEdit && missing(s).length" class="tag svc-miss"><svg class="i"><use href="#warn"/></svg>Brakuje: {{ missing(s).join(', ') }}</span>
       <span v-else-if="canEdit" class="tag svc-ok">komplet</span>
     </span>
     <svg class="i chev"><use href="#chev"/></svg>

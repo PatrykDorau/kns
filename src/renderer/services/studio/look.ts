@@ -25,7 +25,7 @@ export function toProgram(fn) {
   if (studio.program.lowerThird && !before.lowerThird) studio.program.lowerAt = performance.now()
   if (!studio.program.lowerThird && before.lowerThird) studio.program.lowerOff = performance.now()
   // sam pasek mówcy wjeżdża/wyjeżdża — bez przenikania całego obrazu
-  const swapped = JSON.stringify(before.banner?.list) !== JSON.stringify(studio.program.banner?.list) || JSON.stringify(before.prayerLook) !== JSON.stringify(studio.program.prayerLook)
+  const swapped = JSON.stringify(before.banner?.list) !== JSON.stringify(studio.program.banner?.list) || JSON.stringify(before.prayerLook) !== JSON.stringify(studio.program.prayerLook) || JSON.stringify(before.verse || null) !== JSON.stringify(studio.program.verse || null)
   if (swapped || !same({ ...before, lowerThird: studio.program.lowerThird }, studio.program)) { fade.from = before; fade.at = performance.now() }
 }
 // Zmiana idzie na podgląd; przy „Od razu na wizję” — też na wizję.
@@ -51,6 +51,10 @@ export const lowerPending = () => !!studio.program.lowerThird && JSON.stringify(
 // tylko podgląd — nakładka czeka na potwierdzenie (ustawienia widać pod paskiem nakładek)
 export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boolean) { change(key === 'lowerThird' ? lt(v) : l => { l[key] = v }) }
 export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
+// Werset: najpierw podgląd; live — od razu także na wizji (kolejny slajd fragmentu, który już tam jest).
+export function setVerse(v: Look['verse'], live = false) { studio.preview.verse = v; if (live) toProgram(l => { l.verse = v }) }
+export function verseToProgram() { const v = studio.preview.verse; if (v) toProgram(l => { l.verse = v }) }
+export function verseOff() { toProgram(l => { l.verse = null }) }
 export function toggleMusicTag() { const on = !studio.program.musicTag; studio.preview.musicTag = on; studio.program.musicTag = on }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
 // modlitwa: wizja dostaje kopię napisów z chwili wysłania

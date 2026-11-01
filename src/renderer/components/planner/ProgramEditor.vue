@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { CATEGORIES, addMinutes, categoryName, offsetOf, setCategory } from '@web/services/church'
 import { uid } from '@/stores'
@@ -14,6 +14,16 @@ const props = withDefaults(defineProps<{
   template?: unknown[]
 }>(), { start: '00:00', sermon: null, template: () => [] })
 defineSlots<{ item(props: { item: ProgramItem }): unknown }>()
+// usuwanie dwuetapowe: pierwsze kliknięcie uzbraja przycisk na 4 sekundy, drugie usuwa
+const delArmed = ref<ProgramItem | null>(null)
+let delTimer = 0
+function askDelete(p: ProgramItem) {
+  clearTimeout(delTimer)
+  if (delArmed.value !== p) { delArmed.value = p; delTimer = window.setTimeout(() => { delArmed.value = null }, 4000); return }
+  delArmed.value = null
+  const i = props.items.indexOf(p)
+  if (i >= 0) props.items.splice(i, 1)
+}
 const emit = defineEmits(['fill'])
 
 const timeOf = p => addMinutes(props.start || '00:00', p.offset)
@@ -39,7 +49,8 @@ const sermonLine = computed(() => [props.sermon?.title, props.sermon?.passage, p
       <input class="pg-cat" :value="categoryName(p)" list="pg-cats" type="text" placeholder="Rodzaj — wybierz albo wpisz" aria-label="Rodzaj punktu" @change="setCategory(p, ($event.target as HTMLInputElement).value)" @focus="($event.target as HTMLInputElement).select()">
       <input v-model="p.title" type="text" :placeholder="p.category === 'kazanie' ? (sermonLine || 'Tytuł kazania') : 'Opis, np. Pieśń / kolekta'" aria-label="Opis punktu">
       <input v-model="p.person" class="pg-person" type="text" placeholder="Kto" aria-label="Kto prowadzi ten punkt">
-      <button class="iconbtn danger" title="Usuń punkt" aria-label="Usuń punkt" @click="items.splice(i, 1)"><Icon name="x" /></button>
+      <button v-if="delArmed === p" class="danger small" @click="askDelete(p)">Na pewno usunąć?</button>
+      <button v-else class="iconbtn danger" title="Usuń punkt" aria-label="Usuń punkt" @click="askDelete(p)"><Icon name="x" /></button>
     </div>
     <slot name="item" :item="p"></slot>
     </template>

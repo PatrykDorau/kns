@@ -18,7 +18,21 @@ const server = http.createServer(async (req, res) => {
   if (req.headers.authorization !== 'Bearer acc') return send({ error: { message: 'unauth' } }, 401)
   const p = url.pathname.replace('/youtube/v3', '')
   if (p === '/channels' && fail > 0) { fail--; return send({ error: { code: 500, message: 'Internal error encountered.', errors: [{ reason: 'backendError' }] } }, 500) }
-  if (p === '/channels') return send({ items: [{ id: 'UC1', snippet: { title: 'Kościół Na Skale' } }] })
+  if (p === '/channels') return send({ items: [{ id: 'UC1', snippet: { title: 'Kościół Na Skale' }, contentDetails: { relatedPlaylists: { uploads: 'UU1' } } }] })
+  if (p === '/playlistItems') {
+    const second = url.searchParams.get('pageToken') === 'p2'
+    const item = (id, title, privacyStatus = 'public') => ({ snippet: { title, resourceId: { videoId: id } }, status: { privacyStatus } })
+    return send(second ? { items: [item('vid22222222', 'Drugi film', 'unlisted')] } : { nextPageToken: 'p2', items: [item('vid11111111', 'Ktoś jeszcze'), item('vid00000000', 'Prywatny', 'private')] })
+  }
+  if (p === '/liveChat/messages') {
+    if (url.searchParams.get('liveChatId') === 'off') return send({ error: { errors: [{ reason: 'liveChatDisabled' }], message: 'x' } }, 403)
+    if (url.searchParams.get('liveChatId') === 'gone') return send({ error: { errors: [{ reason: 'quotaExceeded' }], message: 'x' } }, 403)
+    if (url.searchParams.get('pageToken') === 't1') return send({ nextPageToken: 't2', pollingIntervalMillis: 6000, offlineAt: '2026-11-01T12:00:00Z', items: [{ id: 'd1', snippet: { type: 'messageDeletedEvent', messageDeletedDetails: { deletedMessageId: 'm1' } } }] })
+    return send({ nextPageToken: 't1', pollingIntervalMillis: 4000, items: [
+      { id: 'm1', snippet: { type: 'textMessageEvent', displayMessage: 'Pokój!', publishedAt: '2026-11-01T11:00:00Z' }, authorDetails: { displayName: 'Ania', isChatModerator: true } },
+      { id: 'm2', snippet: { type: 'textMessageEvent', displayMessage: 'Witamy', publishedAt: '2026-11-01T11:01:00Z' }, authorDetails: { displayName: 'Kanał', isChatOwner: true } },
+    ] })
+  }
   if (p === '/liveStreams' && req.method === 'GET') {
     const list = url.searchParams.get('id') ? streams.filter(s => s.id === url.searchParams.get('id')) : streams
     return send({ items: list })
@@ -66,6 +80,17 @@ server.listen(0, '127.0.0.1', async () => {
     // po ponownym uruchomieniu (nowy obiekt) — z zapisanego pliku, bez logowania
     const yt2 = createYouTube({ dir: () => dir, open: () => {} })
     assert.equal(yt2.status().channel, 'Kościół Na Skale')
+
+    // czat: wiadomości, strony, usunięcia, błędy po ludzku
+    const c1 = await yt2.chat({ chatId: 'c1' })
+    assert.deepEqual([c1.page, c1.wait, c1.ended, c1.messages.length], ['t1', 4000, false, 2])
+    assert.deepEqual([c1.messages[0].author, c1.messages[0].mod, c1.messages[1].owner], ['Ania', true, true])
+    const c2 = await yt2.chat({ chatId: 'c1', page: c1.page })
+    assert.deepEqual([c2.page, c2.ended, c2.removed, c2.messages], ['t2', true, ['m1'], []])
+    await assert.rejects(yt2.chat({ chatId: 'off' }), /czat: Czat jest wyłączony/)
+    await assert.rejects(yt2.chat({ chatId: 'gone' }), /limit/)
+    // filmy kanału: wszystkie strony, bez prywatnych
+    assert.deepEqual((await yt2.channelVideos()).map(v => v.id), ['vid11111111', 'vid22222222'])
 
     const b = await yt2.createBroadcast({ title: 'Nabożeństwo 25.10.2026 — Rodzina dla Pana', description: 'Pieśni: …', start: '2026-10-25T10:12:00.000Z', privacy: 'unlisted' })
     assert.equal(b.streamId, k1.id); assert.equal(b.status, 'ready'); assert.equal(b.url, 'https://youtu.be/' + b.id)

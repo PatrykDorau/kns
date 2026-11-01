@@ -3,6 +3,7 @@ import { api } from '@/stores'
 import { studio } from './state'
 
 let meter: AnalyserNode = null
+let voice: AnalyserNode = null
 let ac: AudioContext = null, mix: GainNode = null, worklet: AudioWorkletNode = null, micSource: MediaStreamAudioSourceNode = null, micStream: MediaStream = null, mediaSources = new WeakSet()
 const WORKLET = `class Pcm extends AudioWorkletProcessor {
   constructor() { super(); this.buf = new Int16Array(2048 * 2); this.n = 0 }
@@ -30,6 +31,7 @@ export async function audioGraph() {
   mix.connect(worklet)
   // poziom dźwięku (miernik na pulpicie i ostrzeżenie o ciszy)
   meter = ac.createAnalyser(); meter.fftSize = 1024; mix.connect(meter)
+  voice = ac.createAnalyser(); voice.fftSize = 2048
   const buf = new Float32Array(meter.fftSize)
   let quietSince = performance.now()
   setInterval(() => {
@@ -52,6 +54,13 @@ export async function musicNode(el: HTMLMediaElement) {
   ac.createMediaElementSource(el).connect(gain); gain.connect(mix)
   return { gain, ctx: ac }
 }
+// podkład z YouTube: przechwycony dźwięk odtwarzacza → własna głośność → miks transmisji
+export async function musicStreamNode(stream: MediaStream) {
+  await audioGraph()
+  const gain = ac.createGain(); gain.gain.value = 0
+  ac.createMediaStreamSource(stream).connect(gain); gain.connect(mix)
+  return { gain, ctx: ac }
+}
 export async function setAudio(deviceId) {
   studio.audio = deviceId || ''
   await audioGraph()
@@ -67,10 +76,20 @@ export async function setAudio(deviceId) {
     if (studio.audio !== deviceId) { st.getTracks().forEach(tr => tr.stop()); return } // w międzyczasie wybrano inne
     micStream = st
     micSource = ac.createMediaStreamSource(st)
-    micSource.connect(mix)
+    micSource.connect(mix); micSource.connect(voice)
     if (studio.error.startsWith('Nie mogę otworzyć dźwięku')) studio.error = ''
   } catch (e) { studio.error = 'Nie mogę otworzyć dźwięku: ' + (e?.message || e) }
   drop()
+}
+// Poziom samego mikrofonu w dB (bez podkładu) — do ściszania muzyki pod mową.
+export function voiceDb() {
+  if (!micSource || !voice) return -100
+  const buf = new Float32Array(voice.fftSize)
+  voice.getFloatTimeDomainData(buf)
+  let sum = 0
+  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]
+  const rms = Math.sqrt(sum / buf.length)
+  return rms > 0 ? 20 * Math.log10(rms) : -100
 }
 // przed nadawaniem: graf dźwięku gotowy i działający
 export async function resumeAudio() {

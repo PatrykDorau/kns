@@ -117,27 +117,29 @@ export function addWeb() {
 // Plik Biblii jest wczytywany raz (zapamiętany w danych aplikacji), a fragment staje się pętlą
 // slajdów tekstowych przełączanych ręcznie — tak jak prezentacja.
 export const bible = shallowRef(null)
+export const bible2 = shallowRef(null) // drugi przekład
 export const bibleOpen = ref(false)
 export let bibleLoaded = false
 export async function loadBible() {
-  if (!bibleLoaded) { bible.value = await api.loadStore('bible'); bibleLoaded = true }
+  if (!bibleLoaded) { bible.value = await api.loadStore('bible'); bible2.value = await api.loadStore('bible2'); bibleLoaded = true }
   return bible.value
 }
-export async function importBible() {
+// slot: 0 — główny przekład, 1 — drugi
+export async function importBible(slot: 0 | 1 = 0) {
   const file = await api.biblePick()
   if (!file) return null
   const data = parseBibleXml(file.text, file.name)
   const known = data.books.filter(b => b.index >= 0).length
   if (known < 20) throw new Error(`Rozpoznano tylko ${known} ksiąg z ${data.books.length} — ten plik nie wygląda na pełną Biblię.`)
-  bible.value = data
-  bibleLoaded = true
-  await api.saveStore('bible', data)
+  await loadBible()
+  ;(slot ? bible2 : bible).value = data
+  await api.saveStore(slot ? 'bible2' : 'bible', data)
   return data
 }
-export function addPassage(ref, perSlide = 2, source = null) {
+export function addPassage(ref, perSlide = 2, source = null, which = bible.value) {
   const r = parseRef(ref)
   if (!r) return { error: 'Nie rozpoznaję odnośnika — wpisz np. J 3,16–21.' }
-  const verses = passage(bible.value, r)
+  const verses = passage(which, r)
   if (!verses.length) return { error: 'W tej Biblii nie ma takiego fragmentu.' }
   const slides = toSlides(r.book, verses, perSlide).map((s): LibraryItem => ({ ...TEXT_STYLE, id: uid(), type: 'text', name: refLabel(r.book, s.verses), text: s.text, fs: 9, hidden: true }))
   const deck: LibraryItem = { id: uid(), type: 'scene', name: refLabel(r.book, verses), seconds: 5, volume: 0.25, transition: 'fade', fadeMs: 350, auto: false,

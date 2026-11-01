@@ -88,8 +88,13 @@ export interface Settings {
   prayerSub?: string
   prayerLink?: string // kod QR do strony z prośbami modlitewnymi
   prayerLinkLabel?: string
-  musicList: { id: string; name: string; path: string }[] // podkład muzyczny na transmisji
+  musicList: { id: string; name: string; path: string; title?: string; artist?: string; link?: string; yt?: string }[] // podkład muzyczny na transmisji (title, artist, link — do plakietki; puste: z nazwy pliku; yt — film z YouTube zamiast pliku)
+  versePlace?: string // miejsce nakładki „Werset”: bottom, left, right
+  verseBible?: number // przekład nakładki „Werset”: 0 główny, 1 drugi
+  chatPos?: { x: number; y: number; w: number; h: number } // okienko czatu na pulpicie streamu
   musicVolume: number // 0–1
+  musicDuck?: boolean // ściszanie podkładu pod mową
+  musicDuckDb?: number // próg mikrofonu w dB
   musicLoop: boolean // lista w kółko (po ostatnim utworze znowu pierwszy)
   musicShuffle?: boolean // losowa kolejność
   streamLines: number // napisy dla streamu: najwyżej tyle linijek naraz (0 — cała zwrotka)

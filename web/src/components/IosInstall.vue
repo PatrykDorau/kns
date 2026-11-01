@@ -78,7 +78,7 @@ export default defineComponent({
 
 <style scoped>
 .ios-in { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-end; justify-content: center; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); background: rgba(8, 7, 6, .62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: ios-fade .25s ease-out; }
-.ios-sheet { position: relative; width: min(440px, 100%); margin-bottom: 64px; padding: 26px 20px 18px; border-radius: 26px; background: #181716; text-align: center; animation: ios-up .4s cubic-bezier(.2, .8, .2, 1); }
+.ios-sheet { position: relative; width: min(440px, 100%); margin-bottom: 64px; padding: 26px 20px 18px; border-radius: 26px; background: var(--panel); text-align: center; animation: ios-up .4s cubic-bezier(.2, .8, .2, 1); }
 .ios-x { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 36px; height: 36px; min-height: 0; padding: 0; border-radius: 50%; background: #2a2826 !important; color: var(--muted); }
 .ios-ic { width: 56px; height: 56px; border-radius: 14px; }
 h2 { margin: 12px 0 0; font: 600 22px/1.2 var(--display); letter-spacing: -.02em; }

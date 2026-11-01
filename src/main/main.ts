@@ -9,6 +9,7 @@ import { execFile } from 'node:child_process'
 import createGoogleDrive from './gdrive'
 import { Atem } from './atem'
 import createYouTube from './youtube'
+import createYtPlayer from './ytPlayer'
 import { Streamer, listDevices } from './streamer'
 import CONFIG from './google-config'
 
@@ -24,7 +25,7 @@ const MEDIA = {
 }
 // podkład muzyczny na transmisji — tylko odtwarzanie (nie trafiają do Biblioteki)
 const AUDIO = { '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.oga': 'audio/ogg', '.flac': 'audio/flac', '.opus': 'audio/ogg' }
-const STORES = ['library', 'songs', 'settings', 'services', 'bible']
+const STORES = ['library', 'songs', 'settings', 'services', 'bible', 'bible2']
 const SONG_EXT = new Set(['', '.txt', '.xml', '.json', '.pro', '.cho', '.chopro', '.crd'])
 const REMOTE_PORT = 8765
 
@@ -722,7 +723,7 @@ let remote = null
 let remoteState = { title: '' }
 const REMOTE_PAGE = `<!doctype html><html lang="pl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Kościół Na Skale — pilot</title><style>
-body{margin:0;background:#0f1013;color:#f4eee6;font:17px system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;padding:16px;box-sizing:border-box;gap:12px}
+body{margin:0;background:#1a1816;color:#f4eee6;font:17px system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;padding:16px;box-sizing:border-box;gap:12px}
 #t{min-height:3em;text-align:center;color:#8f98a8;display:grid;place-items:center}
 .row{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 button{font:inherit;font-size:22px;font-weight:700;border:0;border-radius:18px;color:#fff;background:#262220;touch-action:manipulation}
@@ -878,7 +879,7 @@ const toOutput = (channel, data) => { if (output && !output.isDestroyed()) outpu
 function createControl() {
   control = new BrowserWindow({
     width: 1360, height: 840, minWidth: 1000, minHeight: 640,
-    backgroundColor: '#0f1013', title: 'Kościół Na Skale', autoHideMenuBar: true, ...icon,
+    backgroundColor: '#1a1816', title: 'Kościół Na Skale', autoHideMenuBar: true, ...icon,
     // Testy automatyczne: okno renderowane poza ekranem (da się robić zrzuty, nic się nie pokazuje).
     webPreferences: process.env.RZUTNIK_HIDDEN ? { ...webPreferences, offscreen: true } : webPreferences,
     show: !process.env.RZUTNIK_HIDDEN, // testy automatyczne działają bez pokazywania okna
@@ -1005,13 +1006,23 @@ app.whenReady().then(() => {
   let captureDisplay = null
   ipcMain.handle('app:hostname', () => os.hostname())
   ipcMain.handle('capture:target', (e, id) => { captureDisplay = id == null ? null : String(id); return true })
+  const ytPlayer = createYtPlayer(() => control)
   session.defaultSession.setDisplayMediaRequestHandler(async (req, done) => {
+    // podkład z YouTube: dźwięk ukrytego odtwarzacza (obraz rzutnika niżej zostaje bez zmian)
+    const frame = ytPlayer.frame()
+    if (frame) { done({ video: frame, audio: frame }); return }
     try {
       const list = await desktopCapturer.getSources({ types: ['screen'] })
       const pick = list.find(s => s.display_id === captureDisplay) || list.find(s => s.display_id === String(screen.getAllDisplays().find(d => d.id !== screen.getPrimaryDisplay().id)?.id)) || list[0]
       done(pick ? { video: pick } : {})
     } catch { done({}) }
   })
+  ipcMain.handle('ytp:arm', () => ytPlayer.arm())
+  ipcMain.handle('ytp:play', (e, id) => ytPlayer.play(id))
+  ipcMain.handle('ytp:pause', () => ytPlayer.pause())
+  ipcMain.handle('ytp:resume', () => ytPlayer.resume())
+  ipcMain.handle('ytp:seek', (e, sec) => ytPlayer.seek(sec))
+  ipcMain.handle('ytp:state', () => ytPlayer.state())
   ipcMain.handle('output:close', () => closeOutput())
   ipcMain.handle('files:pick', async (e, kind) => {
     const images = Object.keys(MEDIA).filter(x => MEDIA[x].startsWith('image/')).map(x => x.slice(1))
@@ -1173,6 +1184,10 @@ app.whenReady().then(() => {
   ipcMain.handle('yt:bind', yt(id => youtube.bindToKey(id)))
   ipcMain.handle('yt:keep', yt(id => youtube.keepAfterOutage(id)))
   ipcMain.handle('yt:golive', yt(id => youtube.goLive(id)))
+  ipcMain.handle('yt:chat', yt(b => youtube.chat(b)))
+  ipcMain.handle('yt:videos', yt(async () => ({ videos: await youtube.channelVideos() })))
+  ipcMain.handle('yt:playlists', yt(async () => ({ playlists: await youtube.playlists() })))
+  ipcMain.handle('yt:playlist', yt(async id => ({ videos: await youtube.playlistVideos(id) })))
   // nadawanie bez OBS: obraz i dźwięk z ATEM po USB → napisy → YouTube
   const streamer = new Streamer({ dir: () => app.getPath('userData') })
   streamer.on('state', st => toControl('stream:state', st))

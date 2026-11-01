@@ -6,7 +6,7 @@ import { bottomBand, glassPanel, hairline, roughFit, roughText, shade } from './
 import { cleanInk, pill } from './clean'
 import { settings } from '@/stores'
 import { drawLife } from './life'
-import { music } from './music'
+import { music, trackInfo } from './music'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
@@ -18,7 +18,7 @@ import type { Look } from '@/types'
 let lyricShown = '', lyricPrev = '', lyricAt = 0, lyricSeen = 0
 /* ---------- sceny ---------- */
 export const SCENE_DRAW = {
-  camera(t) { drawCamera(); mediaOverlay(); prayerOverlay(); endOverlay(); lowerThird(t); lyrics(t) },
+  camera(t) { drawCamera(); mediaOverlay(); prayerOverlay(); verseOverlay(); endOverlay(); lowerThird(t); lyrics(t) },
   // „Zaraz zaczynamy”: układ, styl zegara, tło i treść — w Studio → Odliczanie (countdown.ts)
   countdown(t) {
     const left = drawCountdown(cdLook(), t)
@@ -39,18 +39,18 @@ export const SCENE_DRAW = {
   projector(t) {
     projectorFrame(t)
     cameraPip()
-    mediaOverlay(); prayerOverlay(); endOverlay(); lowerThird(t); lyrics(t)
+    mediaOverlay(); prayerOverlay(); verseOverlay(); endOverlay(); lowerThird(t); lyrics(t)
   },
   media(t) {
     if (S.media === ANN_MEDIA) {
       const c = carousel(t)
       if (c) drawCarousel(c, 0, 0, W, H)
       else { paper(); text('Brak ogłoszeń — włącz je w zakładce „Ogłoszenia”', W / 2, H / 2, { size: 40, color: '#6b6258', align: 'center' }) }
-      cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t); return
+      cameraPip(); prayerOverlay(); verseOverlay(); lowerThird(t); lyrics(t); return
     }
     const it = mediaSlide(S.media)
     if (!it) { background(t); text('Wybierz materiał w Bibliotece (pod podglądem)', W / 2, H / 2, { size: 40, color: '#8f98a8', align: 'center' }); return }
-    drawSlideOf(S.media, x => drawMedia(x, true)); cameraPip(); prayerOverlay(); lowerThird(t); lyrics(t)
+    drawSlideOf(S.media, x => drawMedia(x, true)); cameraPip(); prayerOverlay(); verseOverlay(); lowerThird(t); lyrics(t)
   },
 }
 // Preset na osobnym płótnie (miniatura, podgląd w Przygotowaniu): plansza z jego wyglądem, nakładka na neutralnym tle.
@@ -64,7 +64,7 @@ export function drawPreset(ctx, kind, data, t, edit = false) {
   try {
     if (kind === 'cd') SCENE_DRAW.countdown(t); else if (kind === 'end') SCENE_DRAW.end(t)
     else if (kind === 'life') drawLife(t, L => bannerQrs(L), (q, x, y, size, label) => qrTile(q, x, y, size, label), logo, true)
-    else { cdBackground({ bg: 'szczyt', draw: false, dim: 0 }, t); endOverlay(); prayerOverlay(); lowerThird(t) }
+    else { cdBackground({ bg: 'szczyt', draw: false, dim: 0 }, t); endOverlay(); prayerOverlay(); verseOverlay(); lowerThird(t) }
   } finally { setDemo(false); paintOn(prev.ctx, prev.look) }
 }
 // Kamera w okienku (nakładka na każdej scenie poza Kamerą): wybrany róg, małe albo duże.
@@ -219,6 +219,34 @@ function prayerOverlay() {
   if (!S.prayer) return
   const P = prayerLook()
   withOutline(P.outline, () => prayerBand(P))
+}
+// Werset na dolnym pasie: im dłuższy tekst, tym mniejsze litery, do pięciu linii; niżej odnośnik i przekład.
+function verseOverlay() {
+  const v = S.verse
+  if (!v) return
+  if (v.place === 'left' || v.place === 'right') { verseSide(v); return }
+  const tw = W - 360
+  let size = 56, lines = wrap(v.text, tw, size, 400, 9, 'serif')
+  while (lines.length > (size > 40 ? 3 : 5) && size > 32) { size -= 4; lines = wrap(v.text, tw, size, 400, 9, 'serif') }
+  lines = lines.slice(0, 5)
+  const lh = Math.round(size * 1.3), h = lines.length * lh + 124, y = H - h
+  bottomBand(y)
+  lines.forEach((l, i) => text(l, W / 2, y + 44 + (i + 1) * lh - lh * 0.25, { size, weight: 400, font: 'serif', align: 'center', shadow: 24 }))
+  const r = fitLine(v.ref + (v.tr ? '  ·  ' + v.tr : ''), tw, 30, 22, 700, 'cond')
+  text(r.str, W / 2, H - 38, { size: r.size, weight: 700, font: 'cond', color: '#f6c27a', align: 'center', spacing: 2, shadow: 12 })
+}
+// Werset na boku: ciemny pas na całą wysokość, na kilka wersetów; litery dopasowane tak, żeby wszystko się zmieściło.
+function verseSide(v) {
+  const w = 680, x = v.place === 'left' ? 0 : W - w, tw = w - 130, top = 190, room = H - top - 70
+  let size = 46, lines = wrap(v.text, tw, size, 400, 80, 'serif')
+  while (lines.length * size * 1.34 > room && size > 24) { size -= 2; lines = wrap(v.text, tw, size, 400, 80, 'serif') }
+  const lh = Math.round(size * 1.34), from = top + Math.max(0, (room - lines.length * lh) / 2)
+  g.fillStyle = 'rgba(16,12,9,0.88)'; g.fillRect(x, 0, w, H)
+  g.fillStyle = '#f6a836'; g.fillRect(v.place === 'left' ? w - 4 : x, 0, 4, H)
+  const r = fitLine(v.ref, tw, 56, 34, 700, 'cond')
+  text(r.str, x + 65, 106, { size: r.size, weight: 700, font: 'cond', color: '#f6c27a', spacing: 2 })
+  if (v.tr) { const t = fitLine(v.tr, tw, 26, 20, 500); text(t.str, x + 65, 146, { size: t.size, weight: 500, color: '#d8d0c4' }) }
+  lines.forEach((l, i) => text(l, x + 65, from + (i + 1) * lh - lh * 0.25, { size, weight: 400, font: 'serif' }))
 }
 function prayerBand(P) {
   const txt = P.text || '', sub = P.sub || '', label = P.head || '', link = String(P.link || '').trim(), h = 300, y = H - h
@@ -388,24 +416,29 @@ function lyrics(t) {
   draw(lyricPrev, 1 - k); draw(lyricShown, k)
 }
 // Wycięte zdjęcie: widać popiersie (dół zdjęcia ucina dolna krawędź paska), głowa duża nad paskiem.
-// „Teraz gra”: mała plakietka w prawym górnym rogu, na każdej scenie; widać ją tylko, gdy muzyka naprawdę gra.
-const tagState = new WeakMap<object, { k: number, at: number, name: string }>()
+// „Teraz gra”: plakietka w prawym górnym rogu na każdej scenie: tytuł, wykonawca i kod QR do utworu na YouTube (gdy jest link);
+// widać ją tylko, gdy muzyka naprawdę gra.
+const tagState = new WeakMap<object, { k: number, at: number, title: string, artist: string, link: string }>()
 export function musicTag(t: number) {
-  const s = tagState.get(S) || { k: 0, at: t, name: '' }, track = settings.musicList?.find(x => x.id === music.current), on = !!S.musicTag && music.playing && !!track
+  const s = tagState.get(S) || { k: 0, at: t, title: '', artist: '', link: '' }, track = settings.musicList?.find(x => x.id === music.current), on = !!S.musicTag && music.playing && !!track
   s.k = Math.max(0, Math.min(1, s.k + ((on ? 1 : -1) * (t - s.at)) / 350)); s.at = t
-  if (on) s.name = String(track.name).replace(/\.[^.]+$/, '')
+  if (on) Object.assign(s, trackInfo(track))
   tagState.set(S, s)
   if (!s.k) return
-  const e = 1 - Math.pow(1 - s.k, 3), f = fitLine(s.name, 620, 34, 24, 700, 'sans'), h = 104
-  g.save(); g.font = fontStr(700, f.size, 'sans'); const tw = Math.max(170, g.measureText(f.str).width); g.restore()
-  const w = tw + 138, x = W - w - 48, y = 48 - (1 - e) * 24
+  const e = 1 - Math.pow(1 - s.k, 3), f = fitLine(s.title, 620, 40, 26, 700, 'sans'), a = s.artist ? fitLine(s.artist, 620, 28, 20, 500, 'sans') : null
+  const q = s.link ? 132 : 0, h = s.link ? 156 : 124
+  g.save(); g.font = fontStr(700, f.size, 'sans'); let tw = Math.max(170, g.measureText(f.str).width)
+  if (a) { g.font = fontStr(500, a.size, 'sans'); tw = Math.max(tw, g.measureText(a.str).width) }
+  g.restore()
+  const w = tw + 104 + 32 + (q ? q + 12 : 0), x = W - w - 48, y = 48 - (1 - e) * 24
   g.save(); g.globalAlpha *= e
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 26; glassPanel(x, y, w, h, 'rgba(16,10,6,0.86)'); g.shadowBlur = 0
   // słupki grają w rytm czasu, nie muzyki — mówią tylko „leci”
   g.fillStyle = '#f6a836'
   for (let i = 0; i < 4; i++) { const b = 14 + 24 * (0.5 + 0.5 * Math.sin(t / (190 + i * 40) + i * 1.7)); rounded(x + 30 + i * 13, y + h / 2 - b / 2, 8, b, 3); g.fill() }
-  text('TERAZ GRA', x + 104, y + 40, { size: 22, weight: 700, font: 'cond', color: '#f6a836', spacing: 4 })
-  text(f.str, x + 104, y + 78, { size: f.size, weight: 700, font: 'sans', color: '#fbf3e6' })
+  text(f.str, x + 104, y + h / 2 + (a ? -5 : 14), { size: f.size, weight: 700, font: 'sans', color: '#fbf3e6' })
+  if (a) text(a.str, x + 104, y + h / 2 + 34, { size: a.size, weight: 500, font: 'sans', color: '#f6c27a' })
+  if (q) qrTile({ qr: s.link, head: '' }, x + w - q - 12, y + 12, q)
   g.restore()
 }
 const PHOTO = { x: 30, w: 400, h: { s: 340, m: 440, l: 540 }, bust: 0.78 }

@@ -21,6 +21,7 @@ export interface Look {
   scene: SceneId | string
   lyricsOn: boolean
   musicTag?: boolean // „Teraz gra” na obrazie
+  verse?: { text: string, ref: string, tr: string, place?: string } | null // werset na obrazie
   lowerThird: boolean
   loop?: boolean // tylko podgląd w Przygotowaniu: rysowanie gór w kółko
   lowerLook?: { ink?: string, outline?: string, photo?: string, photoSize?: string, pic?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania

@@ -1116,7 +1116,9 @@ fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 /* lista nabożeństw */
 .svc-row.next { border-color: rgba(242, 165, 60, .55); }
 .svc-row.past { opacity: .7; }
-.svc-row .tag.svc-miss { color: var(--accent-text); }
+.ev.svc-row.lacking { background: color-mix(in srgb, var(--accent) 9%, var(--panel)) !important; box-shadow: inset 4px 0 0 var(--accent) !important; }
+.ev.svc-row .tag.svc-miss { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 11px; background: var(--accent) !important; color: #1f1405 !important; font-weight: 600; white-space: normal; text-align: left; }
+.svc-miss .i { flex: none; width: 15px; height: 15px; }
 .svc-row .tag.svc-ok { color: var(--ok-text); }
 /* wolne niedziele: cztery małe kafelki z datą w jednym rzędzie (także na telefonie) */
 .svc-free { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-width: 480px; margin-bottom: 12px; }

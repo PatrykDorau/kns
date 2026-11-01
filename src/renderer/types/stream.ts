@@ -44,6 +44,7 @@ export interface YtBroadcast {
   status: string // created, ready, testing, live…
   privacy: string
   streamId: string
+  chatId?: string // czat na żywo tej transmisji
   url: string
   autoStart: boolean
   autoStop: boolean

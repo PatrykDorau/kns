@@ -131,15 +131,15 @@ export function refLabel(book, verses) {
 }
 
 const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹'
-const sup = n => String(n).split('').map(d => SUP[d]).join('')
-// Slajdy: po kilka wersetów (do perSlide i ok. 320 znaków), z małymi numerami wersetów i podpisem na dole.
-export function toSlides(book, verses, perSlide = 2) {
+export const sup = n => String(n).split('').map(d => SUP[d]).join('')
+// Slajdy: po kilka wersetów (do perSlide i ok. maxChars znaków), z małymi numerami wersetów i podpisem na dole.
+export function toSlides(book, verses, perSlide = 2, maxChars = 320) {
   const slides = []
   let group = []
   const flush = () => { if (group.length) slides.push({ verses: group, text: group.map(v => sup(v.verse) + ' ' + v.text).join(' ') + '\n\n' + refLabel(book, group) }); group = [] }
   for (const v of verses) {
     const size = group.reduce((n, x) => n + x.text.length, 0)
-    if (group.length >= perSlide || (group.length && size + v.text.length > 320)) flush()
+    if (group.length >= perSlide || (group.length && size + v.text.length > maxChars)) flush()
     group.push(v)
   }
   flush()

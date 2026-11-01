@@ -11,6 +11,16 @@ export default defineComponent({
     const sorted = computed(() => [...props.items].sort((a, b) => a.offset - b.offset))
     // Czas trwania punktu: do następnego punktu programu.
     const openKey = ref('') // rozwinięty punkt (edycja godziny, rodzaju, opisu, osoby)
+    // usuwanie dwuetapowe: pierwsze kliknięcie uzbraja przycisk na 4 sekundy, drugie usuwa
+    const delArmed = ref(null)
+    let delTimer = 0
+    function askDelete(p) {
+      clearTimeout(delTimer)
+      if (delArmed.value !== p) { delArmed.value = p; delTimer = setTimeout(() => { delArmed.value = null }, 4000); return }
+      delArmed.value = null
+      const i = props.items.indexOf(p)
+      if (i >= 0) props.items.splice(i, 1)
+    }
     const initialsOf = name => String(name).split(/[\s,]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
     const duration = p => { const i = sorted.value.indexOf(p), next = sorted.value[i + 1]; return next ? next.offset - p.offset : 0 }
     function setTime(p, t) {
@@ -35,7 +45,7 @@ export default defineComponent({
     const plainOther = p => p.category === 'inne' && !p.categoryName && !!p.title
     const headline = p => (plainOther(p) ? p.title : categoryName(p))
     const subline = p => (plainOther(p) ? p.person : label(p))
-    return { plainOther, headline, subline, catName: categoryName, setCategory, openKey, initialsOf, duration, categories: CATEGORIES, timeOf, sorted, setTime, add, cat, label }
+    return { delArmed, askDelete, plainOther, headline, subline, catName: categoryName, setCategory, openKey, initialsOf, duration, categories: CATEGORIES, timeOf, sorted, setTime, add, cat, label }
   },
 })
 </script>
@@ -69,7 +79,7 @@ export default defineComponent({
           <label>Opis<input v-model="p.title" :placeholder="p.category === 'kazanie' ? 'Tytuł (gdy inny niż w sekcji Kazanie)' : 'np. Pieśń / kolekta'" autocomplete="off"></label>
           <label>Kto prowadzi<input v-model="p.person" autocomplete="off"></label>
         </div>
-        <button class="pg-del" type="button" @click="items.splice(i, 1)"><svg class="i"><use href="#trash"/></svg>Usuń punkt</button>
+        <button class="pg-del" :class="{ armed: delArmed === p }" type="button" @click="askDelete(p)"><svg class="i"><use href="#trash"/></svg>{{ delArmed === p ? 'Na pewno usunąć? Kliknij ponownie' : 'Usuń punkt' }}</button>
         </div>
         <slot name="item" :item="p"></slot>
       </div>

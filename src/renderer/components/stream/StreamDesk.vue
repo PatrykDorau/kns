@@ -16,11 +16,13 @@ import DeskAirControls from './desk/DeskAirControls.vue'
 import DeskAtem from './desk/DeskAtem.vue'
 import DeskYouTube from './desk/DeskYouTube.vue'
 import DeskSettings from './desk/DeskSettings.vue'
+import LiveChat from './desk/LiveChat.vue'
 
 // Pulpit streamu: po lewej obraz (podgląd i wizja ze scenami, nakładkami i mediami — albo kamery w trybie prostym)
 // i ATEM; po prawej YouTube i ustawienia nadawania. Stan i działania — composables/stream (useDesk w częściach).
 const props = withDefaults(defineProps<{ service?: Service | null }>(), { service: null })
-const { live, liveOn, engine, unrail, deskMode } = provideDesk(toRef(props, 'service'))
+const { live, liveOn, engine, unrail, deskMode, chat } = provideDesk(toRef(props, 'service'))
+const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
 </script>
 
 <template>
@@ -76,6 +78,7 @@ const { live, liveOn, engine, unrail, deskMode } = provideDesk(toRef(props, 'ser
           <button role="tab" class="rail-btn" :class="{ on: deskMode === 'live' }" :aria-selected="deskMode === 'live'" title="Studio" aria-label="Studio" @click="deskMode = 'live'"><Icon name="monitor" /></button>
           <button role="tab" class="rail-btn" :class="{ on: deskMode === 'prep' }" :aria-selected="deskMode === 'prep'" title="Przygotowanie" aria-label="Przygotowanie" @click="deskMode = 'prep'"><Icon name="gear" /></button>
         </div>
+        <button class="rail-btn" :class="{ on: chat.open }" :aria-pressed="chat.open" :title="chat.unread ? 'Czat na żywo — nieodczytane: ' + chat.unread : 'Czat na żywo'" aria-label="Czat na żywo" @click="chat.open = !chat.open"><Icon name="chat" /><em v-if="chat.unread" class="chat-badge">{{ unread() }}</em></button>
         <DeskHealth v-if="liveOn" rail />
       </nav>
       <div v-else key="full" class="desk-right-full">
@@ -84,6 +87,7 @@ const { live, liveOn, engine, unrail, deskMode } = provideDesk(toRef(props, 'ser
         <button role="tab" :aria-selected="deskMode === 'live'" :class="{ on: deskMode === 'live' }" @click="deskMode = 'live'">Studio</button>
         <button role="tab" :aria-selected="deskMode === 'prep'" :class="{ on: deskMode === 'prep' }" @click="deskMode = 'prep'">Przygotowanie</button>
       </div>
+      <button class="desk-chat-btn" :class="{ on: chat.open }" :aria-pressed="chat.open" :title="chat.open ? 'Schowaj czat' : 'Pokaż czat — okienko można przesuwać'" @click="chat.open = !chat.open"><Icon name="chat" />Czat na żywo<em v-if="chat.unread" class="chat-badge" :aria-label="'Nieodczytane: ' + chat.unread">{{ unread() }}</em></button>
       <DeskHealth v-if="liveOn" vertical />
       <DeskYouTube />
       <DeskSettings />
@@ -94,5 +98,6 @@ const { live, liveOn, engine, unrail, deskMode } = provideDesk(toRef(props, 'ser
       </div>
     </div>
 
+    <LiveChat />
   </div>
 </template>

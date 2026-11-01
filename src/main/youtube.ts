@@ -16,7 +16,7 @@ const SCOPE = 'https://www.googleapis.com/auth/youtube'
 const STREAM_TITLE = 'KNS Nabo — stały klucz'
 
 // Który krok się nie udał (do komunikatu i dziennika).
-const STEP = { channels: 'odczyt kanału', liveStreams: 'klucz transmisji', liveBroadcasts: 'transmisje' }
+const STEP = { channels: 'odczyt kanału', liveStreams: 'klucz transmisji', liveBroadcasts: 'transmisje', playlistItems: 'filmy kanału', liveChat: 'czat' }
 const stepOf = p => STEP[(p.match(/^\/(\w+)/) || [])[1]] || 'YouTube'
 // Błędy YouTube po ludzku (najczęstsze przy pierwszym ustawianiu).
 function explain(status, data) {
@@ -25,9 +25,12 @@ function explain(status, data) {
   if (/accessNotConfigured|SERVICE_DISABLED/i.test(reason + msg)) return 'W Google Cloud (projekt aplikacji) nie jest włączony „YouTube Data API v3” — włącz go i spróbuj ponownie.'
   if (/liveStreamingNotEnabled/i.test(reason)) return 'Na tym kanale nie są włączone transmisje na żywo — YouTube Studio → Transmisja na żywo (pierwsze włączenie trwa do 24 godzin).'
   if (/youtubeSignupRequired|noChannel/i.test(reason)) return 'To konto Google nie ma kanału YouTube — zaloguj się kontem (albo kontem marki) kanału kościoła.'
+  if (/liveChatDisabled/i.test(reason)) return 'Czat jest wyłączony w tej transmisji.'
+  if (/liveChatEnded/i.test(reason)) return 'Czat tej transmisji już się zakończył.'
+  if (/liveChatNotFound/i.test(reason)) return 'Czat jeszcze nie działa — ruszy razem z transmisją.'
+  if (/quotaExceeded|rateLimitExceeded/i.test(reason)) return 'Dzienny limit zapytań do YouTube się wyczerpał — spróbuj jutro.'
   if (/insufficientPermissions|forbidden/i.test(reason) || status === 403) return 'Brak uprawnień do tego kanału — zaloguj się kontem właściciela albo menedżera kanału.'
   if (/invalidScheduledStartTime/i.test(reason)) return 'YouTube planuje transmisje tylko na przyszłość — godzina tego nabożeństwa już minęła (albo jest za daleko). Do nadawania teraz użyj „Rozpocznij transmisję”.'
-  if (/quotaExceeded|rateLimitExceeded/i.test(reason)) return 'Dzienny limit zapytań do YouTube się wyczerpał — spróbuj jutro.'
   if (status >= 500) return 'YouTube zgłosił błąd po swojej stronie („' + (msg || 'Internal error') + '”). Spróbuj ponownie za chwilę.'
   return msg || `YouTube odpowiedział błędem ${status}.`
 }
@@ -165,7 +168,7 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
   }
 
   const mapBroadcast = b => ({ id: b.id, title: b.snippet?.title || '', description: b.snippet?.description || '', start: b.snippet?.scheduledStartTime || '',
-    status: b.status?.lifeCycleStatus || '', privacy: b.status?.privacyStatus || '', streamId: b.contentDetails?.boundStreamId || '', url: 'https://youtu.be/' + b.id,
+    status: b.status?.lifeCycleStatus || '', privacy: b.status?.privacyStatus || '', streamId: b.contentDetails?.boundStreamId || '', chatId: b.snippet?.liveChatId || '', url: 'https://youtu.be/' + b.id,
     autoStart: !!b.contentDetails?.enableAutoStart, autoStop: !!b.contentDetails?.enableAutoStop, monitor: !!b.contentDetails?.monitorStream?.enableMonitorStream })
   // Zaplanowane i trwające transmisje kanału (najbliższe na górze). Osobno „nadchodzące” i „trwające” — lista „mine”
   // zwraca też zakończone i po 25 pozycjach ucinała zaplanowane.
@@ -227,6 +230,40 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
   async function endBroadcast(id) { return mapBroadcast(await call('POST', `/liveBroadcasts/transition?part=id,snippet,status,contentDetails&broadcastStatus=complete&id=${id}`)) }
   async function deleteBroadcast(id) { await call('DELETE', '/liveBroadcasts?id=' + id); return { ok: true } }
 
+  // Czat transmisji: to, co przyszło od ostatniego pytania (page). YouTube mówi też, kiedy zapytać znowu (wait, ms);
+  // każde pytanie kosztuje 5 jednostek dziennego limitu.
+  async function chat({ chatId, page = '' }) {
+    const r = await call('GET', '/liveChat/messages?part=id,snippet,authorDetails&maxResults=200&liveChatId=' + encodeURIComponent(chatId) + (page ? '&pageToken=' + encodeURIComponent(page) : ''))
+    const items = r.items || []
+    return {
+      page: r.nextPageToken || page, wait: +r.pollingIntervalMillis || 0, ended: !!r.offlineAt,
+      removed: items.map(m => m.snippet?.messageDeletedDetails?.deletedMessageId).filter(Boolean),
+      messages: items.filter(m => m.snippet?.displayMessage).map(m => ({ id: m.id, at: m.snippet.publishedAt || '', text: m.snippet.displayMessage,
+        author: m.authorDetails?.displayName || 'Widz', owner: !!m.authorDetails?.isChatOwner, mod: !!m.authorDetails?.isChatModerator })),
+    }
+  }
+  // Filmy z playlisty (bez prywatnych i usuniętych).
+  async function playlistVideos(id) {
+    const out = []
+    let page = ''
+    do {
+      const r = await call('GET', '/playlistItems?part=snippet,status&maxResults=50&playlistId=' + encodeURIComponent(id) + (page ? '&pageToken=' + page : ''))
+      for (const it of r.items || []) if (it.status?.privacyStatus !== 'private' && it.snippet?.resourceId?.videoId) out.push({ id: it.snippet.resourceId.videoId, title: it.snippet.title || '' })
+      page = r.nextPageToken || ''
+    } while (page && out.length < 2000)
+    return out
+  }
+  // Filmy kanału: do linków przy podkładzie muzycznym.
+  async function channelVideos() {
+    const uploads = (await call('GET', '/channels?part=contentDetails&mine=true')).items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+    return uploads ? playlistVideos(uploads) : []
+  }
+  // Playlisty kanału do wyboru w panelu muzyki.
+  async function playlists() {
+    const r = await call('GET', '/playlists?part=snippet,contentDetails&mine=true&maxResults=50')
+    return (r.items || []).map(p => ({ id: p.id, title: p.snippet?.title || '', count: p.contentDetails?.itemCount || 0 }))
+  }
+
   // Wszystko dla pulpitu naraz: kanał, klucz ze stanem sygnału, transmisje.
   async function overview() {
     if (!auth?.refresh) return { ...status() }
@@ -243,5 +280,5 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
     return { ...status(), stream, broadcasts: list }
   }
 
-  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview, bindToKey, goLive, keepAfterOutage }
+  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview, bindToKey, goLive, keepAfterOutage, chat, channelVideos, playlists, playlistVideos }
 }

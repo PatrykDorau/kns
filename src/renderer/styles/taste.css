@@ -1,17 +1,17 @@
 /* Warstwa „taste” dla aplikacji na komputer (Rzutnik, Stream, Nabożeństwa) — ten sam kierunek co strona (web/src/styles/taste.css):
-   true-black-flat — ciepła czerń, powierzchnie o krok jaśniejsze, bez obramowań, cieni, gradientów i poświat;
+   ciepły grafit, powierzchnie o krok jaśniejsze, delikatna poświata słońca u góry, bez cieni i szkła;
    kolor (słońce z logo) tylko na danych i stanach; główny przycisk to biała „pigułka”; etykiety zwykłymi literami.
    Ładowana na końcu (main.ts) — nadpisuje style.css. Stany na żywo / błędy (czerwień, zieleń) zostają. */
 
 :root {
-  --bg: #0e0d0c; --panel: #181716; --panel2: #201e1c; --panel3: #2a2826; --line: #262422;
-  --text: #ffffff; --muted: #b4b4b4; --faint: #949494;
+  --bg: #1a1816; --panel: #24211e; --panel2: #2c2926; --panel3: #36322e; --line: #3a3632;
+  --text: #f7f3ec; --muted: #c2bcb2; --faint: #a59f95;
   --accent: #f6a836; --accent-soft: rgba(246, 168, 54, .13);
   --radius: 18px;
 }
 
 /* ---------- grunt i pismo ---------- */
-body:not(.output) { background: var(--bg) !important; font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+body:not(.output) { background: radial-gradient(1100px 520px at 72% -200px, rgba(246, 168, 54, .09), transparent 70%) no-repeat, radial-gradient(900px 480px at 10% -220px, rgba(240, 138, 110, .05), transparent 70%) no-repeat, var(--bg) !important; font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
 h1, h2, h3, b, strong { font-weight: 600; }
 /* nagłówki sekcji: zwykłymi literami, bez rozstrzelenia */
 h2, .modal h4, .cd-label, .desk-opt-group > small.muted, .desk-lbl, .mgr-headrow { text-transform: none !important; letter-spacing: 0 !important; }
@@ -32,7 +32,7 @@ section, .desk-box, .desk-stage, .desk-ctrl, .desk-atem, .desk-svc, .desk-live, 
 button { border-color: transparent; border-radius: 12px; }
 button:hover:not(:disabled) { background: var(--panel3); }
 /* główny: biała pigułka z czarnym tekstem (kolor zostaje dla stanów: na żywo, potwierdzenie na wizję) */
-button.primary { background: #ffffff; color: #0e0d0c; border-color: transparent; border-radius: 999px; }
+button.primary { background: #ffffff; color: #1a1816; border-color: transparent; border-radius: 999px; }
 button.primary:hover:not(:disabled) { background: #e9e7e4; }
 .ovl-ask .primary { background: #e5484d; color: #fff; border-radius: 999px; }
 kbd { border-color: transparent; background: var(--panel3); }

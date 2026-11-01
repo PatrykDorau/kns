@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { BOOKS, parseRef, passage, toSlides } from '@/services/bible'
-import { activeService, addPassage, bible, bibleOpen, importBible, loadBible, nearestService } from '@/stores'
+import { activeService, addPassage, bible, bible2, bibleOpen, importBible, loadBible, nearestService } from '@/stores'
 
 // Biblia na rzutniku: odnośnik → podgląd slajdów → pętla w materiałach (przełączana strzałkami).
 const refText = ref('')
@@ -10,6 +10,8 @@ const perSlide = ref(2)
 const error = ref('')
 const loading = ref(true)
 const input = ref(null)
+const which = ref(0) // 0 — główny przekład, 1 — drugi
+const book = computed(() => (which.value && bible2.value ? bible2.value : bible.value))
 onMounted(async () => {
   await loadBible()
   loading.value = false
@@ -18,7 +20,7 @@ onMounted(async () => {
 
 const servicePassage = computed(() => (activeService.value || nearestService.value)?.passage?.trim() || '')
 const parsed = computed(() => parseRef(refText.value))
-const verses = computed(() => (parsed.value && bible.value ? passage(bible.value, parsed.value) : []))
+const verses = computed(() => (parsed.value && book.value ? passage(book.value, parsed.value) : []))
 const slides = computed(() => (verses.value.length ? toSlides(parsed.value.book, verses.value, perSlide.value) : []))
 const hint = computed(() => {
   if (!refText.value.trim()) return ''
@@ -27,12 +29,12 @@ const hint = computed(() => {
   return ''
 })
 
-async function pickFile() {
+async function pickFile(slot: 0 | 1 = 0) {
   error.value = ''
-  try { await importBible() } catch (e) { error.value = e.message }
+  try { if (await importBible(slot)) which.value = slot } catch (e) { error.value = e.message }
 }
 function add() {
-  const res = addPassage(refText.value, perSlide.value)
+  const res = addPassage(refText.value, perSlide.value, null, book.value)
   if (res.error) error.value = res.error
   else bibleOpen.value = false
 }
@@ -43,9 +45,14 @@ function add() {
     <div class="modal bible-modal" role="dialog" aria-modal="true" aria-label="Biblia">
       <div class="modal-head">
         <h3>Biblia</h3>
-        <span v-if="bible" class="note bname">{{ bible.name }}</span>
+        <select v-if="bible && bible2" v-model.number="which" aria-label="Przekład">
+          <option :value="0">{{ bible.name }}</option>
+          <option :value="1">{{ bible2.name }}</option>
+        </select>
+        <span v-else-if="bible" class="note bname">{{ bible.name }}</span>
         <span class="spacer"></span>
-        <button v-if="bible" class="small" title="Wczytaj inny przekład" @click="pickFile">Zmień przekład…</button>
+        <button v-if="bible" class="small" title="Wczytaj inny plik w miejsce wybranego przekładu" @click="pickFile(which ? 1 : 0)">Zmień przekład…</button>
+        <button v-if="bible && !bible2" class="small" title="Drugi przekład do wyboru obok pierwszego" @click="pickFile(1)">Dodaj drugi…</button>
         <button class="iconbtn" aria-label="Zamknij" @click="bibleOpen = false"><Icon name="x" /></button>
       </div>
 
@@ -53,7 +60,7 @@ function add() {
       <template v-else-if="!bible">
         <p>Najpierw wczytaj plik Biblii — wystarczy raz na tym komputerze.</p>
         <p class="note">Obsługiwane są Biblie z <b>OpenSong</b> (folder „OpenSong Data” → „Bibles”) i pliki w formacie <b>Zefania XML</b>. Wybierz przekład, którego używacie w kościele.</p>
-        <button class="primary" @click="pickFile"><Icon name="import" />Wybierz plik Biblii…</button>
+        <button class="primary" @click="pickFile(0)"><Icon name="import" />Wybierz plik Biblii…</button>
       </template>
       <template v-else>
         <div class="bible-ref">

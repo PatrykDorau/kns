@@ -109,6 +109,16 @@ export interface KnsApi {
   ytBind: Invoke
   ytKeep: Invoke
   ytGoLive: Invoke
+  ytChat: Invoke
+  ytVideos: Invoke
+  ytPlaylists: Invoke
+  ytPlaylist: Invoke
+  ytpArm: Invoke
+  ytpPlay: Invoke
+  ytpPause: Invoke
+  ytpResume: Invoke
+  ytpSeek: Invoke
+  ytpState: Invoke
   streamDevices: Invoke
   streamState: Invoke
   streamStart: Invoke
