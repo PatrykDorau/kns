@@ -255,7 +255,12 @@ const nameKey = n => String(n || '').toLowerCase().replace(/\s+/g, ' ').trim()
 const sameName = (a, b) => { const x = nameKey(a), y = nameKey(b); return !!x && !!y && (x === y || x.startsWith(y + ' ') || y.startsWith(x + ' ')) }
 export const photosOf = name => (settings.speakerPhotos || []).filter(p => sameName(p.name, name))
 export const currentSpeaker = () => nearestService.value?.speaker || ''
-export function speakerPic(name) { const own = photosOf(name), list = !own.length && demo ? settings.speakerPhotos || [] : own; return (list.find(p => p.on) || list[0])?.pic || '' }
+// bez galerii: zdjęcie ustawione wprost w presecie paska tego mówcy — karta kazania pokazuje to samo co pasek
+function presetPic(name) {
+  const looks = [settings.lowerLook, ...(settings.studioPresets || []).filter(p => p.kind === 'lower').map(p => p.data)]
+  return looks.find(d => d?.photo && d.photo !== '@speaker' && sameName(fill(d.name), name))?.photo || ''
+}
+export function speakerPic(name) { const own = photosOf(name), list = !own.length && demo ? settings.speakerPhotos || [] : own; return (list.find(p => p.on) || list[0])?.pic || presetPic(name) }
 export function choosePhoto(entry) { for (const p of photosOf(entry.name)) p.on = p.id === entry.id }
 // zdjęcie na pasku: stałe z presetu, wybrane zdjęcie mówcy z nabożeństwa albo żadne
 const photoFor = L => (L.photo === '' ? '' : L.photo && L.photo !== '@speaker' ? L.photo : speakerPic(fill(L.name)))

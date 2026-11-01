@@ -15,7 +15,7 @@ import { startProjectorFeed } from '@/services/projectorFeed'
 import { followSlide, pilot, startPreacherPilot } from '@/services/preacherPilot'
 import { onShow, projFiles, startProjectorMirror } from '@/services/projectorMirror'
 import { presetThumb } from '@/services/studio/presets'
-import { showSlide } from '@/services/studio/cards'
+import { showSlide, speakerPic } from '@/services/studio/cards'
 import { music } from '@/services/studio/music'
 import { paintOn } from '@/services/studio/paint'
 import { musicTag } from '@/services/studio/scenes'
@@ -33,7 +33,7 @@ import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init
 const ready = ref(false)
 onMounted(async () => {
   window.rzutnik = store // uchwyt do podglądania stanu z konsoli i w testach
-  window.rzutnikStream = { studio, lyricsFeed, startEncoding, stopEncoding, audioInfo, setCamera, setEndOverlay, bannerPending, bannerToProgram, followSlide, pilot, projFiles, projectorMessage: onShow, presetThumb, lowerNow, choosePhoto, showSlide, musicTag, music, paintOn }
+  window.rzutnikStream = { studio, lyricsFeed, startEncoding, stopEncoding, audioInfo, setCamera, setEndOverlay, bannerPending, bannerToProgram, followSlide, pilot, projFiles, projectorMessage: onShow, presetThumb, lowerNow, choosePhoto, showSlide, musicTag, music, paintOn, speakerPic }
   await init()
   startLyricsFeed() // napisy na stream niezależnie od otwartego ekranu
   startProjectorFeed() // scena „Rzutnik”: to, co pokazuje rzutnik na tym komputerze
