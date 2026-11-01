@@ -47,7 +47,7 @@ export function createDemoApi() {
   people = people || start()
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(people)) } catch { /* tryb prywatny */ } }
   const copy = x => JSON.parse(JSON.stringify(x))
-  const demoPlan = {}
+  const demoPlan = {}, demoMine = {}
   const inDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return new Date(+d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
   const ACTIONS = {
     me: () => ({ person: people[0], ranks: RANKS }),
@@ -58,10 +58,9 @@ export function createDemoApi() {
       types: [{ id: 'nabozenstwo', name: 'Nabożeństwo', color: '#5b8cff' }, { id: 'studenckie', name: 'Spotkanie studenckie', color: '#3ddc97' }],
     }),
     calendarToken: () => ({ token: '00000000-0000-4000-8000-000000000000' }),
-    availability: () => [{ id: 'd1', name: 'Administracyjno-gospodarcza', member: true, lead: true, you: 'o1', mine: {}, plan: copy(demoPlan),
-      days: [7, 14, 21, 28].map(n => inDays(((7 - new Date().getDay()) % 7) + n)),
-      people: [['o1', 'Ty'], ['o2', 'Anna Nowak'], ['o3', 'Jan Zieliński'], ['o4', 'Marta Kowalska']].map(([id, name]) => ({ id, name, states: {} })) }],
-    availabilitySet: () => null,
+    availability: () => { const days = [7, 14, 21, 28, 35, 42, 49, 56, 63].map(n => inDays(((7 - new Date().getDay()) % 7) + n)); return [{ id: 'd1', name: 'Administracyjno-gospodarcza', member: true, lead: true, you: 'o1', mine: { ...demoMine }, plan: copy(demoPlan), days,
+      people: [['o1', 'Ty', demoMine], ['o2', 'Anna Nowak', { [days[0]]: 'yes', [days[1]]: 'no', [days[2]]: 'yes' }], ['o3', 'Jan Zieliński', {}], ['o4', 'Marta Kowalska', { [days[1]]: 'maybe' }]].map(([id, name, states]) => ({ id, name, states: { ...states } })) }] },
+    availabilitySet({ day, state }) { if (state) demoMine[day] = state; else delete demoMine[day]; return null },
     scheduleToggle({ day, person }) { const l = demoPlan[day] || (demoPlan[day] = []), i = l.indexOf(person); if (i >= 0) l.splice(i, 1); else l.push(person); return null },
     schedulePublish: () => 0,
     ministries: () => [
