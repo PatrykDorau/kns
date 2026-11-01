@@ -22,9 +22,12 @@ const raw = ref(false) // edycja całego tekstu naraz (np. wklejenie pieśni)
 watch(() => props.modelValue, v => { if (v !== serialize(slides.value)) slides.value = parse(v) })
 const push = () => emit('update:modelValue', serialize(slides.value))
 
-const SUGGEST = [['', 'bez skrótu'], ['R', 'refren'], ['B', 'bridge'], ['P', 'przejście'], ['K', 'koniec']]
+// rodzaj slajdu: zapisany jako skrót na początku slajdu („[2]”, „[R]”) — rzutnik używa go też jako klawisza
+const KINDS = [['', 'Zwrotka (kolejna)'], ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => [String(n), 'Zwrotka ' + n]), ['R', 'Refren'], ['B', 'Bridge'], ['P', 'Przejście'], ['K', 'Zakończenie']]
+const known = (key: string) => KINDS.some(([k]) => k === key.toUpperCase())
 const lines = (s: Slide) => s.text.split('\n').filter(l => l.trim()).length
-const label = (s: Slide, i: number) => ({ R: 'Refren', B: 'Bridge', P: 'Przejście', K: 'Zakończenie' })[s.key.toUpperCase()] || (s.key ? 'Slajd ' + s.key : 'Slajd ' + (i + 1))
+const label = (s: Slide, i: number) => ({ R: 'Refren', B: 'Bridge', P: 'Przejście', K: 'Zakończenie' })[s.key.toUpperCase()] || (/^\d+$/.test(s.key) ? 'Zwrotka ' + s.key : s.key ? 'Slajd ' + s.key : 'Zwrotka ' + slides.value.slice(0, i + 1).filter(x => !x.key).length)
+function setKind(s: Slide, key: string) { s.key = key; push() }
 
 function focusAt(i: number) { nextTick(() => (document.querySelectorAll('.song-slides .ss-text')[i] as HTMLTextAreaElement)?.focus()) }
 function add(at = slides.value.length, copy?: Slide) {
@@ -72,10 +75,10 @@ watch(rawText, v => { if (raw.value) emit('update:modelValue', v) })
         <div class="ss-head">
           <span class="ss-n">{{ i + 1 }}</span>
           <b class="ss-name">{{ label(s, i) }}</b>
-          <label class="ss-key" title="Skrót klawisza na rzutniku (np. R — refren)">
-            <span>skrót</span>
-            <input v-model="s.key" maxlength="3" list="ss-keys" :disabled="disabled" :aria-label="'Skrót slajdu ' + (i + 1)" autocomplete="off" @input="push">
-          </label>
+          <select class="ss-kind" :value="s.key.toUpperCase()" :disabled="disabled" :aria-label="'Rodzaj slajdu ' + (i + 1)" title="Co to za część pieśni; numer i R działają też jako klawisz na rzutniku" @change="setKind(s, ($event.target as HTMLSelectElement).value)">
+            <option v-for="[k, n] in KINDS" :key="k" :value="k">{{ n }}</option>
+            <option v-if="!known(s.key)" :value="s.key.toUpperCase()">Skrót {{ s.key }}</option>
+          </select>
           <span class="ss-tools">
             <button type="button" class="icon" :disabled="disabled || i === 0" title="Wyżej" aria-label="Przesuń wyżej" @click="move(i, -1)"><svg class="i"><use href="#up"/></svg></button>
             <button type="button" class="icon" :disabled="disabled || i === slides.length - 1" title="Niżej" aria-label="Przesuń niżej" @click="move(i, 1)"><svg class="i"><use href="#down"/></svg></button>
@@ -87,7 +90,6 @@ watch(rawText, v => { if (raw.value) emit('update:modelValue', v) })
         <small class="ss-info">{{ lines(s) }} {{ lines(s) === 1 ? 'linijka' : lines(s) < 5 && lines(s) > 1 ? 'linijki' : 'linijek' }}<template v-if="lines(s) > 6"> · długi slajd — rzutnik zmniejszy tekst (rozważ podział)</template></small>
       </div>
       <button type="button" class="ss-add" :disabled="disabled" @click="add()"><svg class="i"><use href="#plus"/></svg>Dodaj slajd</button>
-      <datalist id="ss-keys"><option v-for="[k, n] in SUGGEST.slice(1)" :key="k" :value="k">{{ n }}</option></datalist>
     </template>
   </div>
 </template>
@@ -102,8 +104,7 @@ watch(rawText, v => { if (raw.value) emit('update:modelValue', v) })
 .ss-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ss-n { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-text); font-weight: 800; font-size: 13px; }
 .ss-name { flex: 1; min-width: 80px; font-size: 14px; }
-.ss-key { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 12px; }
-.ss-key input { width: 52px !important; min-width: 0; height: 32px; padding: 0 8px; text-align: center; text-transform: uppercase; font-weight: 700; }
+.ss-kind { flex: 0 1 170px; width: auto; min-width: 0; min-height: 40px; margin: 0; padding: 6px 8px; }
 .ss-tools { display: inline-flex; gap: 2px; }
 .ss-tools .icon { min-height: 32px; width: 32px; padding: 0; }
 .ss-text { width: 100%; min-height: 0; resize: vertical; font: inherit; line-height: 1.5; }

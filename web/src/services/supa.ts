@@ -67,7 +67,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
   const withUpdated = r => ({ ...r.data, updated: Math.max(r.data?.updated || 0, r.updated || 0) })
   // Zgłoszenia od członków: status (opublikowane / czeka na zatwierdzenie) i czy to moje.
   const withMeta = r => ({ ...withUpdated(r), status: r.status || 'published', mine: !!session && r.created_by === session.user.id })
-  const songsList = async () => (await all(() => sb.from('songs').select('id,number,title,text,updated').eq('deleted', false).order('id')))
+  const songsList = async () => (await all(() => sb.from('songs').select('id,number,title,text,chords,updated').eq('deleted', false).order('id')))
   // Załączniki: logowanie Google z dostępem do Dysku dopiero przy pierwszym pliku.
   async function withFiles(job) {
     if (!files) throw new Error('Załączniki nie są dostępne.')
@@ -345,11 +345,11 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (change.song) {
         let remote
         try { remote = await guardNewer('songs', id, base, force, 'tę pieśń') } catch (e) {
-          if (e.conflict) e.remote = { id, number: e.row.number, title: e.row.title, text: e.row.text, updated: e.row.updated }
+          if (e.conflict) e.remote = { id, number: e.row.number, title: e.row.title, text: e.row.text, chords: e.row.chords, updated: e.row.updated }
           throw e
         }
         const s = change.song
-        check(await sb.from('songs').upsert({ id, number: s.number || '', title: s.title, text: s.text || '', updated: Math.max(Date.now(), (remote?.updated || 0) + 1), deleted: false }))
+        check(await sb.from('songs').upsert({ id, number: s.number || '', title: s.title, text: s.text || '', chords: s.chords || {}, updated: Math.max(Date.now(), (remote?.updated || 0) + 1), deleted: false }))
       } else {
         check(await sb.from('songs').update({ deleted: true, updated: Date.now() }).eq('id', id))
       }

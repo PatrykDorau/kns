@@ -2,7 +2,9 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
+import SongChords from '@/components/SongChords.vue'
 import SongSlides from '@/components/SongSlides.vue'
+import { tokens } from '@/services/chords'
 import { ago, songHistory } from '@/services/stats'
 
 // Pieśń: najpierw ładny podgląd (zwrotki, refren wyróżniony), link i kod QR w nagłówku; „Edytuj” — edycja slajdów.
@@ -10,7 +12,7 @@ import { ago, songHistory } from '@/services/stats'
 const SHORTCUT = /^\[([^\]\s]{1,3})\][ \t]*/
 const KIND = { R: 'Refren', B: 'Bridge', P: 'Przejście', K: 'Zakończenie' }
 export default defineComponent({
-  components: { SongSlides },
+  components: { SongChords, SongSlides },
   setup() {
     const app = useApp()
     const sung = computed(() => {
@@ -31,7 +33,14 @@ export default defineComponent({
         return { key, name, lines, chorus: key === 'R' }
       })
     })
-    return { ...app, sung, editing, parts }
+    const tab = ref('text') // edycja: tekst albo akordy
+    const hasChords = computed(() => Object.keys(app.song.value?.chords || {}).length > 0)
+    let saved = null
+    try { saved = localStorage.getItem('kns-chords') } catch { /* tryb prywatny */ }
+    const showChords = ref(saved !== 'off')
+    function toggleChords() { showChords.value = !showChords.value; try { localStorage.setItem('kns-chords', showChords.value ? 'on' : 'off') } catch { /* tryb prywatny */ } }
+    const words = l => tokens(l, app.song.value?.chords?.[l.trim()] || {})
+    return { ...app, sung, editing, parts, tab, hasChords, showChords, toggleChords, words }
   },
 })
 </script>
@@ -47,10 +56,14 @@ export default defineComponent({
         </div>
         <button v-if="canEdit" class="sv-edit" @click="editing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj</button>
       </div>
+      <button v-if="hasChords" class="ghost small sv-toggle" :aria-pressed="showChords" @click="toggleChords"><svg class="i"><use href="#music"/></svg>{{ showChords ? 'Ukryj akordy' : 'Pokaż akordy' }}</button>
       <p v-if="!parts.length" class="note">Pieśń nie ma jeszcze tekstu.</p>
       <section v-for="(p, i) in parts" :key="i" class="sv-part" :class="{ chorus: p.chorus }">
         <small class="sv-label">{{ p.name }}</small>
-        <p><template v-for="(l, k) in p.lines" :key="k">{{ l }}<br v-if="k < p.lines.length - 1"></template></p>
+        <template v-if="hasChords && showChords">
+          <p v-for="(l, k) in p.lines" :key="k" class="sv-chords" :class="{ bare: !words(l).some(t => t.chord) }"><span v-for="t in words(l)" :key="t.pos"><b>{{ t.chord }}</b>{{ t.text }}</span></p>
+        </template>
+        <p v-else><template v-for="(l, k) in p.lines" :key="k">{{ l }}<br v-if="k < p.lines.length - 1"></template></p>
       </section>
     </div>
   </template>
@@ -64,8 +77,12 @@ export default defineComponent({
     <div><label for="sTitle">Tytuł <span class="req">*</span></label><input id="sTitle" v-model="song.title" :class="{ invalid: !song.title.trim() }" autocomplete="off"></div>
   </div>
   <p v-if="numberTaken" class="note error">Numer {{ song.number }} ma już pieśń „{{ numberTaken.title }}”.</p>
-  <label>Tekst — slajdy na rzutniku</label>
-  <SongSlides v-model="song.text" :disabled="!canEdit" />
+  <div class="sv-tabs" role="tablist" aria-label="Edycja pieśni">
+    <button type="button" role="tab" :aria-selected="tab === 'text'" :class="{ on: tab === 'text' }" @click="tab = 'text'">Tekst i części</button>
+    <button type="button" role="tab" :aria-selected="tab === 'chords'" :class="{ on: tab === 'chords' }" @click="tab = 'chords'">Akordy</button>
+  </div>
+  <SongSlides v-if="tab === 'text'" v-model="song.text" :disabled="!canEdit" />
+  <SongChords v-else :song="song" :parts="parts" :disabled="!canEdit" />
   </fieldset>
   <p class="saved" role="status"><template v-if="status"><svg class="i"><use href="#check"/></svg>{{ status }}</template></p>
   <div v-if="canEdit" class="bar">
@@ -96,5 +113,13 @@ export default defineComponent({
 .sv-part.chorus .sv-label { color: var(--accent-text); }
 .sv-part.chorus p { font-style: italic; }
 .sv-back { margin: 0 0 10px; }
+.sv-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin: 0 0 12px; }
+.sv-chords { display: flex; flex-wrap: wrap; column-gap: 6px; margin: 2px 0 0 !important; font-size: 18px; line-height: 1.3; }
+.sv-chords span { display: inline-flex; flex-direction: column; }
+.sv-chords.bare b { display: none; }
+.sv-chords b { min-height: 18px; color: var(--accent-text); font-size: 14px; font-style: normal; font-weight: 700; line-height: 18px; }
+.sv-tabs { display: flex; gap: 4px; margin: 14px 0 12px; padding: 4px; border-radius: 14px; background: var(--panel); }
+.sv-tabs button { flex: 1; min-height: 44px; border: 0; border-radius: 10px; background: none !important; color: var(--muted); font-size: 15px; font-weight: 500; }
+.sv-tabs button.on { background: var(--panel3) !important; color: var(--text); }
 @media (min-width: 1100px) { .sv-part p { font-size: 19px; } }
 </style>
