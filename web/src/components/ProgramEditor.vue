@@ -31,7 +31,11 @@ export default defineComponent({
       }
       return [p.title, p.person].filter(Boolean).join(' — ')
     }
-    return { catName: categoryName, setCategory, openKey, initialsOf, duration, categories: CATEGORIES, timeOf, sorted, setTime, add, cat, label }
+    // „Inne” bez własnej nazwy nic nie mówi: główny jest wtedy opis, a osoba idzie pod spód
+    const plainOther = p => p.category === 'inne' && !p.categoryName && !!p.title
+    const headline = p => (plainOther(p) ? p.title : categoryName(p))
+    const subline = p => (plainOther(p) ? p.person : label(p))
+    return { plainOther, headline, subline, catName: categoryName, setCategory, openKey, initialsOf, duration, categories: CATEGORIES, timeOf, sorted, setTime, add, cat, label }
   },
 })
 </script>
@@ -43,7 +47,7 @@ export default defineComponent({
       <li v-for="p in sorted" :key="p.key">
         <time>{{ timeOf(p) }}</time>
         <span class="tl-ic"><svg class="i"><use :href="'#' + cat(p).icon"/></svg></span>
-        <span class="tl-body"><b>{{ p.category === 'inne' && label(p) ? label(p) : catName(p) }}</b><span v-if="label(p) && p.category !== 'inne'">{{ label(p) }}</span><slot name="item" :item="p"></slot></span>
+        <span class="tl-body"><b>{{ headline(p) }}</b><span v-if="subline(p)">{{ subline(p) }}</span><slot name="item" :item="p"></slot></span>
         <small v-if="duration(p)" class="tl-dur">{{ duration(p) }} min</small>
       </li>
     </ol>
@@ -52,7 +56,7 @@ export default defineComponent({
         <button type="button" class="pg-head" :aria-expanded="openKey === p.key" @click="openKey = openKey === p.key ? '' : p.key">
           <time>{{ timeOf(p) }}</time>
           <span class="tl-ic"><svg class="i"><use :href="'#' + cat(p).icon"/></svg></span>
-          <span class="pg-main"><small v-if="label(p) && p.category !== 'inne'">{{ catName(p) }}</small><b>{{ label(p) || catName(p) }}</b></span>
+          <span class="pg-main"><small v-if="label(p) && !plainOther(p)">{{ catName(p) }}</small><b>{{ label(p) || catName(p) }}</b></span>
           <span class="pg-side"><small v-if="duration(p)">{{ duration(p) }} min</small><span v-if="p.person" class="pg-person" :title="p.person">{{ initialsOf(p.person) }}</span><small v-else class="pg-noone">Brak osób</small></span>
           <svg class="i pg-chev"><use href="#down"/></svg>
         </button>
