@@ -460,7 +460,7 @@ html[data-theme="light"] .tabbar .tab-ind { background: rgba(0, 0, 0, .06); }
 /* ---------- telefon: nagłówek, pola, tło pod treścią ---------- */
 @media (max-width: 767px) {
   .mn-head { flex-wrap: wrap; }
-  .mn-head > b { flex: 1 1 0; overflow-wrap: anywhere; }
+  .mn-head > b { flex: 1 1 calc(100% - 150px); overflow-wrap: break-word; } /* nazwa z ikonami wypełnia rząd, plakietka schodzi niżej */
   .mn-head .kh-spacer { display: none; }
   .mn-head .ann-tag { order: 9; margin-left: 32px; }
   .tabbar button, .tabbar a { white-space: nowrap; }
