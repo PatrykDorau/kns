@@ -455,7 +455,16 @@ html[data-theme="light"] .tabbar .tab-ind { background: rgba(0, 0, 0, .06); }
 .svc-view .dv-hero .pending-note { margin: 12px 0 0; background: var(--accent-soft) !important; border: 0 !important; color: var(--accent-text) !important; }
 .svc-view .dv-hero .ann-edit-btn { width: 100%; margin-top: 12px; }
 
+/* karta służby: kolumna nie może rosnąć ponad ekran przez plakietkę bez zawijania */
+@media (max-width: 999px) { .mn-grid { grid-template-columns: minmax(0, 1fr); } }
 /* ---------- telefon: nagłówek, pola, tło pod treścią ---------- */
+@media (max-width: 767px) {
+  .mn-head { flex-wrap: wrap; }
+  .mn-head > b { flex: 1 1 0; overflow-wrap: anywhere; }
+  .mn-head .kh-spacer { display: none; }
+  .mn-head .ann-tag { order: 9; margin-left: 32px; }
+  .tabbar button, .tabbar a { white-space: nowrap; }
+}
 @media (max-width: 767px) {
   .kh-web .hw-h .hw-step { display: none !important; }
   header { min-height: 52px; gap: 4px; }

@@ -57,6 +57,11 @@ export function createDemoApi() {
       types: [{ id: 'nabozenstwo', name: 'Nabożeństwo', color: '#5b8cff' }, { id: 'studenckie', name: 'Spotkanie studenckie', color: '#3ddc97' }],
     }),
     calendarToken: () => ({ token: '00000000-0000-4000-8000-000000000000' }),
+    ministries: () => [
+      { id: 'd1', name: 'Administracyjno-gospodarcza', description: 'Dbamy o salę i sprzęt przed nabożeństwem.', seeking: true, lead: true, mine: '', leaders: [{ id: 'l1', name: 'Jan Zieliński' }], members: [], people: [], pending: [] },
+      { id: 'd2', name: 'Powitania', description: 'Witamy gości w drzwiach.', seeking: true, lead: false, mine: 'pending', leaders: [{ id: 'l2', name: 'Marta Kowalska' }], members: [], people: [], pending: [] },
+      { id: 'd3', name: 'Dźwięk', description: '', seeking: false, lead: false, mine: '', leaders: [], members: [], people: [], pending: [] },
+    ],
     setNewsletter({ on }) { people[0].newsletter = !!on; persist(); return { person: people[0] } },
     people: () => ({ people, ranks: RANKS }),
     setPerson({ email, status, roles }) {
