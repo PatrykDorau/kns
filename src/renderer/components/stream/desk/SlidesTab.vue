@@ -2,9 +2,10 @@
 import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { showSlide, studio, upcomingService } from '@/services/studio'
+import { hasSermon } from '@/services/studio/cards'
 
 // Zakładka „Ogłoszenia”: pętla ogłoszeń w odliczaniu — które są w pętli, co ile sekund, pokaż teraz.
-defineProps<{ slides: { id: string; title: string; image?: string; text?: string; service?: boolean }[] }>()
+defineProps<{ slides: { id: string; title: string; image?: string; text?: string; service?: boolean; sermon?: boolean }[] }>()
 function toggleSlide(id: string) { const h = new Set(settings.studioHidden || []); h.has(id) ? h.delete(id) : h.add(id); settings.studioHidden = [...h] }
 </script>
 
@@ -15,9 +16,9 @@ function toggleSlide(id: string) { const h = new Set(settings.studioHidden || []
   </div>
   <div class="desk-slide-grid">
     <div v-for="sl in slides" :key="sl.id" class="desk-slide" :class="{ off: studio.hidden.includes(sl.id), now: studio.slideId === sl.id && !studio.hidden.includes(sl.id) }">
-      <button class="desk-slide-pic" :disabled="studio.hidden.includes(sl.id)" :title="'Pokaż teraz: ' + sl.title" @click="showSlide(sl.id)">
+      <button class="desk-slide-pic" :disabled="studio.hidden.includes(sl.id) || (sl.sermon && !hasSermon())" :title="sl.sermon && !hasSermon() ? 'W planie nabożeństwa nie ma kazania ani mówcy' : 'Pokaż teraz: ' + sl.title" @click="showSlide(sl.id)">
         <img v-if="sl.image" :src="sl.image" alt="" loading="lazy">
-        <span v-else class="desk-slide-txt"><b>{{ sl.title }}</b><small v-if="sl.text">{{ sl.text }}</small><small v-if="sl.service">{{ upcomingService() ? 'data, miejsce i kazanie' : '⚠ brak zaplanowanego — uzupełnij w Organizacji' }}</small></span>
+        <span v-else class="desk-slide-txt"><b>{{ sl.title }}</b><small v-if="sl.text">{{ sl.text }}</small><small v-if="sl.sermon">{{ hasSermon() ? 'tytuł, fragment i zdjęcie mówcy' : '⚠ brak kazania i mówcy — uzupełnij w Organizacji' }}</small><small v-if="sl.service">{{ upcomingService() ? 'data, miejsce i kazanie' : '⚠ brak zaplanowanego — uzupełnij w Organizacji' }}</small></span>
         <em v-if="studio.slideId === sl.id && !studio.hidden.includes(sl.id)">TERAZ</em>
       </button>
       <span class="desk-slide-name">{{ sl.title }}</span>

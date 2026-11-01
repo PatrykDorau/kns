@@ -51,6 +51,7 @@ export const lowerPending = () => !!studio.program.lowerThird && JSON.stringify(
 // tylko podgląd — nakładka czeka na potwierdzenie (ustawienia widać pod paskiem nakładek)
 export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boolean) { change(key === 'lowerThird' ? lt(v) : l => { l[key] = v }) }
 export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
+export function toggleMusicTag() { const on = !studio.program.musicTag; studio.preview.musicTag = on; studio.program.musicTag = on }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }
 // modlitwa: wizja dostaje kopię napisów z chwili wysłania
 const prayerSet = () => ({ ink: settings.prayerInk, outline: settings.prayerOutline, style: settings.prayerStyle, head: settings.prayerHead, text: settings.prayerText, sub: settings.prayerSub, link: settings.prayerLink, label: settings.prayerLinkLabel })

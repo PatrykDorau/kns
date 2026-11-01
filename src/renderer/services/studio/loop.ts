@@ -7,7 +7,7 @@ import { paintOn } from './paint'
 import { countdownLeft } from './cards'
 import { syncVideos } from './media'
 import { fade } from './look'
-import { SCENE_DRAW } from './scenes'
+import { SCENE_DRAW, musicTag } from './scenes'
 import { encodeFrame } from './encoder'
 
 let canvas: HTMLCanvasElement = null, main: CanvasRenderingContext2D = null, timer = 0
@@ -19,7 +19,7 @@ function getScratch() { if (!scratch) { scratch = document.createElement('canvas
 // Rysuje wygląd L na płótnie ctx (scena; nieznana — jak Kamera), potem wraca do wizji na głównym płótnie.
 function draw(ctx: CanvasRenderingContext2D, L: Look, t: number) {
   paintOn(ctx, L)
-  try { (SCENE_DRAW[L.scene] || SCENE_DRAW.camera)(t) } finally { paintOn(main, studio.program) }
+  try { (SCENE_DRAW[L.scene] || SCENE_DRAW.camera)(t); musicTag(t) } finally { paintOn(main, studio.program) }
 }
 
 function frame() {

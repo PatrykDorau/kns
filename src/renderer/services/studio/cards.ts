@@ -34,10 +34,10 @@ export function carouselStack(t, count) {
   const every = Math.max(3, +studio.slideEvery || 8) * 1000, i = Math.floor(Math.max(0, t - slideBase) / every)
   return Array.from({ length: Math.min(count, list.length) }, (_, n) => list[(i + n) % list.length])
 }
-// karta kazania tylko przed nabożeństwem i gdy w planie jest co pokazać
-const hasSermon = () => { const n = nearestService.value; return !!(n?.sermonTitle || n?.passage || n?.speaker) }
-export function slides() {
-  return slideCandidates().filter(c => !studio.hidden.includes(c.id) && (!c.sermon || (S?.scene === 'countdown' && hasSermon())))
+// karta kazania: gdy w planie jest co pokazać; nie w Życiu kościoła — to czas po nabożeństwie
+export const hasSermon = () => { const n = nearestService.value; return !!(n?.sermonTitle || n?.passage || n?.speaker) }
+export function slides(life = S?.scene === 'life') {
+  return slideCandidates().filter(c => !studio.hidden.includes(c.id) && (!c.sermon || (!life && hasSermon())))
     .map(c => (c.image ? (img(c.image) ? { ...c, im: img(c.image) } : null) : c)).filter(Boolean)
 }
 export function carousel(t) {
@@ -50,7 +50,7 @@ export function carousel(t) {
 }
 // Kliknięcie ogłoszenia na pulpicie: od razu ono, potem dalej po kolei.
 export function showSlide(id) {
-  const list = slides(), idx = list.findIndex(x => x.id === id)
+  const list = slides(false), idx = list.findIndex(x => x.id === id) // kliknięcie przychodzi spoza rysowania
   if (idx < 0) return
   const every = Math.max(3, +studio.slideEvery || 8) * 1000
   slideBase = performance.now() - idx * every - 600
@@ -101,9 +101,16 @@ function sunLogo(cx, cy, r) {
 // Karta najbliższego nabożeństwa: z lewej dzień, godzina i miejsce, pod spodem kazanie; z prawej logo na słońcu.
 export function serviceCard(x, y, w, h) {
   g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip()
-  const { k, accent, cx, cy, r } = darkCard(x, y, w, h), svc = upcomingService()
-  sunLogo(cx, cy, r)
-  const tx = x + 76 * k, tw = w * 0.45
+  const k = w / 1240, look = cdLook(), accent = luminance(look.accent || '#f6a836') < 0.25 ? '#f6a836' : look.accent || '#f6a836', svc = upcomingService()
+  // góra z tła aplikacji (motyw z odliczania), z lewej przyciemniona pod napisy
+  const zoom = Math.max(w / W, h / H)
+  g.save(); g.translate(x + (w - W * zoom) / 2, y + (h - H * zoom) / 2); g.scale(zoom, zoom); drawPeak(isMood(look.bg) && look.bg !== 'czern' ? look.bg : 'szczyt'); g.restore()
+  const veil = g.createLinearGradient(x, 0, x + w * 0.74, 0); veil.addColorStop(0, 'rgba(14,8,4,0.92)'); veil.addColorStop(0.62, 'rgba(14,8,4,0.74)'); veil.addColorStop(1, 'rgba(14,8,4,0)')
+  g.fillStyle = veil; g.fillRect(x, y, w, h)
+  const lr = 54 * k, lg = img('./znak-obrys.png'), lx = x + w - lr - 40 * k, ly = y + h - lr - 40 * k
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(lx, ly, lr, 0, Math.PI * 2); g.fill()
+  if (lg) g.drawImage(lg, lx - lr * 0.8, ly - lr * 0.8, lr * 1.6, lr * 1.6)
+  const tx = x + 76 * k, tw = w * 0.5
   const day = svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()) : 'Termin wkrótce'
   const size = Math.round(84 * k), lines = wrap(day.replace(', ', ',\n'), tw, size, 400, 2, 'display'), lh = size * 1.14
   const where = svc ? wrap('godz. ' + serviceTime(svc) + ' · ' + servicePlace(svc), tw, Math.round(40 * k), 600, 2, 'sans') : wrap('Szczegóły na kns-nabo.netlify.app', tw, Math.round(34 * k), 600, 2, 'sans')
@@ -242,7 +249,7 @@ export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', setting
 export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, layout: 'side', banner: true, title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
 export const lifeLook = () => safeBg({ ...LIFE_DEFAULT, ...(styleOf('life', settings.lifeLook) || {}) })
 // Pasek mówcy: {mówca} i {kazanie} — z najbliższego nabożeństwa; puste pole — nic.
-export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true, photo: '@speaker' } as const
+export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true, photo: '@speaker', photoSize: 'm' } as const
 // Zdjęcia mówców: imię w planie bywa krótsze niż przy zdjęciu („Piotr” i „Piotr Gruchała” to ta sama osoba).
 const nameKey = n => String(n || '').toLowerCase().replace(/\s+/g, ' ').trim()
 const sameName = (a, b) => { const x = nameKey(a), y = nameKey(b); return !!x && !!y && (x === y || x.startsWith(y + ' ') || y.startsWith(x + ' ')) }

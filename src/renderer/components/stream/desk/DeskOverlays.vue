@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import { label, settings } from '@/stores'
-import { ANN_MEDIA, OVERLAYS, PROJ_MEDIA, mediaPipToProgram, pipToProgram, previewOverlay, setEndOverlay, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
+import { ANN_MEDIA, OVERLAYS, PROJ_MEDIA, mediaPipToProgram, pipToProgram, previewOverlay, setEndOverlay, toggleMusicTag, setLowerThird, setMediaPos, setOverlayMode, setPrayer, showMediaOverlay, studio, toggleLyrics } from '@/services/studio'
 import { answerLive, confirmLive, ovlAsk } from '@/composables/stream/ovlAsk'
 import { CORNERS, useDesk } from '@/composables/stream/useStreamDesk'
 import { mediaKind } from '@/composables/stream/useStudioMedia'
@@ -45,6 +45,8 @@ function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMod
   <div v-if="anyOverlay" class="desk-ovl">
     <small class="desk-lbl">Nakładki</small>
     <span v-if="ovlAsk" class="ovl-ask" role="alertdialog" aria-label="Potwierdź"><Icon name="info" /><span>Na podglądzie: <b>{{ ovlAsk.what }}</b> — dopasuj i wyślij na wizję?</span><button class="primary small" @click="answerLive(true)">Tak, na wizję</button><button class="small" @click="answerLive(false)">Nie</button></span>
+    <button v-if="on('musicTag')" class="ovl-btn" :class="{ live: studio.program.musicTag, on: studio.program.musicTag }" :aria-pressed="!!studio.program.musicTag"
+            title="Plakietka „Teraz gra” z nazwą utworu — od razu na wizji, widać ją tylko, gdy gra podkład" @click="toggleMusicTag"><Icon name="music" />Teraz gra</button>
     <button v-if="on('lyrics')" class="ovl-btn" :class="{ live: studio.program.lyricsOn && air('lyrics'), on: studio.program.lyricsOn }" :aria-pressed="studio.program.lyricsOn"
             title="Napisy pieśni — włączają się i wyłączają od razu na wizji (Kamera, Rzutnik, Materiał)" @click="toggleLyrics"><Icon name="music" />Napisy</button>
     <button v-if="on('lowerThird')" class="ovl-btn" :class="{ on: studio.preview.lowerThird, live: studio.program.lowerThird && air('lowerThird') }" :aria-pressed="studio.preview.lowerThird"

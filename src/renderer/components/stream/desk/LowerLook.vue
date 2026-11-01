@@ -7,7 +7,7 @@ import SpeakerPhotos from './SpeakerPhotos.vue'
 import TextColor from './TextColor.vue'
 
 // Pasek mówcy w presecie: napisy, kolor, logo i zdjęcie mówcy.
-const props = defineProps<{ look: { ink?: string, photo?: string, style?: string, name: string, sub: string, color: string, logo: boolean } }>()
+const props = defineProps<{ look: { ink?: string, photo?: string, style?: string, name: string, sub: string, color: string, logo: boolean, photoSize?: string } }>()
 if (props.look.photo === undefined) props.look.photo = LOWER_DEFAULT.photo // nowe pole po aktualizacji
 const { mediaList, addMediaFiles } = useDesk()
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
@@ -36,6 +36,10 @@ async function addPhoto() { const before = new Set(mediaList.value.map(x => x.id
       </select>
       <button class="small" title="Zdjęcie z dysku — trafi też do Biblioteki" @click="addPhoto">Z dysku…</button>
     </div>
+    <div v-if="look.photo !== ''" class="desk-opt-group">
+      <small class="muted">Wielkość zdjęcia</small>
+      <button v-for="[id, name] in [['s', 'Mała'], ['m', 'Średnia'], ['l', 'Duża']]" :key="id" :class="{ on: (look.photoSize || 'm') === id }" :aria-pressed="(look.photoSize || 'm') === id" @click="look.photoSize = id">{{ name }}</button>
+    </div>
     <SpeakerPhotos />
     <div class="desk-opt-group">
       <small class="muted">Kolor</small>
@@ -44,6 +48,6 @@ async function addPhoto() { const before = new Set(mediaList.value.map(x => x.id
       <label class="check"><input v-model="look.logo" type="checkbox"> Logo kościoła</label>
       <button class="small" title="Przywróć domyślny pasek" @click="Object.assign(look, LOWER_DEFAULT)">Domyślny</button>
     </div>
-    <p class="desk-help">Puste pole nic nie pokazuje. {mówca} i {kazanie} wstawiają dane z najbliższego nabożeństwa. PNG z wyciętym tłem stoi na pasku i wychodzi nad niego, zamiast logo. Gdy mówca ma kilka zdjęć, kliknij to, które ma się pokazać — także w Studio.</p>
+    <p class="desk-help">Puste pole nic nie pokazuje. {mówca} i {kazanie} wstawiają dane z najbliższego nabożeństwa. PNG z wyciętym tłem stoi na pasku i wychodzi nad niego, a logo przechodzi na prawy koniec paska. Gdy mówca ma kilka zdjęć, kliknij to, które ma się pokazać — także w Studio.</p>
   </div>
 </template>

@@ -20,9 +20,10 @@ export interface Preset { id: string, kind: PresetKind, name: string, desc: stri
 export interface Look {
   scene: SceneId | string
   lyricsOn: boolean
+  musicTag?: boolean // „Teraz gra” na obrazie
   lowerThird: boolean
   loop?: boolean // tylko podgląd w Przygotowaniu: rysowanie gór w kółko
-  lowerLook?: { ink?: string, outline?: string, photo?: string, pic?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
+  lowerLook?: { ink?: string, outline?: string, photo?: string, photoSize?: string, pic?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
   pip: Pip
   lowerAt: number
   lowerOff: number

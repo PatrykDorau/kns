@@ -4,7 +4,9 @@ import { S, background, fitLine, fontStr, fullImage, g, img, paintOn, rounded, s
 import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, lowerPic, prayerLook, presetBanners, setDemo, carousel, cdBackground, cdLook, drawCarousel, endLook, paper, qr, setArmed, zeroAt } from './cards'
 import { bottomBand, glassPanel, hairline, roughFit, roughText, shade } from './rough'
 import { cleanInk, pill } from './clean'
+import { settings } from '@/stores'
 import { drawLife } from './life'
+import { music } from './music'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
 import { drawCamera } from './camera'
@@ -385,7 +387,28 @@ function lyrics(t) {
   }
   draw(lyricPrev, 1 - k); draw(lyricShown, k)
 }
-const PHOTO = { x: 30, w: 340, h: 420 }
+// Wycięte zdjęcie: widać popiersie (dół zdjęcia ucina dolna krawędź paska), głowa duża nad paskiem.
+// „Teraz gra”: mała plakietka w prawym górnym rogu, na każdej scenie; widać ją tylko, gdy muzyka naprawdę gra.
+const tagState = new WeakMap<object, { k: number, at: number, name: string }>()
+export function musicTag(t: number) {
+  const s = tagState.get(S) || { k: 0, at: t, name: '' }, track = settings.musicList?.find(x => x.id === music.current), on = !!S.musicTag && music.playing && !!track
+  s.k = Math.max(0, Math.min(1, s.k + ((on ? 1 : -1) * (t - s.at)) / 350)); s.at = t
+  if (on) s.name = String(track.name).replace(/\.[^.]+$/, '')
+  tagState.set(S, s)
+  if (!s.k) return
+  const e = 1 - Math.pow(1 - s.k, 3), f = fitLine(s.name, 620, 34, 24, 700, 'sans'), h = 104
+  g.save(); g.font = fontStr(700, f.size, 'sans'); const tw = Math.max(170, g.measureText(f.str).width); g.restore()
+  const w = tw + 138, x = W - w - 48, y = 48 - (1 - e) * 24
+  g.save(); g.globalAlpha *= e
+  g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 26; glassPanel(x, y, w, h, 'rgba(16,10,6,0.86)'); g.shadowBlur = 0
+  // słupki grają w rytm czasu, nie muzyki — mówią tylko „leci”
+  g.fillStyle = '#f6a836'
+  for (let i = 0; i < 4; i++) { const b = 14 + 24 * (0.5 + 0.5 * Math.sin(t / (190 + i * 40) + i * 1.7)); rounded(x + 30 + i * 13, y + h / 2 - b / 2, 8, b, 3); g.fill() }
+  text('TERAZ GRA', x + 104, y + 40, { size: 22, weight: 700, font: 'cond', color: '#f6a836', spacing: 4 })
+  text(f.str, x + 104, y + 78, { size: f.size, weight: 700, font: 'sans', color: '#fbf3e6' })
+  g.restore()
+}
+const PHOTO = { x: 30, w: 400, h: { s: 340, m: 440, l: 540 }, bust: 0.78 }
 // Pasek z mówcą i tytułem kazania (wjeżdża z lewej), z logo kościoła w białym kółku.
 function lowerThird(t) {
   const L = lowerLookOf(), who = fill(L.name), what = fill(L.sub)
@@ -395,20 +418,27 @@ function lowerThird(t) {
   if (off && !(S.lowerOff && t - S.lowerOff < 500)) return
   const k = off ? 1 - Math.min(1, (t - S.lowerOff) / 500) : Math.min(1, (t - S.lowerAt) / 500), e = 1 - Math.pow(1 - k, 3)
   // zdjęcie mówcy wycięte z tła (PNG) stoi na pasku i wychodzi nad niego — zajmuje miejsce logo
-  const it = mediaSlide(lowerPic(L)), pic = it?.type === 'image' && img(mediaUrl(it.path)), box = pic && trimmed(pic), pk = box ? Math.min(PHOTO.w / box.w, PHOTO.h / box.h) : 0, pw = box ? box.w * pk : 0, ph = box ? box.h * pk : 0
-  const hasLogo = L.logo !== false && !box, tx = box ? PHOTO.x + pw + 30 : hasLogo ? 222 : 44, clean = L.style === 'edit' // napisy zaczynają się za logo
+  const it = mediaSlide(lowerPic(L)), pic = it?.type === 'image' && img(mediaUrl(it.path)), box = pic && trimmed(pic), bust = box ? box.h * PHOTO.bust : 0, pk = box ? Math.min(PHOTO.w / box.w, (PHOTO.h[L.photoSize] || PHOTO.h.m) / bust) : 0, pw = box ? box.w * pk : 0, ph = bust * pk
+  const hasLogo = L.logo !== false && !box, sideLogo = !!box && L.logo !== false, tx = box ? PHOTO.x + pw + 30 : hasLogo ? 222 : 44, clean = L.style === 'edit' // napisy zaczynają się za logo
   const maxText = 1500 - tx - 60
   const name = fitLine(who, maxText, 46, 34, 800)
   const sub = fitLine(what, maxText, 32, 24, 500)
   g.save(); g.font = `800 ${name.size}px "Segoe UI", system-ui, sans-serif`; const w1 = g.measureText(name.str).width
   g.font = `500 ${sub.size}px "Segoe UI", system-ui, sans-serif`; const w2 = g.measureText(sub.str).width; g.restore()
-  const w = Math.min(1500, Math.max(hasLogo ? 620 : 420, tx + Math.max(w1, w2) + 60)), bh = 150
+  const w = Math.min(1500, Math.max(hasLogo ? 620 : 420, tx + Math.max(w1, w2) + 60 + (sideLogo ? 104 : 0))), bh = 150
   const x = -w + (w + 60) * e, y = H - 250
   g.save(); g.globalAlpha = e
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 30
   if (clean) { rounded(x, y, w, bh, 12); g.fillStyle = '#fbf3e6'; g.fill() } else glassPanel(x, y, w, bh, 'rgba(16,10,6,0.86)')
   g.shadowBlur = 0
-  if (box) { g.save(); g.shadowColor = 'rgba(0,0,0,0.4)'; g.shadowBlur = 20; g.drawImage(pic, box.x, box.y, box.w, box.h, x + PHOTO.x, y + bh - ph, pw, ph); g.restore() }
+  if (box) {
+    // mówca wysuwa się zza dolnej krawędzi, gdy pasek już wjechał; przy wyjściu znika razem z nim
+    const rise = off ? 1 : 1 - Math.pow(1 - Math.min(1, Math.max(0, (t - S.lowerAt - 300) / 450)), 3)
+    g.save(); g.beginPath(); g.rect(x, 0, w, y + bh); g.clip(); g.shadowColor = 'rgba(0,0,0,0.4)'; g.shadowBlur = 20
+    g.drawImage(pic, box.x, box.y, box.w, bust, x + PHOTO.x, y + bh - ph + (1 - rise) * ph, pw, ph); g.restore()
+    const lg = img('./znak-obrys.png')
+    if (sideLogo && lg) g.drawImage(lg, x + w - 96, y + (bh - 76) / 2, 76, 76)
+  }
   g.fillStyle = L.color || '#f6a836'; g.fillRect(x + 18, y + bh - 6, w - 36, 6)
   // logo: białe kółko wystające nad pasek
   if (hasLogo) {
