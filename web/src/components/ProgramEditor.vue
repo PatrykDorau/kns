@@ -43,7 +43,7 @@ export default defineComponent({
       <li v-for="p in sorted" :key="p.key">
         <time>{{ timeOf(p) }}</time>
         <span class="tl-ic"><svg class="i"><use :href="'#' + cat(p).icon"/></svg></span>
-        <span class="tl-body"><b>{{ catName(p) }}</b><span v-if="label(p)">{{ label(p) }}</span><slot name="item" :item="p"></slot></span>
+        <span class="tl-body"><b>{{ p.category === 'inne' && label(p) ? label(p) : catName(p) }}</b><span v-if="label(p) && p.category !== 'inne'">{{ label(p) }}</span><slot name="item" :item="p"></slot></span>
         <small v-if="duration(p)" class="tl-dur">{{ duration(p) }} min</small>
       </li>
     </ol>
@@ -52,22 +52,21 @@ export default defineComponent({
         <button type="button" class="pg-head" :aria-expanded="openKey === p.key" @click="openKey = openKey === p.key ? '' : p.key">
           <time>{{ timeOf(p) }}</time>
           <span class="tl-ic"><svg class="i"><use :href="'#' + cat(p).icon"/></svg></span>
-          <span class="pg-main"><small>{{ catName(p) }}</small><b>{{ label(p) || catName(p) }}</b></span>
+          <span class="pg-main"><small v-if="label(p) && p.category !== 'inne'">{{ catName(p) }}</small><b>{{ label(p) || catName(p) }}</b></span>
           <span class="pg-side"><small v-if="duration(p)">{{ duration(p) }} min</small><span v-if="p.person" class="pg-person" :title="p.person">{{ initialsOf(p.person) }}</span><small v-else class="pg-noone">Brak osób</small></span>
           <svg class="i pg-chev"><use href="#down"/></svg>
         </button>
         <div v-if="openKey === p.key" class="pg-edit">
         <div class="pg-top">
-          <input type="time" :value="timeOf(p)" aria-label="Godzina punktu" @change="setTime(p, $event.target.value)">
-          <input class="pg-cat" :value="catName(p)" list="pg-cats" placeholder="Rodzaj — wybierz albo wpisz" aria-label="Rodzaj punktu" autocomplete="off" @change="setCategory(p, $event.target.value)" @focus="$event.target.select()">
-          <button class="icon" type="button" aria-label="Usuń punkt" @click="items.splice(i, 1)"><svg class="i"><use href="#x"/></svg></button>
+          <label>Godzina<input type="time" :value="timeOf(p)" @change="setTime(p, $event.target.value)"></label>
+          <label>Rodzaj<input class="pg-cat" :value="catName(p)" list="pg-cats" placeholder="Wybierz albo wpisz" autocomplete="off" @change="setCategory(p, $event.target.value)" @focus="$event.target.select()"></label>
         </div>
         <div class="pg-fields">
-          <input v-model="p.title" :placeholder="p.category === 'kazanie' ? 'Tytuł (gdy inny niż wyżej)' : 'Opis, np. Pieśń / kolekta'" aria-label="Opis punktu" autocomplete="off">
-          <input v-model="p.person" placeholder="Kto" aria-label="Kto prowadzi ten punkt" autocomplete="off">
+          <label>Opis<input v-model="p.title" :placeholder="p.category === 'kazanie' ? 'Tytuł (gdy inny niż w sekcji Kazanie)' : 'np. Pieśń / kolekta'" autocomplete="off"></label>
+          <label>Kto prowadzi<input v-model="p.person" autocomplete="off"></label>
         </div>
+        <button class="pg-del" type="button" @click="items.splice(i, 1)"><svg class="i"><use href="#trash"/></svg>Usuń punkt</button>
         </div>
-        <p v-if="p.category === 'kazanie' && sermon && (sermon.title || sermon.passage) && !$slots.item" class="pg-sermon">{{ [sermon.title, sermon.passage, sermon.speaker].filter(Boolean).join(' · ') }}</p>
         <slot name="item" :item="p"></slot>
       </div>
       <datalist id="pg-cats"><option v-for="c in categories" :key="c.id" :value="c.name"></option></datalist>

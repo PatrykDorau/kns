@@ -409,3 +409,71 @@ html[data-theme="light"] .tabbar .tab-ind { background: rgba(0, 0, 0, .06); }
 .login-fb { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 50px; margin-top: 10px; border: 0; border-radius: 999px; background: #1877f2 !important; color: #fff; font: 600 15.5px/1 var(--display); }
 .login-fb:hover:not(:disabled) { background: #166fe5 !important; }
 .login-fb svg { width: 20px; height: 20px; }
+
+/* ---------- formularze sekcjami (edycja nabożeństwa) ---------- */
+.se { display: flex; flex-direction: column; gap: 10px; }
+.se-top { padding: 4px 0 8px; }
+.se-top h2 { margin: 0; font-size: 26px; line-height: 1.15; letter-spacing: -.02em; }
+.se-gaps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; }
+.se-gaps > span { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--accent-text); }
+.se-gaps svg.i { width: 16px; height: 16px; }
+.se-gaps button { min-height: 36px; padding: 6px 12px; border-radius: 999px; background: var(--accent-soft) !important; color: var(--accent-text); font-size: 14px; font-weight: 500; }
+.se-full { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; font-size: 14px; color: var(--ok-text); }
+.se-full svg.i { width: 16px; height: 16px; }
+.fs { border-radius: 16px; background: var(--panel); scroll-margin-top: 72px; }
+.fs-head { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 68px; padding: 12px 14px 12px 16px; border: 0; border-radius: 16px; background: none !important; color: var(--text); text-align: left; }
+.fs-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.fs-t b { font-size: 17px; line-height: 1.25; }
+.fs-t small { overflow: hidden; font-size: 14px; font-weight: 400; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.fs-bad { flex: none; display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--accent); color: #1f1608; font-size: 13px; font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fs-chev { flex: none; width: 20px; height: 20px; color: var(--muted); transition: transform .18s; }
+.fs.open .fs-chev { transform: rotate(180deg); }
+.fs-body { padding: 0 16px 16px; }
+.fs-body > label:first-child, .fs-body > .row:first-child label { margin-top: 0; }
+.fs-body label { color: var(--text); font-weight: 500; }
+.se-more { margin-top: 16px; border-top: 1px solid var(--line); }
+.se-more summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding-top: 4px; color: var(--text); font-size: 15px; font-weight: 500; list-style: none; cursor: pointer; }
+.se-more summary::-webkit-details-marker { display: none; }
+.se-more summary svg.i { width: 18px; height: 18px; color: var(--muted); transition: transform .18s; }
+.se-more[open] summary svg.i { transform: rotate(180deg); }
+.se-slot + .se-slot { margin-top: 16px; }
+.se-slot > small { display: block; margin-bottom: 8px; color: var(--muted); font-size: 14px; }
+.se-slot .song { background: var(--panel2) !important; }
+.se-del { display: flex; justify-content: center; padding: 8px 0 4px; }
+.se-del button.ghost { display: inline-flex; align-items: center; gap: 8px; color: var(--bad-text); font-size: 15px; }
+.se .who { margin: 4px 0 0; text-align: center; }
+.fs .pg-row { background: var(--panel2) !important; border: 0 !important; }
+.fs .pg-noone { color: var(--faint) !important; font-weight: 400; }
+.pg-edit label { margin: 0; font-size: 13px; color: var(--muted) !important; font-weight: 400; }
+.pg-edit label input { margin-top: 5px; }
+.pg-del { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; background: none !important; color: var(--bad-text); font-size: 14px; }
+.pg-del svg.i { width: 16px; height: 16px; }
+.bar.idle { position: static; background: none !important; }
+.svc-view .dv-hero .pending-note { margin: 12px 0 0; background: var(--accent-soft) !important; border: 0 !important; color: var(--accent-text) !important; }
+.svc-view .dv-hero .ann-edit-btn { width: 100%; margin-top: 12px; }
+
+/* ---------- telefon: nagłówek, pola, tło pod treścią ---------- */
+@media (max-width: 767px) {
+  .kh-web .hw-h .hw-step { display: none !important; }
+  header { min-height: 52px; gap: 4px; }
+  header h1 { font-size: 20px !important; text-align: left; }
+  header button.back { order: -1; flex: none; display: grid; place-items: center; align-self: center; width: 44px; height: 44px; min-height: 44px; margin-left: -10px; padding: 0 !important; font-size: 0; line-height: 0; }
+  header button.back svg.i { width: 22px; height: 22px; }
+  header:has(> button.back) > img { display: none; }
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), textarea, select { min-height: 48px; font-size: 16px; }
+  label { color: var(--text); font-size: 14px; font-weight: 500; }
+  #app small { font-size: 13px; }
+  .tabbar small { font-size: 12px; }
+  .form-sec h3 { font-size: 17px !important; color: var(--text) !important; }
+  .form-sec h3 small { font-weight: 400; color: var(--muted); }
+  .hm-hello h1 { color: var(--text) !important; }
+  .fs-body .row { gap: 10px; }
+  .pg-top, .pg-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .pg-top { grid-template-columns: 112px minmax(0, 1fr); margin-bottom: 10px; }
+  .attach button { min-height: 48px; padding-left: 8px; padding-right: 8px; font-size: 15px; white-space: nowrap; }
+  .bar { padding: 8px; }
+  .bar button.primary { min-height: 52px; font-size: 16px; }
+  .note, .view-card span, .ann-view-text { font-size: 15px; }
+  .kns-backdrop { opacity: .5 !important; }
+  body:has(#app.editing) .kns-backdrop { opacity: .08 !important; }
+}
