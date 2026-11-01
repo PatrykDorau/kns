@@ -40,7 +40,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
   <!-- formularz w sekcjach: treść, grafika i film, przycisk z linkiem, kto widzi, powiadomienia -->
   <fieldset class="plain" :disabled="!annEditable">
     <section class="form-sec">
-      <h3><span class="fs-n">1</span>Treść</h3>
+      <h3><svg class="i fs-ic"><use href="#pencil"/></svg>Treść</h3>
       <label for="anTitle">Tytuł <span class="req">*</span></label>
       <input id="anTitle" v-model="currentAnn.title" :class="{ invalid: !currentAnn.title.trim() }" placeholder="np. Chrzest wodny — zapisy do 1 listopada" autocomplete="off">
       <label for="anText">Treść</label>
@@ -48,7 +48,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     </section>
 
     <section v-if="drive.uploadImage || currentAnn.image || annEditable" class="form-sec">
-      <h3><span class="fs-n">2</span>Grafika i film <small>opcjonalnie</small></h3>
+      <h3><svg class="i fs-ic"><use href="#image"/></svg>Grafika i film <small>opcjonalnie</small></h3>
       <p class="form-hint"><svg class="i"><use href="#info"/></svg><span>Grafikę wgrasz z telefonu albo komputera — albo wkleisz link z <b>Dysku Google</b> (plik udostępniony „Każda osoba mająca link”).</span></p>
       <label>Grafika</label>
       <img v-if="currentAnn.image" class="ann-img edit" :src="currentAnn.image" alt="">
@@ -77,7 +77,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     </section>
 
     <section class="form-sec">
-      <h3><span class="fs-n">3</span>Przycisk z linkiem <small>opcjonalnie</small></h3>
+      <h3><svg class="i fs-ic"><use href="#link"/></svg>Przycisk z linkiem <small>opcjonalnie</small></h3>
       <label for="anLink">Adres</label>
       <input id="anLink" v-model.trim="currentAnn.link" placeholder="np. formularz zapisów, strona wydarzenia" autocomplete="off" inputmode="url">
       <template v-if="currentAnn.link">
@@ -87,7 +87,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
     </section>
 
     <section class="form-sec">
-      <h3><span class="fs-n">4</span>Kto widzi i jak długo</h3>
+      <h3><svg class="i fs-ic"><use href="#eye"/></svg>Kto widzi i jak długo</h3>
       <label for="anAud">Kto widzi</label>
       <UiSelect id="anAud" v-model="currentAnn.audience" label="Kto widzi" :options="[{ value: 'public', label: 'Wszyscy — także goście bez konta', disabled: (currentAnn.ministries || []).length > 0 }, { value: 'members', label: 'Członkowie (zatwierdzeni)' }, ...(hasCouncil || currentAnn.audience === 'council' ? [{ value: 'council', label: 'Tylko rada zboru' }] : [])]" />
       <MinistryPicker v-if="api.enabled && currentAnn.audience !== 'council'" :model-value="currentAnn.ministries || []" @update:model-value="v => { currentAnn.ministries = v; if (v.length && currentAnn.audience === 'public') currentAnn.audience = 'members' }" />
@@ -99,7 +99,7 @@ export default defineComponent({ components: { MinistryPicker }, setup: () => us
   </fieldset>
   <p v-if="currentAnn.author" class="note who">Autor: {{ currentAnn.author }}<template v-if="currentAnn.updated > 1">, {{ dateTime(currentAnn.updated) }}</template></p>
   <section v-if="canNotify && annEditable" class="form-sec notify-box">
-    <h3><span class="fs-n">5</span>Powiadomienia <small>opcjonalnie</small></h3>
+    <h3><svg class="i fs-ic"><use href="#bell"/></svg>Powiadomienia <small>opcjonalnie</small></h3>
     <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
     <p class="note" style="margin:6px 0 0">Po zapisaniu powiadomienie pojawi się w aplikacji (dzwonek), a dodatkowo na telefonach osób, które je włączyły.</p>
   </section>

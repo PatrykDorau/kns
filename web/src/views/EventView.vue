@@ -113,7 +113,7 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
   <!-- formularz w sekcjach: co i kiedy, grafika, kto widzi, osoby i zapisy, program, powiadomienia -->
   <fieldset class="plain" :disabled="!eventEditable">
     <section class="form-sec">
-      <h3><span class="fs-n">1</span>Co i kiedy</h3>
+      <h3><svg class="i fs-ic"><use href="#calendar"/></svg>Co i kiedy</h3>
       <label for="evType">Rodzaj</label>
       <UiSelect id="evType" v-model="currentEvent.type" label="Rodzaj" :options="eventTypesFor.map(t => ({ value: t.id, label: t.name }))" @change="typeChanged" />
       <p v-if="!eventSavedOnce && canEdit" class="note" style="margin-top:4px">Nabożeństwo dodajesz w <button type="button" class="linkbtn" @click="newEvent('nabozenstwo')">Nabożeństwa → nowe nabożeństwo</button>.</p>
@@ -133,7 +133,7 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
     </section>
 
     <section v-if="drive.uploadImage || currentEvent.image || eventEditable" class="form-sec">
-      <h3><span class="fs-n">2</span>Grafika <small>opcjonalnie</small></h3>
+      <h3><svg class="i fs-ic"><use href="#image"/></svg>Grafika <small>opcjonalnie</small></h3>
       <p class="form-hint"><svg class="i"><use href="#info"/></svg><span>Wgraj grafikę z telefonu albo komputera — albo wklej link z <b>Dysku Google</b> (plik udostępniony „Każda osoba mająca link”).</span></p>
       <img v-if="currentEvent.image" class="ann-img edit" :src="currentEvent.image" alt="">
       <div v-if="drive.uploadImage" class="row">
@@ -146,13 +146,13 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
     </section>
 
     <section v-if="api.enabled" class="form-sec">
-      <h3><span class="fs-n">3</span>Kto widzi</h3>
+      <h3><svg class="i fs-ic"><use href="#eye"/></svg>Kto widzi</h3>
       <MinistryPicker v-if="api.enabled" :model-value="currentEvent.ministries || []" @update:model-value="v => { currentEvent.ministries = v; if (v.length) currentEvent.public = false }" />
       <label v-if="api.enabled && !(currentEvent.ministries || []).length" class="check"><input type="checkbox" :checked="eventIsPublic(currentEvent)" @change="currentEvent.public = $event.target.checked">Widoczne dla gości (bez konta)</label>
     </section>
 
     <section v-if="canNotify || api.enabled" class="form-sec">
-      <h3><span class="fs-n">4</span>Osoby i zapisy <small>opcjonalnie</small></h3>
+      <h3><svg class="i fs-ic"><use href="#users"/></svg>Osoby i zapisy <small>opcjonalnie</small></h3>
       <template v-if="canNotify">
         <label>Osoby biorące udział (opcjonalnie)</label>
         <div v-if="(currentEvent.people || []).length" class="ev-people edit">
@@ -177,7 +177,7 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
     </section>
   </fieldset>
   <section class="form-sec">
-    <h3><span class="fs-n">5</span>Program</h3>
+    <h3><svg class="i fs-ic"><use href="#list"/></svg>Program</h3>
     <program-editor :items="currentEvent.program" :start="currentEvent.time || '00:00'" :readonly="!eventEditable" :template="typeOf(currentEvent.type).program" @fill="fillProgram(currentEvent, currentEvent.type)"></program-editor>
     <template v-if="['czlonkowskie', 'rada'].includes(currentEvent.type) && eventSavedOnce">
       <label>Protokoły</label>
@@ -191,7 +191,7 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
     <template v-if="currentEvent.updatedBy"><br>Ostatnia zmiana: {{ currentEvent.updatedBy }}<template v-if="currentEvent.updated">, {{ new Date(currentEvent.updated).toLocaleString('pl', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }}</template></template>
   </p>
   <section v-if="canNotify" class="form-sec notify-box">
-    <h3><span class="fs-n">6</span>Powiadomienia <small>opcjonalnie</small></h3>
+    <h3><svg class="i fs-ic"><use href="#bell"/></svg>Powiadomienia <small>opcjonalnie</small></h3>
     <button type="button" class="songsbtn" :disabled="busy" @click="openNotify"><svg class="i"><use href="#bell"/></svg>{{ notify.ids.length ? 'Powiadomię: ' + notifySummary : 'Wybierz, kogo powiadomić' }}<svg class="i chev"><use href="#chev"/></svg></button>
     <p class="note" style="margin:6px 0 0">Po zapisaniu powiadomienie pojawi się w aplikacji (dzwonek), a dodatkowo na telefonach osób, które je włączyły.</p>
   </section>

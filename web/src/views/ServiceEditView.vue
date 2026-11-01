@@ -105,7 +105,7 @@ export default defineComponent({
     <p v-else class="se-full"><svg class="i"><use href="#check"/></svg>Wszystko uzupełnione</p>
   </div>
 
-  <FormSection id="when" title="Termin i miejsce" :summary="summary.when" :open="secs.when" @toggle="toggle('when')">
+  <FormSection id="when" icon="calendar" title="Termin i miejsce" :summary="summary.when" :open="secs.when" @toggle="toggle('when')">
     <div class="row">
       <div><label for="date">Data <span class="req">*</span></label><input id="date" v-model="current.date" type="date"></div>
       <div><label for="time">Godzina</label><input id="time" v-model="current.time" type="time"></div>
@@ -114,7 +114,7 @@ export default defineComponent({
     <input id="place" v-model="current.place" autocomplete="off">
   </FormSection>
 
-  <FormSection id="sermon" title="Kazanie" :summary="summary.sermon" :bad="bad.sermon" :open="secs.sermon" @toggle="toggle('sermon')">
+  <FormSection id="sermon" icon="book" title="Kazanie" :summary="summary.sermon" :bad="bad.sermon" :open="secs.sermon" @toggle="toggle('sermon')">
     <label for="speaker">Mówca <span class="req">*</span></label>
     <input id="speaker" v-model="current.speaker" :class="{ invalid: !current.speaker.trim() }" autocomplete="off">
     <label for="title">Tytuł <span class="req">*</span></label>
@@ -130,7 +130,7 @@ export default defineComponent({
     </details>
   </FormSection>
 
-  <FormSection id="songs" title="Pieśni" :summary="summary.songs" :bad="bad.songs" :open="secs.songs" @toggle="toggle('songs')">
+  <FormSection id="songs" icon="music" title="Pieśni" :summary="summary.songs" :bad="bad.songs" :open="secs.songs" @toggle="toggle('songs')">
     <template v-if="songSlots.length">
       <div v-for="key in songSlots" :key="key" class="se-slot">
         <small v-if="songSlots.length > 1">{{ slotName(key) }}</small>
@@ -155,12 +155,12 @@ export default defineComponent({
     </template>
   </FormSection>
 
-  <FormSection id="program" title="Harmonogram" :summary="summary.program" :open="secs.program" @toggle="toggle('program')">
+  <FormSection id="program" icon="list" title="Harmonogram" :summary="summary.program" :open="secs.program" @toggle="toggle('program')">
     <program-editor :items="current.program" :start="current.time || DEFAULT_TIME" :template="typeOf('nabozenstwo').program"
                     :sermon="{ title: current.sermonTitle, passage: current.passage, speaker: current.speaker }" @fill="fillProgram(current, 'nabozenstwo')"></program-editor>
   </FormSection>
 
-  <FormSection id="band" title="Zespół" :summary="summary.band" :open="secs.band" @toggle="toggle('band')">
+  <FormSection id="band" icon="users" title="Zespół" :summary="summary.band" :open="secs.band" @toggle="toggle('band')">
     <div class="band">
       <div v-for="(b, i) in current.bandList" :key="b.key" class="band-row">
         <b>{{ b.name }}</b>
@@ -171,7 +171,7 @@ export default defineComponent({
     </div>
   </FormSection>
 
-  <FormSection id="more" title="Informacje i pliki" :summary="summary.more" :open="secs.more" @toggle="toggle('more')">
+  <FormSection id="more" icon="clip" title="Informacje i pliki" :summary="summary.more" :open="secs.more" @toggle="toggle('more')">
     <label for="notes">Dodatkowe informacje</label>
     <textarea id="notes" v-model="current.notes" placeholder="np. chrzest po kazaniu, błogosławieństwo dzieci, rocznica…"></textarea>
     <label>Załączniki dla rzutnika</label>
