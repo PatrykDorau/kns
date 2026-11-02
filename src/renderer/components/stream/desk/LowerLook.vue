@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { label } from '@/stores'
 import { LOWER_DEFAULT } from '@/services/studio/cards'
-import { useDesk } from '@/composables/stream/useStreamDesk'
+import PhotoPicker from './PhotoPicker.vue'
 import SpeakerPhotos from './SpeakerPhotos.vue'
 import TextColor from './TextColor.vue'
 
 // Pasek mówcy w presecie: napisy, kolor, logo i zdjęcie mówcy.
 const props = defineProps<{ look: { ink?: string, photo?: string, style?: string, name: string, sub: string, color: string, logo: boolean, photoSize?: string } }>()
 if (props.look.photo === undefined) props.look.photo = LOWER_DEFAULT.photo // nowe pole po aktualizacji
-const { mediaList, addMediaFiles } = useDesk()
-const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
-// zdjęcie z dysku: dodaje do Biblioteki i od razu wybiera
-async function addPhoto() { const before = new Set(mediaList.value.map(x => x.id)); if (await addMediaFiles()) { const n = mediaList.value.find(x => x.type === 'image' && !before.has(x.id)); if (n) props.look.photo = n.id } }
 </script>
 
 <template>
@@ -29,12 +23,9 @@ async function addPhoto() { const before = new Set(mediaList.value.map(x => x.id
     </div>
     <div class="desk-opt-group">
       <small class="muted">Zdjęcie mówcy</small>
-      <select v-model="look.photo" aria-label="Zdjęcie mówcy">
-        <option value="@speaker">Mówca z nabożeństwa</option>
-        <option value="">Bez zdjęcia</option>
-        <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
-      </select>
-      <button class="small" title="Zdjęcie z dysku — trafi też do Biblioteki" @click="addPhoto">Z dysku…</button>
+      <button :class="{ on: look.photo === '@speaker' }" :aria-pressed="look.photo === '@speaker'" title="Zdjęcie z galerii poniżej, według mówcy z planu nabożeństwa" @click="look.photo = '@speaker'">Mówca z nabożeństwa</button>
+      <button :class="{ on: look.photo === '' }" :aria-pressed="look.photo === ''" @click="look.photo = ''">Bez zdjęcia</button>
+      <PhotoPicker v-model="look.photo" text="Stałe zdjęcie…" />
     </div>
     <div v-if="look.photo !== ''" class="desk-opt-group">
       <small class="muted">Wielkość zdjęcia</small>

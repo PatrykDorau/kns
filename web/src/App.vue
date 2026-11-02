@@ -103,7 +103,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.16 · 1.11.2026'
+const VERSION = '4.17 · 2.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -485,7 +485,7 @@ export default defineComponent({
       theme.value = theme.value === 'dark' ? 'light' : 'dark'
       document.documentElement.dataset.theme = theme.value
       try { localStorage.setItem('kns-theme', theme.value) } catch { /* tryb prywatny */ }
-      document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#f4f3f1' : '#1a1816')
+      document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#f4f3f1' : '#1a1a1a')
     }
     if (theme.value === 'light') document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#f5efe6')
     // Ilustracje w karcie najbliższego nabożeństwa — zmieniają się co 9 s (płynnie).

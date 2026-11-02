@@ -4,7 +4,7 @@ import qrcode from 'qrcode-generator'
 import { currentAnnouncements, nearestService, projectorGraphics, servicePlace, serviceTime, sortedServices, today } from '@/stores'
 import type { StudioSlide } from '@/types'
 import { H, W, studio } from './state'
-import { S, background, fit, fitLine, g, img, luminance, paintOn, rounded, text, trimmed, withOutline, wrap } from './paint'
+import { S, background, fit, fitLine, g, img, paintOn, rounded, text, trimmed, withOutline, wrap } from './paint'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, BG_IDS } from './backgrounds'
 import { drawCamera } from './camera'
@@ -17,15 +17,27 @@ let slideBase = 0
 export const svcWhen = svc => (svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + serviceTime(svc) : '')
 // Slajdy ogłoszeń (zaznaczone „Pokaż na nabożeństwie”, tylko „dla wszystkich” — transmisja jest publiczna):
 // najpierw grafiki, potem ogłoszenia bez grafiki jako karty z tekstem, na końcu (jeśli włączona) karta nabożeństwa.
+// Własne ogłoszenia dokłada się na pulpicie, a kolejność ustawia przeciąganiem (settings.studioOrder).
 export function slideCandidates(): StudioSlide[] {
   const pub = currentAnnouncements.value.filter(a => a.projector && (a.audience || 'public') === 'public')
-  return [
+  const own = (settings.studioExtra || []).map(x => { const it = x.pic ? mediaSlide(x.pic) : null; return { id: x.id, title: x.title, own: true, ...(it?.type === 'image' ? { image: mediaUrl(it.path) } : { text: x.text || '' }) } })
+  const list: StudioSlide[] = [
     { id: 'sermon', title: 'Kazanie i kaznodzieja', sermon: true },
     ...pub.filter(a => a.image).map(a => ({ id: 'a' + a.id, title: a.title, image: a.image })),
     ...projectorGraphics.value.filter(x => x.key.startsWith('e')).map(x => ({ id: x.key, title: x.name, image: x.image })),
     ...pub.filter(a => !a.image).map(a => ({ id: 'a' + a.id, title: a.title, text: a.text || '' })),
+    ...own,
     { id: 'svc', title: 'Najbliższe nabożeństwo', service: true },
   ]
+  const order = settings.studioOrder || [], rank = (c: StudioSlide) => { const i = order.indexOf(c.id); return i < 0 ? order.length : i }
+  return list.map((c, i) => ({ c, i })).sort((a, b) => rank(a.c) - rank(b.c) || a.i - b.i).map(x => x.c)
+}
+// Przenosi ogłoszenie na miejsce innego (przeciąganie, strzałki).
+export function moveSlide(id: string, to: string) {
+  const ids = slideCandidates().map(c => c.id), from = ids.indexOf(id), at = ids.indexOf(to)
+  if (from < 0 || at < 0 || from === at) return
+  ids.splice(from, 1); ids.splice(at, 0, id)
+  settings.studioOrder = ids
 }
 // kilka ogłoszeń naraz, zaczynając od bieżącego (ramka „Życie kościoła”)
 export function carouselStack(t, count) {
@@ -81,83 +93,89 @@ export function upcomingService() {
   const now = Date.now()
   return [...sortedServices.value].reverse().find(s => s.date && new Date(`${s.date}T${serviceTime(s)}`).getTime() > now) || null
 }
-// Tło kart nabożeństwa i kazania: ciemne, z prawej słońce i góry z logo kościoła.
-function darkCard(x, y, w, h) {
-  const k = w / 1240, look = cdLook().accent || '#f6a836', accent = luminance(look) < 0.25 ? '#f6a836' : look // ciemny akcent zniknąłby na ciemnej karcie
-  const back = g.createLinearGradient(x, y, x + w, y + h); back.addColorStop(0, '#2a1b11'); back.addColorStop(1, '#120c07')
-  g.fillStyle = back; g.fillRect(x, y, w, h)
-  const cx = x + w * 0.74, cy = y + h * 0.47, r = h * 0.42, sun = g.createLinearGradient(0, cy - r, 0, cy + r)
-  sun.addColorStop(0, accent); sun.addColorStop(1, '#a2471a')
-  g.fillStyle = sun; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill()
-  const ridge: [number, number][] = [[0.44, 1], [0.55, 0.74], [0.62, 0.82], [0.74, 0.62], [0.86, 0.8], [0.93, 0.72], [1, 0.8], [1, 1]]
-  g.fillStyle = '#0d0805'; g.beginPath(); ridge.forEach(([px, py], i) => (i ? g.lineTo(x + w * px, y + h * py) : g.moveTo(x + w * px, y + h * py))); g.closePath(); g.fill()
-  return { k, accent, cx, cy, r }
+// Nakładka Werset: miejsce (dół, bok, okienko); okienko ma tło jak plansze i opcjonalnie kamerę w dużym oknie.
+export const VERSE_DEFAULT = { place: 'bottom', camera: true, ink: '', accent: '', bg: 'krem', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0 } as const
+// Karty nabożeństwa i kazania: krem z delikatną linią gór (jak plansza odliczania), cienka ramka, spokojny szeryf.
+const PAGE = { ink: '#2a1a12', soft: '#5f4a3c', accent: '#a8551a', line: 'rgba(58,38,26,0.3)' }
+function paperCard(x, y, w, h) {
+  const k = w / 1240, zoom = Math.max(w / W, h / H), m = 30 * k
+  g.save(); g.translate(x + (w - W * zoom) / 2, y + (h - H * zoom) / 2); g.scale(zoom, zoom); cleanBackground('krem', 'frame'); g.globalAlpha *= CLEAN.krem.alpha; drawSketch(0, true, CLEAN.krem.ink, CLEAN.krem.at); g.restore()
+  g.save(); g.strokeStyle = PAGE.line; g.lineWidth = Math.max(1, 2 * k); g.strokeRect(x + m, y + m, w - m * 2, h - m * 2); g.restore()
+  return k
 }
-function sunLogo(cx, cy, r) {
-  const lg = img('./znak-obrys.png'), ls = r * 1.05
-  g.save(); g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, cy, ls * 0.62, 0, Math.PI * 2); g.fill(); g.restore()
-  if (lg) g.drawImage(lg, cx - ls / 2, cy - ls / 2, ls, ls)
+// Kaznodzieja stoi na dolnej krawędzi ramki po prawej; bez zdjęcia zostaje małe logo.
+function pagePerson(name, x, y, w, h, k) {
+  const it = mediaSlide(cardPic(name)), pic = it?.type === 'image' && img(mediaUrl(it.path)), m = 30 * k
+  if (!pic) {
+    const r = 46 * k, lg = img('./znak-obrys.png'), lx = x + w - r - 76 * k, ly = y + h - r - 70 * k
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(lx, ly, r, 0, Math.PI * 2); g.fill()
+    if (lg) g.drawImage(lg, lx - r * 0.8, ly - r * 0.8, r * 1.6, r * 1.6)
+    return false
+  }
+  const box = trimmed(pic), s = Math.min(w * 0.42 / box.w, (h - m * 2 - 30 * k) / box.h), pw = box.w * s, ph = box.h * s
+  g.save(); g.beginPath(); g.rect(x, y + m, w, h - m * 2); g.clip()
+  g.drawImage(pic, box.x, box.y, box.w, box.h, x + w * 0.76 - pw / 2, y + h - m - ph, pw, ph)
+  g.restore()
+  return true
 }
-// Karta najbliższego nabożeństwa: z lewej dzień, godzina i miejsce, pod spodem kazanie; z prawej logo na słońcu.
+const pageRule = (x, y, k) => { g.fillStyle = PAGE.accent; g.fillRect(x, y, 64 * k, 3 * k) }
 export function serviceCard(x, y, w, h) {
   g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip()
-  const k = w / 1240, look = cdLook(), accent = luminance(look.accent || '#f6a836') < 0.25 ? '#f6a836' : look.accent || '#f6a836', svc = upcomingService()
-  // góra z tła aplikacji (motyw z odliczania), z lewej przyciemniona pod napisy
-  const zoom = Math.max(w / W, h / H)
-  g.save(); g.translate(x + (w - W * zoom) / 2, y + (h - H * zoom) / 2); g.scale(zoom, zoom); drawPeak(isMood(look.bg) && look.bg !== 'czern' ? look.bg : 'szczyt'); g.restore()
-  const veil = g.createLinearGradient(x, 0, x + w * 0.74, 0); veil.addColorStop(0, 'rgba(14,8,4,0.92)'); veil.addColorStop(0.62, 'rgba(14,8,4,0.74)'); veil.addColorStop(1, 'rgba(14,8,4,0)')
-  g.fillStyle = veil; g.fillRect(x, y, w, h)
-  const lr = 54 * k, lg = img('./znak-obrys.png'), lx = x + w - lr - 40 * k, ly = y + h - lr - 40 * k
-  g.fillStyle = '#fff'; g.beginPath(); g.arc(lx, ly, lr, 0, Math.PI * 2); g.fill()
-  if (lg) g.drawImage(lg, lx - lr * 0.8, ly - lr * 0.8, lr * 1.6, lr * 1.6)
-  const tx = x + 76 * k, tw = w * 0.5
+  const k = paperCard(x, y, w, h), svc = upcomingService(), speaker = svc?.speaker || ''
+  const photo = pagePerson(speaker, x, y, w, h, k), tx = x + 92 * k, tw = w * (photo ? 0.5 : 0.62)
   const day = svc ? new Date(svc.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()) : 'Termin wkrótce'
-  const size = Math.round(84 * k), lines = wrap(day.replace(', ', ',\n'), tw, size, 400, 2, 'display'), lh = size * 1.14
-  const where = svc ? wrap('godz. ' + serviceTime(svc) + ' · ' + servicePlace(svc), tw, Math.round(40 * k), 600, 2, 'sans') : wrap('Szczegóły na kns-nabo.netlify.app', tw, Math.round(34 * k), 600, 2, 'sans')
-  const sermon = svc?.sermonTitle || '', more = svc ? [svc.passage, svc.speaker].filter(Boolean).join(' · ') : ''
-  const head = 46 * k, whereH = where.length * 52 * k, sermonH = sermon || more ? 34 * k + (sermon ? 60 * k : 0) + (more ? 50 * k : 0) : 0
-  let ty = y + (h - head - lines.length * lh - whereH - sermonH) / 2 + 24 * k
-  const eye = fitLine('NAJBLIŻSZE NABOŻEŃSTWO', tw, Math.round(40 * k), Math.round(26 * k), 700, 'cond')
-  text(eye.str, tx, ty, { size: eye.size, weight: 700, font: 'cond', color: accent, spacing: 5 * k })
-  ty += head
-  lines.forEach((l, i) => text(l, tx, ty + (i + 0.82) * lh, { size, weight: 400, font: 'display', color: '#fbf3e6' }))
+  const size = Math.round(78 * k), lines = wrap(day.replace(', ', ',\n'), tw, size, 400, 2, 'serif'), lh = size * 1.18
+  const where = svc ? 'godz. ' + serviceTime(svc) + ' · ' + servicePlace(svc) : 'Szczegóły na kns-nabo.netlify.app'
+  const sermon = svc?.sermonTitle || '', more = svc ? [svc.passage, speaker].filter(Boolean).join(' · ') : ''
+  const blockH = 58 * k + lines.length * lh + 62 * k + (sermon || more ? 46 * k + (sermon ? 66 * k : 0) + (more ? 48 * k : 0) : 0)
+  let ty = y + (h - blockH) / 2 + 26 * k
+  const eye = fitLine('NAJBLIŻSZE NABOŻEŃSTWO', tw, Math.round(32 * k), Math.round(24 * k), 700, 'cond')
+  text(eye.str, tx, ty, { size: eye.size, weight: 700, font: 'cond', color: PAGE.accent, spacing: 6 * k })
+  ty += 34 * k
+  lines.forEach((l, i) => text(l, tx, ty + (i + 0.82) * lh, { size, weight: 400, font: 'serif', color: PAGE.ink }))
   ty += lines.length * lh
-  where.forEach((l, i) => text(l, tx, ty + 42 * k + i * 52 * k, { size: Math.round((svc ? 40 : 34) * k), weight: 600, font: 'sans', color: '#fbf3e6' }))
-  ty += whereH
+  const wf = fitLine(where, tw, Math.round(36 * k), Math.round(24 * k), 500, 'sans')
+  text(wf.str, tx, ty + 44 * k, { size: wf.size, weight: 500, font: 'sans', color: PAGE.soft })
+  ty += 62 * k
   if (sermon || more) {
-    g.fillStyle = accent; g.fillRect(tx, ty + 20 * k, 72 * k, 5 * k); ty += 34 * k
-    if (sermon) { const t = fitLine('„' + sermon + '”', tw, Math.round(44 * k), Math.round(28 * k), 400, 'serif', true); text(t.str, tx, ty + 46 * k, { size: t.size, weight: 400, font: 'serif', italic: true, color: accent }); ty += 60 * k }
-    if (more) { const m = fitLine(more, tw, Math.round(36 * k), Math.round(26 * k), 600, 'sans'); text(m.str, tx, ty + 38 * k, { size: m.size, weight: 600, font: 'sans', color: '#fbf3e6' }) }
+    pageRule(tx, ty + 18 * k, k); ty += 34 * k
+    if (sermon) { const t = fitLine('„' + sermon + '”', tw, Math.round(44 * k), Math.round(26 * k), 400, 'serif', true); text(t.str, tx, ty + 46 * k, { size: t.size, weight: 400, font: 'serif', italic: true, color: PAGE.ink }); ty += 62 * k }
+    if (more) { const m = fitLine(more, tw, Math.round(32 * k), Math.round(22 * k), 500, 'sans'); text(m.str, tx, ty + 36 * k, { size: m.size, weight: 500, font: 'sans', color: PAGE.soft }) }
   }
   g.restore()
 }
-// Karta kazania: z prawej kaznodzieja na tle słońca i gór z logo kościoła, z lewej tytuł, fragment i imię.
+// Karta kazania jak plakat: kaznodzieja duży, na tle słońca, tytuł wielki u dołu i nachodzi na postać.
 function sermonCard(x, y, w, h) {
   const n = nearestService.value
   g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip()
-  const { k, accent, cx, cy, r } = darkCard(x, y, w, h)
-  const it = mediaSlide(speakerPic(n?.speaker)), pic = it?.type === 'image' && img(mediaUrl(it.path))
-  if (pic) {
-    const box = trimmed(pic), s = Math.min(w * 0.46 / box.w, h * 0.92 / box.h), pw = box.w * s, ph = box.h * s
-    g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 30 * k
-    g.drawImage(pic, box.x, box.y, box.w, box.h, cx - pw / 2, y + h - ph, pw, ph); g.restore()
-  } else sunLogo(cx, cy, r)
-  const when = n?.date === today() ? 'DZIŚ KAZANIE' : 'KAZANIE · ' + new Date(n.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()
+  const k = paperCard(x, y, w, h), m = 30 * k, it = mediaSlide(cardPic(n?.speaker)), pic = it?.type === 'image' && img(mediaUrl(it.path))
   const main = n.sermonTitle || n.passage || n.speaker, verse = n.sermonTitle ? n.passage : '', who = main === n.speaker ? '' : n.speaker
-  const tx = x + 76 * k, tw = w * 0.45, sizes = [86, 74, 62, 52].map(v => Math.round(v * k))
-  const size = sizes.find(v => !wrap(main, tw, v, 400, 3, 'display').at(-1).endsWith('…')) || sizes[3], lines = wrap(main, tw, size, 400, 4, 'display'), lh = size * 1.14
-  const head = 46 * k, verseH = verse ? 66 * k : 0, whoH = who ? 112 * k : 0
-  let ty = y + (h - head - lines.length * lh - verseH - whoH) / 2 + 24 * k
-  const eye = fitLine(when, tw, Math.round(40 * k), Math.round(26 * k), 700, 'cond')
-  text(eye.str, tx, ty, { size: eye.size, weight: 700, font: 'cond', color: accent, spacing: 5 * k })
-  ty += head
-  lines.forEach((l, i) => text(l, tx, ty + (i + 0.82) * lh, { size, weight: 400, font: 'display', color: '#fbf3e6' }))
-  ty += lines.length * lh
-  if (verse) { const f = fitLine(verse, tw, Math.round(44 * k), Math.round(28 * k), 400, 'serif', true); text(f.str, tx, ty + 50 * k, { size: f.size, weight: 400, font: 'serif', italic: true, color: accent }); ty += verseH }
-  if (who) {
-    g.fillStyle = accent; g.fillRect(tx, ty + 34 * k, 72 * k, 5 * k)
-    const f = fitLine(who, tw, Math.round(48 * k), Math.round(30 * k), 700, 'sans'); text(f.str, tx, ty + 100 * k, { size: f.size, weight: 700, font: 'sans', color: '#fbf3e6' })
-  }
+  const tx = x + 76 * k, tw = w - 152 * k
+  if (pic) {
+    const cx = x + w * 0.66, box = trimmed(pic), s = Math.max(h * 1.16 / box.h, w * 0.5 / box.w), pw = box.w * s, ph = box.h * s
+    g.fillStyle = 'rgba(244,190,120,0.5)'; g.beginPath(); g.arc(cx, y + h * 0.4, h * 0.38, 0, Math.PI * 2); g.fill()
+    g.save(); g.beginPath(); g.rect(x + m, y + m, w - m * 2, h - m * 2); g.clip()
+    g.drawImage(pic, box.x, box.y, box.w, box.h, cx - pw / 2, y + h * 0.06, pw, ph)
+    g.restore()
+    // lewa strona i dół wtapiają się w papier, żeby tytuł na postaci dał się czytać
+    const side = g.createLinearGradient(x + w * 0.34, 0, x + w * 0.6, 0); side.addColorStop(0, 'rgba(251,243,230,0.96)'); side.addColorStop(1, 'rgba(251,243,230,0)')
+    g.fillStyle = side; g.fillRect(x + m, y + m, w * 0.6 - m, h - m * 2)
+    const veil = g.createLinearGradient(0, y + h * 0.56, 0, y + h * 0.86); veil.addColorStop(0, 'rgba(251,243,230,0)'); veil.addColorStop(1, 'rgba(251,243,230,0.97)')
+    g.fillStyle = veil; g.fillRect(x + m, y + h * 0.56, w - m * 2, h * 0.44 - m)
+  } else pagePerson('', x, y, w, h, k)
+  // logo u góry, reszta jedną kolumną przy lewym dolnym rogu: etykieta, tytuł, fragment i kaznodzieja
+  const r = 38 * k, lx = tx + r, ly = y + 58 * k + r, lg = img('./znak-obrys.png')
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(lx, ly, r, 0, Math.PI * 2); g.fill()
+  if (lg) g.drawImage(lg, lx - r * 0.8, ly - r * 0.8, r * 1.6, r * 1.6)
+  text('KOŚCIÓŁ NA SKALE', tx + r * 2 + 16 * k, ly + 11 * k, { size: Math.round(32 * k), weight: 700, font: 'cond', color: PAGE.ink, spacing: 3 * k })
+  const col = pic ? w * 0.6 : tw, sizes = [124, 108, 94, 80, 66].map(v => Math.round(v * k))
+  const size = sizes.find(v => !wrap(main, col, v, 400, 3, 'serif').at(-1).endsWith('…')) || sizes[4], lines = wrap(main, col, size, 400, 3, 'serif'), lh = size * 1.06
+  const foot = [verse, who].filter(Boolean).join('  ·  '), base = y + h - (foot ? 122 : 76) * k, top = base - (lines.length - 1) * lh
+  const when = n?.date === today() ? 'DZIŚ KAZANIE' : 'KAZANIE · ' + new Date(n.date + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()
+  const eye = fitLine(when, col, Math.round(34 * k), Math.round(24 * k), 700, 'cond')
+  text(eye.str, tx, top - size * 0.86 - 14 * k, { size: eye.size, weight: 700, font: 'cond', color: PAGE.accent, spacing: 5 * k })
+  lines.forEach((l, i) => text(l, tx, top + i * lh, { size, weight: 400, font: 'serif', color: PAGE.ink }))
+  if (foot) { const f = fitLine(foot, tw, Math.round(36 * k), Math.round(26 * k), 600, 'sans'); text(f.str, tx, y + h - 66 * k, { size: f.size, weight: 600, font: 'sans', color: PAGE.soft }) }
   g.restore()
 }
 export const drawCarousel = (c, x, y, w, h) => withOutline('', () => carouselOn(c, x, y, w, h))
@@ -255,12 +273,10 @@ const nameKey = n => String(n || '').toLowerCase().replace(/\s+/g, ' ').trim()
 const sameName = (a, b) => { const x = nameKey(a), y = nameKey(b); return !!x && !!y && (x === y || x.startsWith(y + ' ') || y.startsWith(x + ' ')) }
 export const photosOf = name => (settings.speakerPhotos || []).filter(p => sameName(p.name, name))
 export const currentSpeaker = () => nearestService.value?.speaker || ''
-// bez galerii: zdjęcie ustawione wprost w presecie paska tego mówcy — karta kazania pokazuje to samo co pasek
-function presetPic(name) {
-  const looks = [settings.lowerLook, ...(settings.studioPresets || []).filter(p => p.kind === 'lower').map(p => p.data)]
-  return looks.find(d => d?.photo && d.photo !== '@speaker' && sameName(fill(d.name), name))?.photo || ''
-}
-export function speakerPic(name) { const own = photosOf(name), list = !own.length && demo ? settings.speakerPhotos || [] : own; return (list.find(p => p.on) || list[0])?.pic || presetPic(name) }
+export function speakerPic(name) { const own = photosOf(name), list = !own.length && demo ? settings.speakerPhotos || [] : own; return (list.find(p => p.on) || list[0])?.pic || '' }
+// Zdjęcie na kartach ogłoszeń: osobne od paska mówcy, ustawiane w zakładce Ogłoszenia.
+export function cardPic(name) { const list = settings.cardPhotos || []; return (list.find(p => sameName(p.name, name)) || (demo ? list[0] : null))?.pic || '' }
+export function setCardPic(name, pic) { settings.cardPhotos = [...(settings.cardPhotos || []).filter(p => !sameName(p.name, name)), ...(pic ? [{ name, pic }] : [])] }
 export function choosePhoto(entry) { for (const p of photosOf(entry.name)) p.on = p.id === entry.id }
 // zdjęcie na pasku: stałe z presetu, wybrane zdjęcie mówcy z nabożeństwa albo żadne
 const photoFor = L => (L.photo === '' ? '' : L.photo && L.photo !== '@speaker' ? L.photo : speakerPic(fill(L.name)))

@@ -21,7 +21,7 @@ import {
 const previewStage = ref(null)
 const showSettings = ref(false)
 // Wysokość elementów pod dużym podglądem: nagłówek, przyciski i skróty (220), pasek filmu, „wyślij zmiany”, następny slajd.
-const reserve = computed(() => `calc(${170 + (bar.value ? 56 : 0) + (textDirty.value ? 56 : 0) + (nextView.value ? 34 : 0)}px${nextView.value ? ' + var(--mini)' : ''})`)
+const reserve = computed(() => `calc(${170 + (bar.value ? 56 : 0) + (textDirty.value ? 56 : 0) + (nextSlot.value ? 34 : 0)}px${nextSlot.value ? ' + var(--mini)' : ''})`)
 // Następny slajd pieśni albo pętli — mały podgląd pod przyciskami, żeby wiedzieć, co będzie dalej.
 const nextView = computed(() => {
   const it = selected.value
@@ -33,6 +33,8 @@ const nextView = computed(() => {
   }
   return null
 })
+// Miejsce na następny slajd zostaje też na ostatnim slajdzie — duży podgląd nie zmienia wtedy rozmiaru.
+const nextSlot = computed(() => { const it = selected.value; return !!it && canGo.value && (it.type === 'song' ? verses(it).length > 1 : it.type === 'scene' && (selectedView.value?.slides?.length || 0) > 1) })
 const dragging = ref(false)
 const seekValue = ref(null) // ustawione tylko w trakcie przeciągania suwaka
 
@@ -236,9 +238,9 @@ onBeforeUnmount(() => { for (const [name, fn] of Object.entries(listeners)) wind
           <span class="notice" role="status">{{ busy || notice }}</span>
         </div>
 
-        <div v-if="nextView" class="nextslide">
+        <div v-if="nextSlot" class="nextslide">
           <span class="nl">Następny slajd</span>
-          <div class="mini"><Stage :item="nextView" /></div>
+          <div class="mini"><Stage v-if="nextView" :item="nextView" /><span v-else class="mini-end">Ostatni slajd</span></div>
         </div>
 
         <p class="keys">

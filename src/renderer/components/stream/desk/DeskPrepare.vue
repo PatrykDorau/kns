@@ -14,6 +14,7 @@ import EndLook from './EndLook.vue'
 import LifeLook from './LifeLook.vue'
 import LowerLook from './LowerLook.vue'
 import PrayerLook from './PrayerLook.vue'
+import VerseLook from './VerseLook.vue'
 
 // Przygotowanie: tu powstają presety (cały wygląd plansz i nakładek) — w Studio zostaje już tylko ich wybór.
 const { prepKind, prepId } = useDesk()
@@ -64,6 +65,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
         <BannerSettings v-else-if="preset.kind === 'banner'" :key="preset.id" :preset="preset.data" />
         <LifeLook v-else-if="preset.kind === 'life'" :key="preset.id" :look="preset.data" />
         <LowerLook v-else-if="preset.kind === 'lower'" :key="preset.id" :look="preset.data" />
+        <VerseLook v-else-if="preset.kind === 'verse'" :key="preset.id" :look="preset.data" />
         <PrayerLook v-else :key="preset.id" :look="preset.data" />
       </div>
       <p v-else class="desk-help">Dodaj pierwszy preset.</p>

@@ -80,7 +80,7 @@ const note = computed(() => {
 </template>
 
 <style scoped>
-.livechat { position: fixed; z-index: 900; display: flex; flex-direction: column; min-width: 280px; min-height: 240px; max-width: 90vw; max-height: 90vh; overflow: hidden; resize: both; border: 1px solid rgba(255, 244, 228, .22); border-radius: 12px; background: var(--panel2); box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), 0 22px 60px rgba(0, 0, 0, .7); }
+.livechat { position: fixed; z-index: 900; display: flex; flex-direction: column; min-width: 280px; min-height: 240px; max-width: 90vw; max-height: 90vh; overflow: hidden; resize: both; border: 1px solid rgba(255, 255, 255, .2); border-radius: 12px; background: var(--panel2); box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), 0 22px 60px rgba(0, 0, 0, .7); }
 header { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel3); cursor: grab; touch-action: none; user-select: none; }
 header:active { cursor: grabbing; }
 header div { flex: 1; min-width: 0; display: grid; }

@@ -5,7 +5,7 @@ import { CARD, armed, bankQr, bannerNow, fill, lowerLookOf, lowerPic, prayerLook
 import { bottomBand, glassPanel, hairline, roughFit, roughText, shade } from './rough'
 import { cleanInk, pill } from './clean'
 import { settings } from '@/stores'
-import { drawLife } from './life'
+import { drawVerseWindow, drawLife } from './life'
 import { music, trackInfo } from './music'
 import { drawCountdown } from './countdown'
 import { LIGHT_BG } from './backgrounds'
@@ -58,6 +58,7 @@ export function drawPreset(ctx, kind, data, t, edit = false) {
   const look = { ...studio.preview, loop: edit, pip: { ...studio.preview.pip, on: false }, ovl: 'off', lyricsOn: false, lowerOff: 0, styles: { cd: data, end: data, life: data },
     scene: kind === 'cd' ? 'countdown' : kind === 'end' ? 'end' : kind === 'life' ? 'life' : 'camera', prayer: kind === 'prayer', prayerLook: kind === 'prayer' ? data : null,
     lowerAt: 0, lowerThird: kind === 'lower', lowerLook: kind === 'lower' ? data : null,
+    verse: kind === 'verse' ? { text: '¹⁶ Albowiem tak Bóg umiłował świat, że Syna swego jednorodzonego dał, aby każdy, kto w niego wierzy, nie zginął, ale miał życie wieczne.', ref: 'J 3,16', tr: 'Przekład', look: data, sample: true } : null,
     endOvl: kind === 'banner', banner: kind === 'banner' ? { list: presetBanners(data, edit).slice(0, 1), sec: 10, at: 0 } : null }
   const prev = paintOn(ctx, look as Look)
   setDemo(true)
@@ -224,7 +225,9 @@ function prayerOverlay() {
 function verseOverlay() {
   const v = S.verse
   if (!v) return
-  if (v.place === 'left' || v.place === 'right') { verseSide(v); return }
+  const place = v.look?.place || 'bottom'
+  if (place === 'window') { drawVerseWindow(v, v.look, performance.now()); return }
+  if (place !== 'bottom') { verseSide(v, place); return }
   const tw = W - 360
   let size = 56, lines = wrap(v.text, tw, size, 400, 9, 'serif')
   while (lines.length > (size > 40 ? 3 : 5) && size > 32) { size -= 4; lines = wrap(v.text, tw, size, 400, 9, 'serif') }
@@ -236,13 +239,12 @@ function verseOverlay() {
   text(r.str, W / 2, H - 38, { size: r.size, weight: 700, font: 'cond', color: '#f6c27a', align: 'center', spacing: 2, shadow: 12 })
 }
 // Werset na boku: ciemny pas na całą wysokość, na kilka wersetów; litery dopasowane tak, żeby wszystko się zmieściło.
-function verseSide(v) {
-  const w = 680, x = v.place === 'left' ? 0 : W - w, tw = w - 130, top = 190, room = H - top - 70
+function verseSide(v, place) {
+  const w = 680, x = place === 'left' ? 0 : W - w, tw = w - 130, top = 190, room = H - top - 70
   let size = 46, lines = wrap(v.text, tw, size, 400, 80, 'serif')
   while (lines.length * size * 1.34 > room && size > 24) { size -= 2; lines = wrap(v.text, tw, size, 400, 80, 'serif') }
   const lh = Math.round(size * 1.34), from = top + Math.max(0, (room - lines.length * lh) / 2)
   g.fillStyle = 'rgba(16,12,9,0.88)'; g.fillRect(x, 0, w, H)
-  g.fillStyle = '#f6a836'; g.fillRect(v.place === 'left' ? w - 4 : x, 0, 4, H)
   const r = fitLine(v.ref, tw, 56, 34, 700, 'cond')
   text(r.str, x + 65, 106, { size: r.size, weight: 700, font: 'cond', color: '#f6c27a', spacing: 2 })
   if (v.tr) { const t = fitLine(v.tr, tw, 26, 20, 500); text(t.str, x + 65, 146, { size: t.size, weight: 500, color: '#d8d0c4' }) }

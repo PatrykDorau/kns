@@ -39,8 +39,8 @@ defineExpose({ reload: () => { if (failed.value) retry(); else wv.value?.reload(
 
 <style scoped>
 .web-shell { position: relative; height: 100%; display: flex; flex-direction: column; }
-.web-view { flex: 1; width: 100%; height: 100%; border: 0; background: #0f1013; }
-.web-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #0f1013; }
+.web-view { flex: 1; width: 100%; height: 100%; border: 0; background: var(--bg); }
+.web-loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg); }
 .web-offline { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px; font-size: 13px; color: var(--muted); background: var(--panel2); border-bottom: 1px solid var(--line); }
 .web-shell > :deep(.home) { flex: 1; min-height: 0; }
 </style>

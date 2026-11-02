@@ -1,24 +1,24 @@
 /* Warstwa „taste” (ładowana na końcu, nadpisuje app.css, home.css i ui.css).
    Kierunek: true-black-flat (taste-skill, ziarno 1967459553) z twarzą kościoła:
-   - grunt ciepły grafit (jak chwila przed świtem), powierzchnie wyżej o krok jasności, z bardzo delikatną krawędzią i poświatą słońca u góry;
+   - grunt neutralny grafit (jak Claude Desktop), powierzchnie wyżej o krok jasności, z bardzo delikatną krawędzią;
    - jedyny kolor na danych to słońce z logo (pomarańcz): najbliższe nabożeństwo, „nowe”, liczniki do zrobienia —
      nigdy na przyciskach, zakładkach ani w menu;
    - główny przycisk przez odwrócenie (biała „pigułka” z czarnym tekstem), aktywne menu — biały napis zamiast szarego;
    - Inter, wagi 400–600, etykiety zwykłymi literami (bez rozstrzelonych wersalików). */
 
 :root {
-  --bg: #1a1816; --panel: #24211e; --panel2: #2c2926; --panel3: #36322e; --line: #3a3632;
-  --text: #f7f3ec; --muted: #c2bcb2; --faint: #a59f95;
+  --bg: #1a1a1a; --panel: #1f1f1f; --panel2: #262626; --panel3: #303030; --line: #333333;
+  --text: #f4f4f2; --muted: #bcbcb8; --faint: #a0a09c;
   --accent: #f6a836; --accent-soft: rgba(246, 168, 54, .13); --accent-text: #f6a836;
   --ok: #8fd19e; --ok-soft: rgba(143, 209, 158, .12); --ok-text: #8fd19e;
   --bad: #e5484d; --bad-soft: rgba(229, 72, 77, .13); --bad-text: #ff8a8d; --warn: #e5a93b;
   /* warstwa ui.css */
-  --edge: rgba(255, 244, 228, .06); --edge-hi: rgba(255, 244, 228, .12);
+  --edge: rgba(255, 255, 255, .06); --edge-hi: rgba(255, 255, 255, .12);
   --surface: var(--panel); --surface-solid: var(--panel);
   --shadow-1: none; --shadow-2: none; --ring: 0 0 0 2px rgba(255, 255, 255, .55);
   --display: "Inter", system-ui, "Segoe UI", sans-serif;
   --field: var(--panel); --field-focus: var(--panel);
-  --glass: var(--bg); --side-bg: var(--bg);
+  --glass: var(--bg); --side-bg: var(--panel);
   --tint: rgba(255, 255, 255, .05); --tint-hi: rgba(255, 255, 255, .08);
   --r-sm: 12px; --r: 16px; --r-lg: 20px; --r-xl: 20px;
 }
@@ -125,7 +125,7 @@ button.filter.on, button.filter[aria-pressed="true"], .chipbtn.on, .chipbtn[aria
 @media (min-width: 1024px) {
   body:has(#app.has-side) { padding-left: 272px !important; padding-right: 32px !important; }
   .side { left: 0 !important; top: 0 !important; bottom: 0 !important; width: 240px !important; border: 0 !important; border-right: 1px solid var(--line) !important; border-radius: 0 !important;
-    background: var(--bg) !important; background-image: none !important; box-shadow: none !important; backdrop-filter: none !important; padding: 18px 14px 14px !important; }
+    background: var(--side-bg) !important; background-image: none !important; box-shadow: none !important; backdrop-filter: none !important; padding: 18px 14px 14px !important; }
   .side-top { border-bottom: 0 !important; padding-bottom: 14px !important; }
   .side-it { color: #bbbbbb !important; font-size: 14px !important; font-weight: 500 !important; min-height: 34px !important; padding: 6px 10px !important; border-radius: 10px !important; }
   html[data-theme="light"] .side-it { color: #5a5550 !important; }
@@ -134,10 +134,10 @@ button.filter.on, button.filter[aria-pressed="true"], .chipbtn.on, .chipbtn[aria
   .side-it.on { background: none !important; box-shadow: none !important; color: var(--text) !important; }
   .side-it.on::before { display: none !important; }
   .side-sec { margin: 20px 10px 6px !important; }
-  .side-app { background: var(--panel) !important; border: 0 !important; }
+  .side-app { background: var(--panel2) !important; border: 0 !important; }
   .side-app a.button { background: var(--panel3) !important; }
   .side-me-btn { border: 0 !important; background: none !important; }
-  .side-me-btn:hover, .side-me-btn.on { background: var(--panel) !important; }
+  .side-me-btn:hover, .side-me-btn.on { background: var(--panel2) !important; }
   .side-ib.on { color: var(--text) !important; background: var(--panel2) !important; }
 }
 
@@ -497,5 +497,3 @@ html[data-theme="light"] .tabbar .tab-ind { background: rgba(0, 0, 0, .06); }
   body:has(#app.editing) .kns-backdrop { opacity: .08 !important; }
 }
 
-/* Poświata świtu za treścią (tylko ciemny motyw): tło przestaje być płaską plamą, tekstu nie dotyka. */
-html:not([data-theme="light"]) body { background-image: radial-gradient(1100px 520px at 72% -200px, rgba(246, 168, 54, .09), transparent 70%), radial-gradient(900px 480px at 10% -220px, rgba(240, 138, 110, .05), transparent 70%); background-repeat: no-repeat; background-attachment: fixed; }

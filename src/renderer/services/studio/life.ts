@@ -96,6 +96,24 @@ function drawFloat(L, t: number, k: number, qrs, tile, logo, sample: boolean) {
   }
 }
 
+// Werset w okienku: tło jak na planszach, kamera w dużym oknie (albo bez niej) i kremowa karta z wersetem.
+export function drawVerseWindow(v, L, t: number) {
+  cdBackground({ ...L, draw: false }, t, false)
+  const box = FLOAT.cam, cam = L.camera !== false, a = cam ? { x: 1010, y: 250, w: 840, h: 580 } : { x: 310, y: 170, w: 1300, h: 740 }
+  if (cam) {
+    if (!v.sample) { g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 36; rounded(box.x, box.y, box.w, box.h, 18); g.fillStyle = '#000'; g.fill(); g.restore() }
+    cameraIn(box.x, box.y, box.w, box.h, 18, !!v.sample)
+  }
+  g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 40; g.shadowOffsetY = 12; rounded(a.x, a.y, a.w, a.h, 18); g.fillStyle = '#fbf6ee'; g.fill(); g.restore()
+  const tx = a.x + 56, tw = a.w - 112, top = 150, room = a.h - top - 44
+  const r = fitLine(v.ref, tw, 50, 32, 700, 'cond')
+  text(r.str, tx, a.y + 84, { size: r.size, weight: 700, font: 'cond', color: '#a8551a', spacing: 2 })
+  if (v.tr) { const f = fitLine(v.tr, tw, 26, 20, 500); text(f.str, tx, a.y + 122, { size: f.size, weight: 500, color: '#5f4a3c' }) }
+  let size = cam ? 42 : 54, lines = wrap(v.text, tw, size, 400, 40, 'serif')
+  while (lines.length * size * 1.34 > room && size > 22) { size -= 2; lines = wrap(v.text, tw, size, 400, 40, 'serif') }
+  const lh = Math.round(size * 1.34)
+  lines.forEach((l, i) => text(l, tx, a.y + top + (i + 1) * lh - lh * 0.25, { size, weight: 400, font: 'serif', color: '#2a1a12' }))
+}
 export function drawLife(t: number, qrs: (L) => { qr?: string, phone?: string }[], tile: (q, x: number, y: number, size: number, label: string) => void, logo: (x: number, y: number, size: number, ring: boolean) => void, sample = false) {
   const L = lifeLook()
   withOutline(L.outline, () => lifeBoard(L, t, qrs, tile, logo, sample))

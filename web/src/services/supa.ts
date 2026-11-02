@@ -200,7 +200,14 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'electionRemove') return check(await sb.rpc('election_remove', { e: data.e }))
       // Miejsce na dane (miejsce.sql): rozmiar bazy i pliki; usuwanie i pobieranie przez Storage API (reguły koszy)
       if (action === 'storageUsage') return check(await sb.rpc('storage_usage'))
-      if (action === 'storageRemove') { const { data: gone, error } = await sb.storage.from(data.bucket).remove(data.names); if (error) throw new Error(error.message); return (gone || []).length }
+      if (action === 'storageRemove') {
+        const { data: gone, error } = await sb.storage.from(data.bucket).remove(data.names)
+        if (error) throw new Error(error.message)
+        const names = (gone || []).map(f => f.name)
+        // plik materiału znika razem z wpisem, inaczej w Materiałach zostałby martwy link
+        if (data.bucket === 'protokoly' && names.length) check(await sb.from('protocols').delete().in('data->>file', names))
+        return names.length
+      }
       // podglądy (miniatury) wielu plików naraz: { nazwa: adres }
       if (action === 'storageUrls') {
         if (data.bucket === 'ogloszenia') return Object.fromEntries(data.names.map(n => [n, sb.storage.from(data.bucket).getPublicUrl(n).data.publicUrl]))

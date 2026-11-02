@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
-import { addFiles, api, busy, cloud, flash, items, selectedId, type Lib } from '@/stores'
+import { busy, cloud, flash, selectedId, type Lib } from '@/stores'
+import { libraryItem, materialToLibrary, type Material } from '@/services/materials'
 
 // „Materiały” z aplikacji kns-nabo (protokoły, instrukcje, pliki pomocnicze z bazy): zdjęcia, PDF, PowerPoint i filmy
 // jednym kliknięciem trafiają do Biblioteki — w Rzutniku (od razu zaznaczone) i w Stream (panel Media).
 const props = defineProps<{ action?: string; lib?: Lib }>() // lib — do której biblioteki (Rzutnik / Stream)
 const emit = defineEmits<{ added: [] }>()
-type Mat = { id: string; title: string; type: string; date: string; file: string; fileName: string }
+type Mat = Material
 const list = ref<Mat[]>([])
 const error = ref('')
 const loading = ref(false)
@@ -19,8 +20,7 @@ const shown = computed(() => {
   const q = plain(query.value.trim())
   return list.value.filter(m => !q || plain([m.title, m.fileName, TYPE[m.type] || ''].join(' ')).includes(q))
 })
-const sourceOf = (m: Mat) => 'material:' + m.id + ':' + m.file
-const mine = (m: Mat) => items.value.find(i => i.source === sourceOf(m) && (i.lib || '') === (props.lib || ''))
+const mine = (m: Mat) => libraryItem(m, props.lib)
 const inLibrary = (m: Mat) => !!mine(m)
 
 async function load() {
@@ -36,14 +36,7 @@ async function add(m: Mat) {
   if (have) { if (!props.lib) selectedId.value = have.id; emit('added'); return }
   busy.value = 'Pobieram „' + (m.fileName || m.title) + '”…'
   try {
-    const url = await cloud.materialUrl(m.file)
-    const got = await api.fetchFile(url, m.fileName || m.title)
-    if (got?.error) throw new Error(got.error)
-    const before = items.value.length
-    await addFiles([got.path], null, props.lib || '')
-    const added = items.value.slice(before)
-    for (const it of added) { it.source = sourceOf(m); if (!it.hidden && m.title) it.name = m.title }
-    const first = added.find(i => !i.hidden)
+    const first = await materialToLibrary(m, props.lib)
     if (first && !props.lib) selectedId.value = first.id
     emit('added')
   } catch (e) { flash(e.message || String(e)) } finally { busy.value = '' }

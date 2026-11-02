@@ -4,25 +4,26 @@ import Icon from '@/components/common/Icon.vue'
 import { parseRef, passage, refLabel, sup, toSlides } from '@/services/bible'
 import { bible, bible2, importBible, loadBible, nearestService, settings } from '@/stores'
 import { setVerse, studio, verseOff, verseToProgram } from '@/services/studio'
+import { VERSE_DEFAULT } from '@/services/studio/cards'
+import PresetPicker from './PresetPicker.vue'
 
 // Werset na wizji: odnośnik i przekład → slajdy po 1–2 wersety → podgląd → „Na wizję”. Gdy fragment jest już na wizji,
 // strzałki przełączają od razu (jak slajdy na rzutniku); „Zdejmij” — od razu.
 const refText = ref(nearestService.value?.passage?.trim() || '')
-const place = ref(settings.versePlace || 'bottom')
 const per = ref(1), at = ref(0), which = ref(settings.verseBible || 0), error = ref(''), ready = ref(false)
 onMounted(async () => { await loadBible(); ready.value = true; if (which.value && !bible2.value) which.value = 0 })
 onBeforeUnmount(() => setVerse(null)) // schowany panel zdejmuje werset z podglądu, wizja zostaje
 watch(which, v => { settings.verseBible = v })
-watch(place, v => { settings.versePlace = v; moved = true })
 const book = computed(() => (which.value ? bible2.value : bible.value))
 const parsed = computed(() => parseRef(refText.value))
 const verses = computed(() => (parsed.value && book.value ? passage(book.value, parsed.value) : []))
 // na boku mieści się więcej, a każdy werset zaczyna się od nowej linii
-const side = computed(() => place.value !== 'bottom')
-const slides = computed(() => (verses.value.length ? toSlides(parsed.value.book, verses.value, per.value, side.value ? 900 : 320) : []))
+const look = computed(() => ({ ...VERSE_DEFAULT, ...settings.verseLook }))
+const side = computed(() => look.value.place !== 'bottom')
+const slides = computed(() => (verses.value.length ? toSlides(parsed.value.book, verses.value, per.value, look.value.place === 'bottom' ? 320 : look.value.place === 'window' ? 500 : 900) : []))
 const payload = computed(() => {
   const s = slides.value[at.value]
-  return s ? { text: s.verses.map(v => sup(v.verse) + ' ' + v.text).join(side.value ? '\n' : ' '), ref: refLabel(parsed.value.book, s.verses), tr: book.value.name, place: place.value } : null
+  return s ? { text: s.verses.map(v => sup(v.verse) + ' ' + v.text).join(side.value ? '\n' : ' '), ref: refLabel(parsed.value.book, s.verses), tr: book.value.name, look: look.value } : null
 })
 const hint = computed(() => {
   if (!refText.value.trim()) return ''
@@ -45,6 +46,7 @@ async function load(slot: 0 | 1) {
 
 <template>
   <section class="verse-panel" aria-label="Werset na wizji">
+    <PresetPicker kind="verse" />
     <div class="verse-row">
       <label class="searchbox"><Icon name="book" /><input v-model="refText" placeholder="np. J 3,16–21" aria-label="Fragment Biblii"></label>
       <select v-if="bible && bible2" v-model.number="which" aria-label="Przekład">
@@ -56,11 +58,6 @@ async function load(slot: 0 | 1) {
         <option :value="2">Po 2 wersety</option>
         <option :value="3">Po 3 wersety</option>
         <option :value="5">Po 5 wersetów</option>
-      </select>
-      <select v-model="place" aria-label="Miejsce na obrazie">
-        <option value="bottom">Na dole</option>
-        <option value="left">Z lewej</option>
-        <option value="right">Z prawej</option>
       </select>
     </div>
     <p v-if="ready && !bible" class="desk-help">Najpierw wczytaj plik Biblii (OpenSong albo Zefania XML). <button class="small" @click="load(0)"><Icon name="import" />Wybierz plik…</button></p>

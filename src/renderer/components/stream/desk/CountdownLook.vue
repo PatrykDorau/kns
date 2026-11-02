@@ -5,6 +5,7 @@ import { CD_DEFAULT } from '@/services/studio/cards'
 import { LAYOUTS, TIMERS, layoutThumb } from '@/services/studio/countdown'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import LookBg from './LookBg.vue'
+import PhotoPicker from './PhotoPicker.vue'
 import TextColor from './TextColor.vue'
 
 // Wygląd odliczania w presecie: układ (miniatury z bieżącym wyglądem), styl zegara, kolor, tło, treść w środku, napisy.
@@ -12,8 +13,6 @@ const props = defineProps<{ cd: any }>()
 const cd = props.cd
 for (const [k, v] of Object.entries(CD_DEFAULT)) if (cd[k] === undefined) cd[k] = v // nowe pola po aktualizacji
 const { mediaList, addMediaFiles } = useDesk()
-// zdjęcie z dysku do układu „Dzielony”: dodaje do Biblioteki i od razu wybiera
-async function addPhoto() { const before = new Set(mediaList.value.map(x => x.id)); if (await addMediaFiles()) { const n = mediaList.value.find(x => x.type === 'image' && !before.has(x.id)); if (n) cd.photo = n.id } }
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 // miniatury układów — odświeżane chwilę po zmianie wyglądu (i raz po wczytaniu grafik)
 const thumbs = ref<Record<string, string>>({})
@@ -67,7 +66,7 @@ const subLabel = computed(() => content.value && cd.show === 'text' ? 'Napis w �
             <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
           </optgroup>
         </select>
-        <button class="small" title="Zdjęcie z dysku — trafi też do Biblioteki" @click="addPhoto">Z dysku…</button>
+        <PhotoPicker :model-value="cd.photo?.startsWith('@') ? '' : cd.photo" text="Zdjęcie z Materiałów…" @update:model-value="cd.photo = $event" />
       </template>
     </div>
     <div class="desk-opt-group desk-cd-text">

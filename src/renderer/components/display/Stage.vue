@@ -108,6 +108,11 @@ onMounted(() => { resize.observe(root.value); fit(); webScale.value = root.value
 watch(() => [layerKey.value, current.value?.text, current.value?.fs], () => nextTick(fit), { flush: 'post' })
 onBeforeUnmount(() => { clearTimeout(timer); resize.disconnect() })
 
+// Szybkie przełączanie przerywa przejście: starsze warstwy znikają od razu, żeby nie nakładały się trzy teksty naraz.
+function beforeLeave(el) {
+  el.querySelector('video')?.pause()
+  for (const old of root.value?.querySelectorAll('.layer.fade-leave-active') || []) if (old !== el) (old as HTMLElement).style.display = 'none'
+}
 const VALIGN = { top: 'flex-start', center: 'center', bottom: 'flex-end' }
 
 // Odliczanie: {odliczanie} w tekście to pozostały czas; po zerze — tekst końcowy (gdy jest).
@@ -151,7 +156,7 @@ function onEnded(e) {
 
 <template>
   <div ref="root" class="stage" :class="{ has: !!current }" :style="{ '--fade': fadeMs + 'ms' }">
-    <Transition name="fade" @before-leave="el => el.querySelector('video')?.pause()">
+    <Transition name="fade" @before-leave="beforeLeave">
       <div v-if="current" :key="layerKey" class="layer" :style="layerStyle">
         <img v-if="current.type === 'image'" :src="mediaUrl(current.path)" :style="{ objectFit: current.fit }" alt="">
         <video

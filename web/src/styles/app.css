@@ -1,6 +1,6 @@
 /* Wygląd aplikacji (przeniesiony z index.html). Dodatki: ui.css (nowoczesna warstwa), home.css (strona startowa). */
 :root {
-  --bg: #0f1013; --panel: #17181c; --panel2: #1f2025; --panel3: #292a30; --line: #2a2b32; --text: #f3f3f6; --muted: #9a9ca8; --warn: #e8957d;
+  --bg: #1a1a1a; --panel: #1f1f1f; --panel2: #262626; --panel3: #303030; --line: #333333; --text: #f4f4f2; --muted: #bcbcb8; --warn: #e8957d;
   --amber: #f2a53c; --coral: #f08a6e; --teal: #3ec7b0; --blue: #6ea8ff; --violet: #a98bff; --pink: #f07fb4; --green: #6fd39a;
   --accent: #f2a53c; --accent-soft: rgba(242, 165, 60, .14); --bad: #e5534b; --bad-soft: rgba(229, 83, 75, .12); --bad-text: #ff8f87;
   --ok: #74c69d; --ok-soft: rgba(116, 198, 157, .12);

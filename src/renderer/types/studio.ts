@@ -13,7 +13,7 @@ export interface Pip {
 
 // Wygląd plansz (kopia ustawień): odliczanie, koniec.
 export interface LookStyles { cd: any, end: any, life?: any }
-export type PresetKind = 'cd' | 'end' | 'life' | 'banner' | 'prayer' | 'lower'
+export type PresetKind = 'cd' | 'end' | 'life' | 'banner' | 'prayer' | 'lower' | 'verse'
 export interface Preset { id: string, kind: PresetKind, name: string, desc: string, data: any }
 
 // Wygląd jednej strony (podgląd albo wizja).
@@ -21,7 +21,7 @@ export interface Look {
   scene: SceneId | string
   lyricsOn: boolean
   musicTag?: boolean // „Teraz gra” na obrazie
-  verse?: { text: string, ref: string, tr: string, place?: string } | null // werset na obrazie
+  verse?: { text: string, ref: string, tr: string, look?: any, sample?: boolean } | null // werset na obrazie
   lowerThird: boolean
   loop?: boolean // tylko podgląd w Przygotowaniu: rysowanie gór w kółko
   lowerLook?: { ink?: string, outline?: string, photo?: string, photoSize?: string, pic?: string, style?: string, name?: string, sub?: string, color?: string, logo?: boolean } | null // wizja: pasek mówcy z chwili wysłania
@@ -57,6 +57,7 @@ export interface StudioSlide {
   image?: string
   text?: string
   service?: boolean
+  own?: boolean // dodane na pulpicie (settings.studioExtra)
 }
 
 // To, co pokazuje rzutnik na tym komputerze.

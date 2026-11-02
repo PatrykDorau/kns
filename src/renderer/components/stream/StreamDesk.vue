@@ -11,6 +11,7 @@ import DeskOverlays from './desk/DeskOverlays.vue'
 import DeskScenes from './desk/DeskScenes.vue'
 import DeskTabs from './desk/DeskTabs.vue'
 import DeskPrepare from './desk/DeskPrepare.vue'
+import DeskStart from './desk/DeskStart.vue'
 import SceneTab from './desk/SceneTab.vue'
 import DeskAirControls from './desk/DeskAirControls.vue'
 import DeskAtem from './desk/DeskAtem.vue'
@@ -89,6 +90,7 @@ const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
       </div>
       <button class="desk-chat-btn" :class="{ on: chat.open }" :aria-pressed="chat.open" :title="chat.open ? 'Schowaj czat' : 'Pokaż czat — okienko można przesuwać'" @click="chat.open = !chat.open"><Icon name="chat" />Czat na żywo<em v-if="chat.unread" class="chat-badge" :aria-label="'Nieodczytane: ' + chat.unread">{{ unread() }}</em></button>
       <DeskHealth v-if="liveOn" vertical />
+      <DeskStart />
       <DeskYouTube />
       <DeskSettings />
       <DeskAtem />

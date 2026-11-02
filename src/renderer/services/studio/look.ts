@@ -53,7 +53,7 @@ export function previewOverlay(key: 'lowerThird' | 'prayer' | 'endOvl', v: boole
 export function clearPreviewMedia() { change(l => { l.ovl = 'off' }) }
 // Werset: najpierw podgląd; live — od razu także na wizji (kolejny slajd fragmentu, który już tam jest).
 export function setVerse(v: Look['verse'], live = false) { studio.preview.verse = v; if (live) toProgram(l => { l.verse = v }) }
-export function verseToProgram() { const v = studio.preview.verse; if (v) toProgram(l => { l.verse = v }) }
+export function verseToProgram() { const v = studio.preview.verse; if (v) { toProgram(l => { l.verse = v }); onAirPreset('verse') } }
 export function verseOff() { toProgram(l => { l.verse = null }) }
 export function toggleMusicTag() { const on = !studio.program.musicTag; studio.preview.musicTag = on; studio.program.musicTag = on }
 export function toggleLyrics() { const on = !studio.program.lyricsOn; studio.preview.lyricsOn = on; studio.program.lyricsOn = on }

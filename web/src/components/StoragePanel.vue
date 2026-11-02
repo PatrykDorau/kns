@@ -50,6 +50,7 @@ export default defineComponent({
       const used = list.filter(f => f.usedBy)
       const text = 'Usunąć ' + (list.length === 1 ? '„' + fileName(list[0]) + '”' : list.length + ' plików') + ' (' + mb(list.reduce((a, f) => a + f.size, 0)) + ')? Tego nie da się cofnąć.'
         + (used.length ? ' ' + used.length + ' z nich jest używanych — np. ' + used[0].usedBy + ' straci plik. Jeśli chcesz zachować, najpierw pobierz.' : '')
+        + (list.some(f => f.bucket === 'protokoly') ? ' Materiał zniknie z listy razem z plikiem.' : '')
       if (!(await ask(text, { ok: 'Usuń', danger: true }))) return
       st.busy = true
       try {

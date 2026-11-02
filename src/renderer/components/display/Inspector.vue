@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Thumb from '@/components/common/Thumb.vue'
 import TextStyle from '@/components/display/TextStyle.vue'
@@ -56,6 +56,15 @@ function dropEntry(i) {
   if (dragFrom.value != null && dragFrom.value !== i) moveEntry(dragFrom.value, i)
   dragFrom.value = dragTo.value = null
 }
+// Lista slajdów idzie za bieżącym: widać go zawsze, a następny, gdy oba się mieszczą.
+watch(selectedIndex, i => nextTick(() => {
+  const cur = document.querySelector('.verses')?.children[i], box = cur?.closest('.props-body')
+  if (!box) return
+  const view = box.getBoundingClientRect(), now = cur.getBoundingClientRect(), last = (cur.nextElementSibling || cur).getBoundingClientRect(), gap = 12
+  const above = now.top - view.top - gap, below = last.bottom - view.bottom + gap
+  const by = above < 0 ? above : below > 0 ? Math.min(below, above) : 0
+  if (by) box.scrollBy({ top: by, behavior: 'smooth' })
+}))
 </script>
 
 <template>
@@ -101,13 +110,16 @@ function dropEntry(i) {
         </button>
       </li>
     </ol>
-    <div class="labelrow">
-      <label for="sText">Tekst (pusta linia = nowy slajd, [2] na początku = skrót)</label>
-      <button class="small" title="Otwórz tekst w dużym oknie" @click="textPopup = selected"><Icon name="expand" />Powiększ</button>
-    </div>
-    <textarea id="sText" v-model="selected.text" placeholder="Pierwsza zwrotka…&#10;&#10;Refren…"></textarea>
-    <details>
-      <summary>Wygląd wszystkich pieśni</summary>
+    <details class="fold">
+      <summary><Icon name="pencil" />Edytuj tekst pieśni<Icon name="down" class="fold-arrow" /></summary>
+      <div class="labelrow">
+        <label for="sText">Pusta linia = nowy slajd, [2] na początku = skrót</label>
+        <button class="small" title="Otwórz tekst w dużym oknie" @click="textPopup = selected"><Icon name="expand" />Powiększ</button>
+      </div>
+      <textarea id="sText" v-model="selected.text" placeholder="Pierwsza zwrotka…&#10;&#10;Refren…"></textarea>
+    </details>
+    <details class="fold">
+      <summary><Icon name="text" />Wygląd wszystkich pieśni<Icon name="down" class="fold-arrow" /></summary>
       <TextStyle :model="settings.songStyle" />
     </details>
   </template>

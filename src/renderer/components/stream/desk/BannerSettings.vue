@@ -4,16 +4,15 @@ import { label, uid } from '@/stores'
 import { BANNER_DEFAULT } from '@/services/studio/cards'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import TextColor from './TextColor.vue'
+import PhotoPicker from './PhotoPicker.vue'
 
 // Baner w presecie: gotowe wzory i własne ustawienia (styl, kolor, napisy, kod QR), do tego kolejka.
 const props = defineProps<{ preset: { banner: any, queue: any[], cycle: boolean, sec: number } }>()
 const b = props.preset.banner, set = props.preset
 for (const [k, v] of Object.entries(BANNER_DEFAULT)) if (b[k] === undefined) b[k] = v // nowe pola po aktualizacji
-const { mediaList, addMediaFiles } = useDesk()
+const { mediaList } = useDesk()
 const images = computed(() => mediaList.value.filter(it => it.type === 'image'))
 const PLACES = [['bottom', 'Na dole', 'Na środku przy dolnej krawędzi'], ['corner', 'W rogu', 'W prawym dolnym rogu, mała'], ['full', 'Cały kadr', 'Na cały obraz; PNG z przezroczystością zostawia kamerę widoczną']] as const
-// grafika z dysku: dodaje do Biblioteki i od razu wybiera
-async function addPic() { const before = new Set(mediaList.value.map(x => x.id)); if (await addMediaFiles()) { const n = mediaList.value.find(x => x.type === 'image' && !before.has(x.id)); if (n) b.pic = n.id } }
 const picName = q => label(images.value.find(it => it.id === q.pic) || { title: 'Grafika' })
 const STYLES = [['rock', 'Ciemny pas', 'Ciemny pas u dołu z logo i wielkim napisem'], ['edit', 'Jasny pas', 'Kremowy pas z elegancką typografią'], ['frame', 'Ramka', 'Zaokrąglony baner w kolorze przez całą szerokość'], ['band', 'Pasek', 'Ciemny pasek u dołu przechodzący w obraz, z logo'], ['card', 'Karta', 'Jasna karta w prawym dolnym rogu — zasłania mniej'], ['image', 'Grafika', 'Gotowa grafika z Biblioteki zamiast napisów']] as const
 const QRS = [['all', 'Wszystkie (wsparcie, YouTube, Spotify)'], ['bank', 'Wsparcie (przelew / BLIK)'], ['youtube', 'YouTube'], ['spotify', 'Spotify'], ['link', 'Własny link'], ['none', 'Bez kodu']] as const
@@ -53,7 +52,7 @@ function moveQueued(i, d) { const l = set.queue, [x] = l.splice(i, 1); l.splice(
           <option value="">— wybierz grafikę —</option>
           <option v-for="it in images" :key="it.id" :value="it.id">{{ label(it) }}</option>
         </select>
-        <button class="small" title="Grafika z dysku — trafi też do Biblioteki" @click="addPic">Z dysku…</button>
+        <PhotoPicker v-model="b.pic" text="Z Materiałów lub dysku…" />
       </div>
       <div class="desk-opt-group">
         <small class="muted">Miejsce</small>

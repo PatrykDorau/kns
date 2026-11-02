@@ -17,6 +17,9 @@ export interface Settings {
   lyricsOnline: boolean
   mirrorStream?: boolean
   mirrorLive?: boolean
+  checkItems?: { id: string, text: string }[] // własne punkty listy przed transmisją
+  checkDone?: { day: string, ids: string[] } // co odhaczono tego dnia
+  cardPhotos?: { name: string, pic: string }[] // zdjęcia na karty ogłoszeń, osobno od galerii paska mówcy
   speakerPhotos?: { id: string, name: string, pic: string, on?: boolean }[] // galeria mówców: imię, grafika z Biblioteki, wybrane zdjęcie
   studioPresets?: Preset[] // przygotowane plansze i nakładki (Przygotowanie)
   presetsV?: number // wersja presetów (uzupełnienie starych, nowe gotowe)
@@ -62,6 +65,8 @@ export interface Settings {
   deskLayout?: 'classic' | 'cols' // studio: podgląd i wizja nad ustawieniami albo w kolumnie po lewej
   donateInit: boolean
   studioHidden: string[]
+  studioOrder?: string[] // kolejność ogłoszeń w pętli (id); nowe dochodzą na koniec
+  studioExtra?: { id: string; title: string; pic?: string; text?: string }[] // własne ogłoszenia tylko na transmisję, na tym komputerze
   studioSlideSec: number
   // wygląd sceny „Odliczanie”: tło, napis nad zegarem, podpis (tylko przy zegarze na środku), układ, przyciemnienie grafiki (0–80)
   // układ: top, center, split, poster, bar, minimal; zegar: blob, bubble, pill, flip, plain; w środku: ogłoszenia albo napis (sub)
@@ -89,7 +94,7 @@ export interface Settings {
   prayerLink?: string // kod QR do strony z prośbami modlitewnymi
   prayerLinkLabel?: string
   musicList: { id: string; name: string; path: string; title?: string; artist?: string; link?: string; yt?: string }[] // podkład muzyczny na transmisji (title, artist, link — do plakietki; puste: z nazwy pliku; yt — film z YouTube zamiast pliku)
-  versePlace?: string // miejsce nakładki „Werset”: bottom, left, right
+  verseLook?: any // wygląd nakładki „Werset” (preset)
   verseBible?: number // przekład nakładki „Werset”: 0 główny, 1 drugi
   chatPos?: { x: number; y: number; w: number; h: number } // okienko czatu na pulpicie streamu
   musicVolume: number // 0–1
