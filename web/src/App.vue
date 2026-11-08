@@ -108,7 +108,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.19 · 8.11.2026'
+const VERSION = '4.20 · 8.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1926,16 +1926,24 @@ export default defineComponent({
     ]
     const NAV_MODULE = { myserve: 'serve' }
     const MOD_NEEDS = { grafik: 'serve' }
-    const modules = ref({ off: [] })
-    const modOn = id => !(modules.value.off || []).includes(id) && (!MOD_NEEDS[id] || modOn(MOD_NEEDS[id]))
-    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], ...(v || {}) } }).catch(() => null)
+    const modules = ref({ off: [], only: {} })
+    // dostęp według służb: only[moduł] = [id służb] — moduł widzą tylko ich członkowie i liderzy (oraz administratorzy)
+    const modAllowed = id => { const only = modules.value.only?.[id] || []; return !only.length || canManage.value || only.some(x => myMinistryIds.value.includes(x)) }
+    const modOn = id => !(modules.value.off || []).includes(id) && modAllowed(id) && (!MOD_NEEDS[id] || modOn(MOD_NEEDS[id]))
+    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], only: {}, ...(v || {}) } }).catch(() => null)
+    async function saveModules(next) { await api.call('setModules', next); modules.value = next }
     async function setModule(id, on) {
       const off = new Set(modules.value.off || [])
       if (on) off.delete(id); else off.add(id)
-      const next = { off: [...off] }
-      await api.call('setModules', next)
-      modules.value = next
+      await saveModules({ ...modules.value, off: [...off] })
     }
+    async function setModuleOnly(id, ids) {
+      const only = { ...(modules.value.only || {}) }
+      if (ids.length) only[id] = ids; else delete only[id]
+      await saveModules({ ...modules.value, only })
+    }
+    // ograniczenia według służb wymagają listy moich służb — wczytanie, gdy jej jeszcze nie ma
+    watch([modules, ready], () => { if (ready.value && Object.keys(modules.value.only || {}).length && !serve.list.length && !serve.busy) loadServe() })
     loadModules()
     // moduł wyłączony (także gdy ustawienie dojdzie po otwarciu adresu) — jego strona się zamyka
     watch(modules, () => { if (page.value && page.value !== 'moduly' && !modOn(page.value)) page.value = '' })
@@ -2636,7 +2644,7 @@ export default defineComponent({
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, modules, setModuleOnly, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,

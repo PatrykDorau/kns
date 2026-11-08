@@ -428,7 +428,10 @@ export default defineComponent({
 .hm-ahead b { min-width: 22px; font: 700 22px/1.1 var(--display); color: var(--accent); font-variant-numeric: tabular-nums; }
 .hm-ahead span { font-size: 14px; }
 .hm-ahead button.zero { opacity: .55; }
-@media (hover: hover) { .hm-ahead button:hover span { text-decoration: underline; text-underline-offset: 3px; } }
+/* najechanie: delikatne rozjaśnienie na ciemnym kafelku (zwykły kolor najechania przycisków jest tu za jasny) */
+.hm-ahead button { margin: 0 -8px !important; padding: 3px 8px !important; border-radius: 10px !important; }
+@media (max-width: 760px) { .hm-ahead button { margin: 0 !important; } }
+@media (hover: hover) { .hm-ahead button:hover:not(:disabled) { background: rgba(255, 255, 255, .08) !important; } .hm-ahead button:hover span { text-decoration: underline; text-underline-offset: 3px; } }
 @media (max-width: 760px) {
   .hm-top { flex-direction: column; gap: 10px; }
   .hm-ahead { width: auto; flex-direction: row; align-items: stretch; gap: 0; padding: 10px 6px; }

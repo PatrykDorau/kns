@@ -524,12 +524,8 @@ html[data-theme="light"] :is(.card .card, .view-card .note, .kh-panel .kh-panel,
 }
 html[data-theme="light"] .card .date, html[data-theme="light"] .kh-date { background: var(--panel2) !important; }
 
-/* przyciski: ciepła czerń zamiast zimnej; drugorzędne — kremowa pigułka z krawędzią */
-html[data-theme="light"] :is(button, a.button):not(.primary):not(.danger):not(.ghost):not(.icon):not(.side-it):not(.card):not(.ann):not(.song):not(.ev):not(.filter):not(.chipbtn):not(.cal-day):not(:is(.tabbar, .serve-tabs, .seg, .side, .more-list, .stepper, .hw-row) *) {
-  background-color: var(--panel); border: 1px solid var(--line); }
-@media (hover: hover) {
-  html[data-theme="light"] :is(button, a.button):not(.primary):not(.danger):not(.on):not([aria-selected=true]):not([aria-pressed=true]):not(.dv-yes):not(:is(.tabbar, .serve-tabs, .seg, .side, .hw-row, .more-list) *):hover:not(:disabled) { background-color: var(--panel2) !important; }
-}
+/* przyciski: ciepła czerń zamiast zimnej (drugorzędne zostają jak w warstwie taste — pigułka o ton ciemniejsza od karty;
+   bez ogólnej reguły dla wszystkich przycisków: dostawały ją też kafelki zdjęć, strefy relacji i przyciski w ciemnych kafelkach) */
 html[data-theme="light"] :is(button.primary, a.button.primary, .hw-go) { background: #221d16 !important; color: #fffaf1 !important; box-shadow: 0 6px 16px -8px rgba(34, 29, 22, .6) !important; }
 html[data-theme="light"] .serve-tabs, html[data-theme="light"] .seg { background: var(--panel2) !important; }
 
@@ -573,3 +569,7 @@ html[data-theme="light"] .side :is(button, a.button):not(.side-it) { border: 0 !
 html[data-theme="light"] .side .side-app a.button { background: var(--panel) !important; }
 html[data-theme="light"] button.cal-day { border: 0 !important; background-color: rgba(255, 250, 240, .45); }
 html[data-theme="light"] button.cal-day.today { background-color: #fbd38d !important; color: #2a1906 !important; font-weight: 700; }
+
+/* najechanie w trybie jasnym: ciemne kolory z trybu ciemnego zamienione na ton ciemniejszy od tła */
+html[data-theme="light"] .hm-pill:hover { background: #d9ceb8 !important; }
+html[data-theme="light"] .login-pop .login-x:hover { background: var(--panel3); }
