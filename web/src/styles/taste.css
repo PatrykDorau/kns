@@ -553,9 +553,9 @@ html[data-theme="light"] .tabbar button.on { color: #2a1906 !important; }
 @media (max-width: 1023px) { html[data-theme="light"] header { background: var(--bg) !important; } }
 
 /* góra w tle: w jasnym trybie ledwie widoczna, żeby kreski nie przecinały kart i tekstu */
-html[data-theme="light"] .kns-backdrop { opacity: .14 !important; color: #8a6a40 !important; }
-html[data-theme="light"] body:has(#app.editing) .kns-backdrop { opacity: .05 !important; }
-html[data-theme="light"] body.guest-page .kns-backdrop { opacity: .22 !important; }
+html[data-theme="light"] .kns-backdrop { opacity: .22 !important; color: #7d5f36 !important; }
+html[data-theme="light"] body:has(#app.editing) .kns-backdrop { opacity: .08 !important; }
+html[data-theme="light"] body.guest-page .kns-backdrop { opacity: .3 !important; }
 html[data-theme="light"] .gx-lead { color: var(--muted) !important; }
 
 /* okna i toast */

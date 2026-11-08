@@ -1,6 +1,9 @@
-// Najnowszy film z kanału YouTube (dla strony „Posłuchaj”) — bez klucza API: adres kanału (…/@nazwa,
-// …/channel/UC…, sam identyfikator UC…) → identyfikator kanału → kanał RSS YouTube → najnowszy film.
-//   GET /api/najnowsze?yt=<adres kanału> → { video, title, published, channel }
+// Filmy z kanału YouTube (strona „Posłuchaj” i nagranie kazania na Starcie) — bez klucza API: adres kanału (…/@nazwa,
+// …/channel/UC…, sam identyfikator UC…) → identyfikator kanału → kanał RSS YouTube → ostatnie filmy.
+//   GET /api/najnowsze?yt=<adres kanału> → { video, title, published, channel } — najnowszy film, który ma już
+//     wyświetlenia (zaplanowana transmisja ma 0 wyświetleń i nie jest jeszcze nagraniem — pomijana, chyba że nic innego nie ma)
+//   GET /api/najnowsze?yt=<adres kanału>&all=1 → { items: [{ video, title, published, views }], channel } — ostatnie filmy
+//     (strona startowa szuka wśród nich nagrania konkretnej niedzieli: po temacie kazania, a potem po dacie)
 // Wynik trzymany w pamięci podręcznej (CDN) przez 30 minut, więc YouTube nie jest pytany przy każdym wejściu.
 export const config = { path: '/api/najnowsze' }
 
@@ -21,23 +24,32 @@ export async function channelId(url) {
   return found ? found[1] : null
 }
 
+const unescape = s => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+
+// wszystkie filmy z kanału RSS (od najnowszego); views — liczba wyświetleń (0 = jeszcze się nie odbył / świeżo dodany)
+export function itemsFromFeed(xml) {
+  return String(xml).split('<entry>').slice(1).map(entry => {
+    const pick = re => (entry.match(re) || [])[1] || ''
+    const video = pick(/<yt:videoId>([\w-]{11})<\/yt:videoId>/)
+    return video ? { video, title: unescape(pick(/<title>([^<]*)<\/title>/)), published: pick(/<published>([^<]*)<\/published>/), views: +pick(/<media:statistics views="(\d+)"/) || 0 } : null
+  }).filter(Boolean)
+}
 export function latestFromFeed(xml) {
-  const entry = String(xml).split('<entry>')[1]
-  if (!entry) return null
-  const pick = re => (entry.match(re) || [])[1] || ''
-  const unescape = s => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-  const video = pick(/<yt:videoId>([\w-]{11})<\/yt:videoId>/)
-  return video ? { video, title: unescape(pick(/<title>([^<]*)<\/title>/)), published: pick(/<published>([^<]*)<\/published>/) } : null
+  const items = itemsFromFeed(xml)
+  const it = items.find(x => x.views > 0) || items[0]
+  return it ? { video: it.video, title: it.title, published: it.published } : null
 }
 
 export default async function handler(req) {
-  const yt = new URL(req.url).searchParams.get('yt') || ''
+  const q = new URL(req.url).searchParams
   try {
-    const channel = await channelId(yt)
+    const channel = await channelId(q.get('yt') || '')
     if (!channel) return json({ error: 'Nie rozpoznano kanału YouTube.' }, 404, false)
     const feed = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channel, { headers: UA })
     if (!feed.ok) return json({ error: 'YouTube nie odpowiedział.', channel }, 502, false)
-    const latest = latestFromFeed(await feed.text())
+    const xml = await feed.text()
+    if (q.get('all')) return json({ items: itemsFromFeed(xml), channel })
+    const latest = latestFromFeed(xml)
     return latest ? json({ ...latest, channel }) : json({ error: 'Kanał nie ma jeszcze filmów.', channel }, 404, false)
   } catch {
     return json({ error: 'Nie udało się sprawdzić kanału.' }, 502, false)

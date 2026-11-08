@@ -39,7 +39,7 @@ export default defineComponent({
         { key: 'task', mod: 'zadania', n: task, label: pl(task, 'zadanie', 'zadania', 'zadań') + ' do zrobienia', go: () => app.openPage('zadania') },
       ].filter(a => app.modOn(a.mod))
     })
-    const aheadLine = computed(() => { const d = ahead.value.find(a => a.key === 'duty'); return d?.n ? d.n + ' ' + d.label + '.' : 'Oto co dzieje się w kościele.' })
+    const aheadOn = computed(() => (app.api.enabled && app.ready.value ? ahead.value.filter(a => a.n) : []))
     // służby, w których brakuje mojej dyspozycyjności na najbliższe 4 niedziele
     const avMissing = computed(() => mine.av.filter(m => m.member).map(m => ({ name: m.name, n: (m.days || []).slice(0, 4).filter(d => !m.mine?.[d]).length })).filter(x => x.n))
     const roleOn = d => [...new Set(myDuties.value.filter(x => x.day === d).map(x => x.name))]
@@ -58,7 +58,30 @@ export default defineComponent({
     })
     const focus = computed(() => mine.focus.find(f => f.scope === 'day') || mine.focus[0] || null)
     const nextAsb = computed(() => (app.asbPubUpcoming.value || [])[0] || null)
-    const recording = computed(() => (app.listenLatest.value?.video ? 'https://www.youtube.com/watch?v=' + app.listenLatest.value.video : ''))
+    // Nagranie kazania z niedzieli pokazanej w karcie „Ostatnia niedziela”: wśród ostatnich filmów kanału szukamy tego z tematem
+    // kazania w tytule (transmisje z aplikacji Stream mają tytuł „temat | fragment | mówca”), a gdy go nie ma — transmisji
+    // z tamtych dni z nazwiskiem mówcy albo fragmentem. Zaplanowane transmisje (0 wyświetleń) i inne filmy — pomijane.
+    // Nic pewnego — bez przycisku (lepiej żaden niż zły film).
+    const vids = ref([])
+    watch(() => app.listen.value.youtube, async u => {
+      if (!u || !/youtube\.com\/(@|c\/|user\/|channel\/)/.test(u)) { vids.value = []; return }
+      try { vids.value = (await (await fetch('/api/najnowsze?all=1&yt=' + encodeURIComponent(u))).json()).items || [] } catch { vids.value = [] }
+    }, { immediate: true })
+    const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]+/g, ' ').trim()
+    const recording = computed(() => {
+      const d = hasThoughts.value ? app.lastSermon.value?.date : app.photos.value?.date
+      if (!d || !vids.value.length) return ''
+      const svc = app.services.value.find(x => x.date === d) || (app.lastSermon.value?.date === d ? app.lastSermon.value : null)
+      const done = vids.value.filter(v => v.views > 0)
+      const title = norm(svc?.sermonTitle)
+      let hit = title.length >= 4 && done.find(v => norm(v.title).includes(title))
+      if (!hit && svc) {
+        const day = new Date(d + 'T12:00').getTime(), near = v => Math.abs(new Date(v.published).getTime() - day) < 5 * 864e5
+        const keys = [norm(svc.speaker).split(' ').pop(), norm(svc.passage)].filter(k => k && k.length >= 3)
+        hit = done.find(v => near(v) && keys.some(k => norm(v.title).includes(k)))
+      }
+      return hit ? 'https://www.youtube.com/watch?v=' + hit.video : ''
+    })
     const streamLink = computed(() => app.listen.value.youtubeMore || app.listen.value.youtube || '')
     // ogłoszenia: lista albo karty (to samo ustawienie co w zakładce Ogłoszenia)
     const annMode = ref((() => { try { return localStorage.getItem('kns-ann-mode') === 'cards' ? 'cards' : 'list' } catch { return 'list' } })())
@@ -131,7 +154,7 @@ export default defineComponent({
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, invites, ahead, aheadLine, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, photoTiles, hasThoughts, hasPhotos }
+    return { ...app, invites, ahead, aheadOn, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, photoTiles, hasThoughts, hasPhotos }
   },
 })
 </script>
@@ -139,16 +162,13 @@ export default defineComponent({
 <template>
   <!-- Strona startowa (komputer i telefon): powitanie, skróty, myśli z kazania, „Dla Ciebie”, nabożeństwo i ponumerowane sekcje. -->
   <div class="kh kh-web">
-    <div class="hm-top">
-      <div class="kh-hello hm-hello">
-        <h1><span class="hm-dim">{{ greeting }}{{ firstName ? ',' : '' }}</span> {{ firstName || '' }}</h1>
-        <p>{{ api.enabled ? aheadLine : 'Oto co dzieje się w kościele.' }}</p>
-      </div>
-      <!-- „Przed Tobą”: trzy liczby, każda prowadzi do swojego miejsca -->
-      <aside v-if="api.enabled && ready && ahead.length" class="hm-ahead" aria-label="Przed Tobą">
-        <small>Przed Tobą</small>
-        <button v-for="a in ahead" :key="a.key" :class="{ zero: !a.n }" @click="a.go()"><b>{{ a.n }}</b><span>{{ a.label }}</span></button>
-      </aside>
+    <div class="kh-hello hm-hello">
+      <h1><span class="hm-dim">{{ greeting }}{{ firstName ? ',' : '' }}</span> {{ firstName || '' }}</h1>
+      <!-- „Przed Tobą”: tylko to, co nie jest zerem, w jednej linijce zamiast podpisu — każda liczba prowadzi do swojego miejsca -->
+      <p v-if="aheadOn.length" class="hm-ahead" aria-label="Przed Tobą">
+        <button v-for="a in aheadOn" :key="a.key" :class="'a-' + a.key" @click="a.go()"><b>{{ a.n }}</b> {{ a.label }}<svg class="i"><use href="#chev"/></svg></button>
+      </p>
+      <p v-else>Oto co dzieje się w kościele.</p>
     </div>
 
     <!-- telefon: najczęstsze rzeczy pod kciukiem -->
@@ -418,26 +438,13 @@ export default defineComponent({
   </div>
 </template>
 <style scoped>
-/* „Przed Tobą” obok powitania (wzór: Avenit) — ciemny kafelek z trzema liczbami */
-.hm-top { display: flex; align-items: stretch; gap: 16px; }
-.hm-top .hm-hello { flex: 1; min-width: 0; }
-.hm-ahead { flex: none; width: 260px; display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 20px; background: #221d16; color: #f6efe2; position: relative; overflow: hidden; }
-.hm-ahead::after { content: ""; position: absolute; right: -40px; bottom: -60px; width: 160px; height: 160px; border-radius: 50%; border: 22px solid rgba(242, 165, 60, .12); pointer-events: none; }
-.hm-ahead > small { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
-.hm-ahead button { display: flex; align-items: baseline; gap: 10px; min-height: 0 !important; padding: 3px 0 !important; background: none !important; border: 0 !important; color: inherit !important; text-align: left; border-radius: 0 !important; box-shadow: none !important; }
-.hm-ahead b { min-width: 22px; font: 700 22px/1.1 var(--display); color: var(--accent); font-variant-numeric: tabular-nums; }
-.hm-ahead span { font-size: 14px; }
-.hm-ahead button.zero { opacity: .55; }
-/* najechanie: delikatne rozjaśnienie na ciemnym kafelku (zwykły kolor najechania przycisków jest tu za jasny) */
-.hm-ahead button { margin: 0 -8px !important; padding: 3px 8px !important; border-radius: 10px !important; }
-@media (max-width: 760px) { .hm-ahead button { margin: 0 !important; } }
-@media (hover: hover) { .hm-ahead button:hover:not(:disabled) { background: rgba(255, 255, 255, .08) !important; } .hm-ahead button:hover span { text-decoration: underline; text-underline-offset: 3px; } }
-@media (max-width: 760px) {
-  .hm-top { flex-direction: column; gap: 10px; }
-  .hm-ahead { width: auto; flex-direction: row; align-items: stretch; gap: 0; padding: 10px 6px; }
-  .hm-ahead > small { display: none; }
-  .hm-ahead button { flex: 1; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
-  .hm-ahead span { font-size: 12px; line-height: 1.2; }
-  .hm-ahead::after { display: none; }
-}
+/* „Przed Tobą” w miejscu podpisu pod powitaniem: linijka małych pigułek (tylko niezerowe), nic nie przesuwa treści niżej */
+.hm-ahead { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px !important; }
+.hm-ahead button { display: inline-flex; align-items: center; gap: 5px; min-height: 30px !important; padding: 0 8px 0 12px !important; border: 0 !important; border-radius: 999px !important;
+  background: var(--panel2) !important; color: var(--text) !important; font-size: 13.5px; font-weight: 500 !important; box-shadow: none !important; }
+.hm-ahead b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.hm-ahead svg.i { width: 14px; height: 14px; color: var(--muted); }
+.hm-ahead .a-inv { background: var(--accent) !important; color: #2a1906 !important; }
+.hm-ahead .a-inv svg.i { color: #2a1906; }
+@media (hover: hover) { .hm-ahead button:hover:not(:disabled) { background: var(--panel3) !important; } .hm-ahead .a-inv:hover:not(:disabled) { background: #f6b555 !important; } }
 </style>
