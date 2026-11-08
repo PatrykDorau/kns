@@ -87,6 +87,9 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'public') return check(await sb.rpc('public_preview'))
       // „Posłuchaj”: linki YouTube i Spotify (czyta każdy, także gość; zmienia administrator).
       if (action === 'listen') return (check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {}
+      // moduły włączone przez administratora (czyta każdy, także gość)
+      if (action === 'moduly') return (check(await sb.from('site_settings').select('value').eq('key', 'moduly')) || [])[0]?.value || {}
+      if (action === 'setModules') return check(await sb.rpc('set_site_setting', { k: 'moduly', v: { off: data.off || [] } }))
       if (action === 'setListen') return check(await sb.rpc('set_site_setting', { k: 'posluchaj', v: { youtube: data.youtube || '', youtubeMore: data.youtubeMore || '', spotify: data.spotify || '' } }))
       // Terminarz ASB — także dla gości (bez prowadzących i notatek).
       if (action === 'asbPublic') return check(await sb.rpc('asb_public'))

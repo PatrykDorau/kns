@@ -22,7 +22,8 @@ export default defineComponent({
     watch(() => [st.id, st.tab], () => { try { localStorage.setItem(KEY, JSON.stringify({ id: st.id, tab: st.tab })) } catch { /* bez zapamiętania */ } })
     const m = computed(() => mine.value.find(x => x.id === st.id) || mine.value[0] || null)
     onMounted(() => { app.loadProtocols(true) })
-    const tabs = computed(() => (m.value?.id === 'asb' ? [...TABS, ['asb', 'Spotkania', 'book']] : TABS))
+    const tabs = computed(() => { const t = TABS.filter(x => x[0] !== 'grafik' || app.modOn('grafik')); return m.value?.id === 'asb' ? [...t, ['asb', 'Spotkania', 'book']] : t })
+    const tab = computed(() => (tabs.value.some(t => t[0] === st.tab) ? st.tab : tabs.value[0][0]))
     // role osób z najbliższych niedziel (z grafiku) — przy nazwisku na liście członków
     const board = computed(() => av.list.find(x => x.id === m.value?.id))
     function rolesOf(id) {
@@ -44,13 +45,13 @@ export default defineComponent({
     })
     const initials = n => String(n || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     const pick = id => { st.id = id }
-    return { ...app, mine, edit, st, m, tabs, team, rolesOf, nextOf, initials, pick }
+    return { ...app, mine, edit, st, m, tabs, tab, team, rolesOf, nextOf, initials, pick }
   },
 })
 </script>
 
 <template>
-  <DutyInvites />
+  <DutyInvites v-if="modOn('grafik')" />
   <p v-if="!mine.length" class="note">Nie należysz jeszcze do żadnej służby — zgłoś się w „Wszystkie służby”.</p>
   <template v-if="m">
     <!-- kilka służb: przełącznik -->
@@ -73,17 +74,17 @@ export default defineComponent({
 
     <!-- zakładki -->
     <nav class="ms-tabs" role="tablist" aria-label="Części służby">
-      <button v-for="t in tabs" :key="t[0]" role="tab" :class="{ on: st.tab === t[0] }" :aria-selected="st.tab === t[0]" @click="st.tab = t[0]">
+      <button v-for="t in tabs" :key="t[0]" role="tab" :class="{ on: tab === t[0] }" :aria-selected="tab === t[0]" @click="st.tab = t[0]">
         <svg class="i"><use :href="'#' + t[2]"/></svg>{{ t[1] }}<small v-if="t[0] === 'ludzie' && m.pending?.length" class="ms-badge">{{ m.pending.length }}</small>
       </button>
     </nav>
 
     <section class="ms-body card">
-      <ScheduleTable v-if="st.tab === 'grafik'" :key="'g' + m.id" :ministry="m.id" />
+      <ScheduleTable v-if="tab === 'grafik'" :key="'g' + m.id" :ministry="m.id" />
 
-      <AvailabilityPanel v-else-if="st.tab === 'dyspo'" :key="'d' + m.id" :ministry="m.id" avail-only />
+      <AvailabilityPanel v-else-if="tab === 'dyspo'" :key="'d' + m.id" :ministry="m.id" avail-only />
 
-      <template v-else-if="st.tab === 'ludzie'">
+      <template v-else-if="tab === 'ludzie'">
         <div class="ms-bar"><h3>Członkowie służby<small>{{ team.length }}</small></h3><button v-if="m.lead" class="small primary" :disabled="busy" @click="openAddPerson(m)"><svg class="i"><use href="#plus"/></svg>Dodaj członka</button></div>
         <div v-if="m.pending?.length" class="ms-pending">
           <small>Zgłoszenia do akceptacji</small>
@@ -100,7 +101,7 @@ export default defineComponent({
         </div>
       </template>
 
-      <template v-else-if="st.tab === 'info'">
+      <template v-else-if="tab === 'info'">
         <div class="ms-bar"><h3>Informacje dla służby</h3><button v-if="m.lead && edit[m.id] === undefined" class="small" @click="edit[m.id] = m.internal || ''"><svg class="i"><use href="#pencil"/></svg>{{ m.internal ? 'Zmień' : 'Dodaj' }}</button></div>
         <template v-if="edit[m.id] !== undefined">
           <textarea v-model="edit[m.id]" rows="6" maxlength="5000" placeholder="np. kto ma klucze, gdzie są kable, zasady, kontakty"></textarea>
@@ -110,13 +111,13 @@ export default defineComponent({
         <p v-else class="note">{{ m.lead ? 'Dodaj to, co każdy w służbie powinien wiedzieć: klucze, kable, zasady, kontakty.' : 'Lider nie dodał jeszcze informacji.' }}</p>
       </template>
 
-      <template v-else-if="st.tab === 'pliki'">
+      <template v-else-if="tab === 'pliki'">
         <div class="ms-bar"><h3>Pliki służby<small>{{ ministryFiles(m.id).length }}</small></h3><button v-if="m.lead" class="small primary" @click="newMinistryFile(m)"><svg class="i"><use href="#plus"/></svg>Dodaj plik</button></div>
         <p v-if="!ministryFiles(m.id).length" class="note">Nie ma jeszcze plików tylko dla tej służby.</p>
         <button v-for="p in ministryFiles(m.id)" :key="p.id" class="mm-file" @click="openProto(p)"><svg class="i"><use href="#file"/></svg><span><b>{{ p.title }}</b><small>{{ p.link ? 'link · Google Dysk' : p.fileName }}</small></span><svg class="i chev"><use href="#chev"/></svg></button>
       </template>
 
-      <template v-else-if="st.tab === 'asb'">
+      <template v-else-if="tab === 'asb'">
         <p class="note">Grafik spotkań studenckich i lista pomysłów.</p>
         <button class="primary" @click="openAsb">{{ canAsb ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i"><use href="#chev"/></svg></button>
       </template>

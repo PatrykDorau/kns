@@ -34,12 +34,12 @@ export default defineComponent({
     const ahead = computed(() => {
       const inv = invites.value, duty = duties.list.filter(x => x.state === 'yes').length, task = mine.tasks.length
       return [
-        { key: 'inv', n: inv, label: pl(inv, 'zaproszenie', 'zaproszenia', 'zaproszeń') + ' do służby', go: () => app.openServe('mine') },
-        { key: 'duty', n: duty, label: pl(duty, 'służba', 'służby', 'służb') + ' przed Tobą', go: () => app.openServe('mine') },
-        { key: 'task', n: task, label: pl(task, 'zadanie', 'zadania', 'zadań') + ' do zrobienia', go: () => app.openPage('zadania') },
-      ]
+        { key: 'inv', mod: 'grafik', n: inv, label: pl(inv, 'zaproszenie', 'zaproszenia', 'zaproszeń') + ' do służby', go: () => app.openServe('mine') },
+        { key: 'duty', mod: 'grafik', n: duty, label: pl(duty, 'służba', 'służby', 'służb') + ' przed Tobą', go: () => app.openServe('mine') },
+        { key: 'task', mod: 'zadania', n: task, label: pl(task, 'zadanie', 'zadania', 'zadań') + ' do zrobienia', go: () => app.openPage('zadania') },
+      ].filter(a => app.modOn(a.mod))
     })
-    const aheadLine = computed(() => { const n = ahead.value[1].n; return n ? n + ' ' + ahead.value[1].label + '.' : 'Oto co dzieje się w kościele.' })
+    const aheadLine = computed(() => { const d = ahead.value.find(a => a.key === 'duty'); return d?.n ? d.n + ' ' + d.label + '.' : 'Oto co dzieje się w kościele.' })
     // służby, w których brakuje mojej dyspozycyjności na najbliższe 4 niedziele
     const avMissing = computed(() => mine.av.filter(m => m.member).map(m => ({ name: m.name, n: (m.days || []).slice(0, 4).filter(d => !m.mine?.[d]).length })).filter(x => x.n))
     const roleOn = d => [...new Set(myDuties.value.filter(x => x.day === d).map(x => x.name))]
@@ -47,10 +47,10 @@ export default defineComponent({
     const forYou = computed(() => {
       const out = [], byDay = {}
       for (const x of myDuties.value) (byDay[x.day] ||= []).push(x.name)
-      for (const [d, names] of Object.entries(byDay)) out.push({ key: 'g' + d, icon: 'serve', title: [...new Set(names)].join(', '), sub: 'Jesteś w grafiku · ' + dutyDay(d), go: () => app.openServe('mine') })
-      for (const x of avMissing.value) out.push({ key: 'a' + x.name, icon: 'calendar', title: x.name, sub: 'Podaj dyspozycyjność · ' + (x.n === 1 ? 'brakuje 1 niedzieli' : 'brakuje ' + x.n + ' niedziel'), go: () => app.openServe('mine') })
-      for (const t of mine.tasks.slice(0, 4)) out.push({ key: 't' + t.id, icon: 'tasks', title: t.title, sub: 'Zadanie · ' + t.board + (t.due ? ' · termin ' + app.shortDate(t.due) : ''), go: () => app.openPage('zadania') })
-      for (const v of (app.votes.list || []).filter(x => x.status === 'voting' && !x.voted)) out.push({ key: 'v' + v.id, icon: 'check', title: 'Głosowanie: ' + v.title, sub: 'oddaj tajny głos', go: () => app.goToVote(v) })
+      if (app.modOn('grafik')) for (const [d, names] of Object.entries(byDay)) out.push({ key: 'g' + d, icon: 'serve', title: [...new Set(names)].join(', '), sub: 'Jesteś w grafiku · ' + dutyDay(d), go: () => app.openServe('mine') })
+      if (app.modOn('serve')) for (const x of avMissing.value) out.push({ key: 'a' + x.name, icon: 'calendar', title: x.name, sub: 'Podaj dyspozycyjność · ' + (x.n === 1 ? 'brakuje 1 niedzieli' : 'brakuje ' + x.n + ' niedziel'), go: () => app.openServe('mine') })
+      if (app.modOn('zadania')) for (const t of mine.tasks.slice(0, 4)) out.push({ key: 't' + t.id, icon: 'tasks', title: t.title, sub: 'Zadanie · ' + t.board + (t.due ? ' · termin ' + app.shortDate(t.due) : ''), go: () => app.openPage('zadania') })
+      if (app.modOn('votes')) for (const v of (app.votes.list || []).filter(x => x.status === 'voting' && !x.voted)) out.push({ key: 'v' + v.id, icon: 'check', title: 'Głosowanie: ' + v.title, sub: 'oddaj tajny głos', go: () => app.goToVote(v) })
       for (const sv of mine.surveys.filter(x => x.status === 'open' && !x.answered)) out.push({ key: 's' + sv.id, icon: 'list', title: 'Ankieta: ' + sv.title, sub: sv.closes ? 'odpowiedz do ' + app.shortDate(sv.closes) : 'czeka na Twoją odpowiedź', go: () => { app.openAnns(); app.annTab.value = 'survey'; app.surveyOpen.value = sv.id } })
       if (app.goalDue.value) out.push({ key: 'goal', icon: 'money', title: 'Cele wsparcia: ' + app.monthName(app.goalDue.value.month).split(' ')[0], sub: 'podaj kwotę i rozdziel ' + app.goals.status.percent + '% do ' + app.monthEnd.value, go: () => app.openGoals() })
       if (app.canReview.value && app.reviewItems.value.length) out.push({ key: 'rev', icon: 'megaphone', title: 'Do zatwierdzenia: ' + app.reviewItems.value.length, sub: 'zgłoszenia czekają na decyzję', go: () => document.querySelector('.kh-web .kh-review')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) })
@@ -145,7 +145,7 @@ export default defineComponent({
         <p>{{ api.enabled ? aheadLine : 'Oto co dzieje się w kościele.' }}</p>
       </div>
       <!-- „Przed Tobą”: trzy liczby, każda prowadzi do swojego miejsca -->
-      <aside v-if="api.enabled && ready" class="hm-ahead" aria-label="Przed Tobą">
+      <aside v-if="api.enabled && ready && ahead.length" class="hm-ahead" aria-label="Przed Tobą">
         <small>Przed Tobą</small>
         <button v-for="a in ahead" :key="a.key" :class="{ zero: !a.n }" @click="a.go()"><b>{{ a.n }}</b><span>{{ a.label }}</span></button>
       </aside>
@@ -154,9 +154,9 @@ export default defineComponent({
     <!-- telefon: najczęstsze rzeczy pod kciukiem -->
     <nav class="hm-quick" aria-label="Skróty">
       <button v-if="sermonService" @click="open(sermonService)"><svg class="i"><use href="#book"/></svg>Kazanie</button>
-      <button @click="openPray"><svg class="i"><use href="#heart"/></svg>Modlitwa</button>
+      <button v-if="modOn('pray')" @click="openPray"><svg class="i"><use href="#heart"/></svg>Modlitwa</button>
       <button @click="openAnns"><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia</button>
-      <button @click="openServe('mine')"><svg class="i"><use href="#serve"/></svg>Grafik</button>
+      <button v-if="modOn('serve')" @click="openServe('mine')"><svg class="i"><use href="#serve"/></svg>Grafik</button>
     </nav>
 
     <SermonNotes v-if="notesService" :service="notesService" />
@@ -194,7 +194,7 @@ export default defineComponent({
     <!-- 1. Dla Ciebie: to, co czeka właśnie na tę osobę -->
     <section v-if="api.enabled" class="hm-sec hm-for">
       <h3 class="hw-h"><span class="hw-step">1</span>Dla Ciebie<small v-if="forYou.length + invites">{{ forYou.length + invites }}</small></h3>
-      <DutyInvites compact />
+      <DutyInvites v-if="modOn('grafik')" compact />
       <div v-if="forYou.length" class="hm-for-list">
         <button v-for="it in forYou" :key="it.key" class="hm-for-it" @click="it.go()">
           <span class="hm-for-ic"><svg class="i"><use :href="'#' + it.icon"/></svg></span>
@@ -258,7 +258,7 @@ export default defineComponent({
     </section>
 
     <!-- skład na najbliższą niedzielę: kto służy, z rolą i potwierdzeniem -->
-    <SundayLineup v-if="api.enabled" class="hm-sec" />
+    <SundayLineup v-if="api.enabled && modOn('grafik')" class="hm-sec" />
 
     <section v-if="reviewItems.length" class="kh-panel kh-review">
       <div class="kh-panel-h"><h2>{{ canReview ? 'Do zatwierdzenia' : 'Twoje zgłoszenia' }}</h2><span class="kh-muted">{{ canReview ? 'czekają na Twoją decyzję' : 'czekają na zatwierdzenie' }}</span></div>

@@ -67,6 +67,7 @@ const TasksView = lazy(() => import('@/views/TasksView.vue'))
 const FinanceView = lazy(() => import('@/views/FinanceView.vue'))
 const KidsView = lazy(() => import('@/views/KidsView.vue'))
 const TranslateView = lazy(() => import('@/views/TranslateView.vue'))
+const ModulesView = lazy(() => import('@/views/ModulesView.vue'))
 const ServiceEditView = lazy(() => import('@/views/ServiceEditView.vue'))
 import PublicListen from '@/components/PublicListen.vue'
 const BandPickDialog = lazy(() => import('@/components/dialogs/BandPickDialog.vue'))
@@ -107,7 +108,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.18 · 8.11.2026'
+const VERSION = '4.19 · 8.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -215,7 +216,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, IosInstall, Prayers, TasksView, FinanceView, KidsView, TranslateView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, IosInstall, Prayers, TasksView, FinanceView, KidsView, TranslateView, ModulesView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -520,7 +521,8 @@ export default defineComponent({
     setInterval(() => { if (!document.hidden && Date.now() > heroHold) heroArt.value = (heroArt.value + 1) % HERO_ART.value.length }, 9000)
     function heroStep(d) { heroArt.value = (heroArt.value + d + HERO_ART.value.length) % HERO_ART.value.length; heroHold = Date.now() + 20000 }
     const mapLink = place => (/^(online|zoom|teams|meet)\b/i.test(String(place).trim()) ? null : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place))
-    const sideNav = computed(() => {
+    const sideNav = computed(() => navGroups.value.map(g => ({ ...g, items: g.items.filter(it => modOn(NAV_MODULE[it.id] || it.id)) })).filter(g => g.items.length))
+    const navGroups = computed(() => {
       const tech = canCamera.value
       return [
         { title: '', items: [
@@ -549,6 +551,7 @@ export default defineComponent({
           ...(canManage.value ? [{ id: 'people', icon: 'user', name: 'Osoby', badge: pendingCount.value || '' }] : []),
           ...(canMsg.value ? [{ id: 'msg', icon: 'mail', name: 'Wyślij wiadomość' }] : []),
           ...(cueTopic && tech && !inApp ? [{ id: 'camera', icon: 'camera', name: 'Kamera (sygnały)' }] : []),
+          ...(canManage.value ? [{ id: 'moduly', icon: 'menu', name: 'Moduły' }] : []),
           { id: 'bugs', icon: 'alert', name: canManage.value || (me.value?.roles || []).includes('dev') ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' },
         ] },
       ]
@@ -560,7 +563,7 @@ export default defineComponent({
         home: !editor && !other, cal: (!!currentEvent.value || calView.value || gcalView.value) && !current.value, svc: !!current.value || (svcListView.value && !currentEvent.value), anns: annView.value || !!currentAnn.value,
         serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !canAsb.value), myserve: (serveView.value && serveTab.value === 'mine') || (asbView.value && canAsb.value), goals: goalsView.value, pray: prayView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
-        zadania: page.value === 'zadania', finanse: page.value === 'finanse', dzieci: page.value === 'dzieci', tlumaczenie: page.value === 'tlumaczenie',
+        moduly: page.value === 'moduly', zadania: page.value === 'zadania', finanse: page.value === 'finanse', dzieci: page.value === 'dzieci', tlumaczenie: page.value === 'tlumaczenie',
       }[id] || false
     }
     // telefon: przesunięcie palcem między zakładkami dolnego menu (Start, Kalendarz, Zaangażuj się, Więcej)
@@ -1904,7 +1907,38 @@ export default defineComponent({
     /* ---------- Wybory i głosowania (wybory.sql) ---------- */
     const votesView = ref(false), bugsView = ref(false), prayView = ref(false) // prayView — Modlitwa (osobna strona)
     // Nowe strony (wzór: Avenit) — jeden przełącznik zamiast osobnego dla każdej: zadania, finanse służb, dzieci, tłumaczenie.
-    const PAGES = { zadania: 'Zadania', finanse: 'Finanse służb', dzieci: 'Dzieci', tlumaczenie: 'Tłumaczenie na żywo' }
+    const PAGES = { zadania: 'Zadania', finanse: 'Finanse służb', dzieci: 'Dzieci', tlumaczenie: 'Tłumaczenie na żywo', moduly: 'Moduły' }
+    // Moduły (wzór: Avenit): administrator wyłącza części aplikacji dla całego kościoła (site_settings „moduly”: { off: [...] }).
+    // Wyłączone znikają z menu, Startu i adresów; nowe moduły są domyślnie włączone. „Grafik” działa tylko przy włączonych służbach.
+    const MODULES = [
+      { id: 'serve', group: 'Wspólnota', icon: 'serve', name: 'Służby', desc: 'Zaangażuj się, Moja służba, dyspozycyjność, członkowie i pliki służb' },
+      { id: 'grafik', group: 'Wspólnota', icon: 'calendar', name: 'Grafik i potwierdzenia', desc: 'Zaproszenia „Przyjmuję / Nie mogę”, skład na niedzielę, przypomnienia' },
+      { id: 'zadania', group: 'Wspólnota', icon: 'tasks', name: 'Zadania', desc: 'Tablice zadań kościoła i służb' },
+      { id: 'dzieci', group: 'Wspólnota', icon: 'kid', name: 'Dzieci', desc: 'Meldowanie dzieci z kodem odbioru' },
+      { id: 'pray', group: 'Wspólnota', icon: 'heart', name: 'Modlitwa', desc: 'Ściana modlitwy i modlitwa dnia' },
+      { id: 'goals', group: 'Wspólnota', icon: 'money', name: 'Cele wsparcia', desc: 'Deklaracje z dziesięciny i cele' },
+      { id: 'votes', group: 'Wspólnota', icon: 'check', name: 'Głosowania', desc: 'Wybory i tajne głosowania' },
+      { id: 'listen', group: 'Wspólnota', icon: 'music', name: 'Posłuchaj', desc: 'Linki do YouTube i Spotify' },
+      { id: 'songs', group: 'Narzędzia', icon: 'music', name: 'Pieśni', desc: 'Baza pieśni z akordami' },
+      { id: 'mats', group: 'Narzędzia', icon: 'list', name: 'Materiały', desc: 'Protokoły, instrukcje i pliki' },
+      { id: 'finanse', group: 'Narzędzia', icon: 'money', name: 'Finanse służb', desc: 'Plany i wydatki służb' },
+      { id: 'tlumaczenie', group: 'Narzędzia', icon: 'globe', name: 'Tłumaczenie na żywo', desc: 'Tłumacz nadaje, słuchacze z kodu QR' },
+    ]
+    const NAV_MODULE = { myserve: 'serve' }
+    const MOD_NEEDS = { grafik: 'serve' }
+    const modules = ref({ off: [] })
+    const modOn = id => !(modules.value.off || []).includes(id) && (!MOD_NEEDS[id] || modOn(MOD_NEEDS[id]))
+    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], ...(v || {}) } }).catch(() => null)
+    async function setModule(id, on) {
+      const off = new Set(modules.value.off || [])
+      if (on) off.delete(id); else off.add(id)
+      const next = { off: [...off] }
+      await api.call('setModules', next)
+      modules.value = next
+    }
+    loadModules()
+    // moduł wyłączony (także gdy ustawienie dojdzie po otwarciu adresu) — jego strona się zamyka
+    watch(modules, () => { if (page.value && page.value !== 'moduly' && !modOn(page.value)) page.value = '' })
     const page = ref('')
     function openPage(p) { resetViews(); page.value = p; scrollTo(0, 0) }
     // liczba moich otwartych zadań (znaczek w menu)
@@ -2522,7 +2556,7 @@ export default defineComponent({
         else if (view === 'wydawka') { openAnns(); annTab.value = 'gift'; giftOpen.value = id }
         else if (view === 'ankiety') { openAnns(); annTab.value = 'survey'; surveyOpen.value = id }
         else if (view === 'modlitwa') prayView.value = true
-        else if (PAGES[view]) page.value = view
+        else if (PAGES[view] && modOn(view) && (view !== 'moduly' || canManage.value)) page.value = view
         else if (view === 'ogloszenie') {
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
@@ -2602,7 +2636,7 @@ export default defineComponent({
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      prayView, openPray, page, PAGES, openPage, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
@@ -2820,6 +2854,7 @@ export default defineComponent({
   <FinanceView v-else-if="page === 'finanse' && !current" />
   <KidsView v-else-if="page === 'dzieci' && !current" />
   <TranslateView v-else-if="page === 'tlumaczenie' && !current" />
+  <ModulesView v-else-if="page === 'moduly' && canManage && !current" />
   <ServicesView v-else-if="svcListView && !current" />
   <BugsView v-else-if="bugsView && !current" />
 
