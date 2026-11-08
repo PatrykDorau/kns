@@ -82,6 +82,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
 
   const api = {
     enabled: true,
+    client: sb, // kanały Realtime (tłumaczenie na żywo)
     async call(action, data: any = {}) {
       if (action === 'public') return check(await sb.rpc('public_preview'))
       // „Posłuchaj”: linki YouTube i Spotify (czyta każdy, także gość; zmienia administrator).
@@ -148,7 +149,40 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'availabilityRemind') return check(await sb.rpc('availability_remind', { mid: data.id }))
       // grafik służby (lider): osoba na niedzielę — tak/nie; wysłanie grafiku (powiadomienia)
       if (action === 'scheduleToggle') return check(await sb.rpc('schedule_toggle', { mid: data.id, d: data.day, who: data.person }))
-      if (action === 'schedulePublish') return check(await sb.rpc('schedule_publish', { mid: data.id }))
+      if (action === 'schedulePublish') { const n = check(await sb.rpc('schedule_publish', { mid: data.id })); if (n) await pushInbox().catch(() => null); return n }
+      // grafik, część 2: role, odpowiedzi na zaproszenia, moje służby, skład na niedzielę
+      if (action === 'scheduleRole') return check(await sb.rpc('schedule_role', { mid: data.id, d: data.day, who: data.person, r: data.role || '' }))
+      if (action === 'ministryRoles') return check(await sb.rpc('ministry_set_roles', { mid: data.id, r: data.roles || [] }))
+      if (action === 'scheduleAnswer') { const r = check(await sb.rpc('schedule_answer', { mid: data.id, d: data.day, ok: !!data.ok })); if (!data.ok) await pushInbox().catch(() => null); return r }
+      if (action === 'myDuties') return check(await sb.rpc('my_duties')) || []
+      if (action === 'sundayLineup') return check(await sb.rpc('sunday_lineup'))
+      // projekty i zadania
+      if (action === 'tasks') return check(await sb.rpc('tasks_board')) || []
+      if (action === 'myTasks') return check(await sb.rpc('my_tasks')) || []
+      if (action === 'taskSave') { const id = check(await sb.rpc('task_save', { t: { id: data.id || '', board: data.board || '', title: data.title, notes: data.notes || '', status: data.status, priority: data.priority, assignee: data.assignee || '', due: data.due || '' } })); await pushInbox().catch(() => null); return id }
+      if (action === 'taskStatus') return check(await sb.rpc('task_status', { tid: data.id, st: data.status }))
+      if (action === 'taskDelete') return check(await sb.rpc('task_delete', { tid: data.id }))
+      // finanse służb
+      if (action === 'finance') return check(await sb.rpc('finance_board', { y: data.year }))
+      if (action === 'financePlan') return check(await sb.rpc('finance_plan', { mid: data.id, y: data.year, amount: data.amount, n: data.note || '' }))
+      if (action === 'financeExpense') return check(await sb.rpc('finance_expense_add', { mid: data.id, d: data.day || null, amount: data.amount, t: data.title }))
+      if (action === 'financeExpenseDelete') return check(await sb.rpc('finance_expense_delete', { eid: data.id }))
+      // meldowanie dzieci
+      if (action === 'kids') return check(await sb.rpc('kids_mine'))
+      if (action === 'kidsBoard') return check(await sb.rpc('kids_board')) || []
+      if (action === 'kidSave') return check(await sb.rpc('kid_save', { k: { id: data.id || '', name: data.name, born: String(data.born || ''), allergies: data.allergies || '', notes: data.notes || '' } }))
+      if (action === 'kidDelete') return check(await sb.rpc('kid_delete', { kid_id: data.id }))
+      if (action === 'kidCheckin') return check(await sb.rpc('kid_checkin', { kid_ids: data.kids, r: data.room || '' }))
+      if (action === 'kidPickup') { const n = check(await sb.rpc('kid_pickup', { c: data.code })); await pushInbox().catch(() => null); return n }
+      if (action === 'kidsRooms') return check(await sb.rpc('kids_rooms_set', { r: data.rooms }))
+      // tłumaczenie na żywo
+      if (action === 'tlInfo') return check(await sb.rpc('tl_info'))
+      if (action === 'tlStart') return check(await sb.rpc('tl_start', { l: data.lang, nm: data.name || '' }))
+      if (action === 'tlPing') return check(await sb.rpc('tl_ping', { sid: data.id, n: data.listeners || 0 }))
+      if (action === 'tlStop') return check(await sb.rpc('tl_stop', { sid: data.id }))
+      if (action === 'tlLive') return check(await sb.rpc('tl_live')) || []
+      if (action === 'tlMinistry') return check(await sb.rpc('tl_ministry_set', { mid: data.id, on_: !!data.on }))
+      if (action === 'kidsMinistry') return check(await sb.rpc('kids_ministry_set', { mid: data.id, on_: !!data.on }))
       if (action === 'joinMinistry') return check(await sb.rpc('ministry_join', { mid: data.id }))
       if (action === 'leaveMinistry') return check(await sb.rpc('ministry_leave', { mid: data.id }))
       if (action === 'decideMinistry') return check(await sb.rpc('ministry_decide', { mid: data.id, who: data.who, accept: !!data.accept }))
@@ -158,6 +192,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'signupBoard') return check(await sb.rpc('signup_board', { eid: data.id }))
       if (action === 'signupJoin') return { status: check(await sb.rpc('signup_join', { eid: data.id, new_adults: data.adults, new_children: data.children || 0, new_note: data.note || '' })) }
       if (action === 'signupLeave') return check(await sb.rpc('signup_leave', { eid: data.id }))
+      if (action === 'signupPaid') return check(await sb.rpc('signup_paid', { eid: data.id, who: data.who, amount: data.amount }))
       if (action === 'signupDecide') return { status: check(await sb.rpc('signup_decide', { eid: data.id, who: data.who, decision: data.decision })) }
       // ASB: grafik spotkań i lista pomysłów (ranga „ASB” albo administrator — pilnuje baza).
       if (action === 'asbLoad') {

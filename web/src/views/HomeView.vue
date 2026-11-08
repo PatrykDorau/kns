@@ -4,29 +4,42 @@ import { computed, defineComponent, onMounted, reactive, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
 import SermonNotes from '@/components/SermonNotes.vue'
 import CardDeck from '@/components/CardDeck.vue'
+import DutyInvites, { duties, loadDuties } from '@/components/DutyInvites.vue'
+import SundayLineup from '@/components/SundayLineup.vue'
 
 // HomeView
 export default defineComponent({
-  components: { SermonNotes, CardDeck },
+  components: { SermonNotes, CardDeck, DutyInvites, SundayLineup },
   setup() {
     const app = useApp()
     // „Dla Ciebie”: grafik i dyspozycyjność w moich służbach, ankiety bez mojej odpowiedzi, modlitwa dnia/tygodnia
-    const mine = reactive({ av: [], surveys: [], focus: [], loaded: false })
+    const mine = reactive({ av: [], surveys: [], focus: [], tasks: [], loaded: false })
     async function loadMine() {
       if (!app.api.enabled || !app.ready.value) return
-      const [av, sv, fc] = await Promise.all(['availability', 'surveys', 'prayerFocus'].map(a => app.api.call(a).catch(() => null)))
-      mine.av = av || []; mine.surveys = sv?.list || (Array.isArray(sv) ? sv : []); mine.focus = fc || []; mine.loaded = true
+      const [av, sv, fc, tk] = await Promise.all(['availability', 'surveys', 'prayerFocus', 'myTasks'].map(a => app.api.call(a).catch(() => null)))
+      mine.av = av || []; mine.surveys = sv?.list || (Array.isArray(sv) ? sv : []); mine.focus = fc || []; mine.tasks = tk || []; mine.loaded = true
     }
     onMounted(loadMine)
     watch(app.ready, r => { if (r && !mine.loaded) loadMine() })
     const today = () => app.todayStr.value
     const soon = d => d >= today() && (new Date(d + 'T12:00').getTime() - new Date(today() + 'T12:00').getTime()) / 864e5 <= 14
-    // moje niedziele w grafiku (najbliższe 2 tygodnie)
-    const myDuties = computed(() => {
-      const out = []
-      for (const m of mine.av) for (const [d, ids] of Object.entries(m.plan || {})) if (soon(d) && (ids || []).includes(m.you)) out.push({ day: d, name: m.name })
-      return out.sort((a, b) => a.day.localeCompare(b.day))
+    // moje przyjęte służby (najbliższe 2 tygodnie) — zaproszenia czekające na odpowiedź są osobno, nad listą (DutyInvites)
+    onMounted(() => loadDuties(app))
+    watch(app.ready, r => { if (r) loadDuties(app) })
+    const myDuties = computed(() => duties.list.filter(x => x.state === 'yes' && soon(x.day)).map(x => ({ day: x.day, name: x.role ? x.name + ' · ' + x.role : x.name })))
+    const invites = computed(() => duties.list.filter(x => x.state === 'sent').length)
+    // „Przed Tobą” (wzór: Avenit): zaproszenia, przyjęte służby, otwarte zadania — liczby z przejściem do miejsca
+    // odmiana: 1 służba, 2–4 służby, 5+ (i 0) służb
+    const pl = (n, one, few, many) => (n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many)
+    const ahead = computed(() => {
+      const inv = invites.value, duty = duties.list.filter(x => x.state === 'yes').length, task = mine.tasks.length
+      return [
+        { key: 'inv', n: inv, label: pl(inv, 'zaproszenie', 'zaproszenia', 'zaproszeń') + ' do służby', go: () => app.openServe('mine') },
+        { key: 'duty', n: duty, label: pl(duty, 'służba', 'służby', 'służb') + ' przed Tobą', go: () => app.openServe('mine') },
+        { key: 'task', n: task, label: pl(task, 'zadanie', 'zadania', 'zadań') + ' do zrobienia', go: () => app.openPage('zadania') },
+      ]
     })
+    const aheadLine = computed(() => { const n = ahead.value[1].n; return n ? n + ' ' + ahead.value[1].label + '.' : 'Oto co dzieje się w kościele.' })
     // służby, w których brakuje mojej dyspozycyjności na najbliższe 4 niedziele
     const avMissing = computed(() => mine.av.filter(m => m.member).map(m => ({ name: m.name, n: (m.days || []).slice(0, 4).filter(d => !m.mine?.[d]).length })).filter(x => x.n))
     const roleOn = d => [...new Set(myDuties.value.filter(x => x.day === d).map(x => x.name))]
@@ -36,6 +49,7 @@ export default defineComponent({
       for (const x of myDuties.value) (byDay[x.day] ||= []).push(x.name)
       for (const [d, names] of Object.entries(byDay)) out.push({ key: 'g' + d, icon: 'serve', title: [...new Set(names)].join(', '), sub: 'Jesteś w grafiku · ' + dutyDay(d), go: () => app.openServe('mine') })
       for (const x of avMissing.value) out.push({ key: 'a' + x.name, icon: 'calendar', title: x.name, sub: 'Podaj dyspozycyjność · ' + (x.n === 1 ? 'brakuje 1 niedzieli' : 'brakuje ' + x.n + ' niedziel'), go: () => app.openServe('mine') })
+      for (const t of mine.tasks.slice(0, 4)) out.push({ key: 't' + t.id, icon: 'tasks', title: t.title, sub: 'Zadanie · ' + t.board + (t.due ? ' · termin ' + app.shortDate(t.due) : ''), go: () => app.openPage('zadania') })
       for (const v of (app.votes.list || []).filter(x => x.status === 'voting' && !x.voted)) out.push({ key: 'v' + v.id, icon: 'check', title: 'Głosowanie: ' + v.title, sub: 'oddaj tajny głos', go: () => app.goToVote(v) })
       for (const sv of mine.surveys.filter(x => x.status === 'open' && !x.answered)) out.push({ key: 's' + sv.id, icon: 'list', title: 'Ankieta: ' + sv.title, sub: sv.closes ? 'odpowiedz do ' + app.shortDate(sv.closes) : 'czeka na Twoją odpowiedź', go: () => { app.openAnns(); app.annTab.value = 'survey'; app.surveyOpen.value = sv.id } })
       if (app.goalDue.value) out.push({ key: 'goal', icon: 'money', title: 'Cele wsparcia: ' + app.monthName(app.goalDue.value.month).split(' ')[0], sub: 'podaj kwotę i rozdziel ' + app.goals.status.percent + '% do ' + app.monthEnd.value, go: () => app.openGoals() })
@@ -117,7 +131,7 @@ export default defineComponent({
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, photoTiles, hasThoughts, hasPhotos }
+    return { ...app, invites, ahead, aheadLine, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, photoTiles, hasThoughts, hasPhotos }
   },
 })
 </script>
@@ -125,9 +139,16 @@ export default defineComponent({
 <template>
   <!-- Strona startowa (komputer i telefon): powitanie, skróty, myśli z kazania, „Dla Ciebie”, nabożeństwo i ponumerowane sekcje. -->
   <div class="kh kh-web">
-    <div class="kh-hello hm-hello">
-      <h1><span class="hm-dim">{{ greeting }}{{ firstName ? ',' : '' }}</span> {{ firstName || '' }}</h1>
-      <p>Oto co dzieje się w kościele.</p>
+    <div class="hm-top">
+      <div class="kh-hello hm-hello">
+        <h1><span class="hm-dim">{{ greeting }}{{ firstName ? ',' : '' }}</span> {{ firstName || '' }}</h1>
+        <p>{{ api.enabled ? aheadLine : 'Oto co dzieje się w kościele.' }}</p>
+      </div>
+      <!-- „Przed Tobą”: trzy liczby, każda prowadzi do swojego miejsca -->
+      <aside v-if="api.enabled && ready" class="hm-ahead" aria-label="Przed Tobą">
+        <small>Przed Tobą</small>
+        <button v-for="a in ahead" :key="a.key" :class="{ zero: !a.n }" @click="a.go()"><b>{{ a.n }}</b><span>{{ a.label }}</span></button>
+      </aside>
     </div>
 
     <!-- telefon: najczęstsze rzeczy pod kciukiem -->
@@ -172,7 +193,8 @@ export default defineComponent({
 
     <!-- 1. Dla Ciebie: to, co czeka właśnie na tę osobę -->
     <section v-if="api.enabled" class="hm-sec hm-for">
-      <h3 class="hw-h"><span class="hw-step">1</span>Dla Ciebie<small v-if="forYou.length">{{ forYou.length }}</small></h3>
+      <h3 class="hw-h"><span class="hw-step">1</span>Dla Ciebie<small v-if="forYou.length + invites">{{ forYou.length + invites }}</small></h3>
+      <DutyInvites compact />
       <div v-if="forYou.length" class="hm-for-list">
         <button v-for="it in forYou" :key="it.key" class="hm-for-it" @click="it.go()">
           <span class="hm-for-ic"><svg class="i"><use :href="'#' + it.icon"/></svg></span>
@@ -180,7 +202,7 @@ export default defineComponent({
           <svg class="i hw-arr"><use href="#chev"/></svg>
         </button>
       </div>
-      <p v-else class="hm-calm">Nic na Ciebie nie czeka. Dobrego tygodnia!</p>
+      <p v-else-if="!invites" class="hm-calm">Nic na Ciebie nie czeka. Dobrego tygodnia!</p>
     </section>
 
     <!-- komunikaty rady: baner -->
@@ -234,6 +256,9 @@ export default defineComponent({
         <span>{{ DEFAULT_PLACE }} · szczegóły pojawią się wkrótce</span>
       </div>
     </section>
+
+    <!-- skład na najbliższą niedzielę: kto służy, z rolą i potwierdzeniem -->
+    <SundayLineup v-if="api.enabled" class="hm-sec" />
 
     <section v-if="reviewItems.length" class="kh-panel kh-review">
       <div class="kh-panel-h"><h2>{{ canReview ? 'Do zatwierdzenia' : 'Twoje zgłoszenia' }}</h2><span class="kh-muted">{{ canReview ? 'czekają na Twoją decyzję' : 'czekają na zatwierdzenie' }}</span></div>
@@ -392,3 +417,24 @@ export default defineComponent({
   </div>
   </div>
 </template>
+<style scoped>
+/* „Przed Tobą” obok powitania (wzór: Avenit) — ciemny kafelek z trzema liczbami */
+.hm-top { display: flex; align-items: stretch; gap: 16px; }
+.hm-top .hm-hello { flex: 1; min-width: 0; }
+.hm-ahead { flex: none; width: 260px; display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 20px; background: #221d16; color: #f6efe2; position: relative; overflow: hidden; }
+.hm-ahead::after { content: ""; position: absolute; right: -40px; bottom: -60px; width: 160px; height: 160px; border-radius: 50%; border: 22px solid rgba(242, 165, 60, .12); pointer-events: none; }
+.hm-ahead > small { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.hm-ahead button { display: flex; align-items: baseline; gap: 10px; min-height: 0 !important; padding: 3px 0 !important; background: none !important; border: 0 !important; color: inherit !important; text-align: left; border-radius: 0 !important; box-shadow: none !important; }
+.hm-ahead b { min-width: 22px; font: 700 22px/1.1 var(--display); color: var(--accent); font-variant-numeric: tabular-nums; }
+.hm-ahead span { font-size: 14px; }
+.hm-ahead button.zero { opacity: .55; }
+@media (hover: hover) { .hm-ahead button:hover span { text-decoration: underline; text-underline-offset: 3px; } }
+@media (max-width: 760px) {
+  .hm-top { flex-direction: column; gap: 10px; }
+  .hm-ahead { width: auto; flex-direction: row; align-items: stretch; gap: 0; padding: 10px 6px; }
+  .hm-ahead > small { display: none; }
+  .hm-ahead button { flex: 1; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+  .hm-ahead span { font-size: 12px; line-height: 1.2; }
+  .hm-ahead::after { display: none; }
+}
+</style>

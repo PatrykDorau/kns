@@ -129,6 +129,12 @@
   to = "/napisy.html"
   status = 200
 
+# tłumaczenie na żywo — strona słuchacza (kod QR z plakatu, bez konta)
+[[redirects]]
+  from = "/sluchaj"
+  to = "/sluchaj.html"
+  status = 200
+
 # pilot kaznodziei (telefon) — przełącza slajdy prezentacji na rzutniku
 [[redirects]]
   from = "/pilot"

@@ -73,7 +73,9 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
       <div v-if="signup.board.mine" class="su-mine" :class="signup.board.mine.status">
         <svg class="i"><use :href="signup.board.mine.status === 'confirmed' ? '#check' : '#bell'"/></svg>
         <span>{{ SIGNUP_STATUS[signup.board.mine.status] }} · {{ seatsText(signup.board.mine) }}</span>
+        <em v-if="+signup.board.mine.due" class="su-pay" :class="{ paid: +signup.board.mine.paid >= +signup.board.mine.due }">{{ +signup.board.mine.paid >= +signup.board.mine.due ? 'Opłacone ' + zlg(signup.board.mine.due) : 'Do zapłaty ' + zlg(signup.board.mine.due - signup.board.mine.paid) }}</em>
       </div>
+      <p v-if="signup.board.price" class="su-price"><svg class="i"><use href="#money"/></svg><span><b>{{ zlg(signup.board.price) }} za osobę<template v-if="signup.board.kids && signup.board.priceChild != null"> · dziecko {{ zlg(signup.board.priceChild) }}</template></b><small v-if="signup.board.account">Przelew: {{ signup.board.account }}<template v-if="signup.board.mine"> · tytuł: {{ currentEvent.title }} — {{ me?.name || '' }}</template></small><small v-else>Płatność u organizatora</small></span></p>
       <template v-if="signup.board.open">
         <div class="su-form">
           <div><label>Dorośli</label><div class="stepper"><button type="button" aria-label="Mniej dorosłych" @click="signup.adults = Math.max(0, signup.adults - 1)">−</button><b>{{ signup.adults }}</b><button type="button" aria-label="Więcej dorosłych" @click="signup.adults++">+</button></div></div>
@@ -86,11 +88,13 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
         </div>
       </template>
       <!-- twórca wydarzenia / prawo edycji: lista zapisanych -->
+      <p v-if="signup.board.manage && signup.board.money && +signup.board.money.due" class="su-money"><span>Wpłacono <b>{{ zlg(signup.board.money.paid) }}</b> z {{ zlg(signup.board.money.due) }}</span><span class="su-bar"><span :style="{ width: Math.min(100, signup.board.money.paid / signup.board.money.due * 100) + '%' }"></span></span></p>
       <div v-if="signup.board.manage && signup.board.list.length" class="su-list">
         <template v-for="g in signupGroups" :key="g.id">
           <small>{{ g.title }} ({{ g.list.reduce((n, p) => n + p.adults + p.children, 0) }})</small>
           <div v-for="p in g.list" :key="p.id" class="mn-person">
             <span><b>{{ p.name }}</b><small>{{ seatsText(p) }}<template v-if="p.grupa"> · {{ p.grupa }}</template><template v-if="p.note"> · {{ p.note }}</template></small></span>
+            <button v-if="+p.due && p.status === 'confirmed'" class="su-paid" :class="{ on: +p.paid >= +p.due }" :disabled="busy" :title="+p.paid >= +p.due ? 'Cofnij wpłatę' : 'Zaznacz wpłatę ' + zlg(p.due)" @click="signupPaid(p)">{{ +p.paid >= +p.due ? '✓ ' + zlg(p.paid) : zlg(p.due) }}</button>
             <button v-if="p.status !== 'confirmed'" class="primary" :disabled="busy" @click="signupDecide(p, 'confirm')">Potwierdź</button>
             <button v-if="p.status === 'pending'" :disabled="busy" @click="signupDecide(p, 'reserve')">Rezerwa</button>
             <button class="icon" :disabled="busy" :aria-label="'Usuń ' + p.name + ' z zapisów'" title="Usuń z zapisów" @click="signupDecide(p, 'remove')"><svg class="i"><use href="#x"/></svg></button>
@@ -169,6 +173,11 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
             <div><label for="suMax">Limit miejsc</label><input id="suMax" v-model.number="currentEvent.signup.max" type="number" min="1" inputmode="numeric" placeholder="bez limitu"></div>
             <div><label for="suUntil">Zapisy do</label><input id="suUntil" v-model="currentEvent.signup.until" type="date" :max="currentEvent.date"></div>
           </div>
+          <div class="row">
+            <div><label for="suPrice">Cena za osobę (zł)</label><input id="suPrice" v-model="currentEvent.signup.price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="bezpłatne"></div>
+            <div v-if="currentEvent.signup.kids"><label for="suPriceK">Cena za dziecko (zł)</label><input id="suPriceK" v-model="currentEvent.signup.priceChild" type="number" min="0" step="0.01" inputmode="decimal" placeholder="jak dorosły"></div>
+          </div>
+          <div v-if="currentEvent.signup.price"><label for="suAcc">Dane do przelewu (opcjonalnie)</label><input id="suAcc" v-model="currentEvent.signup.account" maxlength="200" placeholder="np. PL 12 3456 … — Kościół Na Skale"></div>
           <label class="check"><input v-model="currentEvent.signup.kids" type="checkbox">Można zapisać dzieci (liczą się do limitu)</label>
           <label class="check"><input v-model="currentEvent.signup.approval" type="checkbox">Zapisy zatwierdza twórca wydarzenia</label>
           <p class="note" style="margin:4px 0 0">{{ currentEvent.signup.approval ? 'Każdy zapis czeka na Twoje potwierdzenie (dostaniesz powiadomienie). Gdy brak miejsc — potwierdzony trafia na listę rezerwową.' : 'Zapis od razu na listę; gdy brak miejsc — na listę rezerwową, a po zwolnieniu miejsca wchodzi sam.' }}<template v-if="!currentEvent.signup.until"> Bez daty — zapisy do dnia wydarzenia.</template></p>
@@ -211,3 +220,17 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
   </div>
   </template>
 </template>
+
+<style scoped>
+/* zapisy z wpłatą */
+.su-price { display: flex; gap: 12px; align-items: center; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); }
+.su-price svg.i { flex: none; width: 22px; height: 22px; color: var(--accent-text); }
+.su-price span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.su-price small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.su-pay { margin-left: auto; font-style: normal; font-weight: 600; color: var(--accent-text); white-space: nowrap; }
+.su-pay.paid { color: var(--ok-text); }
+.su-money { display: grid; gap: 6px; margin: 0; font-size: 14px; color: var(--muted); }
+.su-money b { color: var(--text); }
+.su-paid { min-height: 34px !important; padding: 4px 12px !important; font-size: 13px; font-weight: 600 !important; }
+.su-paid.on { background: var(--ok-soft) !important; color: var(--ok-text) !important; }
+</style>

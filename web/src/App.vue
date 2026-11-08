@@ -63,6 +63,10 @@ const CardDeck = lazy(() => import('@/components/CardDeck.vue'), true)
 import GuestView from '@/views/GuestView.vue'
 const IosInstall = lazy(() => import('@/components/IosInstall.vue'))
 const Prayers = lazy(() => import('@/components/Prayers.vue'))
+const TasksView = lazy(() => import('@/views/TasksView.vue'))
+const FinanceView = lazy(() => import('@/views/FinanceView.vue'))
+const KidsView = lazy(() => import('@/views/KidsView.vue'))
+const TranslateView = lazy(() => import('@/views/TranslateView.vue'))
 const ServiceEditView = lazy(() => import('@/views/ServiceEditView.vue'))
 import PublicListen from '@/components/PublicListen.vue'
 const BandPickDialog = lazy(() => import('@/components/dialogs/BandPickDialog.vue'))
@@ -103,7 +107,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.17 · 2.11.2026'
+const VERSION = '4.18 · 8.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -211,7 +215,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, IosInstall, Prayers, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, IosInstall, Prayers, TasksView, FinanceView, KidsView, TranslateView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -271,7 +275,7 @@ export default defineComponent({
     const dirty = computed(() => !!current.value && JSON.stringify(current.value) !== saved.value)
     // Odliczanie do najbliższego nabożeństwa (do 2 godzin po rozpoczęciu — „trwa”).
     // Strona startowa (na szerokim ekranie — układ aplikacji na komputer).
-    const homeWide = computed(() => (ready.value || booting.value) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value && !prayView.value && !svcListView.value)
+    const homeWide = computed(() => (ready.value || booting.value) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && !calView.value && !moreView.value && !songView.value && !peopleView.value && !gcalView.value && !profileView.value && !serveView.value && !listenView.value && !asbView.value && !goalsView.value && !votesView.value && !prayView.value && !svcListView.value && !page.value)
     const showTabs = computed(() => (demo || !!clientId || useSupa) && !current.value && !song.value && !camera.value && !currentEvent.value && !tplView.value && !currentProto.value && !protoView.value && !currentAnn.value && !annView.value && ready.value)
     const now = ref(Date.now())
     setInterval(() => { now.value = Date.now() }, 1000)
@@ -485,9 +489,9 @@ export default defineComponent({
       theme.value = theme.value === 'dark' ? 'light' : 'dark'
       document.documentElement.dataset.theme = theme.value
       try { localStorage.setItem('kns-theme', theme.value) } catch { /* tryb prywatny */ }
-      document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#f4f3f1' : '#1a1a1a')
+      document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#efe8da' : '#1a1a1a')
     }
-    if (theme.value === 'light') document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#f5efe6')
+    if (theme.value === 'light') document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#efe8da')
     // Ilustracje w karcie najbliższego nabożeństwa — zmieniają się co 9 s (płynnie).
     // Karta najbliższego nabożeństwa: zdjęcia z ostatniego nabożeństwa (z Dysku, przez skrypt Google), a bez nich — ilustracje.
     const ILLUSTRATIONS = ['swit.svg', 'pole.svg', 'jezioro.svg', 'noc.svg']
@@ -532,12 +536,15 @@ export default defineComponent({
           { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '', beta: true },
           { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '', beta: true },
           { id: 'pray', icon: 'heart', name: 'Modlitwa' },
+          { id: 'zadania', icon: 'tasks', name: 'Zadania', badge: myTaskCount.value || '' },
+          { id: 'dzieci', icon: 'kid', name: 'Dzieci' },
           { id: 'listen', icon: 'music', name: 'Posłuchaj' },
         ] }] : []),
         { title: 'Narzędzia', items: [
           ...(inApp && tech ? [{ id: 'display', icon: 'monitor', name: 'Rzutnik' }, { id: 'stream', icon: 'camera', name: 'Stream' }] : []),
           { id: 'songs', icon: 'music', name: 'Pieśni' },
           { id: 'mats', icon: 'list', name: 'Materiały' },
+          ...(api.enabled ? [{ id: 'finanse', icon: 'money', name: 'Finanse służb' }, { id: 'tlumaczenie', icon: 'globe', name: 'Tłumaczenie' }] : []),
           ...(canEdit.value ? [{ id: 'tpl', icon: 'file', name: 'Szablony' }] : []),
           ...(canManage.value ? [{ id: 'people', icon: 'user', name: 'Osoby', badge: pendingCount.value || '' }] : []),
           ...(canMsg.value ? [{ id: 'msg', icon: 'mail', name: 'Wyślij wiadomość' }] : []),
@@ -548,11 +555,12 @@ export default defineComponent({
     })
     function navOn(id) {
       const editor = current.value || currentEvent.value || currentAnn.value || currentProto.value || song.value || tplType.value
-      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || prayView.value || svcListView.value || moreView.value
+      const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || prayView.value || svcListView.value || moreView.value || page.value
       return {
         home: !editor && !other, cal: (!!currentEvent.value || calView.value || gcalView.value) && !current.value, svc: !!current.value || (svcListView.value && !currentEvent.value), anns: annView.value || !!currentAnn.value,
         serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !canAsb.value), myserve: (serveView.value && serveTab.value === 'mine') || (asbView.value && canAsb.value), goals: goalsView.value, pray: prayView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
+        zadania: page.value === 'zadania', finanse: page.value === 'finanse', dzieci: page.value === 'dzieci', tlumaczenie: page.value === 'tlumaczenie',
       }[id] || false
     }
     // telefon: przesunięcie palcem między zakładkami dolnego menu (Start, Kalendarz, Zaangażuj się, Więcej)
@@ -580,6 +588,7 @@ export default defineComponent({
       else if (id === 'tpl') openTemplates()
       else if (id === 'people') openPeople()
       else if (id === 'profile') openProfile()
+      else if (PAGES[id]) openPage(id)
       else showServices()
       scrollTo(0, 0)
     }
@@ -847,6 +856,9 @@ export default defineComponent({
       await loadSignup(); status.value = SIGNUP_DONE[r.status] || 'Zapisano.'
     })
     const signupLeave = async () => { if ((await ask('Wypisać się z tego wydarzenia?'))) guard(async () => { await api.call('signupLeave', { id: currentEvent.value.id }); api.call('pushInbox').catch(() => {}); await loadSignup(); status.value = 'Wypisano.' }) }
+    // wpłata za zapis (bez płatności online): zarządzający zaznacza pełną kwotę albo cofa
+    function signupPaid(p) { guard(async () => { await api.call('signupPaid', { id: currentEvent.value.id, who: p.id, amount: +p.paid >= +p.due ? 0 : +p.due }); api.call('pushInbox').catch(() => {}); await loadSignup() }) }
+    const zlg = n => (Math.round(+n * 100) / 100).toLocaleString('pl', { minimumFractionDigits: +n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' zł'
     async function signupDecide(p, decision) {
       if (decision === 'remove' && !(await ask('Usunąć ' + p.name + ' z zapisów?'))) return
       guard(async () => { await api.call('signupDecide', { id: currentEvent.value.id, who: p.id, decision }); api.call('pushInbox').catch(() => {}); await loadSignup() })
@@ -1891,6 +1903,13 @@ export default defineComponent({
 
     /* ---------- Wybory i głosowania (wybory.sql) ---------- */
     const votesView = ref(false), bugsView = ref(false), prayView = ref(false) // prayView — Modlitwa (osobna strona)
+    // Nowe strony (wzór: Avenit) — jeden przełącznik zamiast osobnego dla każdej: zadania, finanse służb, dzieci, tłumaczenie.
+    const PAGES = { zadania: 'Zadania', finanse: 'Finanse służb', dzieci: 'Dzieci', tlumaczenie: 'Tłumaczenie na żywo' }
+    const page = ref('')
+    function openPage(p) { resetViews(); page.value = p; scrollTo(0, 0) }
+    // liczba moich otwartych zadań (znaczek w menu)
+    const myTaskCount = ref(0)
+    const loadMyTasks = () => api.enabled && api.call('myTasks').then(l => { myTaskCount.value = (l || []).length }).catch(() => null)
     /* ---------- zgłoś błąd / backlog (administrator i deweloperzy) ---------- */
     const BUG_STATUS = { new: 'Nowe', doing: 'W trakcie', done: 'Zrobione', rejected: 'Odrzucone' }
     const bugs = reactive({ list: [], backlog: false, busy: false, error: '', filter: 'open', people: [], open: 0, form: null })
@@ -2456,6 +2475,7 @@ export default defineComponent({
       if (goalsView.value) return goals.open ? '/cel/' + encodeURIComponent(goals.open) : '/cele'
       if (votesView.value) return '/glosowania'
       if (prayView.value) return '/modlitwa'
+      if (page.value) return '/' + page.value
       if (bugsView.value) return '/zgloszenia'
       if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
       if (svcListView.value) return '/nabozenstwa'
@@ -2476,8 +2496,12 @@ export default defineComponent({
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false; page.value = ''
     }
+    // inna strona otwarta zwykłym sposobem (każda ma własny przełącznik) — nowa strona się zamyka
+    watch(() => [calView.value, serveView.value, listenView.value, asbView.value, goalsView.value, svcListView.value, votesView.value, prayView.value, bugsView.value, profileView.value, songView.value, peopleView.value, moreView.value, gcalView.value, annView.value, protoView.value, tplView.value, current.value, song.value, currentEvent.value, currentAnn.value, currentProto.value, tplType.value],
+      v => { if (page.value && v.some(Boolean)) page.value = '' })
+    watch(ready, r => { if (r) loadMyTasks() }, { immediate: true })
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
     async function applyRoute(path) {
       routing++
@@ -2498,6 +2522,7 @@ export default defineComponent({
         else if (view === 'wydawka') { openAnns(); annTab.value = 'gift'; giftOpen.value = id }
         else if (view === 'ankiety') { openAnns(); annTab.value = 'survey'; surveyOpen.value = id }
         else if (view === 'modlitwa') prayView.value = true
+        else if (PAGES[view]) page.value = view
         else if (view === 'ogloszenie') {
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
@@ -2572,12 +2597,12 @@ export default defineComponent({
       el.classList.toggle('tabbed', showTabs.value)
       el.classList.toggle('home-wide', homeWide.value)
       el.classList.toggle('has-side', ready.value || booting.value)
-      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || prayView.value || svcListView.value || annView.value || protoView.value || tplView.value || songView.value))
+      el.classList.toggle('narrow', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || peopleView.value || gcalView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || prayView.value || page.value || svcListView.value || annView.value || protoView.value || tplView.value || songView.value))
       // edytory i formularze — węższe (czytelność); listy i przeglądy — szerokość strony głównej
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      prayView, openPray, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, page, PAGES, openPage, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
@@ -2592,10 +2617,10 @@ export default defineComponent({
       goalsView, goals, zl, thisMonth, prevMonth, monthName, monthShort, goalDue, goalLeft, monthEnd, goalPct, goalProj, goalProjAmount, openGoals, saveTithe, saveAllocation, saveShare,
       support, supportEdit, saveSupport, transferTitle, copiedWhat, copyText, newGoal, editGoal, saveGoal, removeGoal, toggleGoalPeople, pickGoalImage,
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
-      shareLink, shareTarget, qr, openQr, toast, showToast, updateReady, timeRange, annTab, giftOpen, surveyOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
+      shareLink, shareTarget, qr, openQr, loadQrLib, qrPng, toast, showToast, updateReady, timeRange, annTab, giftOpen, surveyOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
       inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
-      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, loginView, showLogin, gisBtn, gisOn, facebook, startFb, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
+      openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, signupPaid, zlg, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, loginView, showLogin, gisBtn, gisOn, facebook, startFb, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
       VISIBILITY, canAddProto, meetingEvents, eventTitle, eventProtocols, protoEditing, protoFile, pickProtoFile, protoUrl,
@@ -2791,6 +2816,10 @@ export default defineComponent({
   <!-- Wybory i głosowania: zgłoszenia → rada zatwierdza → tajne głosowanie (można kilka) → wyniki -->
   <VotesView v-else-if="votesView && !current" />
   <Prayers v-else-if="prayView && !current" />
+  <TasksView v-else-if="page === 'zadania' && !current" />
+  <FinanceView v-else-if="page === 'finanse' && !current" />
+  <KidsView v-else-if="page === 'dzieci' && !current" />
+  <TranslateView v-else-if="page === 'tlumaczenie' && !current" />
   <ServicesView v-else-if="svcListView && !current" />
   <BugsView v-else-if="bugsView && !current" />
 

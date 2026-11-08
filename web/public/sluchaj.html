@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#efe8da" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
+<title>Tłumaczenie na żywo — Kościół Na Skale</title>
+<link rel="icon" href="/favicon.png">
+<!-- Tłumaczenie na żywo dla słuchaczy (bez konta): lista języków, które właśnie nadają (funkcja bazy tl_live), wybór
+     języka → połączenie WebRTC prosto z urządzeniem tłumacza (sygnalizacja kanałem Realtime „kns-tl-<id>”; protokół
+     opisany w web/src/services/tlumacz.ts). Dźwięk gra w elemencie <audio>. Test z udawaną bazą: ?test=<id kanału>
+     (BroadcastChannel między kartami, bez bazy). -->
+<style>
+  :root { --bg: #efe8da; --panel: #f8f3e8; --panel2: #ece4d4; --text: #221d16; --muted: #5c5447; --accent: #f2a53c; --ok: #2f8a57; --bad: #c8423b; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --panel: #262626; --panel2: #303030; --text: #f4f4f2; --muted: #bcbcb8; --ok: #8fd19e; --bad: #ff8a8d; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 "Inter", system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 16px 40px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  header img { width: 44px; height: 44px; }
+  header b { display: block; font-size: 15px; }
+  header small { color: var(--muted); font-size: 13px; }
+  h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.1; letter-spacing: -.02em; }
+  .lead { margin: 0 0 22px; color: var(--muted); }
+  .langs { display: grid; gap: 10px; }
+  .lang { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; border: 0; border-radius: 20px; background: var(--panel); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .lang i { display: grid; place-items: center; width: 52px; height: 52px; flex: none; border-radius: 16px; background: var(--accent); color: #2a1906; font: 700 18px/1 inherit; font-style: normal; }
+  .lang span { flex: 1; font-size: 19px; font-weight: 600; }
+  .lang small { color: var(--muted); font-size: 13px; }
+  .empty { padding: 22px; border-radius: 20px; background: var(--panel); color: var(--muted); text-align: center; }
+  .player { display: none; text-align: center; padding: 28px 18px; border-radius: 24px; background: var(--panel); }
+  .player.on { display: block; }
+  .player .big { display: grid; place-items: center; width: 96px; height: 96px; margin: 0 auto 14px; border-radius: 50%; background: var(--accent); color: #2a1906; font: 700 28px/1 inherit; }
+  .player.live .big { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 14px rgba(242, 165, 60, .18); } }
+  .player h2 { margin: 0 0 4px; font-size: 24px; }
+  .state { margin: 0 0 18px; color: var(--muted); }
+  .state.ok { color: var(--ok); font-weight: 600; }
+  .state.bad { color: var(--bad); font-weight: 600; }
+  button.act { min-height: 52px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--text); color: var(--bg); font: 600 16px/1 inherit; cursor: pointer; }
+  button.ghost { background: var(--panel2); color: var(--text); margin-top: 10px; }
+  .vol { width: 100%; margin: 6px 0 18px; accent-color: var(--accent); }
+  .tip { margin-top: 22px; color: var(--muted); font-size: 14px; }
+  .en { display: block; font-size: 13px; opacity: .8; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="/icon-192.png" alt=""><div><b>Kościół Na Skale</b><small>Tłumaczenie na żywo · Live translation</small></div></header>
+  <section id="pick">
+    <h1>Wybierz język<span class="en">Choose your language</span></h1>
+    <p class="lead">Załóż słuchawki i stuknij język. / Put on headphones and tap a language.</p>
+    <div id="langs" class="langs"><div class="empty">Sprawdzam… / Checking…</div></div>
+  </section>
+  <section id="player" class="player">
+    <div class="big" id="code">EN</div>
+    <h2 id="name">English</h2>
+    <p id="state" class="state">Łączę… / Connecting…</p>
+    <label for="vol" class="tip" style="display:block;margin:0">Głośność / Volume</label>
+    <input id="vol" class="vol" type="range" min="0" max="1" step="0.05" value="1">
+    <div><button id="play" class="act" hidden>Włącz dźwięk / Play</button></div>
+    <div><button id="back" class="act ghost">Inny język / Other language</button></div>
+    <p class="tip">Nie blokuj telefonu w trakcie — na części telefonów dźwięk wtedy cichnie.<br><span class="en">Keep this page open; some phones mute audio when locked.</span></p>
+  </section>
+  <audio id="audio" autoplay playsinline></audio>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(function () {
+  const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }]
+  const q = new URLSearchParams(location.search)
+  const TEST = q.get('test') // udawana baza: id kanału, BroadcastChannel
+  const sb = TEST ? null : supabase.createClient('https://igkjlgdpvgdeqfqctnnf.supabase.co', 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI', { auth: { persistSession: false, autoRefreshToken: false } })
+  const $ = id => document.getElementById(id)
+  const audio = $('audio')
+  let session = null, listTimer = 0
+
+  async function live() {
+    if (TEST) return [{ id: TEST, lang: 'EN', name: 'Test', listeners: 0 }]
+    const { data, error } = await sb.rpc('tl_live')
+    if (error) throw error
+    return data || []
+  }
+  async function showList() {
+    try {
+      const l = await live()
+      const box = $('langs')
+      box.innerHTML = ''
+      if (!l.length) { box.innerHTML = '<div class="empty">Teraz nikt nie tłumaczy. Strona sama się odświeży.<br><small>No translation right now — this page refreshes itself.</small></div>'; return }
+      for (const c of l) {
+        const b = document.createElement('button')
+        b.className = 'lang'
+        b.innerHTML = '<i></i><span></span><small></small>'
+        b.querySelector('i').textContent = c.lang
+        b.querySelector('span').textContent = c.name
+        b.querySelector('small').textContent = c.listeners ? c.listeners + ' 🎧' : ''
+        b.onclick = () => join(c)
+        box.appendChild(b)
+      }
+    } catch (e) { $('langs').innerHTML = '<div class="empty">Brak połączenia z internetem. / No connection.</div>' }
+  }
+
+  function transport(sid) {
+    const name = 'kns-tl-' + sid
+    if (TEST) { const bc = new BroadcastChannel(name); return { ready: Promise.resolve(), send: m => bc.postMessage(m), on: f => { bc.onmessage = e => f(e.data) }, close: () => bc.close() } }
+    const ch = sb.channel(name, { config: { broadcast: { self: false } } })
+    let cb = () => {}
+    ch.on('broadcast', { event: 'sig' }, ({ payload }) => cb(payload))
+    const ready = new Promise((ok, bad) => ch.subscribe(s => { if (s === 'SUBSCRIBED') ok(); else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT') bad(new Error(s)) }))
+    return { ready, send: m => ch.send({ type: 'broadcast', event: 'sig', payload: m }), on: f => { cb = f }, close: () => sb.removeChannel(ch) }
+  }
+
+  function setState(text, cls) { const s = $('state'); s.textContent = text; s.className = 'state ' + (cls || '') }
+
+  async function join(c) {
+    clearInterval(listTimer)
+    $('pick').hidden = true; $('player').classList.add('on'); $('code').textContent = c.lang; $('name').textContent = c.name
+    setState('Łączę… / Connecting…')
+    audio.play().catch(() => {}) // odblokowanie dźwięku w geście (iPhone)
+    const me = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random())).slice(0, 8)
+    const t = transport(c.id)
+    let pc = null, early = [], queue = Promise.resolve(), retry = 0
+    const hello = () => t.send({ type: 'hello', from: me })
+    async function handle(m) {
+      if (m.type === 'start') { hello(); return }
+      if (m.type === 'end') { setState('Tłumaczenie zakończone. / Translation ended.', 'bad'); $('player').classList.remove('live'); pc && pc.close(); pc = null; return }
+      if (m.to !== me) return
+      if (m.type === 'offer') {
+        if (pc) pc.close()
+        pc = new RTCPeerConnection({ iceServers: ICE })
+        pc.ontrack = e => {
+          audio.srcObject = e.streams[0] || new MediaStream([e.track])
+          audio.play().then(() => { $('play').hidden = true }).catch(() => { $('play').hidden = false; setState('Stuknij „Włącz dźwięk”. / Tap “Play”.') })
+        }
+        pc.onicecandidate = e => { if (e.candidate) t.send({ type: 'ice', to: 'tx', from: me, c: e.candidate.toJSON() }) }
+        pc.onconnectionstatechange = () => {
+          const s = pc && pc.connectionState
+          if (s === 'connected') { setState('Słuchasz na żywo / Listening live', 'ok'); $('player').classList.add('live'); clearInterval(retry) }
+          else if (s === 'failed' || s === 'disconnected') { setState('Połączenie przerwane — łączę ponownie… / Reconnecting…', 'bad'); $('player').classList.remove('live'); hello() }
+        }
+        await pc.setRemoteDescription(m.sdp)
+        for (const c2 of early) await pc.addIceCandidate(c2).catch(() => {})
+        early = []
+        const a = await pc.createAnswer()
+        await pc.setLocalDescription(a)
+        t.send({ type: 'answer', to: 'tx', from: me, sdp: { type: a.type, sdp: a.sdp } })
+      } else if (m.type === 'ice' && m.c) {
+        if (pc && pc.remoteDescription) await pc.addIceCandidate(m.c).catch(() => {})
+        else early.push(m.c)
+      }
+    }
+    t.on(m => { queue = queue.then(() => handle(m)).catch(() => {}) })
+    try { await t.ready } catch { setState('Brak połączenia z internetem. / No connection.', 'bad'); return }
+    hello()
+    // gdy tłumacz nie odpowiedział (albo połączenie nie wyszło) — ponowne przywitanie co 6 s
+    retry = setInterval(() => { if (!pc || pc.connectionState !== 'connected') hello() }, 6000)
+    session = { t, me, stop() { clearInterval(retry); try { t.send({ type: 'bye', to: 'tx', from: me }) } catch {} pc && pc.close(); setTimeout(() => t.close(), 200) } }
+  }
+
+  $('play').onclick = () => audio.play().then(() => { $('play').hidden = true; setState('Słuchasz na żywo / Listening live', 'ok') }).catch(() => {})
+  $('vol').oninput = e => { audio.volume = +e.target.value }
+  $('back').onclick = () => {
+    session && session.stop(); session = null; audio.srcObject = null
+    $('player').classList.remove('on', 'live'); $('pick').hidden = false
+    showList(); listTimer = setInterval(showList, 10000)
+  }
+  addEventListener('pagehide', () => session && session.stop())
+  showList(); listTimer = setInterval(showList, 10000)
+})()
+</script>
+</body>
+</html>

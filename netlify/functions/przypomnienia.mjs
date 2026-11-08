@@ -18,6 +18,8 @@ export default async function handler() {
   const reminders = await rpc('asb_leader_reminders')
   // cele wsparcia: w dniach 1–7 prośba o potwierdzenie poprzedniego miesiąca (raz w miesiącu)
   const pledges = await rpc('pledge_reminders').catch(e => { console.error(e.message); return 0 })
+  // grafik służb: „w niedzielę służysz” (1–2 dni przed) i „czekamy na odpowiedź” (zaproszenie bez odpowiedzi od 2 dni)
+  const duties = await rpc('schedule_reminders').catch(e => { console.error(e.message); return 0 })
   let sent = 0
   const privateKey = process.env.VAPID_PRIVATE
   if (privateKey) {
@@ -30,6 +32,6 @@ export default async function handler() {
       } catch { /* jeden telefon nie psuje reszty */ }
     }))
   }
-  console.log('przypomnienia ASB:', reminders, '· cele:', pledges, '· na telefony:', sent)
-  return new Response(JSON.stringify({ reminders, pledges, sent }), { headers: { 'Content-Type': 'application/json' } })
+  console.log('przypomnienia ASB:', reminders, '· cele:', pledges, '· grafik:', duties, '· na telefony:', sent)
+  return new Response(JSON.stringify({ reminders, pledges, duties, sent }), { headers: { 'Content-Type': 'application/json' } })
 }

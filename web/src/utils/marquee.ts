@@ -29,8 +29,9 @@ function update(el: HTMLElement) {
   const key = el.textContent + '|' + el.clientWidth
   if (seen.get(el) === key) return
   seen.set(el, key)
-  if (el.classList.contains('mq')) { el.classList.remove('mq'); el.style.removeProperty('color') }
-  if (el.scrollWidth - el.clientWidth <= 2 || !el.clientWidth) return
+  // bez przejścia koloru: inaczej odczyt koloru (niżej) łapie początek przejścia z „transparent” i tytuł znika
+  if (el.classList.contains('mq')) { el.style.setProperty('transition', 'none'); el.classList.remove('mq'); el.style.removeProperty('color') }
+  if (el.scrollWidth - el.clientWidth <= 2 || !el.clientWidth) { el.style.removeProperty('transition'); return }
   const text = el.textContent.trim()
   const cs = getComputedStyle(el)
   const lap = widthOf(text + GAP, el)

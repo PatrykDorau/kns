@@ -63,6 +63,7 @@ export function createDemoApi() {
     availabilitySet({ day, state }) { if (state) demoMine[day] = state; else delete demoMine[day]; return null },
     scheduleToggle({ day, person }) { const l = demoPlan[day] || (demoPlan[day] = []), i = l.indexOf(person); if (i >= 0) l.splice(i, 1); else l.push(person); return null },
     schedulePublish: () => 0,
+    scheduleRole: () => null, ministryRoles: () => null, scheduleAnswer: () => null, myDuties: () => [], sundayLineup: () => null, tasks: () => [], myTasks: () => [],
     ministries: () => [
       { id: 'd1', name: 'Administracyjno-gospodarcza', description: 'Dbamy o salę i sprzęt przed nabożeństwem.', seeking: true, lead: true, mine: 'active', leaders: [{ id: 'l1', name: 'Jan Zieliński' }], members: [], people: [], pending: [] },
       { id: 'd2', name: 'Powitania', description: 'Witamy gości w drzwiach.', seeking: true, lead: false, mine: 'pending', leaders: [{ id: 'l2', name: 'Marta Kowalska' }], members: [], people: [], pending: [] },
