@@ -58,8 +58,9 @@
     <div class="big" id="code">EN</div>
     <h2 id="name">English</h2>
     <p id="state" class="state">Łączę… / Connecting…</p>
-    <label for="vol" class="tip" style="display:block;margin:0">Głośność / Volume</label>
-    <input id="vol" class="vol" type="range" min="0" max="1" step="0.05" value="1">
+    <label for="vol" class="tip" style="display:block;margin:0">Głośność / Volume <b id="volv">100%</b></label>
+    <input id="vol" class="vol" type="range" min="0" max="3" step="0.1" value="1">
+    <p class="tip" style="margin:-10px 0 14px">Za cicho? Przesuń w prawo — do 300%. / Too quiet? Slide right — up to 300%.</p>
     <div><button id="play" class="act" hidden>Włącz dźwięk / Play</button></div>
     <div><button id="back" class="act ghost">Inny język / Other language</button></div>
     <p class="tip">Nie blokuj telefonu w trakcie — na części telefonów dźwięk wtedy cichnie.<br><span class="en">Keep this page open; some phones mute audio when locked.</span></p>
@@ -76,6 +77,29 @@
   const $ = id => document.getElementById(id)
   const audio = $('audio')
   let session = null, listTimer = 0
+  // Głośność: do 100% — zwykły element <audio> (gra też przy wyciszonym iPhonie); powyżej — wzmocnienie przez Web Audio
+  // (gain + ogranicznik, żeby nie przesterować). Kontekst dźwięku tworzony w geście (stuknięcie języka).
+  let actx = null, gain = null, boosted = false, vol = 1, liveStream = null
+  function unlockAudio() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback' } catch {}
+    try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); actx.resume() } catch { actx = null }
+  }
+  function applyVolume() {
+    $('volv').textContent = Math.round(vol * 100) + '%'
+    if (vol <= 1 || !actx || !liveStream) { audio.volume = Math.min(1, vol); if (gain) gain.gain.value = 0; audio.muted = false; return }
+    if (!boosted) {
+      try {
+        const src = actx.createMediaStreamSource(liveStream), comp = actx.createDynamicsCompressor()
+        gain = actx.createGain()
+        comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.25
+        src.connect(gain).connect(comp).connect(actx.destination)
+        boosted = true
+      } catch { audio.volume = 1; return }
+    }
+    actx.resume()
+    audio.muted = true // dźwięk idzie przez wzmocnienie; element zostaje podłączony (Chrome wymaga go dla strumienia)
+    gain.gain.value = vol
+  }
 
   async function live() {
     if (TEST) return [{ id: TEST, lang: 'EN', name: 'Test', listeners: 0 }]
@@ -119,6 +143,7 @@
     $('pick').hidden = true; $('player').classList.add('on'); $('code').textContent = c.lang; $('name').textContent = c.name
     setState('Łączę… / Connecting…')
     audio.play().catch(() => {}) // odblokowanie dźwięku w geście (iPhone)
+    unlockAudio()
     const me = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random())).slice(0, 8)
     const t = transport(c.id)
     let pc = null, early = [], queue = Promise.resolve(), retry = 0
@@ -131,7 +156,9 @@
         if (pc) pc.close()
         pc = new RTCPeerConnection({ iceServers: ICE })
         pc.ontrack = e => {
-          audio.srcObject = e.streams[0] || new MediaStream([e.track])
+          liveStream = e.streams[0] || new MediaStream([e.track]); boosted = false; gain = null
+          audio.srcObject = liveStream
+          applyVolume()
           audio.play().then(() => { $('play').hidden = true }).catch(() => { $('play').hidden = false; setState('Stuknij „Włącz dźwięk”. / Tap “Play”.') })
         }
         pc.onicecandidate = e => { if (e.candidate) t.send({ type: 'ice', to: 'tx', from: me, c: e.candidate.toJSON() }) }
@@ -160,9 +187,9 @@
   }
 
   $('play').onclick = () => audio.play().then(() => { $('play').hidden = true; setState('Słuchasz na żywo / Listening live', 'ok') }).catch(() => {})
-  $('vol').oninput = e => { audio.volume = +e.target.value }
+  $('vol').oninput = e => { vol = +e.target.value; applyVolume() }
   $('back').onclick = () => {
-    session && session.stop(); session = null; audio.srcObject = null
+    session && session.stop(); session = null; audio.srcObject = null; liveStream = null; boosted = false; gain = null
     $('player').classList.remove('on', 'live'); $('pick').hidden = false
     showList(); listTimer = setInterval(showList, 10000)
   }

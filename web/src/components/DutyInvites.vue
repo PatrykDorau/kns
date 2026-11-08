@@ -2,6 +2,7 @@
 // @ts-nocheck — stan i działania wspólne (useApp)
 import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
+import { ask } from '@/utils/ask'
 
 // Zaproszenia do służby (wzór: Avenit) — na Starcie i w „Moja służba”: lider wpisał w grafik i kliknął „Wyślij
 // zaproszenia”, osoba odpowiada „Przyjmuję / Nie mogę” (można zmienić zdanie). Przyjęte — krótka lista „Służysz”.
@@ -28,6 +29,8 @@ export default defineComponent({
       return date + (n <= 0 ? ' · dziś' : n === 1 ? ' · jutro' : n < 7 ? ' · za ' + n + ' dni' : '')
     }
     async function answer(d, ok) {
+      // rezygnacja zawiadamia lidera — najpierw potwierdzenie (przyjęcie bez pytania)
+      if (!ok && !(await ask((d.state === 'yes' ? 'Zrezygnować ze służby' : 'Odmówić służby') + ' „' + d.name + (d.role ? ' · ' + d.role : '') + '” — ' + when(d.day) + '? Lider dostanie powiadomienie, że nie możesz.', { ok: 'Nie mogę', danger: true }))) return
       duties.busy = key(d)
       try {
         await app.api.call('scheduleAnswer', { id: d.id, day: d.day, ok })

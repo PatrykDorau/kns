@@ -11,9 +11,9 @@ const LANGS = [['EN', 'English'], ['UK', 'Українська'], ['RU', 'Рус
 export default defineComponent({
   setup() {
     const app = useApp()
-    const st = reactive({ info: null, live: [], lang: 'EN', name: 'English', mic: '', mics: [], on: null, listeners: 0, error: '', busy: false, level: 0, qr: '' })
+    const st = reactive({ info: null, live: [], lang: 'EN', name: 'English', mic: '', mics: [], on: null, listeners: 0, error: '', busy: false, level: 0, qr: '', boost: (() => { try { return +localStorage.getItem('kns-tl-boost') || 1.5 } catch { return 1.5 } })() })
     const listenUrl = location.origin + '/sluchaj.html'
-    let tx = null, stream = null, tone = null, ping = 0, meter = 0, actx = null
+    let tx = null, stream = null, raw = null, tone = null, ping = 0, meter = 0, actx = null, gainNode = null
     async function load() {
       try {
         st.info = await app.api.call('tlInfo')
@@ -25,8 +25,18 @@ export default defineComponent({
     onMounted(load)
     const pickLang = ([code, name]) => { st.lang = code; st.name = name }
     // wskaźnik poziomu mikrofonu — tłumacz widzi, że dźwięk idzie
+    // wzmocnienie mikrofonu (50–300%) z ogranicznikiem, żeby nie przesterować — słuchacze dostają już głośniejszy dźwięk
+    function amplify(s) {
+      actx = new AudioContext()
+      const src = actx.createMediaStreamSource(s), comp = actx.createDynamicsCompressor(), dst = actx.createMediaStreamDestination()
+      gainNode = actx.createGain(); gainNode.gain.value = st.boost
+      comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.25
+      src.connect(gainNode).connect(comp).connect(dst)
+      return dst.stream
+    }
+    const setBoost = v => { st.boost = v; if (gainNode) gainNode.gain.value = v; try { localStorage.setItem('kns-tl-boost', String(v)) } catch { /* bez zapamiętania */ } }
     function watchLevel(s) {
-      actx = new AudioContext(); const an = actx.createAnalyser(); an.fftSize = 512
+      const an = actx.createAnalyser(); an.fftSize = 512
       actx.createMediaStreamSource(s).connect(an)
       const buf = new Float32Array(an.fftSize)
       meter = setInterval(() => { an.getFloatTimeDomainData(buf); let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v)); st.level = Math.min(1, m * 1.6) }, 120)
@@ -34,8 +44,9 @@ export default defineComponent({
     async function start() {
       st.busy = true; st.error = ''
       try {
-        if (st.mic === 'tone') { tone = testTone(); stream = tone.stream }
-        else stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: st.mic ? { exact: st.mic } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+        if (st.mic === 'tone') { tone = testTone(); raw = tone.stream }
+        else raw = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: st.mic ? { exact: st.mic } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+        stream = amplify(raw)
         const id = await app.api.call('tlStart', { lang: st.lang, name: st.name })
         const t = makeTransport(app.api.client, id)
         await t.ready
@@ -54,6 +65,7 @@ export default defineComponent({
       clearInterval(ping); clearInterval(meter); st.level = 0
       tx?.stop(); tx = null
       stream?.getTracks().forEach(t => t.stop()); stream = null
+      raw?.getTracks().forEach(t => t.stop()); raw = null; gainNode = null
       tone?.stop(); tone = null
       actx?.close().catch(() => null); actx = null
     }
@@ -80,7 +92,7 @@ export default defineComponent({
     }
     const toggleMinistry = (m, on) => app.api.call('tlMinistry', { id: m.id, on }).then(load).catch(e => { st.error = e.message })
     const others = computed(() => st.live.filter(x => x.id !== st.on?.id))
-    return { ...app, st, LANGS, pickLang, start, stop, poster, printPoster, listenUrl, toggleMinistry, others }
+    return { ...app, st, LANGS, pickLang, setBoost, start, stop, poster, printPoster, listenUrl, toggleMinistry, others }
   },
 })
 </script>
@@ -93,6 +105,7 @@ export default defineComponent({
       <small><i class="tl-dot"></i>Nadajesz · {{ st.on.lang }} — {{ st.on.name }}</small>
       <b>{{ st.listeners }}</b><span>{{ st.listeners === 1 ? 'słuchacz' : 'słuchaczy' }}</span>
       <div class="tl-meter" aria-hidden="true"><span :style="{ width: Math.round(st.level * 100) + '%' }"></span></div>
+      <label class="tl-boost">Wzmocnienie mikrofonu <b>{{ Math.round(st.boost * 100) }}%</b><input type="range" min="0.5" max="3" step="0.1" :value="st.boost" @input="setBoost(+$event.target.value)"></label>
       <button class="tl-stop" @click="stop"><svg class="i"><use href="#x"/></svg>Zakończ tłumaczenie</button>
     </section>
 
@@ -108,6 +121,7 @@ export default defineComponent({
       <label class="tl-mic">Źródło dźwięku
         <select v-model="st.mic"><option value="">Domyślny mikrofon</option><option v-for="m in st.mics" :key="m.id" :value="m.id">{{ m.name }}</option><option value="tone">Ton testowy (sprawdzenie słuchaczy)</option></select>
       </label>
+      <label class="tl-boost">Wzmocnienie mikrofonu <b>{{ Math.round(st.boost * 100) }}%</b><input type="range" min="0.5" max="3" step="0.1" :value="st.boost" @input="setBoost(+$event.target.value)"></label>
       <button class="primary tl-go" :disabled="st.busy || !/^[A-Za-z]{2,3}$/.test(st.lang)" @click="start"><svg class="i"><use href="#mic"/></svg>{{ st.busy ? 'Łączę…' : 'Nadawaj' }}</button>
       <p class="note">Dźwięk idzie prosto z tego urządzenia do telefonów słuchaczy — dobrze do ok. 15 osób na jednego tłumacza. Nie zamykaj tej strony w trakcie. Użyj słuchawek z mikrofonem albo mikrofonu przy ustach.</p>
     </section>
@@ -154,6 +168,9 @@ export default defineComponent({
 .tl-meter { width: min(320px, 100%); height: 8px; margin: 10px 0; border-radius: 4px; background: var(--panel2); overflow: hidden; }
 .tl-meter span { display: block; height: 100%; background: var(--ok); transition: width .1s linear; }
 .tl-stop { background: var(--bad) !important; color: #fff !important; min-height: 48px; padding: 0 20px; font-weight: 600 !important; }
+.tl-boost { display: grid; gap: 4px; width: min(320px, 100%); color: var(--muted); font-size: 13px; text-align: left; }
+.tl-boost b { color: var(--text); }
+.tl-boost input { width: 100%; accent-color: var(--accent); }
 .tl-chan { display: flex; align-items: center; gap: 12px; margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--panel); }
 .tl-chan b { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: #2a1906; }
 .tl-chan span { flex: 1; }

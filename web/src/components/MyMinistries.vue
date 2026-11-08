@@ -5,6 +5,8 @@ import { useApp } from '@/composables/useApp'
 import AvailabilityPanel, { av } from '@/components/AvailabilityPanel.vue'
 import ScheduleTable from '@/components/ScheduleTable.vue'
 import DutyInvites from '@/components/DutyInvites.vue'
+import AsbView from '@/views/AsbView.vue'
+import AsbPublicView from '@/views/AsbPublicView.vue'
 
 // „Moja służba” jako strona służby (wzór: Avenit): na górze przełącznik służb (gdy jest ich kilka), nagłówek z dużą
 // ikoną, nazwą i liderem, pod nim zakładki: Grafik (tabela niedziele × role), Dyspozycyjność, Członkowie, Informacje,
@@ -12,7 +14,7 @@ import DutyInvites from '@/components/DutyInvites.vue'
 const TABS = [['grafik', 'Grafik', 'calendar'], ['dyspo', 'Dyspozycyjność', 'check'], ['ludzie', 'Członkowie', 'users'], ['info', 'Informacje', 'info'], ['pliki', 'Pliki', 'file']]
 const KEY = 'kns-sluzba'
 export default defineComponent({
-  components: { AvailabilityPanel, ScheduleTable, DutyInvites },
+  components: { AvailabilityPanel, ScheduleTable, DutyInvites, AsbView, AsbPublicView },
   setup() {
     const app = useApp()
     const mine = computed(() => app.serve.list.filter(m => m.mine === 'active' || m.leader || (m.id === 'asb' && app.canAsb.value)))
@@ -22,7 +24,11 @@ export default defineComponent({
     watch(() => [st.id, st.tab], () => { try { localStorage.setItem(KEY, JSON.stringify({ id: st.id, tab: st.tab })) } catch { /* bez zapamiętania */ } })
     const m = computed(() => mine.value.find(x => x.id === st.id) || mine.value[0] || null)
     onMounted(() => { app.loadProtocols(true) })
-    const tabs = computed(() => { const t = TABS.filter(x => x[0] !== 'grafik' || app.modOn('grafik')); return m.value?.id === 'asb' ? [...t, ['asb', 'Spotkania', 'book']] : t })
+    const tabs = computed(() => { // ASB ma własny, wewnętrzny grafik spotkań (zamiast niedzielnej tabeli i dyspozycyjności)
+      if (m.value?.id === 'asb') return TABS.filter(x => x[0] !== 'dyspo')
+      return TABS.filter(x => x[0] !== 'grafik' || app.modOn('grafik')) })
+    // grafik ASB — dane spotkań wczytywane przy wejściu w zakładkę
+    watch(() => [m.value?.id, st.tab], () => { if (m.value?.id === 'asb' && st.tab === 'grafik' && !app.asb.meetings.length && !app.asb.busy) app.loadAsb() }, { immediate: true })
     const tab = computed(() => (tabs.value.some(t => t[0] === st.tab) ? st.tab : tabs.value[0][0]))
     // role osób z najbliższych niedziel (z grafiku) — przy nazwisku na liście członków
     const board = computed(() => av.list.find(x => x.id === m.value?.id))
@@ -80,7 +86,8 @@ export default defineComponent({
     </nav>
 
     <section class="ms-body card">
-      <ScheduleTable v-if="tab === 'grafik'" :key="'g' + m.id" :ministry="m.id" />
+      <template v-if="tab === 'grafik' && m.id === 'asb'"><AsbView v-if="canAsb" /><AsbPublicView v-else /></template>
+      <ScheduleTable v-else-if="tab === 'grafik'" :key="'g' + m.id" :ministry="m.id" />
 
       <AvailabilityPanel v-else-if="tab === 'dyspo'" :key="'d' + m.id" :ministry="m.id" avail-only />
 
