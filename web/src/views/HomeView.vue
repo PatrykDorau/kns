@@ -76,7 +76,8 @@ export default defineComponent({
       const title = norm(svc?.sermonTitle)
       let hit = title.length >= 4 && done.find(v => norm(v.title).includes(title))
       if (!hit && svc) {
-        const day = new Date(d + 'T12:00').getTime(), near = v => Math.abs(new Date(v.published).getTime() - day) < 5 * 864e5
+        // transmisję zakłada się przed niedzielą (data publikacji w YouTube = założenie): od 7 dni przed do dnia po
+        const day = new Date(d + 'T12:00').getTime(), near = v => { const t = new Date(v.published).getTime(); return t >= day - 7 * 864e5 && t <= day + 1.5 * 864e5 }
         const keys = [norm(svc.speaker).split(' ').pop(), norm(svc.passage)].filter(k => k && k.length >= 3)
         hit = done.find(v => near(v) && keys.some(k => norm(v.title).includes(k)))
       }
