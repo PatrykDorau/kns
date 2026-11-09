@@ -4,6 +4,8 @@ import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
 import ColChart from '@/components/ColChart.vue'
+import DonutChart from '@/components/DonutChart.vue'
+import ComboChart from '@/components/ComboChart.vue'
 import AsbSurveys, { SOURCE_OPTS } from '@/components/AsbSurveys.vue'
 
 // Statystyki ASB — osobna strona w menu (dawniej arkusz „ASB | Statystyki”, zakładka „Dashboard Poznań”).
@@ -22,7 +24,20 @@ const SRC = [
   { key: 'src_regular', name: 'Stali / bywalcy' }, { key: 'src_other', name: 'Inne' },
 ]
 const QUALITY = { potwierdzona: 'Potwierdzona', szacunek: 'Szacunek', brak: 'Brak danych' }
-const COST_ST = { pelne: 'Pełne', czesciowe: 'Częściowe', nieznane: 'Nieznane' }
+const COST_ST = { pelne: 'Pełne', czesciowe: 'Niepełne', nieustalone: 'Nieustalona', nieznane: 'Koszt nieznany' }
+// teksty części dashboardu (z arkusza) — do zmiany w Ustawieniach
+const TEXTS = {
+  mission: 'Czynić uczniami Chrystusa dla Bożej chwały — przez spotkania, głębokie relacje i życie Kościoła.',
+  events: 'Za frekwencją są ludzie, rozmowy o wierze i okazje do głoszenia Ewangelii.',
+  marketing: 'Promujemy spotkania, by docierać do studentów z Ewangelią i budować relacje.',
+  pillars: [
+    { title: 'Głoszenie Ewangelii', text: 'Organizujemy spotkania, by zapraszać studentów do poznawania Jezusa i rozmawiać z nimi o wierze.' },
+    { title: 'Relacje i troska', text: 'Za każdą obecnością stoi człowiek. Chcemy go poznać, wysłuchać i odpowiedzieć na jego pytania.' },
+    { title: 'Część Kościoła', text: 'ASB nie jest celem samym w sobie: chcemy pomagać ludziom włączyć się w życie Kościoła na Skale.' },
+  ],
+}
+// źródła na wydarzeniu: kolejność i kolory segmentów (c1–c6 z palety wykresów)
+const STACK = [{ key: 'src_regular', name: 'Stali / bywalcy', c: 1 }, { key: 'src_friends', name: 'Znajomi', c: 2 }, { key: 'src_social', name: 'Social media', c: 3 }, { key: 'src_posters', name: 'Plakaty', c: 4 }, { key: 'src_other', name: 'Inne', c: 5 }, { key: 'unknown', name: 'Nieznane', c: 6 }]
 const BASIS = { zapisy: 'Formularz zapisów', ankieta: 'Ankieta obecnych', relacja: 'Relacja organizatorów', '': 'Brak' }
 const GOALS = { reakcje: 'Reakcje na wydarzenie', rozmowy: 'Rozpoczęte rozmowy', aktywnosc: 'Aktywność posta', polubienia: 'Polubienia strony', klikniecia: 'Kliknięcia linku', odwiedziny: 'Odwiedziny strony / profilu', inne: 'Inny cel' }
 // zasady analizy z arkusza (M01–M10) — pokazywane w Ustawieniach, żeby każdy czytał liczby tak samo
@@ -38,13 +53,13 @@ const METHOD = [
   ['Braki', 'Potwierdzona, szacunek i brak danych to różne jakości. Nieznany koszt ≠ 0 zł, brak frekwencji ≠ 0 osób — luki zostają otwarte i opisane.'],
   ['Kolejne akcje', 'Po wydarzeniu: frekwencja, nowe osoby, źródła, koszt oraz 1., 2. i 3. zwykłe spotkanie po akcji — bez automatycznych wniosków o przyczynie.'],
 ]
-const TABS = [['sum', 'Przegląd'], ['att', 'Frekwencja'], ['cost', 'Koszty'], ['promo', 'Promocja'], ['events', 'Wydarzenia'], ['ads', 'Reklamy'], ['surveys', 'Ankiety'], ['set', 'Ustawienia']]
+const TABS = [['sum', 'Przegląd'], ['wyd', 'Wydarzenia'], ['mkt', 'Marketing'], ['events', 'Rejestr'], ['ads', 'Reklamy'], ['surveys', 'Ankiety'], ['set', 'Ustawienia']]
 const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
 const NUM_EV = ['signups', 'attendance', 'att_min', 'att_max', 'new_people', 'new_repeat', 'print_posters', 'print_flyers', ...SRC.map(s => s.key)]
 const NUM_AD = ['impressions', 'reach', 'results', 'link_clicks', 'activity']
 
 export default defineComponent({
-  components: { ColChart, AsbSurveys },
+  components: { ColChart, AsbSurveys, DonutChart, ComboChart },
   setup() {
     const app = useApp()
     const st = reactive({ busy: false, error: '', events: [], ads: [], cities: [], fbEvents: [], meetings: [], city: 'Poznań', season: '', tab: 'sum',
@@ -240,6 +255,37 @@ export default defineComponent({
     const unassigned = computed(() => ads.value.filter(a => !a.event_id || !evById.value[a.event_id]))
     const adsShown = computed(() => [...(st.adFilter === 'bez' ? unassigned.value : ads.value)].reverse())
 
+    // ---- trzy części dashboardu ----
+    const texts = computed(() => { const t = cfg.value.texts || {}; return { mission: t.mission || TEXTS.mission, events: t.events || TEXTS.events, marketing: t.marketing || TEXTS.marketing, pillars: (t.pillars || []).filter(x => x.title || x.text).length ? t.pillars : TEXTS.pillars } })
+    const callout = computed(() => {
+      const n = kpi.value.hi, r = n >= 100 ? Math.round(n / 50) * 50 : n
+      return (n >= 100 ? 'Blisko ' + int(r) : int(n)) + ' obecności to wiele momentów spotkania z ludźmi. Nie oznacza to jednak ' + int(r) + ' unikalnych osób ani ' + int(r) + ' potwierdzonych wysłuchań Ewangelii.'
+    })
+    const costDonut = computed(() => {
+      const ev = events.value, f = k => sum(ev, e => e[k])
+      return [{ label: 'Wynajem sal', v: f('cost_room') }, { label: 'Reklamy Meta', v: kpi.value.meta }, { label: 'Druk', v: f('cost_posters') + f('cost_flyers') }, { label: 'Transport', v: f('cost_transport') },
+        { label: 'Pozostałe', v: f('cost_food') + f('cost_decor') + f('cost_other') + f('cost_promo') }].filter(x => x.v > 0)
+    })
+    const srcDonut = computed(() => {
+      const z = events.value.filter(e => e.src_basis === 'zapisy'), list = z.length ? z : events.value
+      return { basis: z.length ? 'Wydarzenia z formularzem zapisów (' + z.length + ')' : 'Wszystkie deklaracje', items: [['src_friends', 'Znajomi'], ['src_social', 'Social media'], ['src_posters', 'Plakaty'], ['src_other', 'Inne']].map(([k, label]) => ({ label, v: sum(list, e => e[k]) })) }
+    })
+    const evCostRows = computed(() => events.value.map(e => ({ e, v: evCost(e) })))
+    const evCostMax = computed(() => Math.max(1, ...evCostRows.value.map(r => r.v || 0)))
+    const headSorted = computed(() => [...headRows.value].sort((x, y) => x.v - y.v))
+    const completeCls = e => (e.cost_status === 'pelne' ? 'as-c1' : e.cost_status === 'czesciowe' ? 'as-c5' : 'as-c6')
+    const stackRows = computed(() => srcRows.value.map(r => ({ ...r, segs: STACK.map(c => ({ ...c, v: c.key === 'unknown' ? r.unknown || 0 : r.e[c.key] || 0 })) })).filter(r => r.base))
+    const stackMax = computed(() => Math.max(1, ...stackRows.value.map(r => Math.max(r.base || 0, r.segs.reduce((t, x) => t + x.v, 0)))))
+    const newCycles = computed(() => {
+      const by = {}
+      for (const e of events.value) if (e.cycle && e.new_people) { const c = (by[e.cycle] ||= { cycle: e.cycle, visits: 0, repeat: 0, n: 0 }); c.visits += e.new_people; c.repeat += e.new_repeat || 0; c.n++ }
+      return Object.values(by).filter(c => c.repeat > 0).map(c => ({ ...c, unique: c.visits - c.repeat }))
+    })
+    const gaps = computed(() => {
+      const unk = events.value.filter(e => e.cost_status === 'nieznane').map(e => e.name), att = events.value.filter(e => e.attendance == null).map(e => e.name)
+      return [unk.length ? 'koszt nieznany — ' + unk.join(', ') : '', att.length ? 'frekwencja bez dokładnej liczby — ' + att.join(', ') : ''].filter(Boolean).join('; ')
+    })
+
     // ---- edycja ----
     const uid = p => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
     const blankEv = () => ({ id: '', city: st.city, date: '', name: '', kind: 'Ewangelizacja', place: '', signups: null, attendance: null, att_min: null, att_max: null, quality: 'potwierdzona', new_people: null, src_basis: 'zapisy', cost_status: 'czesciowe', note: '', fb_event_id: null, meeting_id: null, cycle: '', print_posters: null, print_flyers: null, new_repeat: null, ...Object.fromEntries([...SRC, ...COSTS].map(x => [x.key, null])) })
@@ -279,7 +325,7 @@ export default defineComponent({
         else { st.ads = st.ads.filter(x => x.id !== row.id); st.ad = null }
       } catch (e) { st.error = e.message } finally { st.saving = false }
     }
-    const openCfg = () => { st.cfg = { id: st.city, regular_goal: cfg.value.regular_goal ?? 50, actions: (cfg.value.actions || []).map(a => ({ ...a })) } }
+    const openCfg = () => { st.cfg = { id: st.city, regular_goal: cfg.value.regular_goal ?? 50, actions: (cfg.value.actions || []).map(a => ({ ...a })), texts: { ...texts.value, pillars: texts.value.pillars.map(x => ({ ...x })) } } }
     function putCity(c) { const i = st.cities.findIndex(x => x.id === c.id); if (i >= 0) st.cities.splice(i, 1, { ...st.cities[i], ...c }); else st.cities.push({ ...cfg.value, ...c }) }
     async function saveCfg() {
       const c = { ...st.cfg, regular_goal: Math.min(100, Math.max(0, Number(st.cfg.regular_goal) || 0)), actions: st.cfg.actions.filter(a => (a.title || '').trim() || (a.text || '').trim()) }
@@ -334,7 +380,7 @@ export default defineComponent({
     }
     const ago = t => { if (!t) return 'jeszcze nie'; const d = new Date(t); return d.toLocaleDateString('pl-PL') + ' ' + d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) }
 
-    return { ...app, SOURCE_OPTS, loadSurveys, surveySrc, useSurveySrc, METHOD, adRows, placements, srcRows, signupRows, print, timeline, st, COSTS, SRC, QUALITY, COST_ST, BASIS, GOALS, TABS, load, cityList, seasons, events, ads, cfg, kpi, sources, regularShare, costCats, attRows, attMax, headRows, headMax, ranking, max, w, short,
+    return { ...app, STACK, texts, callout, costDonut, srcDonut, evCostRows, evCostMax, headSorted, completeCls, stackRows, stackMax, newCycles, gaps, SOURCE_OPTS, loadSurveys, surveySrc, useSurveySrc, METHOD, adRows, placements, srcRows, signupRows, print, timeline, st, COSTS, SRC, QUALITY, COST_ST, BASIS, GOALS, TABS, load, cityList, seasons, events, ads, cfg, kpi, sources, regularShare, costCats, attRows, attMax, headRows, headMax, ranking, max, w, short,
       trend, trendMax, regAvg, impact, seasonRows, goalRows, printRows, printMax, fbRows, pending, upcoming, unassigned, adsShown, regular,
       evCost, otherOf, perHead, metaOf, attLo, attHi, pln, pln0, int, dec, pct, range, dmy, dm, openEv, openAd, fromMeeting, fromFb, pickMeeting, save, remove, openCfg, saveCfg, moveAct, newCity,
       evOptions, fbOptions, meetingOptions, evById, fbForm, saveFb, clearToken, fbSync, ago }
@@ -359,87 +405,118 @@ export default defineComponent({
   <div v-if="st.busy && !st.events.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 5" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="st.error && !st.ev && !st.ad && !st.cfg" class="error">{{ st.error }}</p>
 
-  <!-- ===== przegląd ===== -->
+  <!-- ===== część 1: ASB <miasto> (01–03) ===== -->
   <template v-else-if="st.tab === 'sum'">
-    <p v-if="!events.length" class="note">Brak wydarzeń w tym okresie. Dodaj pierwsze w zakładce „Wydarzenia”.</p>
+    <header class="as-part"><h2>ASB {{ st.city }}</h2><p>{{ texts.mission }}</p></header>
+    <div v-if="pending.length || upcoming.length || unassigned.length" class="as-todo">
+      <button v-for="m in pending" :key="m.id" @click="fromMeeting(m)"><svg class="i"><use href="#alert"/></svg><span><b>Uzupełnij: {{ m.topic || 'ewangelizacja' }}</b><small>{{ dmy(m.date) }} · z grafiku — dodaj frekwencję, źródła i koszty</small></span></button>
+      <button v-if="unassigned.length" @click="st.tab = 'ads'; st.adFilter = 'bez'"><svg class="i"><use href="#link"/></svg><span><b>Reklamy bez wydarzenia: {{ unassigned.length }}</b><small>przypisz, żeby koszt trafił do właściwego spotkania</small></span></button>
+      <div v-for="m in upcoming" :key="m.id" class="as-next"><svg class="i"><use href="#calendar"/></svg><span><b>Przed nami: {{ m.topic || 'ewangelizacja' }}</b><small>{{ dmy(m.date) }} · zaplanuj zaproszenia, promocję i kontakt po spotkaniu</small></span></div>
+    </div>
+    <p v-if="!events.length" class="note">Brak wydarzeń w tym okresie. Dodaj pierwsze w zakładce „Rejestr”.</p>
     <template v-else>
+      <div class="as-sec"><span>01/09</span><h3>Spotkania, ludzie i możliwości</h3></div>
       <div class="as-kpis">
-        <div class="as-kpi"><small>Większe wydarzenia</small><b>{{ kpi.n }}</b><span>okazje do głoszenia i relacji</span></div>
-        <div class="as-kpi"><small>Obecności</small><b>{{ range(kpi.lo, kpi.hi) }}</b><span>śr. {{ dec(kpi.avgAtt) }} na wydarzenie<template v-if="kpi.noAtt"> · {{ kpi.noAtt }} bez liczby</template></span></div>
-        <div class="as-kpi"><small>Znane wydatki</small><b>{{ pln0(kpi.known) }}</b><span>{{ kpi.perHead != null ? pln(kpi.perHead) + ' na obecność' : 'z rejestru' }}</span></div>
-        <div class="as-kpi"><small>Promocja</small><b>{{ pln0(kpi.promo) }}</b><span>w tym Meta {{ pln0(kpi.meta) }}</span></div>
-        <div class="as-kpi"><small>Nowe osoby</small><b>{{ int(kpi.newPeople) }}</b><span>{{ kpi.newCost != null ? 'szac. ' + pln(kpi.newCost) + ' na nową osobę' : 'rozpoznane uczestnictwa' }}</span></div>
-        <div class="as-kpi"><small>Stali / bywalcy</small><b>{{ pct(regularShare.share) }}</b><span>cel: najwyżej {{ pct(regularShare.goal) }}</span></div>
-        <div class="as-kpi"><small>Zwykłe spotkania</small><b>{{ regAvg == null ? '—' : dec(regAvg) }}</b><span>{{ cfg.grafik ? 'średnio osób (grafik ASB)' : 'włącz grafik w Ustawieniach' }}</span></div>
-        <div class="as-kpi"><small>Facebook</small><b>{{ cfg.fb_followers != null ? int(cfg.fb_followers) : '—' }}</b><span>{{ cfg.fb_followers != null ? 'obserwujących' + (cfg.ig_followers != null ? ' · IG ' + int(cfg.ig_followers) : '') : 'połącz w Ustawieniach' }}</span></div>
+        <div class="as-kpi k1"><small>Większe wydarzenia</small><b>{{ kpi.n }}</b><span>{{ kpi.n }} większych spotkań — okazji do głoszenia Ewangelii i nawiązywania relacji.</span></div>
+        <div class="as-kpi k2"><small>Obecności</small><b>{{ range(kpi.lo, kpi.hi) }}</b><span>Uczestnictwa, a nie liczba różnych osób lub potwierdzonych wysłuchań Ewangelii.</span></div>
+        <div class="as-kpi k3"><small>Znane wydatki</small><b>{{ pln(kpi.known) }}</b><span>Wydatki z tego rejestru, nie wszystkie historyczne koszty ASB.</span></div>
+        <div class="as-kpi k4"><small>Promocja</small><b>{{ pln(kpi.promo) }}</b><span>Meta, druk i inne znane koszty promocji.</span></div>
       </div>
 
-      <div v-if="pending.length || upcoming.length || unassigned.length" class="as-todo">
-        <button v-for="m in pending" :key="m.id" @click="fromMeeting(m)"><svg class="i"><use href="#alert"/></svg><span><b>Uzupełnij: {{ m.topic || 'ewangelizacja' }}</b><small>{{ dmy(m.date) }} · z grafiku — dodaj frekwencję, źródła i koszty</small></span></button>
-        <button v-if="unassigned.length" @click="st.tab = 'ads'; st.adFilter = 'bez'"><svg class="i"><use href="#link"/></svg><span><b>Reklamy bez wydarzenia: {{ unassigned.length }}</b><small>przypisz, żeby koszt trafił do właściwego spotkania</small></span></button>
-        <div v-for="m in upcoming" :key="m.id" class="as-next"><svg class="i"><use href="#calendar"/></svg><span><b>Przed nami: {{ m.topic || 'ewangelizacja' }}</b><small>{{ dmy(m.date) }} · zaplanuj zaproszenia, promocję i kontakt po spotkaniu</small></span></div>
+      <div class="as-sec"><span>02/09</span><h3>Dlaczego to robimy?</h3></div>
+      <div class="as-pillars">
+        <div v-for="(p, i) in texts.pillars" :key="i" class="as-pillar" :class="'p' + (i % 3)"><b>{{ p.title }}</b><p>{{ p.text }}</p></div>
       </div>
+      <p class="as-callout">{{ callout }}</p>
 
+      <div class="as-sec"><span>03/09</span><h3>Na co przeznaczyliśmy środki i skąd przychodzą ludzie?</h3></div>
+      <p class="as-sec-lead">Znane koszty wydarzeń z rejestru oraz deklarowane źródła zapisów. Oba wykresy służą lepszemu zapraszaniu, nie ocenie wartości człowieka.</p>
       <div class="as-grid">
-        <section class="as-card as-wide">
-          <h3>Ile osób uczestniczyło?</h3>
-          <p class="as-sub">Obecni na tle zapisów. Kreskowany pasek — szacunek albo przedział, gdy nie ma dokładnej liczby. Kliknij, żeby otworzyć wydarzenie.</p>
-          <div class="as-legend"><span><i class="k-att"></i>Obecni</span><span><i class="k-su"></i>Zapisy</span></div>
-          <div class="as-bars">
-            <div v-for="r in attRows" :key="r.e.id" class="as-brow as-click" :title="r.e.name + ' · ' + dmy(r.e.date) + ' · obecni ' + (r.lo == null ? 'brak danych' : range(r.lo, r.hi)) + (r.su != null ? ' · zapisy ' + r.su : '') + ' · ' + QUALITY[r.e.quality]" @click="openEv(r.e)">
-              <span class="as-lab"><b>{{ short(r.e.name) }}</b><small>{{ dmy(r.e.date) }} · {{ QUALITY[r.e.quality] }}</small></span>
-              <span class="as-track">
-                <i v-if="r.su" class="as-su" :style="{ width: w(r.su, attMax) }"></i>
-                <i v-if="r.lo != null" class="as-att" :class="{ est: r.e.quality !== 'potwierdzona' }" :style="{ width: w(r.hi, attMax) }"></i>
-              </span>
-              <span class="as-val">{{ r.lo == null ? '—' : range(r.lo, r.hi) }}</span>
-            </div>
-          </div>
+        <section class="as-card">
+          <h3>Na co wydaliśmy znane pieniądze?</h3>
+          <p class="as-sub">Znane koszty całości ASB z rejestru · bez podwójnego naliczania.</p>
+          <DonutChart :items="costDonut" :fmt="pln0" :total="pln0(kpi.known)" label="Znane koszty według kategorii" />
         </section>
         <section class="as-card">
-          <h3>Skąd przychodzą ludzie?</h3>
-          <p class="as-sub">Deklarowane źródła — wskazanie kanału nie dowodzi, że to on przyprowadził.</p>
-          <div class="as-bars">
-            <div v-for="s in sources" :key="s.key" class="as-brow" :title="s.name + ': ' + s.n">
-              <span class="as-lab"><b>{{ s.name }}</b></span>
-              <span class="as-track"><i class="as-att" :class="{ muted: s.key === 'src_regular' }" :style="{ width: w(s.n, max(sources)) }"></i></span>
-              <span class="as-val">{{ int(s.n) }}</span>
-            </div>
-          </div>
-          <div v-if="regularShare.share != null" class="as-goal" :class="{ ok: regularShare.share <= regularShare.goal }">
-            <div class="as-goal-top"><b>{{ pct(regularShare.share) }}</b><span>stali/bywalcy {{ regularShare.basis }} · {{ regularShare.reg }} z {{ regularShare.all }}</span></div>
-            <div class="as-goal-track"><i :style="{ width: Math.min(100, regularShare.share * 100) + '%' }"></i><em :style="{ left: regularShare.goal * 100 + '%' }" :title="'Cel: najwyżej ' + pct(regularShare.goal)"></em></div>
-            <small>Cel: najwyżej {{ pct(regularShare.goal) }}<template v-if="regularShare.share > regularShare.goal"> · brakuje {{ dec((regularShare.share - regularShare.goal) * 100) }} p.p.</template><template v-else> · osiągnięty</template></small>
-          </div>
-        </section>
-        <section class="as-card">
-          <h3>Ranking kampanii Meta</h3>
-          <p class="as-sub">Koszt jednej reakcji na wydarzenie — niżej taniej. Reakcja to nie przyjście.</p>
-          <p v-if="!ranking.length" class="note">Brak kampanii z celem „reakcje na wydarzenie”.</p>
-          <ol class="as-rank">
-            <li v-for="(r, i) in ranking" :key="r.a.id" :title="r.a.name + ' · ' + r.a.results + ' reakcji · ' + pln(r.a.spent)"><span>{{ i + 1 }}.</span><b>{{ short(evById[r.a.event_id]?.name || r.a.name) }}</b><em>{{ pln(r.v) }}</em></li>
-          </ol>
+          <h3>Deklarowane źródła nowych zapisów</h3>
+          <p class="as-sub">{{ srcDonut.basis }} · bez stałych/bywalców.</p>
+          <p v-if="!srcDonut.items.some(x => x.v)" class="note">Brak deklaracji w tym okresie.</p>
+          <DonutChart v-else :items="srcDonut.items" label="Deklarowane źródła nowych zapisów" />
         </section>
       </div>
-      <section v-if="(cfg.actions || []).length" class="as-card as-acts-view">
-        <h3>Co zmienić, by lepiej służyć?</h3>
-        <ol><li v-for="(a, i) in cfg.actions" :key="i"><b>{{ a.title }}</b><span v-if="a.text">{{ a.text }}</span></li></ol>
-      </section>
-      <p class="as-meth">Obecności to uczestnictwa, nie liczba różnych osób ani potwierdzonych wysłuchań Ewangelii. Zapisy to nie obecność. Pusta kwota — koszt nieznany, pusta frekwencja — brak danych. Koszty dotyczą wpisanych wydarzeń, nie całej służby ASB.</p>
+      <p class="as-meth">Koszty dotyczą rejestrowanych wydarzeń, a nie całej służby ASB. Wskazanie kanału nie dowodzi, że ten kanał spowodował przyjście.</p>
+      <p class="as-meth">Metodologia: {{ kpi.n }} większych wydarzeń; obecności nie oznaczają unikalnych osób ani potwierdzonych wysłuchań Ewangelii.</p>
     </template>
   </template>
 
-  <!-- ===== frekwencja ===== -->
-  <template v-else-if="st.tab === 'att'">
+  <!-- ===== część 2: ASB — Wydarzenia (04–06) ===== -->
+  <template v-else-if="st.tab === 'wyd'">
+    <header class="as-part"><h2>ASB — Wydarzenia</h2><p>{{ texts.events }}</p></header>
+    <div class="as-sec"><span>04/09</span><h3>Ile osób uczestniczyło w spotkaniach?</h3></div>
+    <p class="as-sec-lead">{{ timeline.pts.length }} odczytów frekwencji. Każda obecność to udział człowieka; część liczb jest szacowana.</p>
+    <section class="as-card">
+      <h3>Jak zmieniała się frekwencja?</h3>
+      <p class="as-sub">{{ timeline.pts.length }} pomiarów · linie przerywane: trend osobno dla obu typów spotkań. Oś to kolejność spotkań, nie czas — przerwy nie są zerami.</p>
+      <p v-if="!timeline.pts.length" class="note">Brak pomiarów w tym okresie.</p>
+      <ComboChart v-else :points="timeline.pts.map(q => ({ label: q.ev ? short(q.label, 15) : dm(q.date), v: q.v, ev: q.ev, title: dmy(q.date) + ' · ' + q.label + ' · ' + q.v + ' os.' }))" />
+      <p v-if="timeline.slopeReg != null || timeline.slopeEv != null" class="as-sub">Trend: zwykłe spotkania {{ timeline.slopeReg == null ? '—' : (timeline.slopeReg >= 0 ? '+' : '') + dec(timeline.slopeReg, 2) + ' os. na kolejne spotkanie' }}<template v-if="timeline.slopeEv != null"> · ewangelizacje {{ (timeline.slopeEv >= 0 ? '+' : '') + dec(timeline.slopeEv, 2) }} os. na kolejne wydarzenie</template>. Trend to uproszczenie, nie prognoza.</p>
+    </section>
+
+    <div class="as-sec"><span>05/09</span><h3>Jakie były koszty spotkań?</h3></div>
+    <p class="as-sec-lead">Porównujemy środki potrzebne do organizacji spotkań, nie „wartość” spotkań ani ludzi. Brak kosztu nie oznacza zera.</p>
     <div class="as-grid">
-      <section class="as-card as-wide">
-        <h3>Spotkanie po spotkaniu</h3>
-        <p class="as-sub">Każdy pomiar osobno: zwykłe spotkania z grafiku i większe wydarzenia. Oś to kolejność spotkań, nie czas — przerwy (np. wakacje) nie są zerami.</p>
-        <div class="as-legend"><span><i class="k-reg"></i>Zwykłe spotkania ({{ timeline.nReg }})</span><span><i class="k-att"></i>Większe wydarzenia ({{ timeline.nEv }})</span></div>
-        <p v-if="!timeline.pts.length" class="note">Brak pomiarów w tym okresie.</p>
-        <ColChart v-else :items="timeline.pts.map(q => ({ label: dm(q.date), v: q.v, hi: q.ev, title: dmy(q.date) + ' · ' + q.label + ' · ' + q.v + ' os.' }))" :height="240" unit="os." label="Frekwencja kolejnych spotkań" />
-        <p v-if="timeline.slopeReg != null || timeline.slopeEv != null" class="as-sub">Trend: zwykłe spotkania {{ timeline.slopeReg == null ? '—' : (timeline.slopeReg >= 0 ? '+' : '') + dec(timeline.slopeReg, 2) + ' os. na kolejne spotkanie' }}<template v-if="timeline.slopeEv != null"> · większe wydarzenia {{ (timeline.slopeEv >= 0 ? '+' : '') + dec(timeline.slopeEv, 2) }} os. na kolejne wydarzenie</template>. Linia trendu to uproszczenie, nie prognoza.</p>
+      <section class="as-card">
+        <h3>Ile kosztowały poszczególne spotkania?</h3>
+        <p class="as-sub">Wyższy słupek = większy wydatek, nie większa skuteczność. Brak słupka — koszt nieznany.</p>
+        <div class="as-bars">
+          <div v-for="r in evCostRows" :key="r.e.id" class="as-brow as-click" :title="r.e.name + ': ' + (r.v == null ? 'koszt nieznany' : pln(r.v))" @click="openEv(r.e)">
+            <span class="as-lab"><b>{{ short(r.e.name) }}</b><small>{{ dmy(r.e.date) }}</small></span>
+            <span class="as-track"><i v-if="r.v != null" class="as-c1" :style="{ width: w(r.v, evCostMax) }"></i></span>
+            <span class="as-val">{{ r.v == null ? '—' : pln0(r.v) }}</span>
+          </div>
+        </div>
       </section>
+      <section class="as-card">
+        <h3>Ile kosztowała jedna obecność?</h3>
+        <p class="as-sub">Znany koszt ÷ obecni. Kolor — kompletność kosztów.</p>
+        <div class="as-legend"><span><i class="as-c1"></i>Pełne</span><span><i class="as-c5"></i>Niepełne</span><span><i class="as-c6"></i>Nieustalone</span></div>
+        <p v-if="!headRows.length" class="note">Brak wydarzeń z kosztem i frekwencją.</p>
+        <div class="as-bars">
+          <div v-for="r in headSorted" :key="r.e.id" class="as-brow as-click" :title="r.e.name + ': ' + pln(evCost(r.e)) + ' / ' + r.e.attendance + ' os. · ' + COST_ST[r.e.cost_status]" @click="openEv(r.e)">
+            <span class="as-lab"><b>{{ short(r.e.name) }}</b><small>{{ dmy(r.e.date) }}</small></span>
+            <span class="as-track"><i :class="completeCls(r.e)" :style="{ width: w(r.v, headMax) }"></i></span>
+            <span class="as-val">{{ pln(r.v) }}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="as-sec"><span>06/09</span><h3>Zapisy, obecności i nowe osoby</h3></div>
+    <p class="as-sec-lead">Źródła z zapisów, ankiet i relacji są częściowe. Szare „Nieznane” oznacza brak informacji, nie brak uczestników.</p>
+    <div class="as-grid as-grid-6">
+      <section class="as-card">
+        <h3>Źródła dotarcia · wydarzenia {{ st.city }}</h3>
+        <p class="as-sub">Dane z zapisów, ankiet i relacji · szare = nieznane źródło.</p>
+        <div class="as-legend"><span v-for="(c, i) in STACK" :key="c.key"><i :class="'as-c' + c.c"></i>{{ c.name }}</span></div>
+        <div class="as-bars">
+          <div v-for="r in stackRows" :key="r.e.id" class="as-brow as-click" :title="r.e.name + ' · ' + r.segs.filter(s => s.v).map(s => s.name + ' ' + s.v).join(', ') + ' · podstawa: ' + (r.zap ? 'zapisy' : 'obecni')" @click="openEv(r.e)">
+            <span class="as-lab"><b>{{ short(r.e.name) }}</b><small>{{ r.zap ? 'zapisy' : 'obecni' }} · {{ int(r.base) }}</small></span>
+            <span class="as-stackbar"><i v-for="s in r.segs.filter(s => s.v)" :key="s.key" :class="'as-c' + s.c" :style="{ width: (s.v / stackMax) * 100 + '%' }"></i></span>
+            <span class="as-val">{{ int(r.base) }}</span>
+          </div>
+        </div>
+      </section>
+      <section class="as-card as-newcost">
+        <small class="as-band">Nowi · koszt szacunkowy</small>
+        <b class="as-big">{{ kpi.newCost == null ? '—' : pln(kpi.newCost) }}</b>
+        <p class="as-sub">To nie cena człowieka ani koszt nawrócenia. Wskaźnik służy wyłącznie orientacyjnemu porównaniu wydatków.</p>
+        <p class="as-sub">Rozpoznane nowe osoby: <b>{{ int(kpi.newUnique) }}</b><template v-if="kpi.newUnique !== kpi.newPeople"> (z {{ int(kpi.newPeople) }} pierwszych uczestnictw)</template>.</p>
+        <p v-for="c in newCycles" :key="c.cycle" class="as-sub">W cyklu „{{ c.cycle }}”: {{ c.unique }} różnych nowych osób, ale {{ c.visits }} pierwszych uczestnictw w {{ c.n }} spotkaniach.</p>
+      </section>
+    </div>
+
+    <h3 class="as-more">Więcej analiz frekwencji i kosztów</h3>
+    <div class="as-grid">
       <section v-if="signupRows.length" class="as-card">
         <h3>Zapisy a obecni</h3>
         <p class="as-sub">Wydarzenia z formularzem zapisów: ilu zapisanych to stali bywalcy, a ile osób faktycznie przyszło. Sumy zdarzeń, nie różnych osób.</p>
@@ -453,33 +530,16 @@ export default defineComponent({
         </div>
         <p class="as-sub"><b>Razem:</b> {{ signupRows.reduce((t, r) => t + r.e.signups, 0) }} zapisów, {{ signupRows.reduce((t, r) => t + (r.e.attendance || 0), 0) }} obecnych.</p>
       </section>
-      <section class="as-card" :class="{ 'as-wide': !signupRows.length }">
-        <h3>Źródła na wydarzeniach</h3>
-        <p class="as-sub">Deklaracje na każdym wydarzeniu. „Nieznane” to osoby (zapisane albo obecne) bez podanego źródła — brak informacji, nie brak uczestników.</p>
-        <div class="as-table-wrap">
-          <table class="as-table">
-            <thead><tr><th>Wydarzenie</th><th>Podstawa</th><th v-for="x in SRC" :key="x.key">{{ x.name }}</th><th>Nieznane</th></tr></thead>
-            <tbody>
-              <tr v-for="r in srcRows" :key="r.e.id" class="as-click" @click="openEv(r.e)">
-                <td><b>{{ short(r.e.name, 30) }}</b><small>{{ dmy(r.e.date) }}</small></td>
-                <td>{{ r.zap ? 'zapisy' : 'obecni' }} · {{ int(r.base) }}</td>
-                <td v-for="(v, i) in r.vals" :key="i">{{ v == null ? '—' : v }}</td>
-                <td class="as-unk">{{ r.unknown == null ? '—' : r.unknown }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section class="as-card as-wide">
+      <section class="as-card">
         <h3>Zwykłe spotkania — średnia frekwencja w miesiącu</h3>
-        <p class="as-sub">Cotygodniowe spotkania z grafiku ASB. Kropka przy liczbie — w tym miesiącu było większe wydarzenie. Brak danych to nie 0 osób.</p>
-        <p v-if="!cfg.grafik" class="note">Włącz w Ustawieniach „frekwencja zwykłych spotkań z grafiku ASB”, żeby zobaczyć trend.</p>
-        <p v-else-if="!trend.length" class="note">W grafiku nie ma jeszcze wpisanej frekwencji zwykłych spotkań w tym okresie.</p>
+        <p class="as-sub">Cotygodniowe spotkania z grafiku ASB. Kropka przy liczbie — w tym miesiącu było większe wydarzenie.</p>
+        <p v-if="!cfg.grafik" class="note">Włącz w Ustawieniach „frekwencja zwykłych spotkań z grafiku ASB”.</p>
+        <p v-else-if="!trend.length" class="note">Brak frekwencji zwykłych spotkań w tym okresie.</p>
         <ColChart v-else :items="trend.map(t => ({ label: t.label, v: t.v, hi: true, mark: !!t.ev, title: t.label + ': średnio ' + dec(t.v) + ' os. z ' + t.n + ' spotkań' + (t.ev ? ' · większe wydarzenia: ' + t.ev : '') }))" unit="os." label="Średnia frekwencja zwykłych spotkań w miesiącach" />
       </section>
       <section class="as-card as-wide">
         <h3>Wpływ ewangelizacji na zwykłe spotkania</h3>
-        <p class="as-sub">Średnia z maksymalnie 3 zwykłych spotkań przed i po wydarzeniu (bez przechodzenia przez sąsiednie wydarzenie). To obserwacja, nie dowód przyczyny — porównuj z trendem semestru.</p>
+        <p class="as-sub">Średnia z maksymalnie 3 zwykłych spotkań przed i po wydarzeniu (bez przechodzenia przez sąsiednie wydarzenie). To obserwacja, nie dowód przyczyny.</p>
         <p v-if="!impact.length" class="note">Brak zwykłych spotkań z frekwencją wokół wydarzeń{{ cfg.grafik ? '' : ' — włącz grafik w Ustawieniach' }}.</p>
         <div v-else class="as-table-wrap">
           <table class="as-table">
@@ -497,7 +557,7 @@ export default defineComponent({
       </section>
       <section class="as-card as-wide">
         <h3>Porównanie lat akademickich</h3>
-        <p class="as-sub">Rok akademicki od września. Wszystkie lata miasta, niezależnie od wybranego okresu.</p>
+        <p class="as-sub">Rok akademicki od września. Wszystkie lata, niezależnie od wybranego okresu.</p>
         <div class="as-table-wrap">
           <table class="as-table">
             <thead><tr><th>Rok</th><th>Wydarzenia</th><th>Obecności</th><th>Śr. na wydarzenie</th><th>Nowe osoby</th><th>Znane wydatki</th><th>Na obecność</th><th>Zwykłe spotkania</th></tr></thead>
@@ -510,49 +570,8 @@ export default defineComponent({
           </table>
         </div>
       </section>
-    </div>
-  </template>
-
-  <!-- ===== koszty ===== -->
-  <template v-else-if="st.tab === 'cost'">
-    <div class="as-grid">
-      <section class="as-card">
-        <h3>Na co przeznaczyliśmy środki?</h3>
-        <p class="as-sub">Znane koszty wydarzeń według kategorii. Brak kwoty nie oznacza zera.</p>
-        <div class="as-bars">
-          <div v-for="c in costCats" :key="c.name" class="as-brow" :title="c.name + ': ' + pln(c.v)">
-            <span class="as-lab"><b>{{ c.name }}</b></span>
-            <span class="as-track"><i class="as-att" :style="{ width: w(c.v, max(costCats)) }"></i></span>
-            <span class="as-val">{{ pln(c.v) }}</span>
-          </div>
-        </div>
-      </section>
-      <section class="as-card">
-        <h3>Koszt na jedną obecność</h3>
-        <p class="as-sub">Znany koszt ÷ obecni. Porównanie wydatków, nie wartości spotkania ani człowieka.</p>
-        <p v-if="!headRows.length" class="note">Brak wydarzeń z kosztem i frekwencją.</p>
-        <div class="as-bars">
-          <div v-for="r in headRows" :key="r.e.id" class="as-brow as-click" :title="r.e.name + ': ' + pln(evCost(r.e)) + ' / ' + r.e.attendance + ' os.'" @click="openEv(r.e)">
-            <span class="as-lab"><b>{{ short(r.e.name) }}</b><small>{{ dmy(r.e.date) }}</small></span>
-            <span class="as-track"><i class="as-att" :class="{ est: r.e.quality !== 'potwierdzona' }" :style="{ width: w(r.v, headMax) }"></i></span>
-            <span class="as-val">{{ pln(r.v) }}</span>
-          </div>
-        </div>
-      </section>
       <section class="as-card as-wide">
-        <h3>Meta czy druk? Wydatki na promocję wydarzeń</h3>
-        <p class="as-sub">Reklamy Meta przypisane do wydarzenia i druk (plakaty + ulotki).</p>
-        <div class="as-legend"><span><i class="k-att"></i>Meta</span><span><i class="k-print"></i>Druk</span></div>
-        <div class="as-bars">
-          <div v-for="r in printRows" :key="r.e.id" class="as-brow" :title="r.e.name + ' · Meta ' + pln(r.meta) + ' · druk ' + pln(r.print)">
-            <span class="as-lab"><b>{{ short(r.e.name) }}</b><small>{{ dmy(r.e.date) }}</small></span>
-            <span class="as-track2"><i class="as-att" :style="{ width: w(r.meta, printMax) }"></i><i class="as-print" :style="{ width: w(r.print, printMax) }"></i></span>
-            <span class="as-val">{{ pln0(r.meta) }}<small>{{ pln0(r.print) }}</small></span>
-          </div>
-        </div>
-      </section>
-      <section class="as-card as-wide">
-        <h3>Koszty wydarzeń</h3>
+        <h3>Koszty wydarzeń — szczegóły</h3>
         <div class="as-table-wrap">
           <table class="as-table">
             <thead><tr><th>Wydarzenie</th><th>Sala</th><th>Druk</th><th>Meta</th><th>Inne</th><th>Razem</th><th>Na obecność</th><th>Meta / obecny</th><th>Kompletność</th></tr></thead>
@@ -573,37 +592,96 @@ export default defineComponent({
         </div>
         <p class="as-sub">Meta na obecnego to nie koszt pozyskania — nie wiemy, kto przyszedł dzięki reklamie.</p>
       </section>
-      <section class="as-card">
-        <h3>Druk — ilości i koszty</h3>
-        <p class="as-sub">Ilości to plan albo model podziału nakładu cyklu, nie potwierdzony druk ani rozdanie.</p>
-        <div class="as-mini">
-          <div><small>Plakaty</small><b>{{ int(print.posters || null) }} szt.</b><span class="as-mini-s">{{ pln(print.costPosters) }}</span></div>
-          <div><small>Ulotki</small><b>{{ int(print.flyers || null) }} szt.</b><span class="as-mini-s">{{ pln(print.costFlyers) }}</span></div>
-          <div><small>Koszt 1 plakatu</small><b>{{ pln(print.perPoster) }}</b></div>
-          <div><small>Koszt 1 ulotki</small><b>{{ pln(print.perFlyer) }}</b></div>
-          <div><small>Wskazania „plakat”</small><b>{{ int(print.posterTraces) }}</b><span class="as-mini-s">ze źródeł o różnych podstawach</span></div>
+      <section class="as-card as-wide">
+        <h3>Źródła na wydarzeniach — tabela</h3>
+        <div class="as-table-wrap">
+          <table class="as-table">
+            <thead><tr><th>Wydarzenie</th><th>Podstawa</th><th v-for="x in SRC" :key="x.key">{{ x.name }}</th><th>Nieznane</th></tr></thead>
+            <tbody>
+              <tr v-for="r in srcRows" :key="r.e.id" class="as-click" @click="openEv(r.e)">
+                <td><b>{{ short(r.e.name, 30) }}</b><small>{{ dmy(r.e.date) }}</small></td>
+                <td>{{ r.zap ? 'zapisy' : 'obecni' }} · {{ int(r.base) }}</td>
+                <td v-for="(v, i) in r.vals" :key="i">{{ v == null ? '—' : v }}</td>
+                <td class="as-unk">{{ r.unknown == null ? '—' : r.unknown }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
   </template>
 
-  <!-- ===== promocja ===== -->
-  <template v-else-if="st.tab === 'promo'">
+  <!-- ===== część 3: ASB — Marketing (07–09) ===== -->
+  <template v-else-if="st.tab === 'mkt'">
+    <header class="as-part"><h2>ASB — Marketing</h2><p>{{ texts.marketing }}</p></header>
+    <div class="as-sec"><span>07/09</span><h3>Jak docieramy do studentów?</h3></div>
+    <p class="as-sec-lead">Reklamy i druk pomagają zapraszać do rozmów o Chrystusie. Poniższe liczby to cztery osobne miary, nie jedna konwersja.</p>
+    <div class="as-kpis">
+      <div class="as-kpi k1"><small>Wyświetlenia Meta</small><b>{{ int(kpi.imp) }}</b><span>Odsłony reklam</span></div>
+      <div class="as-kpi k2"><small>Kliknięcia linków</small><b>{{ int(kpi.clicks) }}</b><span>Zdarzenia reklamowe</span></div>
+      <div class="as-kpi k3"><small>Deklaracje social</small><b>{{ int(sources.find(s => s.key === 'src_social').n) }}</b><span>Ankiety i formularze</span></div>
+      <div class="as-kpi k4"><small>Obecności</small><b>{{ range(kpi.lo, kpi.hi) }}</b><span>Suma udziałów</span></div>
+    </div>
+    <div v-if="regularShare.share != null" class="as-goalrow">
+      <div class="as-goalbox" :class="{ ok: regularShare.share <= regularShare.goal }"><b>{{ pct(regularShare.share) }}</b><small>Stali/bywalcy · {{ regularShare.reg }} z {{ regularShare.all }} deklaracji</small></div>
+      <div class="as-goalbox target"><b>Cel ≤ {{ pct(regularShare.goal) }}</b><small>{{ regularShare.share > regularShare.goal ? 'Dystans: +' + dec((regularShare.share - regularShare.goal) * 100) + ' p.p.' : 'Cel osiągnięty' }}</small></div>
+    </div>
+    <p class="as-meth">{{ regularShare.reg }} z {{ regularShare.all }} wskazań ({{ pct(regularShare.share) }}) pochodziło od stałych/bywalców. Cel: maks. {{ pct(regularShare.goal) }}. To struktura zapisów, nie odsetek unikalnych nowych osób ani faktycznie obecnych.</p>
+    <p class="as-callout">Nie wiemy, które osoby zobaczyły reklamę, zapisały się i przyszły. Nie przeliczamy kliknięć na „pozyskanych ludzi”.</p>
+    <div class="as-kpis as-kpis3">
+      <div class="as-kpi k2"><small>Kliknięcia / wyświetlenia</small><b>{{ kpi.ctr == null ? '—' : dec(kpi.ctr * 100, 2) + '%' }}</b><span>Wskaźnik zdarzeń, nie osób</span></div>
+      <div class="as-kpi k1"><small>Meta / kliknięcie linku</small><b>{{ pln(kpi.cpc) }}</b><span>Wszystkie cele kampanii</span></div>
+      <div class="as-kpi k3"><small>Meta / 1000 wyświetleń</small><b>{{ pln(kpi.cpm) }}</b><span>Wspólny koszt wielu celów</span></div>
+    </div>
+
+    <div class="as-sec"><span>08/09</span><h3>Jak odpowiedzialnie promujemy spotkania?</h3></div>
+    <p class="as-sec-lead">Wydatki Meta i druku są ważne, bo pozwalają mądrze gospodarować środkami przeznaczonymi na zapraszanie ludzi.</p>
     <div class="as-grid">
       <section class="as-card">
-        <h3>Jak docieramy do studentów?</h3>
-        <p class="as-sub">Osobne miary reklam Meta — nie jedna ścieżka tych samych osób.</p>
-        <div class="as-mini">
-          <div><small>Wyświetlenia</small><b>{{ int(kpi.imp) }}</b></div>
-          <div><small>Zasięg (suma reklam)</small><b>{{ int(kpi.reach) }}</b></div>
-          <div><small>Kliknięcia linków</small><b>{{ int(kpi.clicks) }}</b></div>
-          <div><small>Kliknięcia / wyświetlenia</small><b>{{ kpi.ctr == null ? '—' : dec(kpi.ctr * 100, 2) + '%' }}</b></div>
-          <div><small>Koszt kliknięcia</small><b>{{ pln(kpi.cpc) }}</b></div>
-          <div><small>Koszt 1000 wyświetleń</small><b>{{ pln(kpi.cpm) }}</b></div>
-          <div><small>Reakcje na wydarzenia</small><b>{{ int(kpi.reactN) }}</b></div>
-          <div><small>Średni koszt reakcji</small><b>{{ pln(kpi.reactCost) }}</b></div>
+        <h3>Na co wydano budżet Meta?</h3>
+        <p class="as-sub">Cele reklam · nie liczba osób pozyskanych.</p>
+        <div class="as-bars">
+          <div v-for="g in goalRows" :key="g.name" class="as-brow" :title="g.name + ': ' + pln(g.v) + ' · ' + g.n + ' reklam'">
+            <span class="as-lab"><b>{{ g.name }}</b><small>reklam: {{ g.n }}</small></span>
+            <span class="as-track"><i class="as-c1" :style="{ width: w(g.v, max(goalRows)) }"></i></span>
+            <span class="as-val">{{ pln(g.v) }}<small>{{ g.cpc != null ? 'CPC ' + pln(g.cpc) : '' }}</small></span>
+          </div>
         </div>
       </section>
+      <section class="as-card">
+        <h3>Ile kosztowały plakaty i ulotki?</h3>
+        <p class="as-sub">Znane wydatki · nakłady są modelem podziału planu, nie wykonaniem.</p>
+        <div class="as-bars">
+          <div class="as-brow" :title="'Plakaty: ' + pln(print.costPosters)"><span class="as-lab"><b>Plakaty</b><small>{{ print.posters ? int(print.posters) + ' szt.' : '' }}</small></span><span class="as-track"><i class="as-c2" :style="{ width: w(print.costPosters, Math.max(1, print.costPosters, print.costFlyers)) }"></i></span><span class="as-val">{{ pln(print.costPosters) }}<small v-if="print.perPoster != null">{{ pln(print.perPoster) }}/szt.</small></span></div>
+          <div class="as-brow" :title="'Ulotki: ' + pln(print.costFlyers)"><span class="as-lab"><b>Ulotki</b><small>{{ print.flyers ? int(print.flyers) + ' szt.' : '' }}</small></span><span class="as-track"><i class="as-c2" :style="{ width: w(print.costFlyers, Math.max(1, print.costPosters, print.costFlyers)) }"></i></span><span class="as-val">{{ pln(print.costFlyers) }}<small v-if="print.perFlyer != null">{{ pln(print.perFlyer) }}/szt.</small></span></div>
+        </div>
+        <p class="as-sub">Wskazania „plakat” w deklaracjach: <b>{{ int(print.posterTraces) }}</b> (różne podstawy).</p>
+      </section>
+      <section class="as-card as-wide">
+        <h3>Ranking {{ ranking.length }} kampanii Meta · koszt reakcji na wydarzenie</h3>
+        <p v-if="!ranking.length" class="note">Brak kampanii z celem „reakcje na wydarzenie”.</p>
+        <ol class="as-rank as-rank2">
+          <li v-for="(r, i) in ranking" :key="r.a.id" :title="r.a.name + ' · ' + r.a.results + ' reakcji · ' + pln(r.a.spent)"><span>{{ i + 1 }}.</span><b>{{ short(evById[r.a.event_id]?.name || r.a.name, 30) }}</b><em>{{ pln(r.v) }}</em></li>
+        </ol>
+        <div class="as-kpis as-kpis2">
+          <div class="as-kpi k1"><small>Reakcje Meta · łącznie</small><b>{{ int(kpi.reactN) }}</b></div>
+          <div class="as-kpi k3"><small>Średni koszt reakcji</small><b>{{ pln(kpi.reactCost) }}</b></div>
+        </div>
+        <p class="as-sub">Reakcje pomagają oceniać reklamy, ale nie mierzą relacji, wysłuchania Ewangelii ani wejścia do Kościoła.</p>
+      </section>
+    </div>
+
+    <div class="as-sec"><span>09/09</span><h3>Co zmienić, by lepiej służyć?</h3></div>
+    <p class="as-sec-lead">Działania na kolejne wydarzenia: program, zaproszenia, budżet, dalszy kontakt i docieranie poza stałe środowisko.</p>
+    <p v-if="!(cfg.actions || []).length" class="note">Brak działań — dopisz je w Ustawieniach.</p>
+    <div class="as-actions">
+      <div v-for="(a, i) in cfg.actions" :key="i" class="as-action"><span>{{ String(i + 1).padStart(2, '0') }}</span><div><b>{{ a.title }}</b><p v-if="a.text">{{ a.text }}</p></div></div>
+    </div>
+    <p class="as-callout">Granica danych: nie wiemy, ilu gości wróciło, rozwinęło relacje lub dalej poznawało Ewangelię. Bez tych danych nie przypisujemy reklamom efektów duchowych.</p>
+    <p v-if="gaps" class="as-meth">Otwarte luki: {{ gaps }}. Nie wyciągajmy z tego pozornie precyzyjnych wniosków.</p>
+
+    <h3 class="as-more">Więcej o reklamach</h3>
+    <div class="as-grid">
       <section class="as-card">
         <h3>Lejek obserwacyjny</h3>
         <p class="as-sub">Różne grupy i podstawy pomiaru — kolejne poziomy to nie te same osoby.</p>
@@ -612,6 +690,17 @@ export default defineComponent({
           <div><b>{{ int(kpi.clicks) }}</b><span>kliknięć w link</span></div>
           <div><b>{{ int(sources.find(s => s.key === 'src_social').n) }}</b><span>deklaracji „social media”</span></div>
           <div><b>{{ range(kpi.lo, kpi.hi) }}</b><span>obecności na wydarzeniach</span></div>
+        </div>
+      </section>
+      <section v-if="placements.length" class="as-card">
+        <h3>Miejsca emisji (częściowe)</h3>
+        <p class="as-sub">Odczyty dla części reklam — to nie wydatki ani unikalny zasięg.</p>
+        <div class="as-bars">
+          <div v-for="pl in placements" :key="pl.name" class="as-brow" :title="pl.name + ': ' + pl.v">
+            <span class="as-lab"><b>{{ pl.name }}</b></span>
+            <span class="as-track"><i class="as-c3" :style="{ width: w(pl.v, max(placements)) }"></i></span>
+            <span class="as-val">{{ int(pl.v) }}</span>
+          </div>
         </div>
       </section>
       <section class="as-card as-wide">
@@ -630,36 +719,6 @@ export default defineComponent({
             </tbody>
           </table>
         </div>
-      </section>
-      <section v-if="placements.length" class="as-card">
-        <h3>Miejsca emisji (częściowe)</h3>
-        <p class="as-sub">Odczyty dostępne tylko dla części reklam — to nie wydatki ani unikalny zasięg; nie dzielą kosztu na Facebook i Instagram.</p>
-        <div class="as-bars">
-          <div v-for="pl in placements" :key="pl.name" class="as-brow" :title="pl.name + ': ' + pl.v">
-            <span class="as-lab"><b>{{ pl.name }}</b></span>
-            <span class="as-track"><i class="as-att muted" :style="{ width: w(pl.v, max(placements)) }"></i></span>
-            <span class="as-val">{{ int(pl.v) }}</span>
-          </div>
-        </div>
-      </section>
-      <section class="as-card">
-        <h3>Na co wydano budżet Meta?</h3>
-        <p class="as-sub">Według celu kampanii. Cel to powód wydatku, nie osiągnięta frekwencja.</p>
-        <div class="as-bars">
-          <div v-for="g in goalRows" :key="g.name" class="as-brow" :title="g.name + ': ' + pln(g.v) + ' · ' + g.n + ' reklam'">
-            <span class="as-lab"><b>{{ g.name }}</b><small>reklam: {{ g.n }}</small></span>
-            <span class="as-track"><i class="as-att" :style="{ width: w(g.v, max(goalRows)) }"></i></span>
-            <span class="as-val">{{ pln(g.v) }}<small>{{ g.cpc != null ? 'CPC ' + pln(g.cpc) : '' }}{{ g.cpm != null ? ' · CPM ' + pln(g.cpm) : '' }}</small></span>
-          </div>
-        </div>
-      </section>
-      <section class="as-card">
-        <h3>Ranking kampanii Meta</h3>
-        <p class="as-sub">Koszt jednej reakcji na wydarzenie — niżej taniej.</p>
-        <p v-if="!ranking.length" class="note">Brak kampanii z celem „reakcje na wydarzenie”.</p>
-        <ol class="as-rank">
-          <li v-for="(r, i) in ranking" :key="r.a.id" :title="r.a.name + ' · ' + r.a.results + ' reakcji · ' + pln(r.a.spent)"><span>{{ i + 1 }}.</span><b>{{ short(evById[r.a.event_id]?.name || r.a.name) }}</b><em>{{ pln(r.v) }}</em></li>
-        </ol>
       </section>
       <section class="as-card as-wide">
         <h3>Wydarzenia na Facebooku — deklaracje a frekwencja</h3>
@@ -682,7 +741,7 @@ export default defineComponent({
     </div>
   </template>
 
-  <!-- ===== wydarzenia ===== -->
+  <!-- ===== rejestr wydarzeń ===== -->
   <template v-else-if="st.tab === 'events'">
     <div class="as-head"><p class="as-sub">Większe wydarzenia (np. ewangelizacyjne). Zwykłych cotygodniowych spotkań tu nie wpisujemy — ich frekwencja jest w grafiku ASB.</p><button class="primary" @click="openEv(null)"><svg class="i"><use href="#plus"/></svg>Wydarzenie</button></div>
     <div v-if="pending.length" class="as-todo">
@@ -866,6 +925,15 @@ export default defineComponent({
         <div class="as-dhead"><b>Cel i działania · {{ st.cfg.id }}</b><button class="icon" aria-label="Zamknij" @click="st.cfg = null"><svg class="i"><use href="#x"/></svg></button></div>
         <div class="as-dbody">
           <label class="as-f wide">Najwyżej tyle % stałych/bywalców w zapisach<input v-model="st.cfg.regular_goal" type="number" min="0" max="100" inputmode="numeric"></label>
+          <h4>Teksty dashboardu</h4>
+          <label class="as-f wide">Misja (pod tytułem „ASB {{ st.cfg.id }}”)<textarea v-model="st.cfg.texts.mission" rows="2" maxlength="300"></textarea></label>
+          <label class="as-f wide">Podtytuł części „Wydarzenia”<input v-model="st.cfg.texts.events" maxlength="200"></label>
+          <label class="as-f wide">Podtytuł części „Marketing”<input v-model="st.cfg.texts.marketing" maxlength="200"></label>
+          <h4>Dlaczego to robimy? — trzy filary</h4>
+          <div v-for="(pl, i) in st.cfg.texts.pillars" :key="'pl' + i" class="as-act wide">
+            <input v-model="pl.title" maxlength="60" :aria-label="'Filar ' + (i + 1)" placeholder="Tytuł">
+            <textarea v-model="pl.text" rows="2" maxlength="400" :aria-label="'Opis filaru ' + (i + 1)"></textarea>
+          </div>
           <h4>Działania na kolejne wydarzenia</h4>
           <div v-for="(a, i) in st.cfg.actions" :key="i" class="as-act wide">
             <input v-model="a.title" placeholder="Krótko, np. Osobiste zaproszenia" maxlength="80" :aria-label="'Działanie ' + (i + 1)">
@@ -1025,6 +1093,50 @@ export default defineComponent({
 .as-dbody.as-dbody-sv { display: block; }
 .as-svhint { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 12%, var(--panel2)); font-size: 13px; }
 .as-svhint button { min-height: 34px !important; padding: 0 12px !important; font-size: 13px; }
+/* trzy części dashboardu: nagłówek części, pasy sekcji 01–09, filary, cytaty */
+.as-part { display: block !important; position: static !important; background: none !important; margin: 6px 0 14px; padding: 4px 0 4px 14px; border-left: 4px solid var(--c1); }
+.as-part h2 { margin: 0; font-size: clamp(22px, 3vw, 28px); font-weight: 750; letter-spacing: -.01em; }
+.as-part p { margin: 4px 0 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.as-sec { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 8px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--c1) 22%, var(--panel)); }
+.as-sec span { font-size: 12px; font-weight: 700; color: var(--accent-text); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.as-sec h3 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.as-sec-lead { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.as-kpi.k1 { border-top: 3px solid var(--c1); } .as-kpi.k2 { border-top: 3px solid var(--c3); } .as-kpi.k3 { border-top: 3px solid var(--c2); } .as-kpi.k4 { border-top: 3px solid var(--c5); }
+.as-kpi span { line-height: 1.4; }
+.as-kpis3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.as-kpis2 { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 10px 0 0; }
+.as-pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px; }
+.as-pillar { padding: 14px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--c1); }
+.as-pillar.p1 { border-top-color: var(--c5); } .as-pillar.p2 { border-top-color: var(--c2); }
+.as-pillar b { display: block; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+.as-pillar p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.as-callout { margin: 10px 0; padding: 12px 16px; border-radius: 14px; background: color-mix(in srgb, var(--c2) 16%, var(--panel)); font-size: 14px; font-weight: 600; line-height: 1.5; }
+.as-more { margin: 26px 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.as-grid-6 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .as-grid-6 { grid-template-columns: 1fr; } }
+.as-newcost { justify-content: center; text-align: center; align-items: center; }
+.as-band { padding: 4px 12px; border-radius: 999px; background: color-mix(in srgb, var(--c2) 25%, var(--panel2)); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.as-big { font-size: clamp(30px, 4vw, 40px); font-weight: 750; font-variant-numeric: tabular-nums; margin: 6px 0; }
+.as-c1 { background: var(--c1) !important; } .as-c2 { background: var(--c2) !important; } .as-c3 { background: var(--c3) !important; }
+.as-c4 { background: var(--c4) !important; } .as-c5 { background: var(--c5) !important; } .as-c6 { background: var(--c6) !important; }
+.as-stackbar { position: relative; display: flex; height: 14px; }
+.as-stackbar::before { content: ''; position: absolute; left: 0; top: -4px; bottom: -4px; width: 1px; background: color-mix(in srgb, var(--muted) 55%, transparent); }
+.as-stackbar i { display: block; height: 14px; }
+.as-stackbar i + i { box-shadow: -1px 0 0 var(--panel); }
+.as-stackbar i:last-child { border-radius: 0 4px 4px 0; }
+.as-goalrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.as-goalbox { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; border-radius: 16px; background: color-mix(in srgb, var(--c4) 16%, var(--panel)); border: 1px solid var(--line); text-align: center; }
+.as-goalbox.ok { background: color-mix(in srgb, var(--c1) 18%, var(--panel)); }
+.as-goalbox.target { background: color-mix(in srgb, var(--c2) 18%, var(--panel)); }
+.as-goalbox b { font-size: 28px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.as-goalbox small { color: var(--muted); font-size: 12.5px; letter-spacing: .03em; text-transform: uppercase; }
+.as-rank2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 2px 16px; }
+.as-actions { display: flex; flex-direction: column; gap: 8px; }
+.as-action { display: flex; gap: 14px; padding: 12px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.as-action > span { flex: none; font-size: 13px; font-weight: 750; color: var(--accent-text); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.as-action b { display: block; font-size: 13.5px; letter-spacing: .04em; text-transform: uppercase; }
+.as-action p { margin: 4px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+@media (max-width: 640px) { .as-kpis3 { grid-template-columns: 1fr; } .as-goalrow { grid-template-columns: 1fr; } }
 .as-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; cursor: pointer; }
 .as-check input { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
 .as-help { margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: var(--panel2); font-size: 13px; line-height: 1.5; }

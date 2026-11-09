@@ -248,7 +248,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'asbStatDelete') return check(await sb.from('asb_stat_events').delete().eq('id', data.id))
       if (action === 'asbAdSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_ads').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
       if (action === 'asbAdDelete') return check(await sb.from('asb_ads').delete().eq('id', data.id))
-      if (action === 'asbCitySave') return check(await sb.from('asb_stat_cities').upsert({ id: data.id, regular_goal: data.regular_goal, actions: data.actions || [], updated: new Date().toISOString() }))
+      if (action === 'asbCitySave') return check(await sb.from('asb_stat_cities').upsert({ id: data.id, regular_goal: data.regular_goal, actions: data.actions || [], texts: data.texts || {}, updated: new Date().toISOString() }))
       // ASB: grafik spotkań i lista pomysłów (ranga „ASB” albo administrator — pilnuje baza).
       if (action === 'asbLoad') {
         const [meetings, ideas, votes] = await Promise.all([sb.from('asb_meetings').select('*').order('sort').then(check), sb.from('asb_ideas').select('*').order('created').then(check),

@@ -573,3 +573,7 @@ html[data-theme="light"] button.cal-day.today { background-color: #fbd38d !impor
 /* najechanie w trybie jasnym: ciemne kolory z trybu ciemnego zamienione na ton ciemniejszy od tła */
 html[data-theme="light"] .hm-pill:hover { background: #d9ceb8 !important; }
 html[data-theme="light"] .login-pop .login-x:hover { background: var(--panel3); }
+
+/* paleta wykresów (statystyki ASB): stała kolejność kategorii, osobno dla jasnego trybu */
+:root { --c1: #5f9e73; --c2: #e3b34a; --c3: #a6c79a; --c4: #d0714b; --c5: #d995ad; --c6: #8b8f96; }
+html[data-theme="light"] { --c1: #2f6b48; --c2: #d4a02c; --c3: #86ad78; --c4: #b9582f; --c5: #c77892; --c6: #a7a59e; }

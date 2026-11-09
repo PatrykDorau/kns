@@ -150,3 +150,8 @@ alter table public.asb_stat_events add column if not exists new_repeat int;     
 alter table public.asb_ads add column if not exists placements jsonb not null default '{}';     -- częściowe odczyty miejsc emisji { 'FB aktualności mobile': 3739, … }
 alter table public.asb_ads drop constraint if exists asb_ads_goal;
 alter table public.asb_ads add constraint asb_ads_goal check (goal in ('reakcje', 'rozmowy', 'aktywnosc', 'polubienia', 'klikniecia', 'odwiedziny', 'inne'));
+
+/* ---------- dashboard w trzech częściach: teksty misji i filarów, kompletność kosztów „nieustalona” ---------- */
+alter table public.asb_stat_cities add column if not exists texts jsonb not null default '{}';  -- { mission, events, marketing, pillars: [{ title, text }] }
+alter table public.asb_stat_events drop constraint if exists asb_stat_events_cost;
+alter table public.asb_stat_events add constraint asb_stat_events_cost check (cost_status in ('pelne', 'czesciowe', 'nieustalone', 'nieznane'));
