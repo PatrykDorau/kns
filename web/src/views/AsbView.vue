@@ -2,17 +2,20 @@
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
 import { defineComponent } from 'vue'
 import { useApp } from '@/composables/useApp'
+import AsbStats from '@/components/AsbStats.vue'
 
 // AsbView
-export default defineComponent({ setup: () => useApp() })
+export default defineComponent({ components: { AsbStats }, setup: () => useApp() })
 </script>
 
 <template>
   <div class="seg asb-tabs" role="tablist" aria-label="ASB">
     <button role="tab" :aria-selected="asb.tab === 'plan'" :class="{ on: asb.tab === 'plan' }" @click="asb.tab = 'plan'">Grafik</button>
     <button role="tab" :aria-selected="asb.tab === 'ideas'" :class="{ on: asb.tab === 'ideas' }" @click="asb.tab = 'ideas'">Pomysły<template v-if="asb.ideas.length"> ({{ asb.ideas.length }})</template></button>
+    <button role="tab" :aria-selected="asb.tab === 'stats'" :class="{ on: asb.tab === 'stats' }" @click="asb.tab = 'stats'">Statystyki</button>
   </div>
-  <div v-if="asb.busy && !asb.meetings.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 6" :key="n" class="skel skel-row"></div></div>
+  <AsbStats v-if="asb.tab === 'stats'" />
+  <div v-else-if="asb.busy && !asb.meetings.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 6" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="asb.error" class="error">{{ asb.error }}</p>
   <template v-else-if="asb.tab === 'ideas'">
     <div class="asb-idea-add">

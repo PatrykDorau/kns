@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createDrive } from './drive.ts'
 
 // Rangi z bazy → kształt używany w aplikacji (jak w serwer.gs).
-const rank = r => ({ id: r.id, name: r.name, edit: r.can_edit, council: r.council, protocols: r.protocols, manage: r.manage, approve: !!r.approve })
+const rank = r => ({ id: r.id, name: r.name, edit: r.can_edit, council: r.council, protocols: r.protocols, manage: r.manage, approve: !!r.approve, builtin: !!r.builtin })
 const view = p => ({ email: p.email, name: p.name || '', grupa: p.grupa || '', status: p.status, roles: p.roles || [], requested: p.requested ? new Date(p.requested).getTime() : 0, newsletter: !!p.newsletter, mailPrefs: p.mail_prefs || {} })
 const day = d => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : null)
 
@@ -89,7 +89,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'listen') return (check(await sb.from('site_settings').select('value').eq('key', 'posluchaj')) || [])[0]?.value || {}
       // moduły włączone przez administratora (czyta każdy, także gość)
       if (action === 'moduly') return (check(await sb.from('site_settings').select('value').eq('key', 'moduly')) || [])[0]?.value || {}
-      if (action === 'setModules') return check(await sb.rpc('set_site_setting', { k: 'moduly', v: { off: data.off || [], only: data.only || {} } }))
+      if (action === 'setModules') return check(await sb.rpc('set_site_setting', { k: 'moduly', v: { off: data.off || [], only: data.only || {}, ranks: data.ranks || {}, people: data.people || {} } }))
       if (action === 'setListen') return check(await sb.rpc('set_site_setting', { k: 'posluchaj', v: { youtube: data.youtube || '', youtubeMore: data.youtubeMore || '', spotify: data.spotify || '' } }))
       // Terminarz ASB — także dla gości (bez prowadzących i notatek).
       if (action === 'asbPublic') return check(await sb.rpc('asb_public'))
@@ -197,6 +197,24 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'signupLeave') return check(await sb.rpc('signup_leave', { eid: data.id }))
       if (action === 'signupPaid') return check(await sb.rpc('signup_paid', { eid: data.id, who: data.who, amount: data.amount }))
       if (action === 'signupDecide') return { status: check(await sb.rpc('signup_decide', { eid: data.id, who: data.who, decision: data.decision })) }
+      // Role (oprócz Administratora) i moduły dla konkretnych osób (role-moduly.sql) — zmienia administrator.
+      if (action === 'rankSave') return check(await sb.rpc('rank_save', { rid: data.id || '', rname: data.name, edit: !!data.edit, council: !!data.council, protocols: !!data.protocols, approve: !!data.approve }))
+      if (action === 'rankDelete') return check(await sb.rpc('rank_delete', { rid: data.id }))
+      if (action === 'myModules') return check(await sb.rpc('my_modules')) || []
+      if (action === 'modulePeople') return check(await sb.rpc('module_people_all')) || []
+      if (action === 'modulePeopleSet') return check(await sb.rpc('module_people_set', { mod: data.module, emails: data.emails || [] }))
+      // ASB: statystyki większych wydarzeń — rejestr wydarzeń, reklam Meta i ustawienia miasta (asb-statystyki.sql).
+      if (action === 'asbStats') {
+        const [events, ads, cities] = await Promise.all([sb.from('asb_stat_events').select('*').order('date'), sb.from('asb_ads').select('*').order('date'), sb.from('asb_stat_cities').select('*')].map(q => q.then(check)))
+        const day = d => (d instanceof Date ? d.toISOString().slice(0, 10) : d ? String(d).slice(0, 10) : null)
+        const num = r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' && /^(cost_(?!status)|spent$)/.test(k) ? Number(v) : v]))
+        return { events: (events || []).map(e => ({ ...num(e), date: day(e.date) })), ads: (ads || []).map(a => ({ ...num(a), date: day(a.date) })), cities: cities || [] }
+      }
+      if (action === 'asbStatSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_stat_events').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
+      if (action === 'asbStatDelete') return check(await sb.from('asb_stat_events').delete().eq('id', data.id))
+      if (action === 'asbAdSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_ads').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
+      if (action === 'asbAdDelete') return check(await sb.from('asb_ads').delete().eq('id', data.id))
+      if (action === 'asbCitySave') return check(await sb.from('asb_stat_cities').upsert({ id: data.id, regular_goal: data.regular_goal, actions: data.actions || [], updated: new Date().toISOString() }))
       // ASB: grafik spotkań i lista pomysłów (ranga „ASB” albo administrator — pilnuje baza).
       if (action === 'asbLoad') {
         const [meetings, ideas] = await Promise.all([sb.from('asb_meetings').select('*').order('sort').then(check), sb.from('asb_ideas').select('*').order('created').then(check)])

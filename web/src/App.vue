@@ -108,7 +108,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.23 · 8.11.2026'
+const VERSION = '4.24 · 9.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1926,11 +1926,20 @@ export default defineComponent({
     ]
     const NAV_MODULE = { myserve: 'serve' }
     const MOD_NEEDS = { grafik: 'serve' }
-    const modules = ref({ off: [], only: {} })
-    // dostęp według służb: only[moduł] = [id służb] — moduł widzą tylko ich członkowie i liderzy (oraz administratorzy)
-    const modAllowed = id => { const only = modules.value.only?.[id] || []; return !only.length || canManage.value || only.some(x => myMinistryIds.value.includes(x)) }
+    const modules = ref({ off: [], only: {}, ranks: {}, people: {} })
+    // Dostęp: only[moduł] = [id służb] (członkowie i liderzy), ranks[moduł] = [role], people[moduł] = liczba osób z dostępem
+    // imiennym (same osoby w bazie: module_people — my_modules() mówi, które moduły mam ja). Bez ograniczeń — widzą wszyscy;
+    // z ograniczeniami — wystarczy spełnić jedno z nich. Administratorzy widzą wszystko.
+    const myMods = ref([])
+    const modLimited = id => !!((modules.value.only?.[id] || []).length || (modules.value.ranks?.[id] || []).length || modules.value.people?.[id])
+    const modAllowed = id => {
+      if (!modLimited(id) || canManage.value) return true
+      const roles = me.value?.roles || []
+      return (modules.value.only?.[id] || []).some(x => myMinistryIds.value.includes(x)) || (modules.value.ranks?.[id] || []).some(r => roles.includes(r)) || myMods.value.includes(id)
+    }
     const modOn = id => !(modules.value.off || []).includes(id) && modAllowed(id) && (!MOD_NEEDS[id] || modOn(MOD_NEEDS[id]))
-    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], only: {}, ...(v || {}) } }).catch(() => null)
+    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], only: {}, ranks: {}, people: {}, ...(v || {}) } }).catch(() => null)
+    watch(() => me.value?.email, e => { if (e && api.enabled) api.call('myModules').then(v => { myMods.value = v || [] }, () => {}); else myMods.value = [] }, { immediate: true })
     async function saveModules(next) { await api.call('setModules', next); modules.value = next }
     async function setModule(id, on) {
       const off = new Set(modules.value.off || [])
@@ -1941,6 +1950,31 @@ export default defineComponent({
       const only = { ...(modules.value.only || {}) }
       if (ids.length) only[id] = ids; else delete only[id]
       await saveModules({ ...modules.value, only })
+    }
+    // dostęp do modułu naraz: służby i role (ustawienie strony) oraz osoby (baza; liczba wraca w ustawieniu)
+    async function setModuleAccess(id, { ministries = [], roles = [], emails = null }) {
+      const only = { ...(modules.value.only || {}) }, rk = { ...(modules.value.ranks || {}) }
+      if (ministries.length) only[id] = ministries; else delete only[id]
+      if (roles.length) rk[id] = roles; else delete rk[id]
+      if (emails) {
+        const n = await api.call('modulePeopleSet', { module: id, emails })
+        const pp = { ...(modules.value.people || {}) }
+        if (n) pp[id] = n; else delete pp[id]
+        modules.value = { ...modules.value, people: pp }
+      }
+      await saveModules({ ...modules.value, only, ranks: rk })
+    }
+    // Role (zakładka „Moduły” → „Role”): wszystkie oprócz Administratora; wbudowanych nie można usunąć.
+    async function saveRank(r) {
+      const id = await api.call('rankSave', r)
+      const res = await api.call('people'); ranks.value = res.ranks || ranks.value; people.value = res.people.map(withDraft)
+      return id
+    }
+    async function deleteRank(r) {
+      await api.call('rankDelete', { id: r.id })
+      ranks.value = ranks.value.filter(x => x.id !== r.id)
+      people.value = people.value.map(p => ({ ...p, roles: p.roles.filter(x => x !== r.id), draft: p.draft.filter(x => x !== r.id) }))
+      loadModules()
     }
     // ograniczenia według służb wymagają listy moich służb — wczytanie, gdy jej jeszcze nie ma
     watch([modules, ready], () => { if (ready.value && Object.keys(modules.value.only || {}).length && !serve.list.length && !serve.busy) loadServe() })
@@ -2571,7 +2605,7 @@ export default defineComponent({
           if (x) { openAnn(x); if (edit && annEditable.value) annEditing.value = true } else if (id !== 'nowe') error.value = 'Nie znaleziono tego ogłoszenia — mogło zostać usunięte albo nie masz do niego dostępu.'
         } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(query.includes('sluzba=') ? query : 'sluzby=1'))
         else if (view === 'posluchaj') openListen()
-        else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : 'plan'; await openAsb(); if (id && id !== 'pomysly') asbOpenId(id) }
+        else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : id === 'statystyki' ? 'stats' : 'plan'; await openAsb(); if (id && id !== 'pomysly' && id !== 'statystyki') asbOpenId(id) }
         else if (view === 'nabozenstwa') openServices()
         else if (view === 'cele' || view === 'cel') openGoals(view === 'cel' ? id : '')
         else if (view === 'glosowania') openVotes()
@@ -2644,7 +2678,7 @@ export default defineComponent({
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, modules, setModuleOnly, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, modules, setModuleOnly, setModuleAccess, modLimited, saveRank, deleteRank, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
