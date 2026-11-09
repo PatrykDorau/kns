@@ -31,11 +31,11 @@ export default defineComponent({
 <template>
   <div v-if="api.enabled" class="serve-tabs ann-tabs" role="tablist">
     <button role="tab" :aria-selected="annTab === 'ann'" @click="annTab = 'ann'; giftOpen = ''; surveyOpen = ''"><svg class="i"><use href="#megaphone"/></svg>Ogłoszenia</button>
-    <button role="tab" :aria-selected="annTab === 'gift'" @click="annTab = 'gift'; surveyOpen = ''"><svg class="i"><use href="#gift"/></svg>Wydawka</button>
-    <button role="tab" :aria-selected="annTab === 'survey'" @click="annTab = 'survey'; giftOpen = ''"><svg class="i"><use href="#check"/></svg>Ankiety</button>
+    <button v-if="modOn('gifts')" role="tab" :aria-selected="annTab === 'gift'" @click="annTab = 'gift'; surveyOpen = ''"><svg class="i"><use href="#gift"/></svg>Wydawka</button>
+    <button v-if="modOn('surveys')" role="tab" :aria-selected="annTab === 'survey'" @click="annTab = 'survey'; giftOpen = ''"><svg class="i"><use href="#check"/></svg>Ankiety</button>
   </div>
-  <Giveaways v-if="annTab === 'gift'" />
-  <Surveys v-else-if="annTab === 'survey'" />
+  <Giveaways v-if="annTab === 'gift' && modOn('gifts')" />
+  <Surveys v-else-if="annTab === 'survey' && modOn('surveys')" />
   <template v-else>
   <div v-if="canAnnounce" class="ann-new-row">
     <button class="primary" @click="newAnn"><svg class="i"><use href="#plus"/></svg>Nowe ogłoszenie</button>

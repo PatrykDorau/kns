@@ -110,7 +110,7 @@ export default defineComponent({ components: { MinistryPicker, CheckinBox, Event
     <button v-if="eventEditable" class="ann-edit-btn" @click="eventEditing = true"><svg class="i"><use href="#pencil"/></svg>Edytuj wydarzenie</button>
     <template v-if="currentEvent.asb">
       <p class="note">Spotkanie z grafiku ASB — zmienia się je w zakładce ASB, kalendarz aktualizuje się sam.</p>
-      <button v-if="canAsb" class="ann-edit-btn" @click="openAsbMeeting(currentEvent.asb)"><svg class="i"><use href="#users"/></svg>Otwórz w ASB</button>
+      <button v-if="asbMember" class="ann-edit-btn" @click="openAsbMeeting(currentEvent.asb)"><svg class="i"><use href="#users"/></svg>Otwórz w ASB</button>
     </template>
   </article>
   <template v-else>

@@ -26,6 +26,29 @@ assert.equal(ok(await S.from('asb_meetings').select('*'))[0].attendance, 17)
 ok(await S.from('asb_ideas').delete().eq('id', 'i1'))
 assert.equal(ok(await S.from('asb_ideas').select('*')).length, 0)
 
+// Zaangażowany (ranga asb_zaang): widzi grafik i pomysły, dopisuje pomysły, niczego nie zmienia ani nie usuwa
+const z = await addUser(db, 'zaang@kns.pl'); await db.query(`update people set status = 'active', roles = array['czlonek', 'asb_zaang'] where email = 'zaang@kns.pl'`)
+const Z = createFakeClient(db, z)
+assert.equal(ok(await Z.from('asb_meetings').select('*')).length, 1)
+assert.ok((await Z.from('asb_meetings').upsert({ id: 'mz', season: '2026/2027', topic: 'moje' })).error)
+await Z.from('asb_meetings').update({ attendance: 99 }).eq('id', 'm1')
+assert.equal(ok(await A.from('asb_meetings').select('*')).find(x => x.id === 'm1').attendance, 17)
+ok(await Z.from('asb_ideas').upsert({ id: 'iz', author: 'Zosia', topic: 'Kim był Paweł?' }))
+assert.equal(ok(await S.from('asb_ideas').select('*')).length, 1)
+await Z.from('asb_ideas').delete().eq('id', 'iz')
+assert.equal(ok(await Z.from('asb_ideas').select('*')).length, 1)
+assert.equal(ok(await Z.rpc('is_asb')), false); assert.equal(ok(await Z.rpc('is_asb_member')), true)
+// głosy: każdy z dostępem do ASB raz na pomysł, cofnięcie; bez dostępu — nie
+assert.equal(ok(await Z.rpc('asb_idea_vote', { i: 'iz', v: true })), 1)
+assert.equal(ok(await Z.rpc('asb_idea_vote', { i: 'iz', v: true })), 1) // drugi raz nic nie dodaje
+assert.equal(ok(await S.rpc('asb_idea_vote', { i: 'iz', v: true })), 2)
+err(await M.rpc('asb_idea_vote', { i: 'iz', v: true }), /dostępem do ASB/)
+assert.equal(ok(await Z.from('asb_idea_votes').select('*')).length, 2)
+assert.deepEqual(ok(await M.from('asb_idea_votes').select('*')), [])
+assert.equal(ok(await Z.rpc('asb_idea_vote', { i: 'iz', v: false })), 1)
+ok(await S.from('asb_ideas').delete().eq('id', 'iz'))
+assert.equal((await db.query('select count(*)::int n from asb_idea_votes')).rows[0].n, 0) // usunięty pomysł — głosy też
+
 // Kalendarz kościelny: spotkanie z datą → wydarzenie „asb_<id>” (opublikowane, widzi je każdy członek)
 const ev = async id => (await db.query('select * from events where id = $1', ['asb_' + id])).rows[0]
 let e = await ev('m1')
@@ -46,7 +69,7 @@ assert.equal(await ev('m3'), undefined)
 await addUser(db, 'kasia@kns.pl')
 await db.query("update people set status = 'active', roles = array['czlonek', 'asb'] where email = 'kasia@kns.pl'")
 ok(await S.from('asb_meetings').upsert({ id: 'm5', season: '2026/2027', sort: 5, kind: 'wewnetrzne', date: '2026-10-20', topic: 'Spotkanie organizacyjne', place: 'Studnia' }))
-assert.equal(ok(await S.rpc('asb_remind', { meeting: 'm5' })), 1)
+assert.equal(ok(await S.rpc('asb_remind', { meeting: 'm5' })), 2) // organizatorka Kasia i zaangażowana Zosia
 const box = (await db.query("select i.* from inbox i join people p on p.id = i.person where p.email = 'kasia@kns.pl'")).rows
 assert.equal(box.length, 1); assert.equal(box[0].title, 'ASB: Spotkanie organizacyjne'); assert.equal(box[0].url, './?asb=m5')
 assert.match(box[0].body, /20\.10 · 19:00 · Studnia/)

@@ -108,7 +108,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.24 · 9.11.2026'
+const VERSION = '4.25 · 9.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -534,6 +534,7 @@ export default defineComponent({
         ...(api.enabled ? [{ title: 'Wspólnota', items: [
           { id: 'serve', icon: 'serve', name: 'Zaangażuj się' },
           ...(serve.list.some(m => m.mine === 'active' || m.leader) || canManage.value || canAsb.value ? [{ id: 'myserve', icon: 'users', name: 'Moja służba' }] : []),
+          ...(asbMember.value ? [{ id: 'asb', icon: 'book', name: 'ASB' }] : []), // cały moduł ASB: grafik, pomysły, statystyki
           // beta — funkcje eksperymentalne (mogą się jeszcze zmienić)
           { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '', beta: true },
           { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '', beta: true },
@@ -561,7 +562,7 @@ export default defineComponent({
       const other = calView.value || gcalView.value || annView.value || protoView.value || tplView.value || songView.value || peopleView.value || profileView.value || serveView.value || listenView.value || asbView.value || goalsView.value || votesView.value || prayView.value || svcListView.value || moreView.value || page.value
       return {
         home: !editor && !other, cal: (!!currentEvent.value || calView.value || gcalView.value) && !current.value, svc: !!current.value || (svcListView.value && !currentEvent.value), anns: annView.value || !!currentAnn.value,
-        serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !canAsb.value), myserve: (serveView.value && serveTab.value === 'mine') || (asbView.value && canAsb.value), goals: goalsView.value, pray: prayView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
+        serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !asbMember.value), myserve: serveView.value && serveTab.value === 'mine', goals: goalsView.value, pray: prayView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
         moduly: page.value === 'moduly', zadania: page.value === 'zadania', finanse: page.value === 'finanse', dzieci: page.value === 'dzieci', tlumaczenie: page.value === 'tlumaczenie',
       }[id] || false
@@ -774,7 +775,7 @@ export default defineComponent({
     function toggleType(id) { calSel.value = calSel.value.includes(id) ? calSel.value.filter(x => x !== id) : [...calSel.value, id]; keepCal() }
     const myCalTypes = computed(() => {
       const roles = me.value?.roles || []
-      return types.value.map(t => t.id).filter(id => (id !== 'rada' || hasCouncil.value) && (id !== 'studenckie' || roles.includes('asb') || canManage.value) && id !== 'proba')
+      return types.value.map(t => t.id).filter(id => (id !== 'rada' || hasCouncil.value) && (id !== 'studenckie' || roles.includes('asb') || roles.includes('asb_zaang') || canManage.value) && id !== 'proba')
     })
     const CAL_PRESETS = computed(() => [
       { id: 'all', name: 'Wszystko', types: [] },
@@ -1594,8 +1595,10 @@ export default defineComponent({
     }))
     /* ---------- ASB: grafik spotkań i pomysły ---------- */
     const asbView = ref(false), asbForm = ref(null), asbPreview = ref(null) // asbPreview: podgląd spotkania (bez edycji)
-    const asb = reactive({ meetings: [], ideas: [], people: [], pub: [], pubAll: false, season: '', tab: 'plan', kind: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
+    const asb = reactive({ openPast: {}, meetings: [], ideas: [], people: [], pub: [], pubAll: false, season: '', tab: 'plan', kind: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
+    // ASB: organizator (ranga „asb”) widzi i zmienia wszystko; zaangażowany („asb_zaang”) widzi grafik bez zmian i dopisuje pomysły
     const canAsb = computed(() => api.enabled && (canManage.value || (me.value?.roles || []).includes('asb')))
+    const asbMember = computed(() => canAsb.value || (api.enabled && (me.value?.roles || []).includes('asb_zaang')))
     // Rodzaje spotkań (kolory w CSS: .k-cykliczne, .k-wewnetrzne, .k-ewangelizacyjne).
     const ASB_KINDS = [{ id: 'cykliczne', name: 'Cykliczne', plural: 'Cykliczne' }, { id: 'wewnetrzne', name: 'Wewnętrzne', plural: 'Wewnętrzne' }, { id: 'ewangelizacyjne', name: 'Ewangelizacyjne', plural: 'Ewangelizacyjne' }]
     const asbKindName = k => ASB_KINDS.find(x => x.id === k)?.name || 'Cykliczne'
@@ -1621,6 +1624,12 @@ export default defineComponent({
         const cyc = m.kind === 'cykliczne'
         g.list.push({ ...m, conceptStart: cyc && !!m.concept && m.concept !== prevConcept })
         if (cyc) prevConcept = m.concept
+      }
+      // miesiąc, który już minął (wszystkie spotkania z datą przed dziś) — zwinięty, rozwija się po kliknięciu
+      for (const g of out) {
+        const dated = g.list.filter(m => m.date)
+        g.past = dated.length > 0 && dated.length === g.list.length && dated.every(m => m.date.slice(0, 7) < todayStr.value.slice(0, 7)) // bieżący miesiąc zostaje rozwinięty
+        g.att = g.list.filter(m => m.attendance != null).map(m => m.attendance)
       }
       return out
     })
@@ -1676,15 +1685,16 @@ export default defineComponent({
     async function loadAsb() {
       asb.busy = true; asb.error = ''
       try {
-        if (!canAsb.value) { asb.tab = 'plan'; await loadAsbPublic(); return }
-        api.call('asbPeople').then(p => { asb.people = p || [] }, () => {})
+        if (!asbMember.value) { asb.tab = 'plan'; await loadAsbPublic(); return }
+        if (!canAsb.value && asb.tab === 'stats') asb.tab = 'plan'
+        if (canAsb.value) api.call('asbPeople').then(p => { asb.people = p || [] }, () => {})
         const r = await api.call('asbLoad')
         asb.meetings = r.meetings.map(m => ({ ...m, kind: m.kind || 'cykliczne', time: m.time ?? '', files: Array.isArray(m.files) ? m.files : [] })); asb.ideas = r.ideas
         if (!asb.season || !asbSeasons.value.includes(asb.season)) asb.season = asbSeasons.value.includes(seasonOf(todayStr.value)) ? seasonOf(todayStr.value) : asbSeasons.value[0] || seasonOf(todayStr.value)
       } catch (e) { asb.error = e.message } finally { asb.busy = false }
     }
     function openAsb() {
-      if (!api.enabled) return Promise.resolve()
+      if (!api.enabled || !modOn('asb')) return Promise.resolve() // moduł ASB wyłączony albo niedostępny
       loadMsgOpts()
       profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false
       annView.value = false; protoView.value = false; tplView.value = false; serveView.value = false; listenView.value = false
@@ -1694,7 +1704,7 @@ export default defineComponent({
     function asbOpenId(id) {
       const m = asb.meetings.find(x => x.id === id)
       if (!m) { if (canAsb.value) error.value = 'Nie znaleziono tego spotkania ASB — mogło zostać usunięte.'; return }
-      asb.tab = 'plan'; asb.season = m.season; asbEdit(m)
+      asb.tab = 'plan'; asb.season = m.season; if (canAsb.value) asbEdit(m); else asbPreview.value = m // zaangażowany — podgląd bez edycji
     }
     function openAsbMeeting(id) { resetViews(); openAsb().then(() => asbOpenId(id)) }
     function asbEdit(m = null, idea = null) {
@@ -1765,6 +1775,13 @@ export default defineComponent({
       })
     }
     const asbIdeaAdd = () => { if (asb.ideaTopic.trim()) guard(async () => { await api.call('asbIdea', { id: uid(), topic: asb.ideaTopic.trim(), author: asb.ideaAuthor.trim() || me.value?.name?.split(' ')[0] || '' }); asb.ideaTopic = ''; asb.ideaAuthor = ''; await loadAsb() }) }
+    // głos na pomysł (raz na osobę, można cofnąć) — od razu na ekranie, liczba z bazy
+    async function asbIdeaVote(i) {
+      const on = !i.voted; i.voted = on; i.votes += on ? 1 : -1
+      try { i.votes = await api.call('asbIdeaVote', { id: i.id, on }) } catch (e) { i.voted = !on; i.votes += on ? -1 : 1; error.value = e.message }
+    }
+    // pomysły: najwięcej głosów na górze, przy remisie — nowsze wyżej
+    const asbIdeasSorted = computed(() => [...asb.ideas].sort((a, b) => (b.votes || 0) - (a.votes || 0) || String(b.created || '').localeCompare(String(a.created || ''))))
     async function asbIdeaDelete(i) { if ((await ask('Usunąć pomysł „' + i.topic + '”?'))) guard(async () => { await api.call('asbIdeaDelete', { id: i.id }); await loadAsb() }) }
 
     /* ---------- skład zespołu ---------- */
@@ -1911,6 +1928,13 @@ export default defineComponent({
     // Moduły (wzór: Avenit): administrator wyłącza części aplikacji dla całego kościoła (site_settings „moduly”: { off: [...] }).
     // Wyłączone znikają z menu, Startu i adresów; nowe moduły są domyślnie włączone. „Grafik” działa tylko przy włączonych służbach.
     const MODULES = [
+      // podstawowe części aplikacji (Start, Osoby i Moduły zostają zawsze — bez nich nie da się zarządzać)
+      { id: 'cal', group: 'Podstawowe', icon: 'calendar', name: 'Kalendarz', desc: 'Wydarzenia, zapisy, tydzień na Starcie i kalendarz Google' },
+      { id: 'svc', group: 'Podstawowe', icon: 'book', name: 'Nabożeństwa', desc: 'Plan nabożeństw: kazanie, pieśni, program, przemyślenia' },
+      { id: 'anns', group: 'Podstawowe', icon: 'megaphone', name: 'Ogłoszenia', desc: 'Tablica ogłoszeń i ogłoszenia na Starcie' },
+      { id: 'gifts', group: 'Podstawowe', icon: 'gift', name: 'Wydawka', desc: 'Rzeczy do oddania — zakładka w Ogłoszeniach' },
+      { id: 'surveys', group: 'Podstawowe', icon: 'check', name: 'Ankiety', desc: 'Ankiety dla kościoła — zakładka w Ogłoszeniach' },
+      { id: 'asb', group: 'Wspólnota', icon: 'book', name: 'ASB', desc: 'Spotkania studenckie: grafik, pomysły, statystyki, reklamy i Facebook' },
       { id: 'serve', group: 'Wspólnota', icon: 'serve', name: 'Służby', desc: 'Zaangażuj się, Moja służba, dyspozycyjność, członkowie i pliki służb' },
       { id: 'grafik', group: 'Wspólnota', icon: 'calendar', name: 'Grafik i potwierdzenia', desc: 'Zaproszenia „Przyjmuję / Nie mogę”, skład na niedzielę, przypomnienia' },
       { id: 'zadania', group: 'Wspólnota', icon: 'tasks', name: 'Zadania', desc: 'Tablice zadań kościoła i służb' },
@@ -1923,8 +1947,12 @@ export default defineComponent({
       { id: 'mats', group: 'Narzędzia', icon: 'list', name: 'Materiały', desc: 'Protokoły, instrukcje i pliki' },
       { id: 'finanse', group: 'Narzędzia', icon: 'money', name: 'Finanse służb', desc: 'Plany i wydatki służb' },
       { id: 'tlumaczenie', group: 'Narzędzia', icon: 'globe', name: 'Tłumaczenie na żywo', desc: 'Tłumacz nadaje, słuchacze z kodu QR' },
+      { id: 'tpl', group: 'Narzędzia', icon: 'file', name: 'Szablony', desc: 'Szablony nabożeństw i wydarzeń' },
+      { id: 'msg', group: 'Narzędzia', icon: 'mail', name: 'Wiadomości', desc: 'Powiadomienia do ról, służb i osób' },
+      { id: 'tech', group: 'Narzędzia', icon: 'monitor', name: 'Rzutnik, Stream i kamera', desc: 'Aplikacja na komputer i sygnały dla kamery' },
+      { id: 'bugs', group: 'Narzędzia', icon: 'alert', name: 'Zgłoszenia', desc: 'Zgłaszanie błędów i backlog aplikacji' },
     ]
-    const NAV_MODULE = { myserve: 'serve' }
+    const NAV_MODULE = { myserve: 'serve', display: 'tech', stream: 'tech', camera: 'tech' }
     const MOD_NEEDS = { grafik: 'serve' }
     const modules = ref({ off: [], only: {}, ranks: {}, people: {} })
     // Dostęp: only[moduł] = [id służb] (członkowie i liderzy), ranks[moduł] = [role], people[moduł] = liczba osób z dostępem
@@ -1980,7 +2008,7 @@ export default defineComponent({
     watch([modules, ready], () => { if (ready.value && Object.keys(modules.value.only || {}).length && !serve.list.length && !serve.busy) loadServe() })
     loadModules()
     // moduł wyłączony (także gdy ustawienie dojdzie po otwarciu adresu) — jego strona się zamyka
-    watch(modules, () => { if (page.value && page.value !== 'moduly' && !modOn(page.value)) page.value = '' })
+    watch(modules, () => { if (page.value && page.value !== 'moduly' && !modOn(page.value)) page.value = ''; if (asbView.value && !modOn('asb')) asbView.value = false })
     const page = ref('')
     function openPage(p) { resetViews(); page.value = p; scrollTo(0, 0) }
     // liczba moich otwartych zadań (znaczek w menu)
@@ -2284,8 +2312,8 @@ export default defineComponent({
         ...(api.enabled ? [{ id: 'serve', icon: 'serve', name: 'Zaangażuj się', desc: 'Służby, które szukają chętnych', locked: false, go: 'chev' }] : []),
         ...(api.enabled ? [{ id: 'listen', icon: 'music', name: 'Posłuchaj', desc: 'Kazania na YouTube i Spotify', locked: false, go: 'chev' }] : []),
         ...(api.enabled ? [{ id: 'goals', icon: 'money', name: 'Cele wsparcia', desc: 'Część dziesięciny na wybrany cel', locked: false, go: 'chev', pill: goalDue.value ? 'Rozdziel' : '' }] : []),
-        ...(api.enabled ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: canAsb.value ? 'Grafik spotkań, przypomnienia i pomysły' : 'Terminarz spotkań studenckich', locked: false, go: 'chev' }] : []),
-      ].filter(t => !t.locked) // bez uprawnień kafelek się nie pokazuje
+        ...(api.enabled && modOn('asb') ? [{ id: 'asb', icon: 'users', name: 'ASB', desc: canAsb.value ? 'Grafik spotkań, przypomnienia i pomysły' : 'Terminarz spotkań studenckich', locked: false, go: 'chev' }] : []),
+      ].filter(t => !t.locked && modOn({ calendar: 'cal', planner: 'svc', display: 'tech', stream: 'tech' }[t.id] || t.id)) // bez uprawnień albo z wyłączonym modułem kafelek się nie pokazuje
     })
     function chooseTile(t) {
       if (t.locked) return
@@ -2553,7 +2581,7 @@ export default defineComponent({
       if (prayView.value) return '/modlitwa'
       if (page.value) return '/' + page.value
       if (bugsView.value) return '/zgloszenia'
-      if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : '/asb'
+      if (asbView.value) return asbForm.value && !asbForm.value._new ? '/asb/' + encodeURIComponent(asbForm.value.id) : asb.tab === 'ideas' ? '/asb/pomysly' : asb.tab === 'stats' ? '/asb/statystyki' : '/asb'
       if (svcListView.value) return '/nabozenstwa'
       if (calView.value) return '/kalendarz'
       if (moreView.value) return '/wiecej'
@@ -2599,13 +2627,14 @@ export default defineComponent({
         else if (view === 'ankiety') { openAnns(); annTab.value = 'survey'; surveyOpen.value = id }
         else if (view === 'modlitwa') prayView.value = true
         else if (PAGES[view] && modOn(view) && (view !== 'moduly' || canManage.value)) page.value = view
+        else if (view === 'statystyki' && canAsb.value && modOn('asb')) { asb.tab = 'stats'; await openAsb() } // statystyki ASB — zakładka modułu ASB
         else if (view === 'ogloszenie') {
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
           if (x) { openAnn(x); if (edit && annEditable.value) annEditing.value = true } else if (id !== 'nowe') error.value = 'Nie znaleziono tego ogłoszenia — mogło zostać usunięte albo nie masz do niego dostępu.'
         } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(query.includes('sluzba=') ? query : 'sluzby=1'))
         else if (view === 'posluchaj') openListen()
-        else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : id === 'statystyki' ? 'stats' : 'plan'; await openAsb(); if (id && id !== 'pomysly' && id !== 'statystyki') asbOpenId(id) }
+        else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : id === 'statystyki' && canAsb.value ? 'stats' : 'plan'; await openAsb(); if (id && id !== 'pomysly' && id !== 'statystyki') asbOpenId(id) }
         else if (view === 'nabozenstwa') openServices()
         else if (view === 'cele' || view === 'cel') openGoals(view === 'cel' ? id : '')
         else if (view === 'glosowania') openVotes()
@@ -2684,7 +2713,7 @@ export default defineComponent({
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
       tplView, tplType, tplDirty, openTemplates, openType, newType, closeType, saveTemplate, removeType, COLORS, cameFromCal: () => fromCal,
       AUDIENCE, announcements, canAnnounce, shortDate, activeAnns, oldAnns, importantAnns, homeAnns, annView, currentAnn, annDirty, annSavedOnce, annEditable,
-      asb, asbView, asbForm, asbPreview, canAsb, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete,
+      asb, asbView, asbForm, asbPreview, canAsb, asbMember, asbSeasons, asbList, asbGroups, asbNext, asbAvg, asbPlaces, openAsb, asbEdit, asbAutoMonth, asbSave, asbDelete, asbIdeaAdd, asbIdeaDelete, asbIdeaVote, asbIdeasSorted,
       booting, notesService, annIsNew, newAnnCount, annQuery, annHintsOpen, shownActiveAnns, shownOldAnns, annHints, hintParts, pickHint, isActive,
       ASB_KINDS, asbWhen, asbKindName, asbMissing, asbMissingCount, asbLeaderHints, asbPubUpcoming, asbPubShown, asbPubGroups,
       msg, msgRanks, msgMinistries, canMsg, openMsg, msgToggle, sendMsg,
@@ -2884,7 +2913,7 @@ export default defineComponent({
   <ServeView v-else-if="serveView && !current" />
 
   <!-- ASB: grafik spotkań studenckich (dawniej arkusz „ASB | GRAFIK”) i osobno lista pomysłów -->
-  <AsbPublicView v-else-if="asbView && !current && !canAsb" />
+  <AsbPublicView v-else-if="asbView && !current && !asbMember" />
   <AsbView v-else-if="asbView && !current" />
 
   <!-- Posłuchaj: YouTube i Spotify (linki ustawia administrator) -->

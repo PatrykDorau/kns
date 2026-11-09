@@ -53,7 +53,7 @@ export default defineComponent({
     </div>
     <p v-if="m.description" class="mn-desc">{{ m.description }}</p>
     <p v-if="m.leaders.length" class="mn-meta">Lider: {{ m.leaders.map(l => l.name).join(', ') }}</p>
-    <button v-if="m.id === 'asb'" class="small mn-asb" @click="openAsb"><svg class="i"><use href="#calendar"/></svg>{{ canAsb ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i chev"><use href="#chev"/></svg></button>
+    <button v-if="m.id === 'asb'" class="small mn-asb" @click="openAsb"><svg class="i"><use href="#calendar"/></svg>{{ asbMember ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i chev"><use href="#chev"/></svg></button>
     <!-- kto służy — zwinięte; lider po rozwinięciu dodaje i usuwa osoby -->
     <details class="mn-who">
       <summary><svg class="i"><use href="#users"/></svg><span>{{ (m.lead ? m.people.length : m.members.length) ? 'Kto służy · ' + (m.lead ? m.people.length : m.members.length) : 'Nikt jeszcze nie służy' }}</span><svg class="i mn-chev"><use href="#down"/></svg></summary>

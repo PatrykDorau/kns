@@ -96,7 +96,7 @@ export default defineComponent({
   <p v-if="st.error && !st.acc && !st.role" class="error">{{ st.error }}</p>
 
   <template v-if="st.tab === 'mods'">
-    <p class="md-lead">Włączasz tylko to, czego kościół używa, i decydujesz, kto to widzi: wybrane służby, role albo konkretne osoby. Wyłączona część znika z menu i ze Startu, a dane zostają. Administratorzy widzą wszystko. <b>Włączonych: {{ onCount }} z {{ MODULES.length }}.</b></p>
+    <p class="md-lead">Włączasz tylko to, czego kościół używa, i decydujesz, kto to widzi: wybrane służby, role albo konkretne osoby. Wyłączona część znika z menu, z dolnego paska i ze Startu, a dane zostają. Start, Osoby i Moduły działają zawsze. Administratorzy widzą wszystko, co włączone. <b>Włączonych: {{ onCount }} z {{ MODULES.length }}.</b></p>
     <section v-for="g in groups" :key="g.name" class="md-group">
       <h3 class="md-h">{{ g.name }}</h3>
       <div class="md-grid">
@@ -242,6 +242,9 @@ export default defineComponent({
 .md-dbody { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; padding: 2px; }
 .md-dbody h4 { margin: 8px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
 .md-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.md-chips .filter { border: 1px solid var(--line) !important; color: var(--text) !important; background: transparent !important; }
+.md-chips .filter.on { background: var(--accent) !important; border-color: var(--accent) !important; color: #2a1906 !important; font-weight: 600; }
+@media (hover: hover) { .md-chips .filter:not(.on):hover { background: var(--panel2) !important; } }
 .md-note { color: var(--muted); font-size: 12.5px; line-height: 1.4; margin: 0; }
 .md-person { display: inline-flex; align-items: center; gap: 2px; padding: 0 2px 0 12px; min-height: 32px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, var(--panel2)); font-size: 13px; }
 .md-person .icon { width: 28px !important; height: 28px !important; min-height: 0 !important; padding: 0 !important; }

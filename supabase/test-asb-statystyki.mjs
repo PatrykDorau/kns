@@ -33,3 +33,17 @@ assert.ok((await G.from('asb_stat_events').select('*')).error || !(await G.from(
 ok(await S.from('asb_stat_events').delete().eq('id', 'P-1'))
 assert.equal(ok(await S.from('asb_ads').select('event_id'))[0].event_id, null)
 console.log('statystyki ASB: OK')
+
+// token Meta: zapis przez ASB, nieczytelny z aplikacji, w ustawieniach tylko końcówka
+const TOK = 'EAAB' + 'x'.repeat(60) + 'WXYZ'
+assert.match((await S.rpc('asb_fb_token_set', { c: 'Poznań', t: 'krótki' })).error?.message || '', /token/)
+assert.equal(ok(await S.rpc('asb_fb_token_set', { c: 'Poznań', t: TOK })), '…WXYZ')
+assert.ok((await M.rpc('asb_fb_token_set', { c: 'Poznań', t: TOK })).error)
+const sec = await S.from('asb_fb_secrets').select('*')
+assert.ok(sec.error || !sec.data?.length, 'tokenu nie da się odczytać')
+const cityRow = ok(await S.from('asb_stat_cities').select('*')).find(c => c.id === 'Poznań')
+assert.equal(cityRow.fb_token_hint, '…WXYZ'); assert.ok(!JSON.stringify(cityRow).includes(TOK))
+assert.equal((await db.query(`select token from asb_fb_secrets where city = 'Poznań'`)).rows[0].token, TOK)
+ok(await S.rpc('asb_fb_token_set', { c: 'Poznań', t: '' }))
+assert.equal((await db.query(`select count(*)::int n from asb_fb_secrets`)).rows[0].n, 0)
+console.log('token Meta: OK')

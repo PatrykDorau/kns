@@ -205,10 +205,31 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'modulePeopleSet') return check(await sb.rpc('module_people_set', { mod: data.module, emails: data.emails || [] }))
       // ASB: statystyki większych wydarzeń — rejestr wydarzeń, reklam Meta i ustawienia miasta (asb-statystyki.sql).
       if (action === 'asbStats') {
-        const [events, ads, cities] = await Promise.all([sb.from('asb_stat_events').select('*').order('date'), sb.from('asb_ads').select('*').order('date'), sb.from('asb_stat_cities').select('*')].map(q => q.then(check)))
+        const [events, ads, cities, fbEvents, meetings] = await Promise.all([sb.from('asb_stat_events').select('*').order('date'), sb.from('asb_ads').select('*').order('date'), sb.from('asb_stat_cities').select('*'),
+          sb.from('asb_fb_events').select('*').order('start_time'), sb.from('asb_meetings').select('id,season,date,kind,topic,attendance,place').order('date')].map(q => q.then(check)))
         const day = d => (d instanceof Date ? d.toISOString().slice(0, 10) : d ? String(d).slice(0, 10) : null)
         const num = r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' && /^(cost_(?!status)|spent$)/.test(k) ? Number(v) : v]))
-        return { events: (events || []).map(e => ({ ...num(e), date: day(e.date) })), ads: (ads || []).map(a => ({ ...num(a), date: day(a.date) })), cities: cities || [] }
+        return { events: (events || []).map(e => ({ ...num(e), date: day(e.date) })), ads: (ads || []).map(a => ({ ...num(a), date: day(a.date) })), cities: cities || [],
+          fbEvents: (fbEvents || []).map(e => ({ ...e, start_time: e.start_time instanceof Date ? e.start_time.toISOString() : e.start_time })), meetings: (meetings || []).map(m => ({ ...m, date: day(m.date) })) }
+      }
+      // Facebook: ustawienia miasta (strona, konto reklamowe), token Meta (zapisywany w zamkniętej tabeli — aplikacja widzi
+      // tylko końcówkę) i pobranie danych przez funkcję serwerową Supabase „meta” (supabase/functions/meta).
+      if (action === 'asbFbToken') return check(await sb.rpc('asb_fb_token_set', { c: data.city, t: data.token || '' }))
+      if (action === 'asbCityFb') return check(await sb.from('asb_stat_cities').upsert({ id: data.id, fb_page: (data.fb_page || '').trim(), fb_ad_account: (data.fb_ad_account || '').trim(), grafik: !!data.grafik }))
+      if (action === 'asbFbFetch') {
+        const res = await fetch(config.supabaseUrl + '/functions/v1/meta', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.supabaseKey, Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ city: data.city }) })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw Object.assign(new Error(body.error || 'Facebook nie odpowiedział (' + res.status + ').'), { setup: !!body.setup })
+        return body
+      }
+      // zapis pobranych danych: istniejące reklamy — tylko liczby z Meta (przypisanie i uwagi zostają), nowe — dopisane
+      if (action === 'asbFbStore') {
+        const now = new Date().toISOString()
+        for (const u of data.updates || []) check(await sb.from('asb_ads').update({ ...u.row, synced: now }).eq('id', u.id))
+        if ((data.inserts || []).length) check(await sb.from('asb_ads').upsert(data.inserts.map(r => ({ ...r, synced: now, updated_by: 'Facebook' }))))
+        if ((data.events || []).length) check(await sb.from('asb_fb_events').upsert(data.events.map(e => ({ ...e, city: data.city, synced: now }))))
+        check(await sb.from('asb_stat_cities').upsert({ id: data.city, fb_synced: now, fb_followers: data.followers ?? null, ig_followers: data.igFollowers ?? null }))
+        return now
       }
       if (action === 'asbStatSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_stat_events').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
       if (action === 'asbStatDelete') return check(await sb.from('asb_stat_events').delete().eq('id', data.id))
@@ -217,9 +238,11 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'asbCitySave') return check(await sb.from('asb_stat_cities').upsert({ id: data.id, regular_goal: data.regular_goal, actions: data.actions || [], updated: new Date().toISOString() }))
       // ASB: grafik spotkań i lista pomysłów (ranga „ASB” albo administrator — pilnuje baza).
       if (action === 'asbLoad') {
-        const [meetings, ideas] = await Promise.all([sb.from('asb_meetings').select('*').order('sort').then(check), sb.from('asb_ideas').select('*').order('created').then(check)])
+        const [meetings, ideas, votes] = await Promise.all([sb.from('asb_meetings').select('*').order('sort').then(check), sb.from('asb_ideas').select('*').order('created').then(check),
+          sb.from('asb_idea_votes').select('idea,person').then(r => r.error ? [] : r.data || [])]) // głosy na pomysły (asb.sql)
+        const uidMe = session?.user?.id
         const day = d => (d instanceof Date ? d.toISOString().slice(0, 10) : d || null) // data zawsze jako 'RRRR-MM-DD'
-        return { meetings: (meetings || []).map(m => ({ ...m, date: day(m.date), reminded: m.reminded instanceof Date ? m.reminded.toISOString() : m.reminded })), ideas: ideas || [] }
+        return { meetings: (meetings || []).map(m => ({ ...m, date: day(m.date), reminded: m.reminded instanceof Date ? m.reminded.toISOString() : m.reminded })), ideas: (ideas || []).map(i => ({ ...i, votes: votes.filter(v => v.idea === i.id).length, voted: votes.some(v => v.idea === i.id && v.person === uidMe) })) }
       }
       if (action === 'asbSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_meetings').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
       // Przypomnienie: dzwonek dla wszystkich z rangą ASB, a kto włączył — także telefon.
@@ -326,6 +349,7 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       }
       if (action === 'asbDelete') return check(await sb.from('asb_meetings').delete().eq('id', data.id))
       if (action === 'asbIdea') return check(await sb.from('asb_ideas').upsert({ id: data.id, author: data.author || '', topic: data.topic }))
+      if (action === 'asbIdeaVote') return check(await sb.rpc('asb_idea_vote', { i: data.id, v: !!data.on }))
       if (action === 'asbIdeaDelete') return check(await sb.from('asb_ideas').delete().eq('id', data.id))
       if (action === 'addToMinistry') return check(await sb.rpc('ministry_add', { mid: data.id, who: data.who }))
       if (action === 'ministryPeople') return { people: check(await sb.rpc('ministry_people')) || [] }

@@ -17,7 +17,7 @@ export default defineComponent({
   components: { AvailabilityPanel, ScheduleTable, DutyInvites, AsbView, AsbPublicView },
   setup() {
     const app = useApp()
-    const mine = computed(() => app.serve.list.filter(m => m.mine === 'active' || m.leader || (m.id === 'asb' && app.canAsb.value)))
+    const mine = computed(() => app.serve.list.filter(m => m.mine === 'active' || m.leader || (m.id === 'asb' && app.asbMember.value)))
     const edit = reactive({}) // id służby → tekst w edycji
     const saved = (() => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') } catch { return {} } })()
     const st = reactive({ id: saved.id || '', tab: saved.tab || 'grafik' })
@@ -86,7 +86,7 @@ export default defineComponent({
     </nav>
 
     <section class="ms-body card">
-      <template v-if="tab === 'grafik' && m.id === 'asb'"><AsbView v-if="canAsb" /><AsbPublicView v-else /></template>
+      <template v-if="tab === 'grafik' && m.id === 'asb'"><AsbView v-if="asbMember" /><AsbPublicView v-else /></template>
       <ScheduleTable v-else-if="tab === 'grafik'" :key="'g' + m.id" :ministry="m.id" />
 
       <AvailabilityPanel v-else-if="tab === 'dyspo'" :key="'d' + m.id" :ministry="m.id" avail-only />
@@ -126,7 +126,7 @@ export default defineComponent({
 
       <template v-else-if="tab === 'asb'">
         <p class="note">Grafik spotkań studenckich i lista pomysłów.</p>
-        <button class="primary" @click="openAsb">{{ canAsb ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i"><use href="#chev"/></svg></button>
+        <button class="primary" @click="openAsb">{{ asbMember ? 'Grafik spotkań' : 'Terminarz spotkań' }}<svg class="i"><use href="#chev"/></svg></button>
       </template>
     </section>
   </template>

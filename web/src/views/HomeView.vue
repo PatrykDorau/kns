@@ -294,7 +294,7 @@ export default defineComponent({
 
     <!-- 3–5: ogłoszenia, tydzień, wspólnota -->
     <div class="hw-cols">
-      <section class="hw-col">
+      <section v-if="modOn('anns')" class="hw-col">
         <h3 class="hw-h"><span class="hw-step">3</span>Ogłoszenia<small v-if="newAnnCount" class="hm-new">{{ newAnnCount }} {{ newAnnCount === 1 ? 'nowe' : 'nowych' }}</small>
           <span class="hm-seg" role="group" aria-label="Widok ogłoszeń"><button :class="{ on: annMode === 'list' }" :aria-pressed="annMode === 'list'" title="Lista" @click="annMode = 'list'"><svg class="i"><use href="#list"/></svg></button><button :class="{ on: annMode === 'cards' }" :aria-pressed="annMode === 'cards'" title="Karty" @click="annMode = 'cards'"><svg class="i"><use href="#image"/></svg></button></span>
         </h3>
@@ -310,7 +310,7 @@ export default defineComponent({
         <p v-if="!boardNews.length" class="hw-none">Nie ma nowych ogłoszeń.</p>
         <button class="hw-link" @click="openAnns">Wszystkie ogłoszenia<template v-if="boardMore.n"> ({{ boardAll.length }})</template><svg class="i"><use href="#chev"/></svg></button>
       </section>
-      <section class="hw-col">
+      <section v-if="modOn('cal')" class="hw-col">
         <h3 class="hw-h"><span class="hw-step">4</span>Ten tydzień<small>{{ weekRange }}</small></h3>
         <template v-for="d in weekDays" :key="d.date">
           <button v-for="it in d.items" :key="it.kind + it.id" class="hw-row hw-ev" :class="{ today: d.date === todayStr }" :style="{ '--c': typeOf(it.type).color }" @click="openItem(it)">
@@ -407,7 +407,7 @@ export default defineComponent({
   </div>
 
   <div class="start-panels">
-    <section class="sp-week">
+    <section v-if="modOn('cal')" class="sp-week">
       <div class="section"><h2>Ten tydzień</h2><button class="ghost" @click="openCalendar">Kalendarz</button></div>
       <!-- telefon: lista -->
       <p v-if="!weekItems.length" class="note week-list-only">W najbliższych dniach nic nie zaplanowano.</p>
@@ -423,7 +423,7 @@ export default defineComponent({
     </section>
 
 
-    <section class="sp-news">
+    <section v-if="modOn('anns')" class="sp-news">
       <div class="section"><h2>Z newslettera</h2><button class="ghost" @click="openAnns">{{ canAnnounce ? 'Wszystkie / dodaj' : 'Wszystkie' }}</button></div>
       <p v-if="!homeAnns.length" class="note">Nie ma nowych ogłoszeń.</p>
       <div v-else class="news-grid">

@@ -97,7 +97,7 @@ begin
   if not is_asb() then raise exception 'Przypomnienia wysyłają osoby z rangą ASB.'; end if;
   select * into m from asb_meetings where id = meeting;
   if m.id is null then raise exception 'Nie ma takiego spotkania.'; end if;
-  n := inbox_add(array(select p.id from people p where p.status = 'active' and 'asb' = any (p.roles)),
+  n := inbox_add(array(select p.id from people p where p.status = 'active' and p.roles && array['asb', 'asb_zaang']),
     'ASB: ' || coalesce(nullif(m.topic, ''), case m.kind when 'wewnetrzne' then 'spotkanie wewnętrzne' when 'ewangelizacyjne' then 'spotkanie ewangelizacyjne' else 'spotkanie' end),
     concat_ws(' · ', case when m.date is not null then to_char(m.date, 'DD.MM') end, nullif(m.time, ''), nullif(m.place, ''),
       case when m.leader <> '' then 'prowadzi: ' || m.leader end),
@@ -131,7 +131,7 @@ grant execute on function public.asb_public() to anon, authenticated;
 create or replace function public.asb_person(who text) returns uuid
 language sql stable security definer set search_path = public as $$
   with c as (select p.id, lower(trim(p.name)) as name from people p
-             where p.status = 'active' and 'asb' = any (p.roles) and trim(coalesce(who, '')) <> '')
+             where p.status = 'active' and p.roles && array['asb', 'asb_zaang'] and trim(coalesce(who, '')) <> '')
   select coalesce((select id from c where name = lower(trim(who)) limit 1),
     (select min(id::text)::uuid from c where split_part(name, ' ', 1) = lower(trim(who)) having count(*) = 1))
 $$;
@@ -142,7 +142,7 @@ create or replace function public.asb_people() returns table (id uuid, name text
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not is_asb() then raise exception 'Brak dostępu.'; end if;
-  return query select p.id, p.name from people p where p.status = 'active' and 'asb' = any (p.roles) and p.name <> '' order by lower(p.name);
+  return query select p.id, p.name from people p where p.status = 'active' and p.roles && array['asb', 'asb_zaang'] and p.name <> '' order by lower(p.name);
 end $$;
 revoke all on function public.asb_people() from public, anon;
 grant execute on function public.asb_people() to authenticated;
@@ -170,3 +170,69 @@ begin
 end $$;
 revoke all on function public.asb_leader_reminders() from public;
 grant execute on function public.asb_leader_reminders() to anon, authenticated;
+
+/* ---------- dwie role ASB: organizator i zaangażowany ---------- */
+-- Organizator (ranga „asb”) widzi i zmienia wszystko. Zaangażowany (ranga „asb_zaang”) widzi grafik, notatki i pliki
+-- spotkań bez możliwości zmian, widzi pomysły i może dopisywać nowe. Statystyki — tylko organizator (is_asb()).
+insert into public.ranks (id, name, can_edit, council, protocols, manage, sort) values ('asb_zaang', 'ASB — zaangażowany', false, false, false, false, 9)
+on conflict (id) do nothing;
+update public.ranks set name = 'ASB — organizator' where id = 'asb' and name = 'ASB';
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'ranks' and column_name = 'builtin') then
+    update public.ranks set builtin = true where id in ('asb', 'asb_zaang');
+  end if;
+end $$;
+create or replace function public.is_asb_member() returns boolean
+language sql stable security definer set search_path = public as $$
+  select is_asb() or exists (select 1 from people p where p.id = auth.uid() and p.status = 'active' and 'asb_zaang' = any (p.roles))
+$$;
+revoke all on function public.is_asb_member() from public, anon;
+grant execute on function public.is_asb_member() to authenticated;
+drop policy if exists asb_meetings_all on public.asb_meetings;
+drop policy if exists asb_meetings_read on public.asb_meetings;
+drop policy if exists asb_meetings_write on public.asb_meetings;
+drop policy if exists asb_meetings_update on public.asb_meetings;
+drop policy if exists asb_meetings_delete on public.asb_meetings;
+create policy asb_meetings_read on public.asb_meetings for select to authenticated using (is_asb_member());
+create policy asb_meetings_write on public.asb_meetings for insert to authenticated with check (is_asb());
+create policy asb_meetings_update on public.asb_meetings for update to authenticated using (is_asb()) with check (is_asb());
+create policy asb_meetings_delete on public.asb_meetings for delete to authenticated using (is_asb());
+drop policy if exists asb_ideas_all on public.asb_ideas;
+drop policy if exists asb_ideas_read on public.asb_ideas;
+drop policy if exists asb_ideas_add on public.asb_ideas;
+drop policy if exists asb_ideas_update on public.asb_ideas;
+drop policy if exists asb_ideas_delete on public.asb_ideas;
+create policy asb_ideas_read on public.asb_ideas for select to authenticated using (is_asb_member());
+create policy asb_ideas_add on public.asb_ideas for insert to authenticated with check (is_asb_member());
+create policy asb_ideas_update on public.asb_ideas for update to authenticated using (is_asb()) with check (is_asb());
+create policy asb_ideas_delete on public.asb_ideas for delete to authenticated using (is_asb());
+
+/* ---------- głosy na pomysły ---------- */
+-- Każdy z dostępem do ASB (organizator i zaangażowany) może dać pomysłowi jeden głos i go cofnąć; najlepsze idą na górę.
+create table if not exists public.asb_idea_votes (
+  idea text not null references public.asb_ideas (id) on delete cascade,
+  person uuid not null references public.people (id) on delete cascade default auth.uid(),
+  created timestamptz not null default now(),
+  primary key (idea, person)
+);
+alter table public.asb_idea_votes enable row level security;
+revoke all on public.asb_idea_votes from public, anon, authenticated;
+grant select, delete on public.asb_idea_votes to authenticated;
+-- głos dodaje funkcja (zawsze w imieniu zalogowanego — nie da się zagłosować za kogoś)
+create or replace function public.asb_idea_vote(i text, v boolean) returns int
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if not is_asb_member() then raise exception 'Głosują osoby z dostępem do ASB.'; end if;
+  if not exists (select 1 from asb_ideas where id = i) then raise exception 'Nie ma takiego pomysłu.'; end if;
+  if v then insert into asb_idea_votes (idea, person) values (i, auth.uid()) on conflict do nothing;
+  else delete from asb_idea_votes where idea = i and person = auth.uid(); end if;
+  select count(*) into n from asb_idea_votes where idea = i;
+  return n;
+end $$;
+revoke all on function public.asb_idea_vote(text, boolean) from public, anon;
+grant execute on function public.asb_idea_vote(text, boolean) to authenticated;
+drop policy if exists asb_idea_votes_read on public.asb_idea_votes;
+drop policy if exists asb_idea_votes_own on public.asb_idea_votes;
+create policy asb_idea_votes_read on public.asb_idea_votes for select to authenticated using (is_asb_member());
+create policy asb_idea_votes_own on public.asb_idea_votes for delete to authenticated using (person = auth.uid());
