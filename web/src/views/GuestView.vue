@@ -34,11 +34,6 @@ export default defineComponent({
       }
       return out
     })
-    // ASB (spotkania studenckie): terminarz na następny miesiąc (publiczny — asb_public)
-    const MONTHS = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień']
-    const asbMonth = computed(() => { const [y, m] = app.todayStr.value.split('-').map(Number); return m === 12 ? (y + 1) + '-01' : y + '-' + String(m + 1).padStart(2, '0') })
-    const asbNextMonth = computed(() => (app.asb.pub || []).filter(m => m.date.startsWith(asbMonth.value)))
-    const asbMonthName = computed(() => MONTHS[+asbMonth.value.slice(5) - 1])
     const anns = computed(() => (app.pub.value?.announcements || []).slice(0, 4))
     // „Dodaj do kalendarza” — link Kalendarza Google z wypełnionym nabożeństwem (bez pobierania pliku)
     const calLink = computed(() => {
@@ -109,17 +104,12 @@ export default defineComponent({
     onBeforeUnmount(() => { removeEventListener('scroll', onScroll); removeEventListener('wheel', pageWheel); removeEventListener('touchstart', pageTouchStart); removeEventListener('touchmove', pageTouchMove) })
     const key = e => { if (!open.value && ['ArrowDown', 'PageDown', ' '].includes(e.key) && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); discover() } }
     onMounted(() => {
-      if (location.pathname.startsWith('/asb')) {
-        show(); discover()
-        setTimeout(() => document.getElementById('asb-terminarz')?.scrollIntoView({ block: 'start' }), 1200)
-        return
-      }
       if (still) return
       // góra z tła (szybsza) to ekran wczytywania — zwykle już się rysuje od startu strony (boot.ts), więc czekamy do końca
       timer = window.setTimeout(show, continueBackdrop(0.42) + 150)
     })
     onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
-    return { ...app, trail, trailDrawn, asbNextMonth, asbMonthName, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, calLink, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
+    return { ...app, trail, trailDrawn, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, calLink, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
   },
 })
 </script>
@@ -151,7 +141,7 @@ export default defineComponent({
       <nav class="gx-bar" aria-label="Strona">
         <button class="gx-logo" title="Wróć na początek" @click="back">Kościół <b>Na Skale</b></button>
         <span class="gx-bar-links">
-          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="asbNextMonth.length" href="#asb-terminarz">ASB</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
+          <a href="#nabozenstwo">Nabożeństwo</a><a href="#kim-jestesmy">Kim jesteśmy</a><a href="#wydarzenia">Wydarzenia</a><a v-if="listenYt || listenSp" href="#posluchaj">Posłuchaj</a>
         </span>
         <button class="gx-btn gx-accent gx-sm" @click="loginView = true">Zaloguj się</button>
       </nav>
@@ -184,7 +174,7 @@ export default defineComponent({
         </div>
         <!-- cztery wartości jako przystanki na szlaku pod górę (szlak i ikony rysują się kreską po przewinięciu) -->
         <div ref="trail" class="gx-trail" :class="{ drawn: trailDrawn }">
-          <svg class="gx-trail-line" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M0 250 C 50 240, 80 190, 125 186 S 300 140, 375 136 S 560 92, 625 86 S 800 40, 875 36 S 965 18, 1000 8" /></svg>
+          <svg class="gx-trail-line" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M125 186 S 300 140, 375 136 S 560 92, 625 86 S 800 40, 875 36" /></svg>
           <ol class="gx-values">
             <li style="--k: 0"><span class="gx-stop"><svg viewBox="0 0 64 64" aria-hidden="true"><path pathLength="1" d="M32 54 C14 41 7 32 7 22 a12 12 0 0 1 25-5 a12 12 0 0 1 25 5 c0 10-7 19-25 32z" /><path pathLength="1" d="M32 22v20M25 29h14" /></svg></span><small>01</small><b>Kochać Boga</b></li>
             <li style="--k: 1"><span class="gx-stop"><svg viewBox="0 0 64 64" aria-hidden="true"><path pathLength="1" d="M26 22c-6 2-9 9-8 17 1 9 4 17 10 18 6 1 8-5 7-11-1-5 2-8 4-12 2-5 0-11-5-12-3-1-6-1-8 0z" /><circle pathLength="1" cx="25" cy="12" r="3.2" /><circle pathLength="1" cx="32.5" cy="9.5" r="2.6" /><circle pathLength="1" cx="38.5" cy="11" r="2.2" /><circle pathLength="1" cx="43" cy="14.5" r="1.9" /><circle pathLength="1" cx="45.5" cy="19.5" r="1.6" /></svg></span><small>02</small><b>Naśladować Jezusa</b></li>
@@ -218,18 +208,6 @@ export default defineComponent({
             </div>
           </div>
         </div>
-      </section>
-
-      <!-- ASB: spotkania studenckie w przyszłym miesiącu -->
-      <section v-if="asbNextMonth.length" id="asb-terminarz" class="gx-sec">
-        <h2 class="gx-h"><span class="gx-dim">ASB</span>{{ asbMonthName }}</h2>
-        <p class="gx-sub">Terminarz spotkań studenckich na {{ asbMonthName }}.</p>
-        <ol class="gx-evs gx-asb">
-          <li v-for="m in asbNextMonth" :key="m.id" class="gx-ev gx-panel">
-            <span class="gx-ev-date"><b>{{ day(m.date) }}</b>{{ month(m.date) }}</span>
-            <span class="gx-ev-body"><b>{{ m.topic || 'Spotkanie ASB' }}</b><small>{{ [wd(m.date), m.time, m.place].filter(Boolean).join(' · ') }}</small><span v-if="m.kind && m.kind !== 'cykliczne'" class="gx-asb-kind">{{ asbKindName(m.kind) }}</span></span>
-          </li>
-        </ol>
       </section>
 
       <section v-if="listenYt || listenSp" id="posluchaj" class="gx-sec">
@@ -272,6 +250,23 @@ body.guest-ready .kns-backdrop { opacity: .3; }
 body.guest-open .kns-backdrop { opacity: .22; }
 @media (max-width: 760px) { body.guest-page .kns-backdrop { height: 86svh; } }
 @media (prefers-reduced-motion: reduce) { body.guest-page .kns-backdrop { transition: none; } }
+/* jasny motyw strony gościa (globalnie — w stylach z zakresem Vue doczepia znacznik do html i reguły nie działają) */
+html[data-theme="light"] .gx-dim, html[data-theme="light"] .gx-logo { color: #7a7268; }
+html[data-theme="light"] .gx-logo b { color: var(--text); }
+html[data-theme="light"] :is(.gx-sub, .gx-who-p, .gx-sermon span, .gx-ev-body span, .gx-ann p) { color: #3d3730; }
+html[data-theme="light"] :is(.gx-ev-body small, .gx-sermon small, .gx-values small, .gx-col-h, .gx-foot) { color: #5f574d; }
+html[data-theme="light"] .gx-col-h { border-bottom-color: var(--line); }
+html[data-theme="light"] .gx-foot button:hover { color: var(--text); }
+html[data-theme="light"] :is(.gx-chip, .gx-en, .gx-bar-links) { background: var(--panel2); color: var(--text); }
+html[data-theme="light"] .gx-bar-links { box-shadow: 0 6px 20px -10px rgba(60, 50, 40, .35); }
+html[data-theme="light"] .gx-bar-links a { color: var(--text); }
+html[data-theme="light"] .gx-bar-links a:hover { background: var(--panel3); color: var(--text); }
+html[data-theme="light"] .gx-en a { color: var(--text) !important; }
+html[data-theme="light"] .gx-panel { background: var(--panel); box-shadow: 0 1px 2px rgba(60, 50, 40, .06), 0 10px 26px -18px rgba(60, 50, 40, .3); }
+html[data-theme="light"] .gx-trail-line path { stroke: #8a8076; }
+html[data-theme="light"] .gx-values::before { border-left-color: #a39a8f; }
+html[data-theme="light"] .gx .gx-dark { background: var(--text); color: var(--bg); }
+html[data-theme="light"] .gx .gx-btn.gx-dark:hover:not(:disabled) { background: #3a342d !important; }
 </style>
 
 <style scoped>
@@ -328,7 +323,7 @@ body.guest-open .kns-backdrop { opacity: .22; }
 /* pasek: chowa się przy przewijaniu w dół, wraca przy przewijaniu w górę (hdr-hide — utils/autoHideHeader.ts) */
 .gx-bar { transition: transform .3s ease, opacity .5s ease .45s; }
 .gx:not(.open) .gx-bar { transition-delay: 0s; }
-.gx-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px var(--m); background: rgba(14, 13, 12, .82); backdrop-filter: blur(14px); }
+.gx-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px var(--m); background: none; }
 .gx-logo { border: 0; background: none; padding: 6px 0; color: #8c8985; font: 600 18px/1 var(--display); letter-spacing: -.02em; cursor: pointer; }
 .gx-logo b { color: #fff; font-weight: 600; }
 .gx-bar-links { display: flex; gap: 6px; padding: 5px; border-radius: 999px; background: #1c1b1a; }
@@ -372,7 +367,7 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-trail-line path { fill: none; stroke: #5d5955; stroke-width: 2; stroke-dasharray: .006 .01; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .gx-values { position: relative; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; }
 .gx-values li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: calc(150px - var(--k) * 50px); }
-.gx-stop { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 9px #0e0d0c; }
+.gx-stop { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .7), 0 0 0 5px var(--bg); }
 .gx-stop svg { width: 42px; height: 42px; fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .gx-values small { margin-top: 18px; color: #8c8985; font: 600 13px/1 var(--display); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
 .gx-values b { margin-top: 8px; font: 600 20px/1.2 var(--display); letter-spacing: -.015em; }
@@ -389,8 +384,6 @@ body.guest-open .kns-backdrop { opacity: .22; }
 .gx-col { min-width: 0; }
 .gx-col-h { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid #2a2826; color: #8c8985; font: 600 15px/1 var(--display); }
 .gx-evs { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; }
-.gx-asb { max-width: 760px; margin: 56px auto 0; text-align: left; }
-.gx-ev-body .gx-asb-kind { align-self: flex-start; margin-top: 4px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft, rgba(246, 168, 54, .13)); color: var(--accent); font: 600 13px/1 var(--display); }
 .gx-ev { display: grid; grid-template-columns: 110px 1fr; gap: 20px; align-items: center; padding: 20px 26px; }
 .gx-ev-date { display: flex; align-items: baseline; gap: 6px; color: var(--c, var(--accent)); font: 600 18px/1 var(--display); }
 .gx-ev-date b { font: 650 48px/1 var(--display); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
@@ -434,7 +427,7 @@ body.guest-open .kns-backdrop { opacity: .22; }
   .gx-values { grid-template-columns: 1fr; gap: 26px; }
   .gx-values::before { content: ''; position: absolute; left: 30px; top: 30px; bottom: 30px; z-index: 0; border-left: 2px dashed #4a4744; }
   .gx-values li { display: grid; grid-template-columns: 60px 1fr; grid-template-rows: auto auto; column-gap: 18px; align-items: center; text-align: left; margin-top: 0; }
-  .gx-stop { grid-row: 1 / 3; width: 60px; height: 60px; box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .55), 0 0 0 6px var(--bg); }
+  .gx-stop { grid-row: 1 / 3; width: 60px; height: 60px; box-shadow: 0 0 0 1.5px rgba(246, 168, 54, .7), 0 0 0 4px var(--bg); }
   .gx-stop svg { width: 34px; height: 34px; }
   .gx-values small { margin: 0; align-self: end; }
   .gx-values b { margin-top: 4px; align-self: start; font-size: 18px; }
