@@ -407,7 +407,7 @@ export default defineComponent({
 
   <!-- ===== część 1: ASB <miasto> (01–03) ===== -->
   <template v-else-if="st.tab === 'sum'">
-    <header class="as-part"><h2>ASB {{ st.city }}</h2><p>{{ texts.mission }}</p></header>
+    <div class="as-part"><h2>ASB {{ st.city }}</h2><p>{{ texts.mission }}</p></div>
     <div v-if="pending.length || upcoming.length || unassigned.length" class="as-todo">
       <button v-for="m in pending" :key="m.id" @click="fromMeeting(m)"><svg class="i"><use href="#alert"/></svg><span><b>Uzupełnij: {{ m.topic || 'ewangelizacja' }}</b><small>{{ dmy(m.date) }} · z grafiku — dodaj frekwencję, źródła i koszty</small></span></button>
       <button v-if="unassigned.length" @click="st.tab = 'ads'; st.adFilter = 'bez'"><svg class="i"><use href="#link"/></svg><span><b>Reklamy bez wydarzenia: {{ unassigned.length }}</b><small>przypisz, żeby koszt trafił do właściwego spotkania</small></span></button>
@@ -451,7 +451,7 @@ export default defineComponent({
 
   <!-- ===== część 2: ASB — Wydarzenia (04–06) ===== -->
   <template v-else-if="st.tab === 'wyd'">
-    <header class="as-part"><h2>ASB — Wydarzenia</h2><p>{{ texts.events }}</p></header>
+    <div class="as-part"><h2>ASB — Wydarzenia</h2><p>{{ texts.events }}</p></div>
     <div class="as-sec"><span>04/09</span><h3>Ile osób uczestniczyło w spotkaniach?</h3></div>
     <p class="as-sec-lead">{{ timeline.pts.length }} odczytów frekwencji. Każda obecność to udział człowieka; część liczb jest szacowana.</p>
     <section class="as-card">
@@ -613,7 +613,7 @@ export default defineComponent({
 
   <!-- ===== część 3: ASB — Marketing (07–09) ===== -->
   <template v-else-if="st.tab === 'mkt'">
-    <header class="as-part"><h2>ASB — Marketing</h2><p>{{ texts.marketing }}</p></header>
+    <div class="as-part"><h2>ASB — Marketing</h2><p>{{ texts.marketing }}</p></div>
     <div class="as-sec"><span>07/09</span><h3>Jak docieramy do studentów?</h3></div>
     <p class="as-sec-lead">Reklamy i druk pomagają zapraszać do rozmów o Chrystusie. Poniższe liczby to cztery osobne miary, nie jedna konwersja.</p>
     <div class="as-kpis">
@@ -1094,7 +1094,7 @@ export default defineComponent({
 .as-svhint { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 12%, var(--panel2)); font-size: 13px; }
 .as-svhint button { min-height: 34px !important; padding: 0 12px !important; font-size: 13px; }
 /* trzy części dashboardu: nagłówek części, pasy sekcji 01–09, filary, cytaty */
-.as-part { display: block !important; position: static !important; background: none !important; margin: 6px 0 14px; padding: 4px 0 4px 14px; border-left: 4px solid var(--c1); }
+.as-part { display: block; margin: 8px 0 22px; padding: 2px 0 2px 14px; border-left: 4px solid var(--c1); }
 .as-part h2 { margin: 0; font-size: clamp(22px, 3vw, 28px); font-weight: 750; letter-spacing: -.01em; }
 .as-part p { margin: 4px 0 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
 .as-sec { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 8px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--c1) 22%, var(--panel)); }
