@@ -3,6 +3,8 @@
 import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
+import ColChart from '@/components/ColChart.vue'
+import AsbSurveys, { SOURCE_OPTS } from '@/components/AsbSurveys.vue'
 
 // Statystyki ASB — osobna strona w menu (dawniej arkusz „ASB | Statystyki”, zakładka „Dashboard Poznań”).
 // Większe wydarzenia z frekwencją i jakością danych, nowe osoby, źródła dotarcia, koszty w kategoriach, reklamy Meta,
@@ -22,22 +24,54 @@ const SRC = [
 const QUALITY = { potwierdzona: 'Potwierdzona', szacunek: 'Szacunek', brak: 'Brak danych' }
 const COST_ST = { pelne: 'Pełne', czesciowe: 'Częściowe', nieznane: 'Nieznane' }
 const BASIS = { zapisy: 'Formularz zapisów', ankieta: 'Ankieta obecnych', relacja: 'Relacja organizatorów', '': 'Brak' }
-const GOALS = { reakcje: 'Reakcje na wydarzenie', rozmowy: 'Rozpoczęte rozmowy', aktywnosc: 'Aktywność posta', polubienia: 'Polubienia strony', inne: 'Inny cel' }
-const TABS = [['sum', 'Przegląd'], ['att', 'Frekwencja'], ['cost', 'Koszty'], ['promo', 'Promocja'], ['events', 'Wydarzenia'], ['ads', 'Reklamy'], ['set', 'Ustawienia']]
+const GOALS = { reakcje: 'Reakcje na wydarzenie', rozmowy: 'Rozpoczęte rozmowy', aktywnosc: 'Aktywność posta', polubienia: 'Polubienia strony', klikniecia: 'Kliknięcia linku', odwiedziny: 'Odwiedziny strony / profilu', inne: 'Inny cel' }
+// zasady analizy z arkusza (M01–M10) — pokazywane w Ustawieniach, żeby każdy czytał liczby tak samo
+const METHOD = [
+  ['Zakres', 'Koszty obejmują zarejestrowane większe wydarzenia, nie całą działalność ASB. Unikamy określenia „koszty całego ASB”.'],
+  ['Frekwencja', 'Zapisy ≠ obecność. Suma obecności to uczestnictwa, nie różne osoby. Osobę obecną przez część spotkania liczymy jako 1; pojedyncze spotkanie zaokrąglamy w górę, średnich nie.'],
+  ['Wpływ ewangelizacji', 'Porównujemy 2–3 zwykłe spotkania przed i po akcji, z datami i liczbą obserwacji. Bez okien obejmujących kolejną ewangelizację; wynik przed/po sam nie dowodzi efektu.'],
+  ['Trend i sezonowość', 'Osobno średnie zwykłych spotkań, trend semestru i lata akademickie. Brak danych ≠ 0. Jeden sezon nie potwierdza cyklu.'],
+  ['Powroty nowych', 'Suma frekwencji nie mówi, kto wrócił. Przy zwykłych spotkaniach notujmy anonimowo: pierwsza wizyta, powrót po akcji, stały uczestnik.'],
+  ['Źródła', 'Odpowiedzi z zapisów to nie to samo co ankieta obecnych. Wskazanie Facebooka nie dowodzi płatnej reklamy. Rozdzielamy organiczne social, płatne Meta i zaproszenia.'],
+  ['Promocja', 'Koszt promocji na deklarację kanału to nie koszt pozyskania obecnej osoby.'],
+  ['Druk', 'Nie dzielimy kosztu druku przez liczbę wskazań plakatu; nakład 400/500 to model podziału planu, nie potwierdzony druk.'],
+  ['Braki', 'Potwierdzona, szacunek i brak danych to różne jakości. Nieznany koszt ≠ 0 zł, brak frekwencji ≠ 0 osób — luki zostają otwarte i opisane.'],
+  ['Kolejne akcje', 'Po wydarzeniu: frekwencja, nowe osoby, źródła, koszt oraz 1., 2. i 3. zwykłe spotkanie po akcji — bez automatycznych wniosków o przyczynie.'],
+]
+const TABS = [['sum', 'Przegląd'], ['att', 'Frekwencja'], ['cost', 'Koszty'], ['promo', 'Promocja'], ['events', 'Wydarzenia'], ['ads', 'Reklamy'], ['surveys', 'Ankiety'], ['set', 'Ustawienia']]
 const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
-const NUM_EV = ['signups', 'attendance', 'att_min', 'att_max', 'new_people', ...SRC.map(s => s.key)]
+const NUM_EV = ['signups', 'attendance', 'att_min', 'att_max', 'new_people', 'new_repeat', 'print_posters', 'print_flyers', ...SRC.map(s => s.key)]
 const NUM_AD = ['impressions', 'reach', 'results', 'link_clicks', 'activity']
 
 export default defineComponent({
+  components: { ColChart, AsbSurveys },
   setup() {
     const app = useApp()
     const st = reactive({ busy: false, error: '', events: [], ads: [], cities: [], fbEvents: [], meetings: [], city: 'Poznań', season: '', tab: 'sum',
-      ev: null, ad: null, cfg: null, fbCfg: null, saving: false, fb: { busy: false, msg: '', error: '', setup: false }, adFilter: '', tokenIn: '' })
+      ev: null, ad: null, cfg: null, fbCfg: null, saving: false, fb: { busy: false, msg: '', error: '', setup: false }, adFilter: '', tokenIn: '', surveys: [], answers: [], evTab: 'dane' })
+    // ankiety z kodem QR (osobno — błąd tutaj nie psuje statystyk)
+    async function loadSurveys() { try { const r = await app.api.call('asbSurveys'); st.surveys = r.surveys; st.answers = r.answers } catch { /* dodatek */ } }
+    // „Skąd się dowiedziałeś?” z ankiet podpiętych pod wydarzenie → podpowiedź liczb w źródłach dotarcia
+    function surveySrc(eventId) {
+      const out = { n: 0, counts: Object.fromEntries(SOURCE_OPTS.map(o => [o[0], 0])) }
+      if (!eventId) return out
+      for (const sv of st.surveys.filter(x => x.event_id === eventId)) {
+        const q = (sv.questions || []).find(x => x.type === 'source'); if (!q) continue
+        for (const a of st.answers.filter(x => x.survey === sv.id)) { const v = a.answers?.[q.id]; if (v && v in out.counts) { out.counts[v]++; out.n++ } }
+      }
+      return out
+    }
+    function useSurveySrc() {
+      const r = surveySrc(st.ev?.id); if (!r.n) return
+      for (const [k, n] of Object.entries(r.counts)) st.ev[k] = n
+      if (!st.ev.src_basis || st.ev.src_basis === 'zapisy' && st.ev.signups == null) st.ev.src_basis = 'ankieta'
+    }
     async function load() {
       st.busy = true; st.error = ''
       try {
         const r = await app.api.call('asbStats')
         Object.assign(st, { events: r.events, ads: r.ads, cities: r.cities, fbEvents: r.fbEvents || [], meetings: r.meetings || [] })
+        loadSurveys()
         const cs = cityList.value
         if (!cs.includes(st.city)) st.city = cs[0] || 'Poznań'
         st.fbCfg = null
@@ -97,7 +131,10 @@ export default defineComponent({
       const imp = sum(ad, a => a.impressions), clicks = sum(ad, a => a.link_clicks)
       const react = ad.filter(a => a.goal === 'reakcje' && a.results)
       const reactN = sum(react, a => a.results), reactSpent = sum(react, a => a.spent)
-      return { ...t, imp, clicks, reach: sum(ad, a => a.reach), ctr: imp ? clicks / imp : null, cpc: clicks ? t.meta / clicks : null, cpm: imp ? t.meta / imp * 1000 : null, reactN, reactCost: reactN ? reactSpent / reactN : null }
+      // koszt na nową osobę (szac., jak w arkuszu): koszty wydarzeń z rozpoznanymi nowymi ÷ różne nowe osoby
+      const withNew = events.value.filter(e => e.new_people > 0 && evCost(e) != null)
+      const newUnique = sum(withNew, e => e.new_people) - sum(withNew, e => e.new_repeat)
+      return { ...t, newUnique, newCost: newUnique > 0 ? sum(withNew, evCost) / newUnique : null, imp, clicks, reach: sum(ad, a => a.reach), ctr: imp ? clicks / imp : null, cpc: clicks ? t.meta / clicks : null, cpm: imp ? t.meta / imp * 1000 : null, reactN, reactCost: reactN ? reactSpent / reactN : null }
     })
     const srcEvents = computed(() => { const z = events.value.filter(e => e.src_basis === 'zapisy' && SRC.some(s => e[s.key] != null)); return z.length ? z : events.value })
     const sources = computed(() => SRC.map(s => ({ ...s, n: sum(events.value, e => e[s.key]) })))
@@ -146,7 +183,49 @@ export default defineComponent({
       const t = totals(ev, ad), reg = regular.value.filter(m => seasonOf(m.date) === s)
       return { s, ...t, reg: avg(reg.map(m => m.attendance)), regN: reg.length }
     }))
-    const goalRows = computed(() => Object.entries(GOALS).map(([k, name]) => { const l = ads.value.filter(a => a.goal === k); return { name, v: sum(l, a => a.spent), n: l.length } }).filter(r => r.n))
+    const goalRows = computed(() => Object.entries(GOALS).map(([k, name]) => {
+      const l = ads.value.filter(a => a.goal === k), v = sum(l, a => a.spent), imp = sum(l, a => a.impressions), clicks = sum(l, a => a.link_clicks)
+      return { name, v, n: l.length, imp, clicks, results: sum(l, a => a.results), cpc: clicks ? v / clicks : null, cpm: imp ? v / imp * 1000 : null }
+    }).filter(r => r.n))
+    // wskaźniki każdej reklamy: koszt kliknięcia, kliknięcia/wyświetlenia, koszt 1000 wyświetleń, koszt wyniku
+    const adRows = computed(() => [...ads.value].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(a => ({ a,
+      cpc: a.link_clicks ? a.spent / a.link_clicks : null, ctr: a.impressions ? (a.link_clicks || 0) / a.impressions : null,
+      cpm: a.impressions ? a.spent / a.impressions * 1000 : null, cpr: a.results ? a.spent / a.results : null })))
+    // miejsca emisji — częściowe odczyty Meta (nie wydatki, nie unikalny zasięg)
+    const placements = computed(() => {
+      const by = {}
+      for (const a of ads.value) for (const [k, v] of Object.entries(a.placements || {})) by[k] = (by[k] || 0) + (Number(v) || 0)
+      return Object.entries(by).map(([name, v]) => ({ name, v })).sort((x, y) => y.v - x.v)
+    })
+    // źródła na każdym wydarzeniu z kategorią „nieznane” (podstawa: zapisy albo obecni)
+    const srcRows = computed(() => events.value.map(e => {
+      const zap = e.src_basis === 'zapisy', base = zap ? e.signups : attLo(e)
+      const known = SRC.reduce((t, x) => t + (e[x.key] || 0), 0)
+      return { e, zap, base, vals: SRC.map(x => e[x.key]), unknown: base != null ? Math.max(0, base - known) : null }
+    }).filter(r => r.base != null || r.vals.some(v => v != null)))
+    // zapisy a obecni (wydarzenia z formularzem zapisów)
+    const signupRows = computed(() => events.value.filter(e => e.signups != null).map(e => ({ e, reg: e.src_regular || 0, other: Math.max(0, e.signups - (e.src_regular || 0)) })))
+    // druk: ilości i koszt jednej sztuki tam, gdzie znane są oba
+    const print = computed(() => {
+      const ev = events.value, pp = ev.filter(e => e.print_posters && e.cost_posters != null), pf = ev.filter(e => e.print_flyers && e.cost_flyers != null)
+      return { posters: sum(ev, e => e.print_posters), flyers: sum(ev, e => e.print_flyers), costPosters: sum(ev, e => e.cost_posters), costFlyers: sum(ev, e => e.cost_flyers),
+        perPoster: pp.length ? sum(pp, e => e.cost_posters) / sum(pp, e => e.print_posters) : null, perFlyer: pf.length ? sum(pf, e => e.cost_flyers) / sum(pf, e => e.print_flyers) : null,
+        posterTraces: sum(ev, e => e.src_posters) }
+    })
+    // spotkanie po spotkaniu: zwykłe spotkania (grafik) i większe wydarzenia, z trendem liniowym każdej serii
+    const timeline = computed(() => {
+      const pts = [...regular.value.filter(m => inPeriod(m.date)).map(m => ({ date: m.date, v: m.attendance, ev: false, label: m.topic || 'Spotkanie' })),
+        ...events.value.filter(e => e.date && e.date <= today && attLo(e) != null).map(e => ({ date: e.date, v: attHi(e), ev: true, label: e.name }))].sort((a, b) => a.date.localeCompare(b.date))
+      const fit = list => { // nachylenie na kolejny pomiar (najmniejsze kwadraty po indeksie)
+        const n = list.length; if (n < 3) return null
+        const mx = (n - 1) / 2, my = list.reduce((t, q) => t + q.v, 0) / n
+        let num = 0, den = 0
+        list.forEach((q, i) => { num += (i - mx) * (q.v - my); den += (i - mx) ** 2 })
+        return num / den
+      }
+      const reg = pts.filter(q => !q.ev), evs = pts.filter(q => q.ev)
+      return { pts, max: Math.max(1, ...pts.map(q => q.v)), slopeReg: fit(reg), slopeEv: fit(evs), nReg: reg.length, nEv: evs.length }
+    })
     const printRows = computed(() => events.value.map(e => ({ e, meta: metaOf(e), print: (e.cost_posters || 0) + (e.cost_flyers || 0) })).filter(r => r.meta || r.print))
     const printMax = computed(() => Math.max(1, ...printRows.value.map(r => Math.max(r.meta, r.print))))
     // Facebook: wydarzenia ze strony z deklaracjami i (jeśli powiązane) faktyczną frekwencją
@@ -163,8 +242,8 @@ export default defineComponent({
 
     // ---- edycja ----
     const uid = p => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-    const blankEv = () => ({ id: '', city: st.city, date: '', name: '', kind: 'Ewangelizacja', place: '', signups: null, attendance: null, att_min: null, att_max: null, quality: 'potwierdzona', new_people: null, src_basis: 'zapisy', cost_status: 'czesciowe', note: '', fb_event_id: null, meeting_id: null, ...Object.fromEntries([...SRC, ...COSTS].map(x => [x.key, null])) })
-    const openEv = e => { st.ev = { ...(e || blankEv()) }; st.error = '' }
+    const blankEv = () => ({ id: '', city: st.city, date: '', name: '', kind: 'Ewangelizacja', place: '', signups: null, attendance: null, att_min: null, att_max: null, quality: 'potwierdzona', new_people: null, src_basis: 'zapisy', cost_status: 'czesciowe', note: '', fb_event_id: null, meeting_id: null, cycle: '', print_posters: null, print_flyers: null, new_repeat: null, ...Object.fromEntries([...SRC, ...COSTS].map(x => [x.key, null])) })
+    const openEv = (e, tab = 'dane') => { st.ev = { ...(e || blankEv()) }; st.evTab = e ? tab : 'dane'; st.error = '' }
     const fromMeeting = m => { openEv(null); Object.assign(st.ev, { name: m.topic || 'Spotkanie ewangelizacyjne', date: m.date, place: m.place || '', attendance: m.attendance ?? null, meeting_id: m.id }) }
     const fromFb = f => { openEv(null); Object.assign(st.ev, { name: f.name, date: (f.start_time || '').slice(0, 10), place: f.place || '', fb_event_id: f.id }) }
     function pickMeeting(id) {
@@ -255,7 +334,7 @@ export default defineComponent({
     }
     const ago = t => { if (!t) return 'jeszcze nie'; const d = new Date(t); return d.toLocaleDateString('pl-PL') + ' ' + d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) }
 
-    return { ...app, st, COSTS, SRC, QUALITY, COST_ST, BASIS, GOALS, TABS, load, cityList, seasons, events, ads, cfg, kpi, sources, regularShare, costCats, attRows, attMax, headRows, headMax, ranking, max, w, short,
+    return { ...app, SOURCE_OPTS, loadSurveys, surveySrc, useSurveySrc, METHOD, adRows, placements, srcRows, signupRows, print, timeline, st, COSTS, SRC, QUALITY, COST_ST, BASIS, GOALS, TABS, load, cityList, seasons, events, ads, cfg, kpi, sources, regularShare, costCats, attRows, attMax, headRows, headMax, ranking, max, w, short,
       trend, trendMax, regAvg, impact, seasonRows, goalRows, printRows, printMax, fbRows, pending, upcoming, unassigned, adsShown, regular,
       evCost, otherOf, perHead, metaOf, attLo, attHi, pln, pln0, int, dec, pct, range, dmy, dm, openEv, openAd, fromMeeting, fromFb, pickMeeting, save, remove, openCfg, saveCfg, moveAct, newCity,
       evOptions, fbOptions, meetingOptions, evById, fbForm, saveFb, clearToken, fbSync, ago }
@@ -275,7 +354,7 @@ export default defineComponent({
     </div>
   </div>
   <div class="seg as-tabs" role="tablist" aria-label="Statystyki ASB">
-    <button v-for="t in TABS" :key="t[0]" role="tab" :aria-selected="st.tab === t[0]" :class="{ on: st.tab === t[0] }" @click="st.tab = t[0]">{{ t[1] }}<i v-if="t[0] === 'events' && pending.length" class="as-dot">{{ pending.length }}</i><i v-if="t[0] === 'ads' && unassigned.length" class="as-dot">{{ unassigned.length }}</i></button>
+    <button v-for="t in TABS" :key="t[0]" role="tab" :aria-selected="st.tab === t[0]" :class="{ on: st.tab === t[0] }" @click="st.tab = t[0]; $event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })">{{ t[1] }}<i v-if="t[0] === 'events' && pending.length" class="as-dot">{{ pending.length }}</i><i v-if="t[0] === 'ads' && unassigned.length" class="as-dot">{{ unassigned.length }}</i></button>
   </div>
   <div v-if="st.busy && !st.events.length" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 5" :key="n" class="skel skel-row"></div></div>
   <p v-else-if="st.error && !st.ev && !st.ad && !st.cfg" class="error">{{ st.error }}</p>
@@ -289,7 +368,7 @@ export default defineComponent({
         <div class="as-kpi"><small>Obecności</small><b>{{ range(kpi.lo, kpi.hi) }}</b><span>śr. {{ dec(kpi.avgAtt) }} na wydarzenie<template v-if="kpi.noAtt"> · {{ kpi.noAtt }} bez liczby</template></span></div>
         <div class="as-kpi"><small>Znane wydatki</small><b>{{ pln0(kpi.known) }}</b><span>{{ kpi.perHead != null ? pln(kpi.perHead) + ' na obecność' : 'z rejestru' }}</span></div>
         <div class="as-kpi"><small>Promocja</small><b>{{ pln0(kpi.promo) }}</b><span>w tym Meta {{ pln0(kpi.meta) }}</span></div>
-        <div class="as-kpi"><small>Nowe osoby</small><b>{{ int(kpi.newPeople) }}</b><span>rozpoznane uczestnictwa</span></div>
+        <div class="as-kpi"><small>Nowe osoby</small><b>{{ int(kpi.newPeople) }}</b><span>{{ kpi.newCost != null ? 'szac. ' + pln(kpi.newCost) + ' na nową osobę' : 'rozpoznane uczestnictwa' }}</span></div>
         <div class="as-kpi"><small>Stali / bywalcy</small><b>{{ pct(regularShare.share) }}</b><span>cel: najwyżej {{ pct(regularShare.goal) }}</span></div>
         <div class="as-kpi"><small>Zwykłe spotkania</small><b>{{ regAvg == null ? '—' : dec(regAvg) }}</b><span>{{ cfg.grafik ? 'średnio osób (grafik ASB)' : 'włącz grafik w Ustawieniach' }}</span></div>
         <div class="as-kpi"><small>Facebook</small><b>{{ cfg.fb_followers != null ? int(cfg.fb_followers) : '—' }}</b><span>{{ cfg.fb_followers != null ? 'obserwujących' + (cfg.ig_followers != null ? ' · IG ' + int(cfg.ig_followers) : '') : 'połącz w Ustawieniach' }}</span></div>
@@ -354,17 +433,49 @@ export default defineComponent({
   <template v-else-if="st.tab === 'att'">
     <div class="as-grid">
       <section class="as-card as-wide">
+        <h3>Spotkanie po spotkaniu</h3>
+        <p class="as-sub">Każdy pomiar osobno: zwykłe spotkania z grafiku i większe wydarzenia. Oś to kolejność spotkań, nie czas — przerwy (np. wakacje) nie są zerami.</p>
+        <div class="as-legend"><span><i class="k-reg"></i>Zwykłe spotkania ({{ timeline.nReg }})</span><span><i class="k-att"></i>Większe wydarzenia ({{ timeline.nEv }})</span></div>
+        <p v-if="!timeline.pts.length" class="note">Brak pomiarów w tym okresie.</p>
+        <ColChart v-else :items="timeline.pts.map(q => ({ label: dm(q.date), v: q.v, hi: q.ev, title: dmy(q.date) + ' · ' + q.label + ' · ' + q.v + ' os.' }))" :height="240" unit="os." label="Frekwencja kolejnych spotkań" />
+        <p v-if="timeline.slopeReg != null || timeline.slopeEv != null" class="as-sub">Trend: zwykłe spotkania {{ timeline.slopeReg == null ? '—' : (timeline.slopeReg >= 0 ? '+' : '') + dec(timeline.slopeReg, 2) + ' os. na kolejne spotkanie' }}<template v-if="timeline.slopeEv != null"> · większe wydarzenia {{ (timeline.slopeEv >= 0 ? '+' : '') + dec(timeline.slopeEv, 2) }} os. na kolejne wydarzenie</template>. Linia trendu to uproszczenie, nie prognoza.</p>
+      </section>
+      <section v-if="signupRows.length" class="as-card">
+        <h3>Zapisy a obecni</h3>
+        <p class="as-sub">Wydarzenia z formularzem zapisów: ilu zapisanych to stali bywalcy, a ile osób faktycznie przyszło. Sumy zdarzeń, nie różnych osób.</p>
+        <div class="as-legend"><span><i class="k-reg"></i>Zapisy: stali</span><span><i class="k-su"></i>Zapisy: pozostali</span><span><i class="k-att"></i>Obecni</span></div>
+        <div class="as-bars">
+          <div v-for="r in signupRows" :key="r.e.id" class="as-brow" :title="r.e.name + ' · zapisy ' + r.e.signups + ' (stali ' + r.reg + ') · obecni ' + (r.e.attendance ?? '—')">
+            <span class="as-lab"><b>{{ short(r.e.name) }}</b><small>{{ dmy(r.e.date) }}</small></span>
+            <span class="as-track2"><span class="as-stack"><i class="as-reg" :style="{ width: w(r.reg, attMax) }"></i><i class="as-su" :style="{ width: w(r.other, attMax) }"></i></span><i class="as-att" :style="{ width: w(r.e.attendance, attMax) }"></i></span>
+            <span class="as-val">{{ r.e.signups }}<small>{{ r.e.attendance ?? '—' }} obecnych</small></span>
+          </div>
+        </div>
+        <p class="as-sub"><b>Razem:</b> {{ signupRows.reduce((t, r) => t + r.e.signups, 0) }} zapisów, {{ signupRows.reduce((t, r) => t + (r.e.attendance || 0), 0) }} obecnych.</p>
+      </section>
+      <section class="as-card" :class="{ 'as-wide': !signupRows.length }">
+        <h3>Źródła na wydarzeniach</h3>
+        <p class="as-sub">Deklaracje na każdym wydarzeniu. „Nieznane” to osoby (zapisane albo obecne) bez podanego źródła — brak informacji, nie brak uczestników.</p>
+        <div class="as-table-wrap">
+          <table class="as-table">
+            <thead><tr><th>Wydarzenie</th><th>Podstawa</th><th v-for="x in SRC" :key="x.key">{{ x.name }}</th><th>Nieznane</th></tr></thead>
+            <tbody>
+              <tr v-for="r in srcRows" :key="r.e.id" class="as-click" @click="openEv(r.e)">
+                <td><b>{{ short(r.e.name, 30) }}</b><small>{{ dmy(r.e.date) }}</small></td>
+                <td>{{ r.zap ? 'zapisy' : 'obecni' }} · {{ int(r.base) }}</td>
+                <td v-for="(v, i) in r.vals" :key="i">{{ v == null ? '—' : v }}</td>
+                <td class="as-unk">{{ r.unknown == null ? '—' : r.unknown }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="as-card as-wide">
         <h3>Zwykłe spotkania — średnia frekwencja w miesiącu</h3>
         <p class="as-sub">Cotygodniowe spotkania z grafiku ASB. Kropka przy liczbie — w tym miesiącu było większe wydarzenie. Brak danych to nie 0 osób.</p>
         <p v-if="!cfg.grafik" class="note">Włącz w Ustawieniach „frekwencja zwykłych spotkań z grafiku ASB”, żeby zobaczyć trend.</p>
         <p v-else-if="!trend.length" class="note">W grafiku nie ma jeszcze wpisanej frekwencji zwykłych spotkań w tym okresie.</p>
-        <div v-else class="as-cols" role="img" :aria-label="'Średnia frekwencja zwykłych spotkań: ' + trend.map(t => t.label + ' ' + dec(t.v)).join(', ')">
-          <div v-for="t in trend" :key="t.k" class="as-col" :title="t.label + ': średnio ' + dec(t.v) + ' os. z ' + t.n + ' spotkań' + (t.ev ? ' · większe wydarzenia: ' + t.ev : '')">
-            <span class="as-cval">{{ dec(t.v, 0) }}<i v-if="t.ev" class="as-cev">•</i></span>
-            <span class="as-cbar"><i :style="{ height: (t.v / trendMax) * 100 + '%' }"></i></span>
-            <span class="as-clab">{{ t.label }}</span>
-          </div>
-        </div>
+        <ColChart v-else :items="trend.map(t => ({ label: t.label, v: t.v, hi: true, mark: !!t.ev, title: t.label + ': średnio ' + dec(t.v) + ' os. z ' + t.n + ' spotkań' + (t.ev ? ' · większe wydarzenia: ' + t.ev : '') }))" unit="os." label="Średnia frekwencja zwykłych spotkań w miesiącach" />
       </section>
       <section class="as-card as-wide">
         <h3>Wpływ ewangelizacji na zwykłe spotkania</h3>
@@ -444,7 +555,7 @@ export default defineComponent({
         <h3>Koszty wydarzeń</h3>
         <div class="as-table-wrap">
           <table class="as-table">
-            <thead><tr><th>Wydarzenie</th><th>Sala</th><th>Druk</th><th>Meta</th><th>Inne</th><th>Razem</th><th>Kompletność</th></tr></thead>
+            <thead><tr><th>Wydarzenie</th><th>Sala</th><th>Druk</th><th>Meta</th><th>Inne</th><th>Razem</th><th>Na obecność</th><th>Meta / obecny</th><th>Kompletność</th></tr></thead>
             <tbody>
               <tr v-for="e in events" :key="e.id" class="as-click" @click="openEv(e)">
                 <td><b>{{ short(e.name, 40) }}</b><small>{{ dmy(e.date) }}</small></td>
@@ -453,10 +564,24 @@ export default defineComponent({
                 <td>{{ metaOf(e) ? pln0(metaOf(e)) : '—' }}</td>
                 <td>{{ pln0(otherOf(e)) }}</td>
                 <td><b>{{ pln(evCost(e)) }}</b></td>
+                <td>{{ pln(perHead(e)) }}</td>
+                <td>{{ metaOf(e) && e.attendance ? pln(metaOf(e) / e.attendance) : '—' }}</td>
                 <td>{{ COST_ST[e.cost_status] }}</td>
               </tr>
             </tbody>
           </table>
+        </div>
+        <p class="as-sub">Meta na obecnego to nie koszt pozyskania — nie wiemy, kto przyszedł dzięki reklamie.</p>
+      </section>
+      <section class="as-card">
+        <h3>Druk — ilości i koszty</h3>
+        <p class="as-sub">Ilości to plan albo model podziału nakładu cyklu, nie potwierdzony druk ani rozdanie.</p>
+        <div class="as-mini">
+          <div><small>Plakaty</small><b>{{ int(print.posters || null) }} szt.</b><span class="as-mini-s">{{ pln(print.costPosters) }}</span></div>
+          <div><small>Ulotki</small><b>{{ int(print.flyers || null) }} szt.</b><span class="as-mini-s">{{ pln(print.costFlyers) }}</span></div>
+          <div><small>Koszt 1 plakatu</small><b>{{ pln(print.perPoster) }}</b></div>
+          <div><small>Koszt 1 ulotki</small><b>{{ pln(print.perFlyer) }}</b></div>
+          <div><small>Wskazania „plakat”</small><b>{{ int(print.posterTraces) }}</b><span class="as-mini-s">ze źródeł o różnych podstawach</span></div>
         </div>
       </section>
     </div>
@@ -489,6 +614,34 @@ export default defineComponent({
           <div><b>{{ range(kpi.lo, kpi.hi) }}</b><span>obecności na wydarzeniach</span></div>
         </div>
       </section>
+      <section class="as-card as-wide">
+        <h3>Reklamy — wskaźniki</h3>
+        <p class="as-sub">Koszt kliknięcia (CPC), kliknięcia na wyświetlenia (CTR), koszt 1000 wyświetleń (CPM) i koszt wyniku. Wyniki różnych celów to różne jednostki.</p>
+        <div class="as-table-wrap">
+          <table class="as-table">
+            <thead><tr><th>Reklama</th><th>Wydano</th><th>Wyświetlenia</th><th>Zasięg</th><th>Kliknięcia</th><th>CTR</th><th>CPC</th><th>CPM</th><th>Wynik</th><th>Koszt wyniku</th></tr></thead>
+            <tbody>
+              <tr v-for="r in adRows" :key="r.a.id" class="as-click" @click="openAd(r.a)">
+                <td><b>{{ short(r.a.name, 40) }}</b><small>{{ dmy(r.a.date) }} · {{ GOALS[r.a.goal] }}</small></td>
+                <td>{{ pln(r.a.spent) }}</td><td>{{ int(r.a.impressions) }}</td><td>{{ int(r.a.reach) }}</td><td>{{ int(r.a.link_clicks) }}</td>
+                <td>{{ r.ctr == null ? '—' : dec(r.ctr * 100, 2) + '%' }}</td><td>{{ pln(r.cpc) }}</td><td>{{ pln(r.cpm) }}</td>
+                <td>{{ int(r.a.results) }}</td><td>{{ pln(r.cpr) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section v-if="placements.length" class="as-card">
+        <h3>Miejsca emisji (częściowe)</h3>
+        <p class="as-sub">Odczyty dostępne tylko dla części reklam — to nie wydatki ani unikalny zasięg; nie dzielą kosztu na Facebook i Instagram.</p>
+        <div class="as-bars">
+          <div v-for="pl in placements" :key="pl.name" class="as-brow" :title="pl.name + ': ' + pl.v">
+            <span class="as-lab"><b>{{ pl.name }}</b></span>
+            <span class="as-track"><i class="as-att muted" :style="{ width: w(pl.v, max(placements)) }"></i></span>
+            <span class="as-val">{{ int(pl.v) }}</span>
+          </div>
+        </div>
+      </section>
       <section class="as-card">
         <h3>Na co wydano budżet Meta?</h3>
         <p class="as-sub">Według celu kampanii. Cel to powód wydatku, nie osiągnięta frekwencja.</p>
@@ -496,7 +649,7 @@ export default defineComponent({
           <div v-for="g in goalRows" :key="g.name" class="as-brow" :title="g.name + ': ' + pln(g.v) + ' · ' + g.n + ' reklam'">
             <span class="as-lab"><b>{{ g.name }}</b><small>reklam: {{ g.n }}</small></span>
             <span class="as-track"><i class="as-att" :style="{ width: w(g.v, max(goalRows)) }"></i></span>
-            <span class="as-val">{{ pln(g.v) }}</span>
+            <span class="as-val">{{ pln(g.v) }}<small>{{ g.cpc != null ? 'CPC ' + pln(g.cpc) : '' }}{{ g.cpm != null ? ' · CPM ' + pln(g.cpm) : '' }}</small></span>
           </div>
         </div>
       </section>
@@ -576,6 +729,11 @@ export default defineComponent({
     </div>
   </template>
 
+  <!-- ===== ankiety ===== -->
+  <template v-else-if="st.tab === 'surveys'">
+    <AsbSurveys :surveys="st.surveys" :answers="st.answers" :events="st.events" :city="st.city" @changed="loadSurveys" />
+  </template>
+
   <!-- ===== ustawienia ===== -->
   <template v-else>
     <div class="as-grid">
@@ -584,6 +742,10 @@ export default defineComponent({
         <p class="as-sub">Cel: najwyżej {{ cfg.regular_goal ?? 50 }}% deklaracji „stali/bywalcy” w zapisach. To struktura zapisów, nie odsetek nowych osób.</p>
         <p v-if="!(cfg.actions || []).length" class="note">Brak działań — dopisz wnioski po ostatnich wydarzeniach.</p>
         <ol class="as-acts-ol"><li v-for="(a, i) in cfg.actions" :key="i">{{ a.title }}</li></ol>
+      </section>
+      <section class="as-card as-wide">
+        <h3>Jak czytać liczby — zasady analizy</h3>
+        <ol class="as-method"><li v-for="(m, i) in METHOD" :key="i"><b>{{ m[0] }}.</b> {{ m[1] }}</li></ol>
       </section>
       <section class="as-card">
         <h3>Facebook, Instagram i grafik · {{ st.city }}</h3>
@@ -618,7 +780,14 @@ export default defineComponent({
     <div v-if="st.ev" class="np-overlay" @click.self="st.ev = null" @keydown.esc="st.ev = null">
       <div class="np-panel as-dlg" role="dialog" aria-modal="true" :aria-label="st.ev.id ? 'Wydarzenie' : 'Nowe wydarzenie'">
         <div class="as-dhead"><b>{{ st.ev.id ? 'Wydarzenie' : 'Nowe wydarzenie' }}</b><button class="icon" aria-label="Zamknij" @click="st.ev = null"><svg class="i"><use href="#x"/></svg></button></div>
-        <div class="as-dbody">
+        <div v-if="st.ev.id && evById[st.ev.id]" class="seg as-evtabs" role="tablist" aria-label="Wydarzenie">
+          <button role="tab" :aria-selected="st.evTab === 'dane'" :class="{ on: st.evTab === 'dane' }" @click="st.evTab = 'dane'">Dane</button>
+          <button role="tab" :aria-selected="st.evTab === 'ankieta'" :class="{ on: st.evTab === 'ankieta' }" @click="st.evTab = 'ankieta'">Ankieta<template v-if="st.answers.some(a => st.surveys.some(x => x.id === a.survey && x.event_id === st.ev.id))"> ({{ st.answers.filter(a => st.surveys.some(x => x.id === a.survey && x.event_id === st.ev.id)).length }})</template></button>
+        </div>
+        <div v-if="st.evTab === 'ankieta' && st.ev.id" class="as-dbody as-dbody-sv">
+          <AsbSurveys :surveys="st.surveys" :answers="st.answers" :events="st.events" :city="st.city" :event-id="st.ev.id" @changed="loadSurveys" />
+        </div>
+        <div v-show="st.evTab !== 'ankieta' || !st.ev.id" class="as-dbody">
           <label class="as-f wide">Nazwa<input v-model="st.ev.name" maxlength="140" autocomplete="off"></label>
           <label class="as-f">Data<input v-model="st.ev.date" type="date"></label>
           <label class="as-f">Miejsce<input v-model="st.ev.place" maxlength="80" autocomplete="off"></label>
@@ -630,20 +799,28 @@ export default defineComponent({
           <label class="as-f">Obecni<input v-model="st.ev.attendance" type="number" min="0" inputmode="numeric"></label>
           <label class="as-f">Jakość<select class="field" v-model="st.ev.quality"><option v-for="(v, k) in QUALITY" :key="k" :value="k">{{ v }}</option></select></label>
           <label class="as-f">Nowe osoby<input v-model="st.ev.new_people" type="number" min="0" inputmode="numeric"></label>
+          <label class="as-f" title="Ile razy te same nowe osoby przyszły ponownie w tym cyklu — odejmowane przy liczeniu różnych osób">Powtórne wizyty nowych<input v-model="st.ev.new_repeat" type="number" min="0" inputmode="numeric"></label>
           <label class="as-f">Gdy brak liczby: od<input v-model="st.ev.att_min" type="number" min="0" inputmode="numeric"></label>
           <label class="as-f">do<input v-model="st.ev.att_max" type="number" min="0" inputmode="numeric"></label>
           <h4>Źródła dotarcia (deklaracje)</h4>
+          <div v-if="surveySrc(st.ev.id).n" class="as-svhint wide">
+            <span><b>Z ankiety ({{ surveySrc(st.ev.id).n }} odp.):</b> {{ SOURCE_OPTS.filter(o => surveySrc(st.ev.id).counts[o[0]]).map(o => o[1] + ' ' + surveySrc(st.ev.id).counts[o[0]]).join(' · ') || 'brak' }}</span>
+            <button @click="useSurveySrc">Wpisz z ankiety</button>
+          </div>
           <label v-for="s in SRC" :key="s.key" class="as-f">{{ s.name }}<input v-model="st.ev[s.key]" type="number" min="0" inputmode="numeric"></label>
           <label class="as-f">Skąd dane<select class="field" v-model="st.ev.src_basis"><option v-for="(v, k) in BASIS" :key="k" :value="k">{{ v }}</option></select></label>
           <h4>Koszty [zł] — puste = nieznane, nie 0</h4>
           <label v-for="c in COSTS" :key="c.key" class="as-f">{{ c.name }}<input v-model="st.ev[c.key]" type="number" min="0" step="0.01" inputmode="decimal"></label>
+          <label class="as-f">Plakaty [szt]<input v-model="st.ev.print_posters" type="number" min="0" inputmode="numeric"></label>
+          <label class="as-f">Ulotki [szt]<input v-model="st.ev.print_flyers" type="number" min="0" inputmode="numeric"></label>
+          <label class="as-f">Cykl (koszty wspólne)<input v-model="st.ev.cycle" maxlength="60" placeholder="np. Kwiecień 2025" autocomplete="off"></label>
           <label class="as-f">Kompletność<select class="field" v-model="st.ev.cost_status"><option v-for="(v, k) in COST_ST" :key="k" :value="k">{{ v }}</option></select></label>
           <p v-if="st.ev.id && metaOf(st.ev)" class="as-sub wide">Reklamy Meta przypisane do wydarzenia: {{ pln(metaOf(st.ev)) }} — doliczane same, nie wpisuj ich tutaj.</p>
           <label class="as-f wide">Uwagi<textarea v-model="st.ev.note" rows="3" maxlength="2000"></textarea></label>
         </div>
         <p v-if="st.error" class="error">{{ st.error }}</p>
         <div class="as-dfoot">
-          <button v-if="st.ev.id && evById[st.ev.id]" class="danger" :disabled="st.saving" @click="remove('ev')"><svg class="i"><use href="#trash"/></svg>Usuń</button>
+          <button v-if="st.ev.id && evById[st.ev.id] && st.evTab !== 'ankieta'" class="danger" :disabled="st.saving" @click="remove('ev')"><svg class="i"><use href="#trash"/></svg>Usuń</button>
           <span></span>
           <button @click="st.ev = null">Anuluj</button>
           <button class="primary" :disabled="st.saving || !st.ev.name.trim()" @click="save('ev')">Zapisz</button>
@@ -742,6 +919,19 @@ export default defineComponent({
 .k-att { background: var(--accent); }
 .k-su { background: color-mix(in srgb, var(--accent) 28%, var(--panel2)); }
 .k-print { background: var(--muted); }
+.k-reg, .as-reg { background: color-mix(in srgb, var(--text) 45%, var(--panel3)); }
+.as-stack { display: flex; height: 8px; }
+.as-stack i { display: block; height: 8px; }
+.as-stack i:last-child { border-radius: 0 4px 4px 0; }
+.as-tl { display: flex; align-items: flex-end; gap: 3px; height: 180px; padding-top: 6px; overflow-x: auto; }
+.as-tl-c { flex: 1 0 8px; min-width: 8px; height: 100%; padding: 0 !important; border: 0 !important; background: none; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; border-radius: 4px; }
+@media (hover: hover) { .as-tl-c:hover { background: var(--panel2); } }
+.as-tl-b { display: block; flex: none; width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: color-mix(in srgb, var(--text) 45%, var(--panel3)); }
+.as-tl-c.ev .as-tl-b { background: var(--accent); }
+.as-unk { color: var(--muted); }
+.as-mini-s { color: var(--muted); font-size: 12px; }
+.as-method { margin: 0; padding-left: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 8px 24px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.as-method b { color: var(--text); }
 .as-bars { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .as-brow { display: grid; grid-template-columns: minmax(110px, 34%) 1fr auto; gap: 10px; align-items: center; min-height: 34px; padding: 2px 4px; border-radius: 8px; }
 .as-click { cursor: pointer; }
@@ -750,8 +940,10 @@ export default defineComponent({
 .as-lab b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .as-lab small { color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .as-track { position: relative; height: 14px; }
+/* wspólna oś zerowa — wszystkie słupki startują z tej samej linii */
+.as-track::before, .as-track2::before { content: ''; position: absolute; left: 0; top: -4px; bottom: -4px; width: 1px; background: color-mix(in srgb, var(--muted) 55%, transparent); }
 .as-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; }
-.as-track2 { display: flex; flex-direction: column; gap: 2px; }
+.as-track2 { position: relative; display: flex; flex-direction: column; gap: 2px; }
 .as-track2 i { display: block; height: 8px; border-radius: 0 4px 4px 0; }
 .as-print { background: var(--muted); }
 .as-att { background: var(--accent); }
@@ -829,6 +1021,10 @@ export default defineComponent({
 .as-nums i.q-szacunek { color: var(--accent-text); }
 .as-nums i.q-brak { color: var(--danger, #c44); }
 .as-link { display: inline !important; min-height: 0 !important; padding: 0 0 0 6px !important; border: 0 !important; background: none !important; color: var(--danger, #e5534b) !important; font-size: 13px; font-weight: 600 !important; text-decoration: underline; box-shadow: none !important; }
+.as-evtabs { max-width: 320px; margin: 0; }
+.as-dbody.as-dbody-sv { display: block; }
+.as-svhint { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 12%, var(--panel2)); font-size: 13px; }
+.as-svhint button { min-height: 34px !important; padding: 0 12px !important; font-size: 13px; }
 .as-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; cursor: pointer; }
 .as-check input { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
 .as-help { margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: var(--panel2); font-size: 13px; line-height: 1.5; }

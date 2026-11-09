@@ -129,6 +129,12 @@
   to = "/napisy.html"
   status = 200
 
+# ankieta ASB z kodu QR (bez konta)
+[[redirects]]
+  from = "/ankieta"
+  to = "/ankieta.html"
+  status = 200
+
 # tłumaczenie na żywo — strona słuchacza (kod QR z plakatu, bez konta)
 [[redirects]]
   from = "/sluchaj"

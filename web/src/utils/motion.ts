@@ -54,7 +54,8 @@ export function startMotion() {
     if (!ind) { ind = document.createElement('span'); ind.className = 'tab-ind'; box.prepend(ind); placed.set(box, ind); box.classList.add('has-ind'); jump = true }
     if (!on) { ind.style.opacity = '0'; return }
     const b = box.getBoundingClientRect(), r = on.getBoundingClientRect()
-    const to = { x: r.left - b.left, y: r.top - b.top, width: r.width, height: r.height, opacity: 1 }
+    // + przewinięcie paska (przewijane zakładki na telefonie) — wskaźnik leży w treści, która przesuwa się razem z nim
+    const to = { x: r.left - b.left - box.clientLeft + box.scrollLeft, y: r.top - b.top - box.clientTop + box.scrollTop, width: r.width, height: r.height, opacity: 1 }
     if (jump) Object.assign(ind.style, { transform: `translate(${to.x}px, ${to.y}px)`, width: to.width + 'px', height: to.height + 'px', opacity: '1' })
     else animate(ind, to, { type: 'spring', stiffness: 520, damping: 38 })
   }

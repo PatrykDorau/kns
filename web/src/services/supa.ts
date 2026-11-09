@@ -231,6 +231,19 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
         check(await sb.from('asb_stat_cities').upsert({ id: data.city, fb_synced: now, fb_followers: data.followers ?? null, ig_followers: data.igFollowers ?? null }))
         return now
       }
+      // Ankiety ASB z kodem QR (asb-ankiety.sql): organizator tworzy, goście wypełniają na /ankieta?t=<token>.
+      if (action === 'asbSurveys') {
+        const [surveys, answers] = await Promise.all([sb.from('asb_surveys').select('*').order('created', { ascending: false }), sb.from('asb_survey_answers').select('survey,answers,created').order('created', { ascending: false })].map(q => q.then(check)))
+        const iso = d => (d instanceof Date ? d.toISOString() : d)
+        return { surveys: (surveys || []).map(x => ({ ...x, created: iso(x.created) })), answers: (answers || []).map(x => ({ ...x, created: iso(x.created) })) }
+      }
+      if (action === 'asbSurveySave') {
+        const row = { id: data.id, city: data.city, event_id: data.event_id || null, title: data.title, intro: data.intro || '', questions: data.questions || [], open: data.open !== false }
+        if (data._new) Object.assign(row, { created_by: who() })
+        check(await sb.from('asb_surveys').upsert(row))
+        return (check(await sb.from('asb_surveys').select('token').eq('id', data.id)) || [])[0]?.token || ''
+      }
+      if (action === 'asbSurveyDelete') return check(await sb.from('asb_surveys').delete().eq('id', data.id))
       if (action === 'asbStatSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_stat_events').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }
       if (action === 'asbStatDelete') return check(await sb.from('asb_stat_events').delete().eq('id', data.id))
       if (action === 'asbAdSave') { const row = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_'))); return check(await sb.from('asb_ads').upsert({ ...row, updated: new Date().toISOString(), updated_by: who() })) }

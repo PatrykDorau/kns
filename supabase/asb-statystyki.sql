@@ -141,3 +141,12 @@ begin
 end $$;
 revoke all on function public.asb_fb_token_set(text, text) from public, anon;
 grant execute on function public.asb_fb_token_set(text, text) to authenticated;
+
+/* ---------- uzupełnienia z arkusza: druk, powtórne wizyty nowych, cykle, miejsca emisji, cele reklam ---------- */
+alter table public.asb_stat_events add column if not exists cycle text not null default '';      -- cykl, np. „Kwiecień 2025” (koszty wspólne)
+alter table public.asb_stat_events add column if not exists print_posters int;                   -- plakaty [szt] (model albo wykonane)
+alter table public.asb_stat_events add column if not exists print_flyers int;                    -- ulotki [szt]
+alter table public.asb_stat_events add column if not exists new_repeat int;                      -- powtórne wizyty tych samych nowych osób w cyklu (do odjęcia)
+alter table public.asb_ads add column if not exists placements jsonb not null default '{}';     -- częściowe odczyty miejsc emisji { 'FB aktualności mobile': 3739, … }
+alter table public.asb_ads drop constraint if exists asb_ads_goal;
+alter table public.asb_ads add constraint asb_ads_goal check (goal in ('reakcje', 'rozmowy', 'aktywnosc', 'polubienia', 'klikniecia', 'odwiedziny', 'inne'));

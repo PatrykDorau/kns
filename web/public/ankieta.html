@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#efe8da" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
+<title>Ankieta — ASB</title>
+<!-- Ankieta ASB z kodu QR (bez konta): /ankieta?t=<token>. Pytania z funkcji bazy asb_survey_public, odpowiedzi do
+     asb_survey_submit (baza przyjmuje tylko znane pytania i opcje). Jedna odpowiedź z urządzenia — zapamiętana lokalnie.
+     Test z udawaną bazą: ?t=test (pytania przykładowe, bez wysyłania). -->
+<style>
+  :root { --bg: #efe8da; --panel: #f8f3e8; --panel2: #ece4d4; --line: #ddd2bf; --text: #221d16; --muted: #5c5447; --accent: #f2a53c; --ok: #2f8a57; --bad: #c8423b; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --panel: #262626; --panel2: #303030; --line: #3a3a3a; --text: #f4f4f2; --muted: #bcbcb8; --ok: #8fd19e; --bad: #ff8a8d; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 "Inter", system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 16px 48px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  header .mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--accent); color: #2a1906; font-weight: 800; font-size: 15px; letter-spacing: .02em; }
+  header b { display: block; font-size: 15px; }
+  header small { color: var(--muted); font-size: 13px; }
+  h1 { margin: 0 0 6px; font-size: 28px; line-height: 1.15; letter-spacing: -.02em; }
+  .lead { margin: 0 0 22px; color: var(--muted); white-space: pre-line; }
+  fieldset { margin: 0 0 14px; padding: 16px; border: 0; border-radius: 20px; background: var(--panel); }
+  legend { float: left; width: 100%; padding: 0; margin: 0 0 10px; font-size: 18px; font-weight: 650; }
+  .opts { clear: both; display: grid; gap: 8px; }
+  .opt { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); cursor: pointer; }
+  .opt input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); flex: none; }
+  .opt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+  textarea { clear: both; display: block; width: 100%; min-height: 96px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); color: inherit; font: inherit; resize: vertical; }
+  textarea:focus, .opt:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .hint { clear: both; margin: -4px 0 10px; color: var(--muted); font-size: 14px; }
+  button.send { width: 100%; min-height: 56px; margin-top: 6px; border: 0; border-radius: 999px; background: var(--accent); color: #2a1906; font: 700 18px/1 inherit; cursor: pointer; }
+  button.send:disabled { opacity: .6; }
+  .msg { padding: 24px 18px; border-radius: 20px; background: var(--panel); text-align: center; }
+  .msg b { display: block; font-size: 22px; margin-bottom: 6px; }
+  .err { color: var(--bad); margin: 10px 0 0; text-align: center; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <header><span class="mark">ASB</span><div><b>ASB</b><small>Akademickie Spotkania Biblijne</small></div></header>
+  <div id="app"><p class="lead">Wczytuję ankietę…</p></div>
+  <footer>Ankieta jest anonimowa — nie zbieramy imion ani adresów.</footer>
+</main>
+<script>
+(() => {
+  const SB = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', key: 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI' }
+  const SOURCE = [['src_friends', 'Od znajomych / ktoś mnie zaprosił'], ['src_social', 'Instagram, Facebook albo inne media społecznościowe'], ['src_posters', 'Plakat albo ulotka'], ['src_regular', 'Przychodzę regularnie na ASB'], ['src_other', 'Inaczej']]
+  const token = new URLSearchParams(location.search).get('t') || ''
+  const app = document.getElementById('app')
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  const rpc = async (name, body) => {
+    const res = await fetch(SB.url + '/rest/v1/rpc/' + name, { method: 'POST', headers: { apikey: SB.key, Authorization: 'Bearer ' + SB.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Nie udało się połączyć.')
+    return data
+  }
+  const doneKey = 'asb-ankieta-' + token
+  const done = () => { try { return localStorage.getItem(doneKey) === '1' } catch { return false } }
+  const thanks = () => { app.innerHTML = '<div class="msg"><b>Dziękujemy!</b>Twoja odpowiedź została zapisana. Do zobaczenia na ASB 🙂</div>' }
+
+  function render(s) {
+    document.title = (s.title || 'Ankieta') + ' — ASB'
+    if (!s.open) { app.innerHTML = '<div class="msg"><b>Ankieta jest zamknięta</b>Dziękujemy za zainteresowanie.</div>'; return }
+    if (done()) { thanks(); return }
+    let html = '<h1>' + esc(s.title || 'Ankieta') + '</h1>' + (s.intro ? '<p class="lead">' + esc(s.intro) + '</p>' : '<p class="lead">Zajmie Ci to chwilę. Dzięki!</p>') + '<form id="f" novalidate>'
+    for (const q of s.questions || []) {
+      const name = 'q_' + q.id
+      if (q.type === 'open') {
+        html += '<fieldset><legend>' + esc(q.text) + '</legend><textarea name="' + esc(name) + '" maxlength="1000" placeholder="Twoja odpowiedź"></textarea></fieldset>'
+      } else {
+        const opts = q.type === 'source' ? SOURCE : (q.options || []).map(o => [o, o])
+        const multi = q.type === 'many'
+        html += '<fieldset><legend>' + esc(q.text) + '</legend>' + (multi ? '<p class="hint">Możesz zaznaczyć kilka.</p>' : '') + '<div class="opts">'
+        for (const [v, label] of opts) html += '<label class="opt"><input type="' + (multi ? 'checkbox' : 'radio') + '" name="' + esc(name) + '" value="' + esc(v) + '"><span>' + esc(label) + '</span></label>'
+        html += '</div></fieldset>'
+      }
+    }
+    html += '<button class="send" type="submit">Wyślij</button><p class="err" id="err" hidden></p></form>'
+    app.innerHTML = html
+    const f = document.getElementById('f'), errEl = document.getElementById('err')
+    f.addEventListener('submit', async e => {
+      e.preventDefault()
+      const fd = new FormData(f), a = {}
+      for (const q of s.questions || []) {
+        const name = 'q_' + q.id
+        if (q.type === 'many') { const v = fd.getAll(name); if (v.length) a[q.id] = v }
+        else { const v = fd.get(name); if (v && String(v).trim()) a[q.id] = String(v) }
+      }
+      if (!Object.keys(a).length) { errEl.textContent = 'Odpowiedz przynajmniej na jedno pytanie.'; errEl.hidden = false; return }
+      const btn = f.querySelector('button.send'); btn.disabled = true; errEl.hidden = true
+      try {
+        if (token !== 'test') await rpc('asb_survey_submit', { t: token, a })
+        try { localStorage.setItem(doneKey, '1') } catch {}
+        thanks()
+      } catch (x) { errEl.textContent = x.message; errEl.hidden = false; btn.disabled = false }
+    })
+  }
+
+  if (!token) { app.innerHTML = '<div class="msg"><b>Brak ankiety</b>Zeskanuj kod QR jeszcze raz.</div>'; return }
+  if (token === 'test') { render({ title: 'Ankieta testowa', intro: '', open: true, questions: [{ id: 'q1', type: 'source', text: 'Skąd się dowiedziałeś o spotkaniu?' }, { id: 'q2', type: 'one', text: 'Czy jesteś pierwszy raz?', options: ['Tak', 'Nie'] }, { id: 'q3', type: 'open', text: 'Co chcesz nam powiedzieć?' }] }); return }
+  rpc('asb_survey_public', { t: token }).then(s => {
+    if (!s) { app.innerHTML = '<div class="msg"><b>Nie ma takiej ankiety</b>Sprawdź kod QR albo link.</div>'; return }
+    render(s)
+  }).catch(e => { app.innerHTML = '<div class="msg"><b>Nie udało się wczytać ankiety</b>' + esc(e.message) + '</div>' })
+})()
+</script>
+</body>
+</html>
