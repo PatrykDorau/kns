@@ -80,8 +80,9 @@ export default defineComponent({
     const reset = () => { z.k = 1; z.x = 0; z.y = 0 }
     function rel(e) { const r = svg.value.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height] }
     function wheel(e) { if (!e.ctrlKey && z.k === 1 && e.deltaY > 0) return; e.preventDefault(); const [px, py] = rel(e); zoomAt(e.deltaY < 0 ? 1.25 : 0.8, px, py) }
-    const ptrs = new Map(); let pinch = 0, moved = false
-    function down(e) { svg.value.setPointerCapture?.(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = false; if (ptrs.size === 2) { const [p, q2] = [...ptrs.values()]; pinch = Math.hypot(p[0] - q2[0], p[1] - q2[1]) } }
+    const ptrs = new Map(); let pinch = 0, moved = false, start = [0, 0]
+    // przechwycenie wskaźnika dopiero przy przeciąganiu — inaczej kliknięcie trafia w całe SVG, a nie w osiedle
+    function down(e) { ptrs.set(e.pointerId, [e.clientX, e.clientY]); start = [e.clientX, e.clientY]; moved = false; if (ptrs.size === 2) { const [p, q2] = [...ptrs.values()]; pinch = Math.hypot(p[0] - q2[0], p[1] - q2[1]) } }
     function move(e) {
       if (!ptrs.has(e.pointerId)) return
       const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY])
@@ -92,14 +93,15 @@ export default defineComponent({
         pinch = d; moved = true; return
       }
       const dx = e.clientX - prev[0], dy = e.clientY - prev[1]
-      if (Math.abs(dx) + Math.abs(dy) > 2) moved = true
+      if (!moved && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 6) { moved = true; try { svg.value.setPointerCapture(e.pointerId) } catch {} }
       if (z.k > 1) { z.x -= dx / r.width * (g.w / z.k); z.y -= dy / r.height * (g.h / z.k); clamp() }
     }
-    function up(e) { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0 }
+    function up(e) { ptrs.delete(e.pointerId); try { svg.value.releasePointerCapture(e.pointerId) } catch {} if (ptrs.size < 2) pinch = 0 }
     const side = ref(null)
     function pick(a) {
       if (moved) return
       st.sel = st.sel === a.id ? '' : a.id
+      st.hover = ''
       // telefon: podgląd jest pod mapą — przewiń do niego
       if (st.sel && innerWidth < 900) setTimeout(() => side.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
     }
@@ -174,9 +176,9 @@ export default defineComponent({
           <text :x="geo.poznan.cx" :y="geo.poznan.cy" :font-size="fs * 1.9" text-anchor="middle" class="km-pz-t">Poznań</text>
           <text :x="geo.poznan.cx" :y="geo.poznan.cy + fs * 1.6" :font-size="fs" text-anchor="middle" class="km-pz-s">{{ pzCount }} wpisów · kliknij</text>
         </g>
-        <path v-for="a in areas" :key="a.id" :d="a.d" class="km-area" :class="{ sel: st.sel === a.id, hit: hitAreas.has(a.id), has: byArea[a.id] }" @click="pick(a)" @mouseenter="st.hover = a.id" @mouseleave="st.hover = ''" />
+        <path v-for="a in areas" :key="a.id" :d="a.d" class="km-area" :class="{ sel: st.sel === a.id, hit: hitAreas.has(a.id), has: byArea[a.id] }" @click="pick(a)" @pointerenter="e => e.pointerType === 'mouse' && (st.hover = a.id)" @mouseleave="st.hover = ''" />
         <!-- kółka z liczbą osób (rozsunięte, żeby się nie nakładały) — jedyne oznaczenia na mapie -->
-        <g v-for="b in bubbles" :key="'b' + b.id" class="km-bub" :class="{ sel: st.sel === b.id }" @click="pick(b.a)" @mouseenter="st.hover = b.id" @mouseleave="st.hover = ''">
+        <g v-for="b in bubbles" :key="'b' + b.id" class="km-bub" :class="{ sel: st.sel === b.id }" @click="pick(b.a)" @pointerenter="e => e.pointerType === 'mouse' && (st.hover = b.id)" @mouseleave="st.hover = ''">
           <circle :cx="b.x" :cy="b.y" :r="b.r" />
           <text :x="b.x" :y="b.y + b.r * 0.34" :font-size="b.r * 0.95" text-anchor="middle">{{ b.n }}</text>
         </g>
@@ -191,7 +193,7 @@ export default defineComponent({
         <div :key="selArea.id" class="km-pull">
           <svg :viewBox="selBox" class="km-pull-svg" role="img" :aria-label="'Kształt: ' + selArea.name"><path :d="selArea.d" /></svg>
         </div>
-        <small class="km-pull-n">{{ selList.length ? selList.length + ' ' + plural(selList.length) : '' }}{{ st.view === 'pz' ? ' · osiedle Poznania' : ' · gmina' }}</small>
+        <small class="km-pull-n">{{ selList.length ? selList.length + ' ' + plural(selList.length) + ' · ' : '' }}{{ st.view === 'pz' ? 'osiedle Poznania' : 'gmina' }}</small>
         <p v-if="!selList.length" class="note">Na razie nikogo — może Ty? „Dodaj mnie” u góry.</p>
         <ul class="km-people">
           <li v-for="e in selList" :key="e.id" :class="{ me: e.mine }">
