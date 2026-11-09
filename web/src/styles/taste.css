@@ -577,3 +577,7 @@ html[data-theme="light"] .login-pop .login-x:hover { background: var(--panel3); 
 /* paleta wykresów (statystyki ASB): stała kolejność kategorii, osobno dla jasnego trybu */
 :root { --c1: #5f9e73; --c2: #e3b34a; --c3: #a6c79a; --c4: #d0714b; --c5: #d995ad; --c6: #8b8f96; }
 html[data-theme="light"] { --c1: #2f6b48; --c2: #d4a02c; --c3: #86ad78; --c4: #b9582f; --c5: #c77892; --c6: #a7a59e; }
+
+/* Mapa KNS (jak plakat: złote kontury, białe tło w jasnym trybie) */
+:root { --km-bg: #1f1e1c; --km-fill: #252421; --km-fill-has: #2b2924; --km-line: #8f7a52; --km-gold: #e2a64b; --km-halo: #1c1b19; --km-name: #9a948a; --km-blob: #a8916b; --km-me: #f5cf86; }
+html[data-theme="light"] { --km-bg: #ffffff; --km-fill: #fffdf9; --km-fill-has: #fcf4e6; --km-line: #c9ad7d; --km-gold: #d2953a; --km-halo: #ffffff; --km-name: #b6a892; --km-blob: #c2a982; --km-me: #b05e17; }

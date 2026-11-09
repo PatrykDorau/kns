@@ -47,6 +47,7 @@ import AsbPublicView from '@/views/AsbPublicView.vue'
 const AsbView = lazy(() => import('@/views/AsbView.vue'))
 const VotesView = lazy(() => import('@/views/VotesView.vue'))
 import AskDialog from '@/components/dialogs/AskDialog.vue'
+import MapView from '@/views/MapView.vue'
 import { ask } from '@/utils/ask'
 import { startUpdateCheck, updateReady } from '@/utils/updateCheck'
 import { startTabSwipe } from '@/utils/tabSwipe'
@@ -108,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.28 · 10.11.2026'
+const VERSION = '4.29 · 10.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -216,7 +217,7 @@ const two = n => String(n).padStart(2, '0')
 const byNumber = (a, b) => ((+a.number || 1e9) - (+b.number || 1e9)) || a.title.localeCompare(b.title, 'pl')
 
 export default defineComponent({
-  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, IosInstall, Prayers, TasksView, FinanceView, KidsView, TranslateView, ModulesView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
+  components: { BugsView, BugReportDialog, SideNav, AccountBar, AppHeader, CameraCue, SongEditView, AnnouncementView, AnnouncementsView, MaterialView, MaterialsView, EventView, TemplateView, TemplatesView, CalendarView, PeopleView, SongsView, GoogleCalendarView, ServeView, AsbPublicView, AsbView, VotesView, ServicesView, GoalsView, ListenView, ProfileView, MoreView, HomeView, CardDeck, GuestView, IosInstall, Prayers, TasksView, FinanceView, KidsView, TranslateView, ModulesView, MapView, ServiceEditView, PublicListen, BandPickDialog, AddPersonDialog, QrDialog, MessageDialog, AsbMeetingDialog, AsbPreviewDialog, LiveEvent, AskDialog, InboxDialog, MinistryDialog, TabBar },
   setup() {
     const ready = ref(false), busy = ref(false), error = ref(''), status = ref('')
     // Zapamiętane logowanie: do wczytania danych szkielet strony zamiast ekranu logowania.
@@ -538,6 +539,7 @@ export default defineComponent({
           // beta — funkcje eksperymentalne (mogą się jeszcze zmienić)
           { id: 'goals', icon: 'money', name: 'Cele wsparcia', badge: goalDue.value ? '!' : '', beta: true },
           { id: 'votes', icon: 'check', name: 'Głosowania', badge: votesOpen.value || '', beta: true },
+          { id: 'mapa', icon: 'pin', name: 'Mapa KNS' },
           { id: 'pray', icon: 'heart', name: 'Modlitwa' },
           { id: 'zadania', icon: 'tasks', name: 'Zadania', badge: myTaskCount.value || '' },
           { id: 'dzieci', icon: 'kid', name: 'Dzieci' },
@@ -564,7 +566,7 @@ export default defineComponent({
         home: !editor && !other, cal: (!!currentEvent.value || calView.value || gcalView.value) && !current.value, svc: !!current.value || (svcListView.value && !currentEvent.value), anns: annView.value || !!currentAnn.value,
         serve: (serveView.value && serveTab.value === 'all') || (asbView.value && !asbMember.value), myserve: serveView.value && serveTab.value === 'mine', goals: goalsView.value, pray: prayView.value, votes: votesView.value, bugs: bugsView.value, listen: listenView.value, asb: asbView.value,
         songs: songView.value || !!song.value, mats: (protoView.value || !!currentProto.value) && !currentEvent.value, tpl: tplView.value || !!tplType.value, people: peopleView.value, profile: profileView.value,
-        moduly: page.value === 'moduly', zadania: page.value === 'zadania', finanse: page.value === 'finanse', dzieci: page.value === 'dzieci', tlumaczenie: page.value === 'tlumaczenie',
+        moduly: page.value === 'moduly', mapa: page.value === 'mapa', zadania: page.value === 'zadania', finanse: page.value === 'finanse', dzieci: page.value === 'dzieci', tlumaczenie: page.value === 'tlumaczenie',
       }[id] || false
     }
     // telefon: przesunięcie palcem między zakładkami dolnego menu (Start, Kalendarz, Zaangażuj się, Więcej)
@@ -1924,7 +1926,7 @@ export default defineComponent({
     /* ---------- Wybory i głosowania (wybory.sql) ---------- */
     const votesView = ref(false), bugsView = ref(false), prayView = ref(false) // prayView — Modlitwa (osobna strona)
     // Nowe strony (wzór: Avenit) — jeden przełącznik zamiast osobnego dla każdej: zadania, finanse służb, dzieci, tłumaczenie.
-    const PAGES = { zadania: 'Zadania', finanse: 'Finanse służb', dzieci: 'Dzieci', tlumaczenie: 'Tłumaczenie na żywo', moduly: 'Moduły' }
+    const PAGES = { zadania: 'Zadania', finanse: 'Finanse służb', dzieci: 'Dzieci', tlumaczenie: 'Tłumaczenie na żywo', moduly: 'Moduły', mapa: 'Mapa KNS' }
     // Moduły (wzór: Avenit): administrator wyłącza części aplikacji dla całego kościoła (site_settings „moduly”: { off: [...] }).
     // Wyłączone znikają z menu, Startu i adresów; nowe moduły są domyślnie włączone. „Grafik” działa tylko przy włączonych służbach.
     const MODULES = [
@@ -1939,6 +1941,7 @@ export default defineComponent({
       { id: 'grafik', group: 'Wspólnota', icon: 'calendar', name: 'Grafik i potwierdzenia', desc: 'Zaproszenia „Przyjmuję / Nie mogę”, skład na niedzielę, przypomnienia' },
       { id: 'zadania', group: 'Wspólnota', icon: 'tasks', name: 'Zadania', desc: 'Tablice zadań kościoła i służb' },
       { id: 'dzieci', group: 'Wspólnota', icon: 'kid', name: 'Dzieci', desc: 'Meldowanie dzieci z kodem odbioru' },
+      { id: 'mapa', group: 'Wspólnota', icon: 'pin', name: 'Mapa KNS', desc: 'Kto z kościoła mieszka na którym osiedlu i w okolicy (bez adresów)' },
       { id: 'pray', group: 'Wspólnota', icon: 'heart', name: 'Modlitwa', desc: 'Ściana modlitwy i modlitwa dnia' },
       { id: 'goals', group: 'Wspólnota', icon: 'money', name: 'Cele wsparcia', desc: 'Deklaracje z dziesięciny i cele' },
       { id: 'votes', group: 'Wspólnota', icon: 'check', name: 'Głosowania', desc: 'Wybory i tajne głosowania' },
@@ -2925,6 +2928,7 @@ export default defineComponent({
   <FinanceView v-else-if="page === 'finanse' && !current" />
   <KidsView v-else-if="page === 'dzieci' && !current" />
   <TranslateView v-else-if="page === 'tlumaczenie' && !current" />
+  <MapView v-else-if="page === 'mapa' && api.enabled && !current" />
   <ModulesView v-else-if="page === 'moduly' && canManage && !current" />
   <ServicesView v-else-if="svcListView && !current" />
   <BugsView v-else-if="bugsView && !current" />

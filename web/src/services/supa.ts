@@ -231,6 +231,11 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
         check(await sb.from('asb_stat_cities').upsert({ id: data.city, fb_synced: now, fb_followers: data.followers ?? null, ig_followers: data.igFollowers ?? null }))
         return now
       }
+      // Mapa KNS (mapa.sql): podpis i osiedle/gmina, bez adresów; „mine” — wpis zalogowanej osoby (lista właścicieli nie wychodzi z bazy do widoku)
+      if (action === 'mapLoad') { const uid = session?.user?.id; return (check(await sb.from('kns_map').select('id,label,area,place,owners')) || []).map(r => ({ id: r.id, label: r.label, area: r.area, place: r.place || '', mine: (r.owners || []).includes(uid) })) }
+      if (action === 'mapMe') return check(await sb.rpc('kns_map_me', { lbl: data.label, ar: data.area, pl: data.place || '' }))
+      if (action === 'mapUpdate') return check(await sb.from('kns_map').update({ label: data.label.trim(), area: data.area, place: (data.place || '').trim(), updated: new Date().toISOString() }).eq('id', data.id))
+      if (action === 'mapDelete') return check(await sb.from('kns_map').delete().eq('id', data.id))
       // Ankiety ASB z kodem QR (asb-ankiety.sql): organizator tworzy, goście wypełniają na /ankieta?t=<token>.
       if (action === 'asbSurveys') {
         const [surveys, answers] = await Promise.all([sb.from('asb_surveys').select('*').order('created', { ascending: false }), sb.from('asb_survey_answers').select('survey,answers,created').order('created', { ascending: false })].map(q => q.then(check)))
