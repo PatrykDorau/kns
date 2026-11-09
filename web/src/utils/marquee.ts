@@ -30,20 +30,21 @@ function update(el: HTMLElement) {
   if (seen.get(el) === key) return
   seen.set(el, key)
   // bez przejścia koloru: inaczej odczyt koloru (niżej) łapie początek przejścia z „transparent” i tytuł znika
-  if (el.classList.contains('mq')) { el.style.setProperty('transition', 'none'); el.classList.remove('mq'); el.style.removeProperty('color') }
+  if (el.classList.contains('mq')) { el.style.setProperty('transition', 'none'); el.classList.remove('mq'); el.style.removeProperty('-webkit-text-fill-color') }
   if (el.scrollWidth - el.clientWidth <= 2 || !el.clientWidth) { el.style.removeProperty('transition'); return }
   const text = el.textContent.trim()
   const cs = getComputedStyle(el)
   const lap = widthOf(text + GAP, el)
   if (!born.has(text)) born.set(text, performance.now())
   el.dataset.mq = text + GAP + text
-  el.style.setProperty('--mq-color', cs.color)
   el.style.setProperty('--mq-pl', cs.paddingLeft)
   el.style.setProperty('--mq-pt', cs.paddingTop)
   el.style.setProperty('--mq-lap', lap + 'px')
   el.style.setProperty('--mq-dur', (lap / SPEED).toFixed(2) + 's')
   el.style.setProperty('--mq-delay', ((START - (performance.now() - born.get(text))) / 1000).toFixed(2) + 's') // ujemne — jedzie dalej
-  el.style.setProperty('color', 'transparent', 'important') // w stylu elementu — wygrywa z każdą regułą koloru
+  // oryginał niewidoczny przez wypełnienie liter, a nie przez kolor — kolor zostaje żywy, więc płynąca kopia (::after)
+  // dziedziczy go na bieżąco: po zmianie motywu, najechaniu czy zaznaczeniu (wcześniej zamrożony kolor zostawał biały)
+  el.style.setProperty('-webkit-text-fill-color', 'transparent', 'important')
   el.classList.add('mq')
 }
 

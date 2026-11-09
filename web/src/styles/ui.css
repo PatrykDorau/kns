@@ -464,7 +464,7 @@ html[data-theme="light"] ::selection { background: rgba(212, 133, 28, .25); }
 /* długi tytuł płynie: warstwa ::after (tytuł, odstęp, kopia) przesuwana przez transform; oryginał niewidoczny pod spodem */
 .mq { position: relative; text-overflow: clip !important; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent); }
 .mq > * { visibility: hidden; }
-.mq::after { content: attr(data-mq); position: absolute; top: var(--mq-pt, 0); left: var(--mq-pl, 0); white-space: pre; color: var(--mq-color); pointer-events: none; will-change: transform;
+.mq::after { content: attr(data-mq); position: absolute; top: var(--mq-pt, 0); left: var(--mq-pl, 0); white-space: pre; color: inherit; -webkit-text-fill-color: currentColor; pointer-events: none; will-change: transform;
   animation: mq-run var(--mq-dur, 10s) linear var(--mq-delay, 1s) infinite both; }
 @keyframes mq-run { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--mq-lap, 0px))); } }
 /* także przy „ogranicz ruch” — inaczej długiego tytułu nie da się przeczytać (reguła wyżej skraca wszystkie animacje) */

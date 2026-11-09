@@ -8,29 +8,38 @@ import MAP from '@/data/mapa-kns.json'
 // Mapa KNS (wzór: plakat „Mapa KNS Poznań / Okolice Poznania”): złote kontury osiedli Poznania i gmin wokół, a w nich
 // podpisy osób z kościoła. Tylko osiedle albo miejscowość — bez adresów. Widzą zalogowani członkowie (baza: kns_map).
 // Przybliżanie kółkiem / dwoma palcami / przyciskami, przesuwanie przeciągnięciem; kliknięcie obszaru — lista osób.
+// Przełącznik „Grupki domowe”: ta sama mapa z grupkami (kns_groups) — dzień i godzina, prowadzący, uczestnicy.
 export default defineComponent({
   setup() {
     const app = useApp()
     const svg = ref(null)
-    const st = reactive({ hover: '', busy: true, error: '', list: [], view: 'pz', q: '', sel: '', me: null, edit: null, saving: false })
+    const st = reactive({ mode: 'ludzie', groups: [], gedit: null, open: '', hover: '', busy: true, error: '', list: [], view: 'pz', q: '', sel: '', me: null, edit: null, saving: false })
     const z = reactive({ k: 1, x: 0, y: 0 })
     async function load() {
       st.busy = true; st.error = ''
-      try { st.list = await app.api.call('mapLoad') } catch (e) { st.error = e.message } finally { st.busy = false }
+      try {
+        const [list, groups] = await Promise.all([app.api.call('mapLoad'), app.api.call('groupsLoad').catch(() => [])])
+        st.list = list; st.groups = (groups || []).map(g => ({ ...g, label: g.name }))
+      } catch (e) { st.error = e.message } finally { st.busy = false }
     }
     onMounted(load)
     const geo = computed(() => (st.view === 'pz' ? MAP.poznan : MAP.okolice))
     const areas = computed(() => geo.value.areas)
-    const byArea = computed(() => { const m = {}; for (const e of st.list) (m[e.area] ||= []).push(e); for (const k in m) m[k].sort((a, b) => a.label.localeCompare(b.label, 'pl')); return m })
-    const pzCount = computed(() => st.list.filter(e => e.area.startsWith('pz:')).length)
+    const G = computed(() => st.mode === 'grupki')
+    const items = computed(() => (G.value ? st.groups : st.list))
+    const byArea = computed(() => { const m = {}; for (const e of items.value) (m[e.area] ||= []).push(e); for (const k in m) m[k].sort((a, b) => a.label.localeCompare(b.label, 'pl')); return m })
+    const pzCount = computed(() => items.value.filter(e => e.area.startsWith('pz:')).length)
     const mine = computed(() => st.list.find(e => e.mine) || null)
     const q = computed(() => st.q.trim().toLowerCase())
-    const hits = computed(() => (q.value ? st.list.filter(e => (e.label + ' ' + e.place + ' ' + e.area.slice(3)).toLowerCase().includes(q.value)) : []))
+    const hits = computed(() => (q.value ? items.value.filter(e => (e.label + ' ' + e.place + ' ' + e.area.slice(3) + ' ' + (e.leaders || []).map(l => l.name).join(' ')).toLowerCase().includes(q.value)) : []))
     const hitAreas = computed(() => new Set(hits.value.map(e => e.area)))
     const selArea = computed(() => areas.value.find(a => a.id === st.sel) || null)
     const selList = computed(() => byArea.value[st.sel] || [])
     const areaName = id => id.slice(3)
-    const plural = n => (n === 1 ? 'wpis' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'wpisy' : 'wpisów')
+    const few = n => n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)
+    const plural = n => (G.value ? (n === 1 ? 'grupka' : few(n) ? 'grupki' : 'grupek') : n === 1 ? 'wpis' : few(n) ? 'wpisy' : 'wpisów')
+    const osob = n => (n === 1 ? 'osoba' : few(n) ? 'osoby' : 'osób')
+    const myGroup = computed(() => st.groups.find(g => g.mine) || null)
     const hoverArea = computed(() => areas.value.find(a => a.id === st.hover) || null)
     // ramka kształtu klikniętego obszaru (z liczb w ścieżce) — do powiększonego podglądu
     const selBox = computed(() => {
@@ -106,10 +115,11 @@ export default defineComponent({
       if (st.sel && innerWidth < 900) setTimeout(() => side.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
     }
     function setView(v) { st.view = v; st.sel = ''; reset() }
+    function setMode(m) { st.mode = m; st.sel = ''; st.q = ''; st.open = '' }
     function goPoznan() { if (!moved) setView('pz') }
     function focus(e) {
       const v = e.area.startsWith('pz:') ? 'pz' : 'ok'; if (st.view !== v) setView(v)
-      st.sel = e.area; const a = geo.value.areas.find(x => x.id === e.area)
+      st.sel = e.area; if (e.leaders) st.open = e.id; const a = geo.value.areas.find(x => x.id === e.area)
       if (a) { z.k = 2.2; const g = geo.value; z.x = a.cx - g.w / z.k / 2; z.y = a.cy - g.h / z.k / 2; clamp() }
     }
 
@@ -141,29 +151,64 @@ export default defineComponent({
       st.saving = true
       try { await app.api.call('mapDelete', { id: e.id }); st.edit = null; await load() } catch (x) { st.error = x.message } finally { st.saving = false }
     }
-    return { ...app, MAP, ppu, lines, bubbles, plural, hoverArea, selBox, side, st, z, geo, areas, byArea, pzCount, mine, hits, hitAreas, selArea, selList, areaName, maxLabels, fs, svg, vb, zoomAt, reset, wheel, down, move, up, pick, setView, goPoznan, focus, OPTIONS, openMe, openEdit, save, remove }
+    // ---- grupki domowe ----
+    function openGroup(g) {
+      st.error = ''
+      st.gedit = g ? { id: g.id, name: g.name, area: g.area, place: g.place, day: g.day, time: g.time, leaders: g.leaders.map(l => l.id), people: [...new Map([...g.leaders, ...g.members].map(x => [x.id, x])).values()] }
+        : { id: '', name: '', area: st.sel || '', place: '', day: '', time: '', leaders: [], people: [] }
+    }
+    const toggleLeader = id => { const l = st.gedit.leaders; const i = l.indexOf(id); if (i >= 0) l.splice(i, 1); else l.push(id) }
+    async function saveGroup() {
+      const e = st.gedit
+      if (e.name.trim().length < 2) { st.error = 'Wpisz nazwę grupki.'; return }
+      if (!e.area) { st.error = 'Wybierz osiedle albo gminę.'; return }
+      if (e.id && !e.leaders.length) { st.error = 'Zaznacz co najmniej jednego prowadzącego.'; return }
+      st.saving = true; st.error = ''
+      try {
+        const id = await app.api.call('groupSave', { ...e, leaders: e.id ? e.leaders : null })
+        st.gedit = null; await load(); focus({ area: e.area, id, leaders: [] })
+      } catch (x) { st.error = x.message } finally { st.saving = false }
+    }
+    async function removeGroup() {
+      const e = st.gedit
+      if (!(await ask(`Grupka „${e.name}” zniknie z mapy, a jej uczestnikom wyczyści się pole „Grupka” w profilu.`, { title: 'Usunąć grupkę?', ok: 'Usuń', danger: true }))) return
+      st.saving = true
+      try { await app.api.call('groupDelete', { id: e.id }); st.gedit = null; await load() } catch (x) { st.error = x.message } finally { st.saving = false }
+    }
+    async function join(g, on) {
+      if (on && myGroup.value && myGroup.value.id !== g.id && !(await ask(`Teraz w profilu masz grupkę „${myGroup.value.name}”. Zmienić na „${g.name}”?`, { title: 'Zmienić grupkę?', ok: 'Zmień' }))) return
+      st.error = ''
+      try { await app.api.call('groupJoin', { id: g.id, join: on }); await load() } catch (x) { st.error = x.message }
+    }
+    const when = g => [g.day, g.time].filter(Boolean).join(', ')
+    return { ...app, MAP, G, items, osob, myGroup, setMode, openGroup, toggleLeader, saveGroup, removeGroup, join, when, ppu, lines, bubbles, plural, hoverArea, selBox, side, st, z, geo, areas, byArea, pzCount, mine, hits, hitAreas, selArea, selList, areaName, maxLabels, fs, svg, vb, zoomAt, reset, wheel, down, move, up, pick, setView, goPoznan, focus, OPTIONS, openMe, openEdit, save, remove }
   },
 })
 </script>
 
 <template>
+  <div class="seg km-mode" role="tablist" aria-label="Co pokazać na mapie">
+    <button role="tab" :aria-selected="!G" :class="{ on: !G }" @click="setMode('ludzie')">Lokalizacja</button>
+    <button role="tab" :aria-selected="G" :class="{ on: G }" @click="setMode('grupki')">Grupki domowe</button>
+  </div>
   <div class="km-top">
     <div class="seg km-tabs" role="tablist" aria-label="Mapa">
       <button role="tab" :aria-selected="st.view === 'pz'" :class="{ on: st.view === 'pz' }" @click="setView('pz')">Poznań</button>
       <button role="tab" :aria-selected="st.view === 'ok'" :class="{ on: st.view === 'ok' }" @click="setView('ok')">Okolice Poznania</button>
     </div>
-    <input v-model="st.q" class="km-search" type="search" placeholder="Szukaj osoby albo osiedla" aria-label="Szukaj na mapie" autocomplete="off">
-    <button class="primary" @click="openMe"><svg class="i"><use href="#pin"/></svg>{{ mine ? 'Mój wpis' : 'Dodaj mnie' }}</button>
+    <input v-model="st.q" class="km-search" type="search" :placeholder="G ? 'Szukaj grupki, prowadzącego albo osiedla' : 'Szukaj osoby albo osiedla'" aria-label="Szukaj na mapie" autocomplete="off">
+    <button v-if="G" class="primary" @click="openGroup(null)"><svg class="i"><use href="#plus"/></svg>Dodaj grupkę</button>
+    <button v-else class="primary" @click="openMe"><svg class="i"><use href="#pin"/></svg>{{ mine ? 'Mój wpis' : 'Dodaj mnie' }}</button>
   </div>
   <div v-if="st.q && hits.length" class="km-hits">
     <button v-for="e in hits.slice(0, 8)" :key="e.id" @click="focus(e); st.q = ''"><b>{{ e.label }}</b><small>{{ areaName(e.area) }}{{ e.place && e.place !== areaName(e.area) ? ' · ' + e.place : '' }}</small></button>
   </div>
-  <p v-else-if="st.q" class="note">Nikogo takiego na mapie.</p>
-  <p v-if="st.error && !st.edit" class="error">{{ st.error }}</p>
+  <p v-else-if="st.q" class="note">{{ G ? 'Nie ma takiej grupki.' : 'Nikogo takiego na mapie.' }}</p>
+  <p v-if="st.error && !st.edit && !st.gedit" class="error">{{ st.error }}</p>
 
   <div class="km-wrap">
     <div class="km-card">
-      <div class="km-badge"><span>Mapa KNS</span><b>{{ st.view === 'pz' ? 'Poznań' : 'Okolice Poznania' }}</b></div>
+      <div class="km-badge"><span>{{ G ? 'Grupki domowe' : 'Mapa KNS' }}</span><b>{{ st.view === 'pz' ? 'Poznań' : 'Okolice Poznania' }}</b></div>
       <div class="km-zoom">
         <button class="icon" aria-label="Przybliż" @click="zoomAt(1.4)"><svg class="i"><use href="#plus"/></svg></button>
         <button class="icon" aria-label="Oddal" :disabled="z.k <= 1" @click="zoomAt(1 / 1.4)">−</button>
@@ -174,7 +219,7 @@ export default defineComponent({
         <g v-if="st.view === 'ok'" class="km-pz" @click="goPoznan">
           <path :d="geo.poznan.d" />
           <text :x="geo.poznan.cx" :y="geo.poznan.cy" :font-size="fs * 1.9" text-anchor="middle" class="km-pz-t">Poznań</text>
-          <text :x="geo.poznan.cx" :y="geo.poznan.cy + fs * 1.6" :font-size="fs" text-anchor="middle" class="km-pz-s">{{ pzCount }} wpisów · kliknij</text>
+          <text :x="geo.poznan.cx" :y="geo.poznan.cy + fs * 1.6" :font-size="fs" text-anchor="middle" class="km-pz-s">{{ pzCount }} {{ G ? plural(pzCount) : 'wpisów' }} · kliknij</text>
         </g>
         <path v-for="a in areas" :key="a.id" :d="a.d" class="km-area" :class="{ sel: st.sel === a.id, hit: hitAreas.has(a.id), has: byArea[a.id] }" @click="pick(a)" @pointerenter="e => e.pointerType === 'mouse' && (st.hover = a.id)" @mouseleave="st.hover = ''" />
         <!-- kółka z liczbą osób (rozsunięte, żeby się nie nakładały) — jedyne oznaczenia na mapie -->
@@ -183,7 +228,7 @@ export default defineComponent({
           <text :x="b.x" :y="b.y + b.r * 0.34" :font-size="b.r * 0.95" text-anchor="middle">{{ b.n }}</text>
         </g>
       </svg>
-      <div v-if="hoverArea && hoverArea.id !== st.sel" class="km-tip">{{ hoverArea.name }}<small>{{ (byArea[hoverArea.id] || []).length ? (byArea[hoverArea.id] || []).length + ' ' + plural((byArea[hoverArea.id] || []).length) : 'nikogo jeszcze' }}</small></div>
+      <div v-if="hoverArea && hoverArea.id !== st.sel" class="km-tip">{{ hoverArea.name }}<small>{{ (byArea[hoverArea.id] || []).length ? (byArea[hoverArea.id] || []).length + ' ' + plural((byArea[hoverArea.id] || []).length) : (G ? 'brak grupki' : 'nikogo jeszcze') }}</small></div>
       <small class="km-attr">Granice: © OpenStreetMap · tylko osiedle lub miejscowość, bez adresów</small>
     </div>
 
@@ -194,8 +239,29 @@ export default defineComponent({
           <svg :viewBox="selBox" class="km-pull-svg" role="img" :aria-label="'Kształt: ' + selArea.name"><path :d="selArea.d" /></svg>
         </div>
         <small class="km-pull-n">{{ selList.length ? selList.length + ' ' + plural(selList.length) + ' · ' : '' }}{{ st.view === 'pz' ? 'osiedle Poznania' : 'gmina' }}</small>
-        <p v-if="!selList.length" class="note">Na razie nikogo — może Ty? „Dodaj mnie” u góry.</p>
-        <ul class="km-people">
+        <template v-if="G">
+          <p v-if="!selList.length" class="note">Tu jeszcze nie ma grupki. Prowadzisz grupkę w tej okolicy? „Dodaj grupkę” u góry.</p>
+          <div v-for="g in selList" :key="g.id" class="km-grp" :class="{ me: g.mine, open: st.open === g.id }">
+            <button class="km-grp-h" :aria-expanded="st.open === g.id" @click="st.open = st.open === g.id ? '' : g.id">
+              <span><b>{{ g.name }}</b><small>{{ [when(g), g.place && g.place !== selArea.name ? g.place : ''].filter(Boolean).join(' · ') || 'termin do ustalenia' }}</small></span>
+              <em>{{ g.members.length }}</em>
+            </button>
+            <div v-if="st.open === g.id" class="km-grp-b">
+              <small class="km-grp-l">Prowadzą</small>
+              <p class="km-grp-who">{{ g.leaders.map(l => l.name).join(', ') || '—' }}</p>
+              <small class="km-grp-l">Uczestnicy · {{ g.members.length }} {{ osob(g.members.length) }}</small>
+              <ul class="km-grp-m"><li v-for="m in g.members" :key="m.id">{{ m.name }}</li></ul>
+              <p v-if="!g.members.length" class="note">Nikt jeszcze nie zaznaczył, że tu chodzi.</p>
+              <div class="km-grp-a">
+                <button v-if="!g.mine" @click="join(g, true)"><svg class="i"><use href="#check"/></svg>Chodzę tu</button>
+                <button v-else @click="join(g, false)">Już nie chodzę</button>
+                <button v-if="g.can" @click="openGroup(g)"><svg class="i"><use href="#pencil"/></svg>Zmień</button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <p v-else-if="!selList.length" class="note">Na razie nikogo — może Ty? „Dodaj mnie” u góry.</p>
+        <ul v-if="!G" class="km-people">
           <li v-for="e in selList" :key="e.id" :class="{ me: e.mine }">
             <span><b>{{ e.label }}</b><small v-if="e.place && e.place !== selArea.name">{{ e.place }}</small></span>
             <button v-if="e.mine || canManage" class="icon" :aria-label="'Zmień: ' + e.label" @click="openEdit(e)"><svg class="i"><use href="#pencil"/></svg></button>
@@ -203,10 +269,19 @@ export default defineComponent({
         </ul>
       </template>
       <template v-else>
+        <template v-if="G">
+          <b class="km-side-t">{{ st.groups.length }} {{ plural(st.groups.length) }} na mapie</b>
+          <p class="note">Kliknij kółko albo osiedle, żeby zobaczyć grupki w okolicy — kiedy się spotykają, kto prowadzi i kto chodzi.</p>
+          <p v-if="myGroup" class="note">Twoja grupka: <b>{{ myGroup.name }}</b>. <button class="linkish" @click="focus(myGroup)">Pokaż na mapie</button></p>
+          <p v-else class="note">Chodzisz do grupki? Znajdź ją i kliknij „Chodzę tu”. Prowadzisz? „Dodaj grupkę”.</p>
+          <p v-if="st.busy" class="note">Wczytuję…</p>
+        </template>
+        <template v-else>
         <b class="km-side-t">{{ st.list.length }} wpisów na mapie</b>
         <p class="note">Kliknij osiedle albo gminę, żeby zobaczyć, kto mieszka w okolicy. Przybliżasz kółkiem myszy, dwoma palcami albo przyciskami +/−.</p>
         <p class="note">Na mapie jest tylko podpis i osiedle albo miejscowość — bez adresów. Swój wpis zmienisz albo usuniesz przyciskiem „{{ mine ? 'Mój wpis' : 'Dodaj mnie' }}”.</p>
         <p v-if="st.busy" class="note">Wczytuję…</p>
+        </template>
       </template>
     </aside>
   </div>
@@ -228,10 +303,58 @@ export default defineComponent({
         </div>
       </div>
     </div>
+    <div v-if="st.gedit" class="np-overlay" @click.self="st.gedit = null" @keydown.esc="st.gedit = null">
+      <div class="np-panel km-dlg" role="dialog" aria-modal="true" aria-label="Grupka domowa">
+        <div class="km-dh"><b>{{ st.gedit.id ? 'Grupka domowa' : 'Nowa grupka domowa' }}</b><button class="icon" aria-label="Zamknij" @click="st.gedit = null"><svg class="i"><use href="#x"/></svg></button></div>
+        <label class="km-f">Nazwa grupki<input v-model="st.gedit.name" maxlength="60" placeholder="np. Grupka Wilda" autocomplete="off"></label>
+        <label class="km-f">Osiedle albo gmina<select v-model="st.gedit.area" class="field"><option value="" disabled>— wybierz —</option><optgroup v-for="g in OPTIONS" :key="g.group" :label="g.group"><option v-for="id in g.items" :key="id" :value="id">{{ areaName(id) }}</option></optgroup></select></label>
+        <div class="km-row">
+          <label class="km-f">Dzień<input v-model="st.gedit.day" maxlength="40" list="km-days" placeholder="np. wtorek" autocomplete="off"></label>
+          <label class="km-f">Godzina<input v-model="st.gedit.time" maxlength="20" placeholder="np. 19:00" autocomplete="off"></label>
+        </div>
+        <datalist id="km-days"><option v-for="d in ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela', 'co drugi tydzień']" :key="d" :value="d"></option></datalist>
+        <label class="km-f">Miejscowość albo część osiedla (opcjonalnie)<input v-model="st.gedit.place" maxlength="80" placeholder="np. Plewiska, Strzeszyn Grecki" autocomplete="off"></label>
+        <div v-if="st.gedit.id" class="km-f">Prowadzący (spośród uczestników)
+          <div class="km-chips">
+            <button v-for="x in st.gedit.people" :key="x.id" type="button" :class="{ on: st.gedit.leaders.includes(x.id) }" :aria-pressed="st.gedit.leaders.includes(x.id)" @click="toggleLeader(x.id)">{{ x.name }}</button>
+          </div>
+        </div>
+        <p class="note">{{ st.gedit.id ? 'Współprowadzącego dopiszesz, gdy najpierw kliknie przy grupce „Chodzę tu”.' : 'Zostaniesz prowadzącym. Nie podawaj adresu — mapa pokazuje tylko okolicę; szczegóły przekaż osobiście.' }}</p>
+        <p v-if="st.error" class="error">{{ st.error }}</p>
+        <div class="km-df">
+          <button v-if="st.gedit.id" class="danger" :disabled="st.saving" @click="removeGroup"><svg class="i"><use href="#trash"/></svg>Usuń grupkę</button>
+          <span></span>
+          <button @click="st.gedit = null">Anuluj</button>
+          <button class="primary" :disabled="st.saving" @click="saveGroup">Zapisz</button>
+        </div>
+      </div>
+    </div>
   </Teleport>
 </template>
 
 <style scoped>
+.km-mode { margin: 0 0 10px; max-width: 340px; }
+.km-grp { border-radius: 14px; background: var(--panel2); overflow: hidden; }
+.km-grp.me { outline: 2px solid var(--km-gold); }
+.km-grp-h { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
+.km-grp-h:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.km-grp-h span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.km-grp-h b { font-size: 15px; font-weight: 800; font-style: italic; color: var(--km-gold); }
+.km-grp.me .km-grp-h b { color: var(--km-me); }
+.km-grp-h small { color: var(--muted); font-size: 12.5px; }
+.km-grp-h em { font-style: normal; font-weight: 800; font-size: 13px; min-width: 26px; height: 26px; border-radius: 13px; display: grid; place-items: center; background: var(--km-gold); color: #2a1906; }
+.km-grp-b { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 4px; }
+.km-grp-l { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+.km-grp-who { margin: 0; font-weight: 650; }
+.km-grp-m { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px; }
+.km-grp-m li { padding: 3px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 13px; }
+.km-grp-a { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.km-grp-a button { min-height: 38px; }
+.km-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.km-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.km-chips button { min-height: 36px !important; padding: 4px 12px !important; border-radius: 999px !important; font-size: 13.5px; color: var(--text); }
+.km-chips button.on { background: var(--km-gold) !important; border-color: var(--km-gold) !important; color: #2a1906 !important; font-weight: 700; }
+.linkish { all: unset; color: var(--accent-text); text-decoration: underline; cursor: pointer; }
 .km-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
 .km-tabs { margin: 0; flex: 0 1 340px; }
 .km-search { flex: 1 1 200px; min-height: 44px; margin: 0; }

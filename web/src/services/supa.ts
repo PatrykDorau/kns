@@ -236,6 +236,11 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'mapMe') return check(await sb.rpc('kns_map_me', { lbl: data.label, ar: data.area, pl: data.place || '' }))
       if (action === 'mapUpdate') return check(await sb.from('kns_map').update({ label: data.label.trim(), area: data.area, place: (data.place || '').trim(), updated: new Date().toISOString() }).eq('id', data.id))
       if (action === 'mapDelete') return check(await sb.from('kns_map').delete().eq('id', data.id))
+      // Grupki domowe na Mapie KNS (grupki.sql)
+      if (action === 'groupsLoad') return check(await sb.rpc('kns_groups_load')) || []
+      if (action === 'groupSave') return check(await sb.rpc('kns_group_save', { gid: data.id || '', nm: data.name, ar: data.area, pl: data.place || '', dy: data.day || '', tm: data.time || '', ldrs: data.leaders || null }))
+      if (action === 'groupDelete') return check(await sb.rpc('kns_group_delete', { gid: data.id }))
+      if (action === 'groupJoin') return check(await sb.rpc('kns_group_join', { gid: data.id, joining: !!data.join }))
       // Ankiety ASB z kodem QR (asb-ankiety.sql): organizator tworzy, goście wypełniają na /ankieta?t=<token>.
       if (action === 'asbSurveys') {
         const [surveys, answers] = await Promise.all([sb.from('asb_surveys').select('*').order('created', { ascending: false }), sb.from('asb_survey_answers').select('survey,answers,created').order('created', { ascending: false })].map(q => q.then(check)))
