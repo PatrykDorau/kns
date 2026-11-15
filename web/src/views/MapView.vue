@@ -13,7 +13,7 @@ export default defineComponent({
   setup() {
     const app = useApp()
     const svg = ref(null)
-    const st = reactive({ mode: 'ludzie', groups: [], gedit: null, open: '', hover: '', busy: true, error: '', list: [], view: 'pz', q: '', sel: '', me: null, edit: null, saving: false })
+    const st = reactive({ sort: 'name', mode: 'ludzie', groups: [], gedit: null, open: '', hover: '', busy: true, error: '', list: [], view: 'pz', q: '', sel: '', me: null, edit: null, saving: false })
     const z = reactive({ k: 1, x: 0, y: 0 })
     async function load() {
       st.busy = true; st.error = ''
@@ -181,7 +181,23 @@ export default defineComponent({
       try { await app.api.call('groupJoin', { id: g.id, join: on }); await load() } catch (x) { st.error = x.message }
     }
     const when = g => [g.day, g.time].filter(Boolean).join(', ')
-    return { ...app, MAP, G, items, osob, myGroup, setMode, openGroup, toggleLeader, saveGroup, removeGroup, join, when, ppu, lines, bubbles, plural, hoverArea, selBox, side, st, z, geo, areas, byArea, pzCount, mine, hits, hitAreas, selArea, selList, areaName, maxLabels, fs, svg, vb, zoomAt, reset, wheel, down, move, up, pick, setView, goPoznan, focus, OPTIONS, openMe, openEdit, save, remove }
+    // ---- lista pod mapą: wszystkie wpisy (oba widoki), alfabetycznie po nazwisku albo wg osiedla/gminy ----
+    const surname = e => (G.value ? e.label : e.label.trim().split(/\s+/).pop() || e.label)
+    const listRows = computed(() => {
+      const src = q.value ? hits.value : items.value
+      const key = e => (st.sort === 'area' ? (e.area.startsWith('pz:') ? '0' : '1') + areaName(e.area) : surname(e))
+      const sorted = [...src].sort((a, b) => key(a).localeCompare(key(b), 'pl') || a.label.localeCompare(b.label, 'pl'))
+      const out = []
+      for (const e of sorted) {
+        const h = st.sort === 'area' ? (e.area.startsWith('pz:') ? 'Poznań · ' : '') + areaName(e.area) : surname(e).charAt(0).toLocaleUpperCase('pl')
+        if (!out.length || out[out.length - 1].h !== h) out.push({ h, items: [] })
+        out[out.length - 1].items.push(e)
+      }
+      return out
+    })
+    const mapCard = ref(null)
+    function showOnMap(e) { focus(e); setTimeout(() => mapCard.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }
+    return { ...app, listRows, mapCard, showOnMap, MAP, G, items, osob, myGroup, setMode, openGroup, toggleLeader, saveGroup, removeGroup, join, when, ppu, lines, bubbles, plural, hoverArea, selBox, side, st, z, geo, areas, byArea, pzCount, mine, hits, hitAreas, selArea, selList, areaName, maxLabels, fs, svg, vb, zoomAt, reset, wheel, down, move, up, pick, setView, goPoznan, focus, OPTIONS, openMe, openEdit, save, remove }
   },
 })
 </script>
@@ -207,7 +223,7 @@ export default defineComponent({
   <p v-if="st.error && !st.edit && !st.gedit" class="error">{{ st.error }}</p>
 
   <div class="km-wrap">
-    <div class="km-card">
+    <div ref="mapCard" class="km-card">
       <div class="km-badge"><span>{{ G ? 'Grupki domowe' : 'Mapa KNS' }}</span><b>{{ st.view === 'pz' ? 'Poznań' : 'Okolice Poznania' }}</b></div>
       <div class="km-zoom">
         <button class="icon" aria-label="Przybliż" @click="zoomAt(1.4)"><svg class="i"><use href="#plus"/></svg></button>
@@ -285,6 +301,29 @@ export default defineComponent({
       </template>
     </aside>
   </div>
+
+  <section v-if="items.length" class="km-list" aria-label="Lista">
+    <div class="km-list-h">
+      <h2>{{ G ? 'Wszystkie grupki' : 'Wszyscy na mapie' }}<small>{{ q ? hits.length + ' z ' + items.length : items.length }}</small></h2>
+      <div class="seg km-sort" role="group" aria-label="Kolejność listy">
+        <button :class="{ on: st.sort === 'name' }" :aria-pressed="st.sort === 'name'" @click="st.sort = 'name'">{{ G ? 'Nazwa' : 'Nazwisko' }}</button>
+        <button :class="{ on: st.sort === 'area' }" :aria-pressed="st.sort === 'area'" @click="st.sort = 'area'">Osiedle / gmina</button>
+      </div>
+    </div>
+    <template v-for="sec in listRows" :key="sec.h">
+      <h3 class="km-list-s">{{ sec.h }}</h3>
+      <ul class="km-people km-list-l">
+        <li v-for="e in sec.items" :key="e.id" :class="{ me: e.mine }">
+          <button class="km-list-b" :aria-label="'Pokaż na mapie: ' + e.label" @click="showOnMap(e)">
+            <b>{{ e.label }}</b>
+            <small v-if="G">{{ [when(e), areaName(e.area), e.leaders.map(l => l.name).join(', ')].filter(Boolean).join(' · ') }} · {{ e.members.length }} {{ osob(e.members.length) }}</small>
+            <small v-else>{{ areaName(e.area) }}{{ e.place && e.place !== areaName(e.area) ? ' · ' + e.place : '' }}</small>
+          </button>
+          <svg class="i"><use href="#pin"/></svg>
+        </li>
+      </ul>
+    </template>
+  </section>
 
   <Teleport to="body">
     <div v-if="st.edit" class="np-overlay" @click.self="st.edit = null" @keydown.esc="st.edit = null">
@@ -409,6 +448,17 @@ export default defineComponent({
 .km-people li.me b { color: var(--km-me); }
 .km-people small { color: var(--muted); font-size: 12.5px; }
 .km-people .icon { width: 34px !important; height: 34px !important; min-height: 0 !important; padding: 0 !important; }
+.km-list { margin-top: 18px; }
+.km-list-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.km-list-h h2 { margin: 0; font-size: 18px; display: flex; align-items: baseline; gap: 8px; }
+.km-list-h h2 small { color: var(--muted); font-size: 13px; font-weight: 500; }
+.km-sort { margin: 0; flex: 0 1 300px; }
+.km-list-s { margin: 14px 0 6px; font-size: 13px; color: var(--muted); font-weight: 700; }
+.km-list-l { max-height: none; overflow: visible; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.km-list-l li { padding: 0 10px 0 0; }
+.km-list-l li > .i { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.km-list-b { all: unset; box-sizing: border-box; flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 8px 10px; min-height: 44px; justify-content: center; cursor: pointer; border-radius: 12px; }
+.km-list-b:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .km-dlg { gap: 10px; }
 .km-dh { display: flex; align-items: center; justify-content: space-between; }
 .km-dh b { font-size: 17px; }

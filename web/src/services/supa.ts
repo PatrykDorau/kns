@@ -238,6 +238,8 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'mapDelete') return check(await sb.from('kns_map').delete().eq('id', data.id))
       // Grupki domowe na Mapie KNS (grupki.sql)
       if (action === 'groupsLoad') return check(await sb.rpc('kns_groups_load')) || []
+      if (action === 'linksLoad') return check(await sb.rpc('kns_links_load')) || []
+      if (action === 'linksSave') return check(await sb.rpc('kns_links_save', { items: (data.items || []).map(l => ({ name: l.name, url: l.url, note: l.note || '' })) }))
       if (action === 'groupSave') return check(await sb.rpc('kns_group_save', { gid: data.id || '', nm: data.name, ar: data.area, pl: data.place || '', dy: data.day || '', tm: data.time || '', ldrs: data.leaders || null }))
       if (action === 'groupDelete') return check(await sb.rpc('kns_group_delete', { gid: data.id }))
       if (action === 'groupJoin') return check(await sb.rpc('kns_group_join', { gid: data.id, joining: !!data.join }))

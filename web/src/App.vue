@@ -82,7 +82,7 @@ const TabBar = lazy(() => import('@/components/TabBar.vue'), true)
 import { ACCEPT, createDemo, createDrive, fileType, uid } from '@/services/drive'
 import { createApi, createDemoApi } from '@/services/api'
 import { createSupa } from '@/services/supa'
-import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, categoryName, setCategory, mergeTypes, offsetOf, programFrom, videoInfo, youtubeEmbed, spotifyEmbed, driveInfo, isFileLink } from '@/services/church'
+import { CATEGORIES, COLORS, DEFAULT_TYPES, addMinutes, category, categoryName, setCategory, mergeTypes, offsetOf, programFrom, videoInfo, youtubeEmbed, spotifyEmbed, driveInfo, isFileLink, isCommunity } from '@/services/church'
 const KIND = { image: 'Zdjęcie', video: 'Film', pdf: 'PDF', pptx: 'Prezentacja' }
 
 
@@ -109,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.32 · 10.11.2026'
+const VERSION = '4.33 · 15.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -317,13 +317,23 @@ export default defineComponent({
     /* ---------- konto i rangi ---------- */
     // gate: '' (w aplikacji albo niezalogowany), 'pending', 'rejected', 'approved' (zatwierdzony, brak dostępu do Dysku)
     const me = ref(null), ranks = ref([]), gate = ref('')
-    const hasFlag = flag => !api.enabled || (me.value?.roles || []).some(r => ranks.value.some(x => x.id === r && x[flag]))
+    // administrator: „Zobacz jako członek” — aplikacja pokazuje menu i przyciski jak zwykłemu członkowi (sama ranga „Członek”);
+    // tylko wygląd na tym urządzeniu, serwer dalej zna prawdziwe uprawnienia. Pamiętane do zamknięcia karty.
+    const viewAs = ref((() => { try { return sessionStorage.getItem('kns-view-as') === '1' } catch { return false } })())
+    const myRoles = computed(() => (viewAs.value ? ['czlonek'] : me.value?.roles || []))
+    const realManage = computed(() => api.enabled && (me.value?.roles || []).some(r => ranks.value.some(x => x.id === r && x.manage)))
+    function setViewAs(on) {
+      viewAs.value = on
+      try { if (on) sessionStorage.setItem('kns-view-as', '1'); else sessionStorage.removeItem('kns-view-as') } catch { /* tryb prywatny */ }
+      resetViews(); scrollTo(0, 0)
+    }
+    const hasFlag = flag => !api.enabled || myRoles.value.some(r => ranks.value.some(x => x.id === r && x[flag]))
     const canEdit = computed(() => hasFlag('edit'))
     // przypomnienie o brakach w nabożeństwie — tylko ranga „Organizator nabożeństw”
-    const isOrganizer = computed(() => (me.value?.roles || []).includes('organizator'))
+    const isOrganizer = computed(() => myRoles.value.includes('organizator'))
     const canManage = computed(() => api.enabled && hasFlag('manage'))
     // Kamera (sygnały dla kamerzysty) — tylko służba techniczna i administrator.
-    const canCamera = computed(() => !api.enabled || (me.value?.status === 'active' && ((me.value.roles || []).includes('technika') || hasFlag('manage'))))
+    const canCamera = computed(() => !api.enabled || (me.value?.status === 'active' && (myRoles.value.includes('technika') || hasFlag('manage'))))
     const myRanks = computed(() => (me.value?.roles || []).map(r => ranks.value.find(x => x.id === r)?.name).filter(Boolean).join(', '))
     // Po zalogowaniu: kim jestem dla serwera; zatwierdzony z dostępem do Dysku od razu wchodzi do aplikacji.
     async function enter() {
@@ -555,7 +565,7 @@ export default defineComponent({
           ...(canMsg.value ? [{ id: 'msg', icon: 'mail', name: 'Wyślij wiadomość' }] : []),
           ...(cueTopic && tech && !inApp ? [{ id: 'camera', icon: 'camera', name: 'Kamera (sygnały)' }] : []),
           ...(canManage.value ? [{ id: 'moduly', icon: 'menu', name: 'Moduły' }] : []),
-          { id: 'bugs', icon: 'alert', name: canManage.value || (me.value?.roles || []).includes('dev') ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' },
+          { id: 'bugs', icon: 'alert', name: canManage.value || myRoles.value.includes('dev') ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' },
         ] },
       ]
     })
@@ -598,7 +608,11 @@ export default defineComponent({
       else showServices()
       scrollTo(0, 0)
     }
-    function showServices() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
+    // otwarte z zakładki Więcej — strzałka wstecz wraca do Więcej (a nie na Start)
+    const fromMore = ref(false)
+    async function navFromMore(id) { await navTo(id); if (!['display', 'stream', 'msg', 'camera'].includes(id)) fromMore.value = true }
+    function backOut() { const m = fromMore.value; resetViews(); if (m) openMore(); else showServices() }
+    function showServices() { fromMore.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; songView.value = false; peopleView.value = false; calView.value = false; moreView.value = false; gcalView.value = false; scrollTo(0, 0) }
     function openSongs() { songView.value = true; peopleView.value = false; calView.value = false; songQuery.value = ''; scrollTo(0, 0) }
     function openSong(s) {
       song.value = { id: s.id, number: s.number || '', title: s.title, text: s.text || '', chords: s.chords || {}, meta: s.meta || {} }
@@ -776,7 +790,7 @@ export default defineComponent({
     const keepCal = () => { try { localStorage.setItem('kns-cal-types', JSON.stringify(calSel.value)) } catch { /* tryb prywatny */ } }
     function toggleType(id) { calSel.value = calSel.value.includes(id) ? calSel.value.filter(x => x !== id) : [...calSel.value, id]; keepCal() }
     const myCalTypes = computed(() => {
-      const roles = me.value?.roles || []
+      const roles = myRoles.value
       return types.value.map(t => t.id).filter(id => (id !== 'rada' || hasCouncil.value) && (id !== 'studenckie' || roles.includes('asb') || roles.includes('asb_zaang') || canManage.value) && id !== 'proba')
     })
     const CAL_PRESETS = computed(() => [
@@ -784,11 +798,17 @@ export default defineComponent({
       { id: 'me', name: 'Dla mnie', types: myCalTypes.value },
       { id: 'services', name: 'Nabożeństwa', types: ['nabozenstwo'] },
       { id: 'meetings', name: 'Spotkania', types: ['czlonkowskie', 'rada', 'domowe', 'studenckie'].filter(id => myCalTypes.value.includes(id)) },
-      { id: 'community', name: 'Wyjazdy i wydarzenia', types: types.value.filter(t => t.community).map(t => t.id) },
+      { id: 'community', name: 'Wyjazdy i wydarzenia', types: types.value.filter(t => isCommunity(types.value, t.id)).map(t => t.id) }, // rodzaje z bazy mogą nie mieć znacznika — wtedy wg domyślnych
     ])
     const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x))
-    const calPreset = computed(() => CAL_PRESETS.value.find(p => sameSet(p.types, calSel.value))?.id || '')
-    function setCalPreset(p) { calSel.value = [...p.types]; keepCal(); selDay.value = '' }
+    // wybrany zestaw zostaje podświetlony, także gdy dwa zestawy mają te same rodzaje (np. „Dla mnie” i „Wyjazdy i wydarzenia”)
+    const calPresetPicked = ref('')
+    const calPreset = computed(() => {
+      const picked = CAL_PRESETS.value.find(p => p.id === calPresetPicked.value)
+      if (picked && sameSet(picked.types, calSel.value)) return picked.id
+      return CAL_PRESETS.value.find(p => sameSet(p.types, calSel.value))?.id || ''
+    })
+    function setCalPreset(p) { calPresetPicked.value = p.id; calSel.value = [...p.types]; keepCal(); selDay.value = '' }
     const calMatch = it => { const q = plain(calQuery.value.trim()); return !q || plain([it.title, it.place, typeOf(it.type).name].join(' ')).includes(q) }
     // „Dla mnie”: moje rodzaje wydarzeń i wszystko, co jest dla moich służb (np. próby zespołu, w którym służę)
     const myMinistryIds = computed(() => serve.list.filter(m => m.mine === 'active' || m.leader).map(m => m.id))
@@ -1003,7 +1023,7 @@ export default defineComponent({
     const hasCouncil = computed(() => hasFlag('council'))
     const canApprove = computed(() => hasFlag('council'))
     // Materiały: protokoły (protokolant, rada) oraz instrukcje i pliki pomocnicze (też prawo edycji, technika, administrator).
-    const canWriteMaterial = () => hasFlag('edit') || hasFlag('protocols') || hasFlag('council') || hasFlag('manage') || (me.value?.roles || []).includes('technika')
+    const canWriteMaterial = () => hasFlag('edit') || hasFlag('protocols') || hasFlag('council') || hasFlag('manage') || myRoles.value.includes('technika')
     const canWriteProto = kind => (kind === 'rada' ? hasFlag('council') : kind === 'material' ? canWriteMaterial() : hasFlag('protocols') || hasFlag('council'))
     const canAddProto = computed(() => !!drive.uploadProtocolFile && (canWriteProto('czlonkowskie') || canWriteProto('material')))
     const VISIBILITY = { czlonkowskie: 'Wszyscy członkowie', material: 'Wszyscy członkowie', rada: 'Tylko rada zboru' }
@@ -1417,7 +1437,7 @@ export default defineComponent({
       { id: 'seeking', title: 'Szukają chętnych', list: serve.list.filter(m => m.seeking) },
       { id: 'all', title: serve.list.some(m => m.seeking) ? 'Pozostałe służby' : 'Wszystkie służby', list: serve.list.filter(m => !m.seeking) },
     ].filter(x => x.list.length))
-    const canCreateMinistry = computed(() => canManage.value || (me.value?.roles || []).includes('lider'))
+    const canCreateMinistry = computed(() => canManage.value || myRoles.value.includes('lider'))
     // Lider: dodawanie osób od razu (bez zgłoszenia) i usuwanie ze służby.
     const addTo = ref(null), addQuery = ref(''), addPeople = ref([])
     function openAddPerson(m) {
@@ -1599,8 +1619,8 @@ export default defineComponent({
     const asbView = ref(false), asbForm = ref(null), asbPreview = ref(null) // asbPreview: podgląd spotkania (bez edycji)
     const asb = reactive({ openPast: {}, meetings: [], ideas: [], people: [], pub: [], pubAll: false, season: '', tab: 'plan', kind: '', busy: false, error: '', ideaTopic: '', ideaAuthor: '' })
     // ASB: organizator (ranga „asb”) widzi i zmienia wszystko; zaangażowany („asb_zaang”) widzi grafik bez zmian i dopisuje pomysły
-    const canAsb = computed(() => api.enabled && (canManage.value || (me.value?.roles || []).includes('asb')))
-    const asbMember = computed(() => canAsb.value || (api.enabled && (me.value?.roles || []).includes('asb_zaang')))
+    const canAsb = computed(() => api.enabled && (canManage.value || myRoles.value.includes('asb')))
+    const asbMember = computed(() => canAsb.value || (api.enabled && myRoles.value.includes('asb_zaang')))
     // Rodzaje spotkań (kolory w CSS: .k-cykliczne, .k-wewnetrzne, .k-ewangelizacyjne).
     const ASB_KINDS = [{ id: 'cykliczne', name: 'Cykliczne', plural: 'Cykliczne' }, { id: 'wewnetrzne', name: 'Wewnętrzne', plural: 'Wewnętrzne' }, { id: 'ewangelizacyjne', name: 'Ewangelizacyjne', plural: 'Ewangelizacyjne' }]
     const asbKindName = k => ASB_KINDS.find(x => x.id === k)?.name || 'Cykliczne'
@@ -1821,7 +1841,7 @@ export default defineComponent({
     const msg = reactive({ open: false, opts: null, title: '', body: '', ranks: [], ministries: [], busy: false, error: '' })
     const msgRanks = computed(() => msg.opts?.ranks || [])
     const msgMinistries = computed(() => msg.opts?.ministries || [])
-    const canMsg = computed(() => !!(msgRanks.value.length || msgMinistries.value.length))
+    const canMsg = computed(() => !viewAs.value && !!(msgRanks.value.length || msgMinistries.value.length))
     let msgLoading = null
     function loadMsgOpts() {
       if (!api.enabled || !useSupa || me.value?.status !== 'active') return Promise.resolve()
@@ -1965,7 +1985,7 @@ export default defineComponent({
     const modLimited = id => !!((modules.value.only?.[id] || []).length || (modules.value.ranks?.[id] || []).length || modules.value.people?.[id])
     const modAllowed = id => {
       if (!modLimited(id) || canManage.value) return true
-      const roles = me.value?.roles || []
+      const roles = myRoles.value
       return (modules.value.only?.[id] || []).some(x => myMinistryIds.value.includes(x)) || (modules.value.ranks?.[id] || []).some(r => roles.includes(r)) || myMods.value.includes(id)
     }
     const modOn = id => !(modules.value.off || []).includes(id) && modAllowed(id) && (!MOD_NEEDS[id] || modOn(MOD_NEEDS[id]))
@@ -2271,7 +2291,7 @@ export default defineComponent({
     async function renewGcal() { if ((await ask('Utworzyć nowy adres? Kalendarze dodane ze starym adresem przestaną się uzupełniać.'))) loadGcal(true) }
     async function copyGcal() { try { await navigator.clipboard.writeText(gcal.url); gcal.copied = true; setTimeout(() => { gcal.copied = false }, 1500) } catch { /* zaznacz ręcznie */ } }
     function openMore() { loadMsgOpts(); openMoreView() }
-    function openMoreView() { serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
+    function openMoreView() { fromMore.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; profileView.value = false; gcalView.value = false; songView.value = false; peopleView.value = false; calView.value = false; annView.value = false; protoView.value = false; tplView.value = false; moreView.value = true; scrollTo(0, 0) }
     // Najbliższe nabożeństwo (do 3 godzin po rozpoczęciu jest „w trakcie”).
     const nextService = computed(() => services.value.filter(sv => sv.date && startsAt(sv) + 3 * 3600e3 > now.value).sort((a, b) => startsAt(a) - startsAt(b))[0] || null)
     const nextSundayDate = nextSunday()
@@ -2603,7 +2623,7 @@ export default defineComponent({
     function resetViews() {
       current.value = null; song.value = null; currentEvent.value = null; currentProto.value = null; currentAnn.value = null; tplType.value = null
       tplView.value = false; protoView.value = false; annView.value = false; calView.value = false; moreView.value = false; songView.value = false
-      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false; page.value = ''
+      peopleView.value = false; gcalView.value = false; profileView.value = false; serveView.value = false; listenView.value = false; asbView.value = false; goalsView.value = false; svcListView.value = false; votesView.value = false; prayView.value = false; bugsView.value = false; asbForm.value = null; fromCal = false; page.value = ''; fromMore.value = false
     }
     // inna strona otwarta zwykłym sposobem (każda ma własny przełącznik) — nowa strona się zamyka
     watch(() => [calView.value, serveView.value, listenView.value, asbView.value, goalsView.value, svcListView.value, votesView.value, prayView.value, bugsView.value, profileView.value, songView.value, peopleView.value, moreView.value, gcalView.value, annView.value, protoView.value, tplView.value, current.value, song.value, currentEvent.value, currentAnn.value, currentProto.value, tplType.value],
@@ -2735,8 +2755,8 @@ export default defineComponent({
       migrating, migrated, migrate,
       gcalView, gcal, openGcal, renewGcal, copyGcal,
       weekDays, greeting, firstName, webTiles, chooseTile, boardNews, boardMore, weekRange,
-      inviteEvent, moreView, openMore, nextService, startsAt, now, nextSundayDate, planSunday, untilText, weekItems, dayLabel, desktopMode,
-      api, me, gate, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
+      inviteEvent, moreView, openMore, fromMore, navFromMore, backOut, nextService, startsAt, now, nextSundayDate, planSunday, untilText, weekItems, dayLabel, desktopMode,
+      api, me, gate, viewAs, setViewAs, realManage, canEdit, canManage, canCamera, myRanks, recheck, continueToDrive,
       peopleView, people, peopleBusy, peopleGroups, peopleUi, rankName, ranksShown, openRanks, cancelRanks, pendingCount, ranks, initials, ago, rolesChanged, toggleRank, loadPeople, openPeople, setPerson,
       showTabs, countdown, wd, relDay, DEFAULT_TIME, DEFAULT_PLACE, push, enablePush, disablePush, pushAsk, pushAskMode, pushLater, testPush, mailTest, testNewsletter, saveSchedule, DAYS, HOURS,
       camera, cue: cam.cue, cueText: CUE_TEXT, cueTopic, cueSay: cam.say, cueNotify, toggleCueNotify, pushSupported: push.supported, openCamera, closeCamera, enableSound: cam.enableSound,
@@ -2763,6 +2783,7 @@ export default defineComponent({
   <AccountBar v-if="ready" />
   <!-- ekran logowania bez paska nagłówka (logo jest na środku); publiczne „Posłuchaj” — z nagłówkiem -->
   <AppHeader v-if="ready || booting" />
+  <div v-if="viewAs && ready" class="viewas-bar" role="status"><svg class="i"><use href="#eye"/></svg><span>Widzisz aplikację jak zwykły członek</span><button class="small" @click="setViewAs(false)">Wróć do admina</button></div>
   <div v-if="toast" class="toast" role="status">{{ toast }}</div>
 
   <!-- Kamera: sygnały od operatora streamu (przez internet), z dźwiękiem w słuchawce i wibracją. -->

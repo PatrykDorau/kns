@@ -9,13 +9,13 @@ export default defineComponent({
   setup() {
     const app = useApp()
     // zaproszenie przypięte u dołu: dopóki lista jest pod nim — sam przycisk (nie zasłania wydarzeń);
-    // pełny pasek wjeżdża, gdy dojedziemy do końca (znacznik za zaproszeniem widać na ekranie)
+    // pełny pasek wjeżdża, gdy dojedziemy do końca (znacznik nad zaproszeniem widać na ekranie)
     const inviteEnd = ref(null), inviteStuck = ref(false)
     let io = null
     watch(inviteEnd, el => {
       io?.disconnect(); io = null
       if (!el) return
-      io = new IntersectionObserver(([e]) => { inviteStuck.value = !e.isIntersecting }, { rootMargin: '0px 0px -90px 0px' }) // margines: dolne menu zasłania koniec listy
+      io = new IntersectionObserver(([e]) => { inviteStuck.value = !e.isIntersecting }, { rootMargin: '0px 0px -150px 0px' }) // margines: dolne menu (ok. 90 px) i sam pasek pod znacznikiem
       io.observe(el)
     }, { flush: 'post' })
     onBeforeUnmount(() => io?.disconnect())
@@ -72,6 +72,7 @@ export default defineComponent({
     <button v-if="drive.backend === 'supabase' || drive.demo" @click="openGcal"><svg class="i"><use href="#calendar"/></svg>Dodaj do swojego kalendarza</button>
   </div>
   <!-- zaproszenie: przypięte u dołu ekranu jako sam przycisk; na końcu listy — pełny pasek -->
-  <div v-if="canSubmit" class="invite invite-cal" :class="{ stuck: inviteStuck }"><svg class="i"><use href="#users"/></svg><span><b><span class="inv-long">Zaproś kościół na swoje wydarzenie</span><span class="inv-short">Zaproś na swoje wydarzenie</span></b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg><span class="inv-long">{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</span><span class="inv-short">{{ canEdit || canReview ? 'Dodaj' : 'Zgłoś' }}</span></button></div>
+  <!-- znacznik PRZED paskiem: zmiana wysokości paska (przycisk przypięty albo w pasku) nie przesuwa znacznika, więc pasek nie miga -->
   <div v-if="canSubmit" ref="inviteEnd" class="invite-end" aria-hidden="true"></div>
+  <div v-if="canSubmit" class="invite invite-cal" :class="{ stuck: inviteStuck }"><svg class="i"><use href="#users"/></svg><span><b><span class="inv-long">Zaproś kościół na swoje wydarzenie</span><span class="inv-short">Zaproś na swoje wydarzenie</span></b><small>Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza — wszyscy zobaczą zaproszenie na stronie i w aplikacji.{{ canEdit || canReview ? '' : ' Zgłoszenie zatwierdza rada.' }}</small></span><button class="primary" @click="inviteEvent"><svg class="i"><use href="#plus"/></svg><span class="inv-long">{{ canEdit || canReview ? 'Dodaj wydarzenie' : 'Zgłoś wydarzenie' }}</span><span class="inv-short">{{ canEdit || canReview ? 'Dodaj' : 'Zgłoś' }}</span></button></div>
 </template>
