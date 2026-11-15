@@ -3,12 +3,13 @@
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
+import { allSql } from './migracje.mjs'
 import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
 import { createCloud } from '../src/renderer/services/cloud.ts'
 import { createSupa } from '../web/src/services/supa.ts'
 
 const db = new PGlite()
-await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql', 'rzutniki.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
+await setupDb(db, allSql(['rzutniki.sql']), ['admin@kns.pl'])
 const admin = await addUser(db, 'admin@kns.pl')
 const tech = await addUser(db, 'tech@kns.pl')
 const member = await addUser(db, 'czlonek@kns.pl')
@@ -51,7 +52,7 @@ assert.equal(r.songs.find(s => s.id === 'os5').text, 'nowy tekst z telefonu')
 // komputer usuwa pieśń i zmienia inną — telefon to widzi
 const now = Date.now()
 r = await T.sharedSongsWrite('baza', { songs: [{ ...mine[7], text: 'z komputera', updated: now }], deleted: { os9: now } })
-const phoneSongs = (await phone.load()).songs
+const phoneSongs = (await phone.loadRest()).songs // pieśni dochodzą po starcie
 assert.equal(phoneSongs.length, 1204)
 assert.equal(phoneSongs.find(s => s.id === 'os7').text, 'z komputera')
 r = await T.sharedSongsRead('baza', 0)

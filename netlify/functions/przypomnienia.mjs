@@ -1,14 +1,14 @@
 // Codziennie rano (Netlify Scheduled Functions): przypomnienia dla prowadzących spotkania ASB (3 dni przed) — wpis
 // w dzwonku robi baza (asb_leader_reminders), a ta funkcja wysyła świeże wpisy od bazy na telefony (inbox_push_due).
-// Bez tajnych kluczy: obie funkcje bazy są bezpieczne do wywołania przez każdego (nic nie dublują).
+// Przypomnienia można wywołać bez klucza (nic nie dublują); wpisy na telefony (inbox_push_due) — tylko z hasłem PUSH_SECRET.
 import { vapidKeys, sendPush } from './push.mjs'
 
 export const config = { schedule: '0 7 * * *' } // 7:00 UTC = 8:00/9:00 w Polsce
 
 const SUPABASE = { url: 'https://igkjlgdpvgdeqfqctnnf.supabase.co', key: 'sb_publishable_Ji4v_zRY2OGsMRAWwiis-g_x6WAYCPI' }
-const rpc = async name => {
+const rpc = async (name, body = {}) => {
   const res = await fetch(SUPABASE.url + '/rest/v1/rpc/' + name, {
-    method: 'POST', headers: { apikey: SUPABASE.key, Authorization: 'Bearer ' + SUPABASE.key, 'Content-Type': 'application/json' }, body: '{}',
+    method: 'POST', headers: { apikey: SUPABASE.key, Authorization: 'Bearer ' + SUPABASE.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(name + ': ' + res.status + ' ' + (await res.text()))
   return res.json()
@@ -24,7 +24,7 @@ export default async function handler() {
   const privateKey = process.env.VAPID_PRIVATE
   if (privateKey) {
     const keys = vapidKeys(privateKey)
-    const rows = await rpc('inbox_push_due')
+    const rows = await rpc('inbox_push_due', { secret: process.env.PUSH_SECRET || '' })
     await Promise.all(rows.map(async r => {
       try {
         const status = await sendPush(r.subscription, { title: String(r.title || 'Kościół Na Skale').slice(0, 120), body: String(r.body || '').slice(0, 300), url: String(r.url || './').slice(0, 300) }, keys)

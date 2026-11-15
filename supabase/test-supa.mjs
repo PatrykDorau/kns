@@ -3,11 +3,12 @@
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
+import { allSql } from './migracje.mjs'
 import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
 import { createSupa } from '../web/src/services/supa.ts'
 
 const db = new PGlite()
-await setupDb(db, ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'zapisy.sql', 'posluchaj.sql', 'asb.sql', 'wiadomosci.sql', 'materialy.sql', 'przeczytane.sql', 'cele.sql'].map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join(String.fromCharCode(10)), ['admin@kns.pl'])
+await setupDb(db, allSql(), ['admin@kns.pl'])
 const admin = await addUser(db, 'admin@kns.pl', 'Admin')
 const ania = await addUser(db, 'ania@kns.pl', 'Ania')
 const inDays = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
@@ -26,7 +27,7 @@ await assert.rejects(N.api.call('setPerson', { email: 'ania@kns.pl', status: 'ac
 await assert.rejects(G.api.call('me'), e => e.auth)
 
 // czekająca osoba: pusto, zapis zabroniony
-let d = await N.load()
+let d = await N.load(); d.songs = (await N.loadRest()).songs // pieśni dochodzą po starcie (loadRest)
 assert.deepEqual([d.services.length, d.songs.length, d.events.length], [0, 0, 0])
 
 // administrator zapisuje dane
@@ -60,7 +61,7 @@ assert.equal((await A.loadProtocols()).filter(p => p.kind === 'czlonkowskie').le
 
 // zatwierdzenie: członek czyta, nie zmienia; nie widzi spraw rady
 await A.api.call('setPerson', { email: 'ania@kns.pl', status: 'active', roles: ['czlonek'] })
-d = await N.load()
+d = await N.load(); d.songs = (await N.loadRest()).songs
 assert.deepEqual([d.services.length, d.songs.length, d.events.length], [1, 1, 2])
 assert.deepEqual(d.announcements.map(a => a.id), ['a1'])
 // biblioteka: członek widzi protokoły członkowskie, rady — nie

@@ -109,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.34 · 15.11.2026'
+const VERSION = '4.35 · 15.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1881,7 +1881,7 @@ export default defineComponent({
     const monthShort = m => (m ? new Date(String(m).slice(0, 10) + 'T12:00').toLocaleDateString('pl', { month: 'short' }).replace('.', '') : '')
     const openGoalsExist = computed(() => goals.list.some(g => !g.closed))
     // przypomnienie na stronie startowej: od 20. dnia, gdy dziesięcina za ten miesiąc nie jest jeszcze podana
-    const goalDue = computed(() => (goals.status.month && goals.status.tithe == null && +todayStr.value.slice(8, 10) >= 20 && openGoalsExist.value ? { month: goals.status.month } : null))
+    const goalDue = computed(() => (modOn('goals') && goals.status.month && goals.status.tithe == null && +todayStr.value.slice(8, 10) >= 20 && openGoalsExist.value ? { month: goals.status.month } : null))
     const goalLeft = computed(() => Math.max(0, (goals.status.pool || 0) - (goals.status.used || 0)))
     const monthEnd = computed(() => (goals.status.closes ? new Date(String(goals.status.closes).slice(0, 10) + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'long' }) : ''))
     const goalPct = g => Math.min(100, Math.round((g.confirmed / g.target) * 100) || 0)
@@ -2050,7 +2050,11 @@ export default defineComponent({
     watch([modules, ready], () => { if (ready.value && Object.keys(modules.value.only || {}).length && !serve.list.length && !serve.busy) loadServe() })
     loadModules()
     // moduł wyłączony (także gdy ustawienie dojdzie po otwarciu adresu) — jego strona się zamyka
-    watch(modules, () => { if (page.value && page.value !== 'moduly' && !modOn(page.value)) page.value = ''; if (asbView.value && !modOn('asb')) asbView.value = false })
+    watch(modules, () => {
+      if (page.value && page.value !== 'moduly' && !modOn(page.value)) page.value = ''
+      const open = [[asbView, 'asb'], [goalsView, 'goals'], [votesView, 'votes'], [prayView, 'pray'], [listenView, 'listen'], [songView, 'songs'], [protoView, 'mats'], [tplView, 'tpl'], [bugsView, 'bugs'], [calView, 'cal'], [annView, 'anns'], [svcListView, 'svc'], [serveView, 'serve']]
+      for (const [v, m] of open) if (v.value && !modOn(m)) v.value = false
+    })
     const page = ref('')
     function openPage(p) { resetViews(); page.value = p; scrollTo(0, 0) }
     // liczba moich otwartych zadań (znaczek w menu)
@@ -2649,6 +2653,8 @@ export default defineComponent({
       v => { if (page.value && v.some(Boolean)) page.value = '' })
     watch(ready, r => { if (r) loadMyTasks() }, { immediate: true })
     let routing = 0 // trwa przejście z paska — adres już jest właściwy, więc bez nowego wpisu w historii
+    // adres → moduł: wyłączony moduł (albo bez dostępu) nie otwiera się z linku ani ze starego powiadomienia
+    const ROUTE_MODULE = { kalendarz: 'cal', wydarzenie: 'cal', 'kalendarz-google': 'cal', nabozenstwo: 'svc', nabozenstwa: 'svc', ogloszenia: 'anns', ogloszenie: 'anns', wydawka: 'gifts', ankiety: 'surveys', modlitwa: 'pray', 'zaangazuj-sie': 'serve', posluchaj: 'listen', asb: 'asb', statystyki: 'asb', cele: 'goals', cel: 'goals', glosowania: 'votes', zgloszenia: 'bugs', piesni: 'songs', piesn: 'songs', protokoly: 'mats', protokol: 'mats', materialy: 'mats', material: 'mats', szablony: 'tpl' }
     async function applyRoute(path) {
       routing++
       try {
@@ -2656,6 +2662,7 @@ export default defineComponent({
         const [, view = '', rawId = '', mode = ''] = pathname.split('/')
         const id = decodeURIComponent(rawId), edit = mode === 'edycja'
         resetViews()
+        if ((ROUTE_MODULE[view] && !modOn(ROUTE_MODULE[view])) || (view === 'szablony' && !canEdit.value)) { await nextTick(); return }
         if (view === 'kalendarz') openCalendar()
         else if (view === 'wydarzenie') {
           const e = [...events.value, ...pendingEvents.value].find(x => x.id === id)

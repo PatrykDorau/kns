@@ -56,8 +56,8 @@ export default defineComponent({
       if (app.canReview.value && app.reviewItems.value.length) out.push({ key: 'rev', icon: 'megaphone', title: 'Do zatwierdzenia: ' + app.reviewItems.value.length, sub: 'zgłoszenia czekają na decyzję', go: () => document.querySelector('.kh-web .kh-review')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) })
       return out
     })
-    const focus = computed(() => mine.focus.find(f => f.scope === 'day') || mine.focus[0] || null)
-    const nextAsb = computed(() => (app.asbPubUpcoming.value || [])[0] || null)
+    const focus = computed(() => !app.modOn('pray') ? null : mine.focus.find(f => f.scope === 'day') || mine.focus[0] || null)
+    const nextAsb = computed(() => (app.modOn('asb') && (app.asbPubUpcoming.value || [])[0]) || null)
     // Nagranie kazania z niedzieli pokazanej w karcie „Ostatnia niedziela”: wśród ostatnich filmów kanału szukamy tego z tematem
     // kazania w tytule (transmisje z aplikacji Stream mają tytuł „temat | fragment | mówca”), a gdy go nie ma — transmisji
     // z tamtych dni z nazwiskiem mówcy albo fragmentem. Zaplanowane transmisje (0 wyświetleń) i inne filmy — pomijane.
@@ -331,17 +331,17 @@ export default defineComponent({
           <button v-if="canSubmit" class="hw-link" title="Organizujesz coś i chcesz zaprosić ludzi z kościoła? Wpisz to do kalendarza, wszyscy zobaczą zaproszenie." @click="inviteEvent"><svg class="i"><use href="#plus"/></svg>Zaproś na swoje wydarzenie</button>
         </div>
       </section>
-      <section v-if="api.enabled" class="hw-col">
+      <section v-if="api.enabled && ['pray', 'goals', 'serve', 'asb'].some(modOn)" class="hw-col">
         <h3 class="hw-h"><span class="hw-step">5</span>Wspólnota</h3>
         <button v-if="focus" class="hm-focus" @click="openPray">
           <small>{{ focus.scope === 'week' ? 'Modlitwa na ten tydzień' : 'Modlitwa na dziś' }}</small>
           <span>{{ focus.text }}</span>
         </button>
-        <button v-for="g in goals.list.filter(x => !x.closed).slice(0, 1)" :key="g.id" class="hw-row hw-goal" @click="openGoals(g.id)">
+        <button v-for="g in (modOn('goals') ? goals.list : []).filter(x => !x.closed).slice(0, 1)" :key="g.id" class="hw-row hw-goal" @click="openGoals(g.id)">
           <span class="hw-row-text"><b>{{ g.title }}</b><span class="hw-bar"><i :style="{ width: goalPct(g) + '%' }"></i></span><small>{{ zl(g.confirmed) }} z {{ zl(g.target) }} · {{ goalPct(g) }}%</small></span>
           <svg class="i hw-arr"><use href="#chev"/></svg>
         </button>
-        <button v-for="m in seekingAll.slice(0, 2)" :key="m.id" class="hw-row" @click="openMinistry(m)">
+        <button v-for="m in (modOn('serve') ? seekingAll : []).slice(0, 2)" :key="m.id" class="hw-row" @click="openMinistry(m)">
           <span class="hw-thumb"><svg class="i"><use href="#serve"/></svg></span>
           <span class="hw-row-text"><b>{{ m.name }}</b><small>szuka chętnych{{ m.mine === 'active' ? ' · służysz tu' : m.mine === 'pending' ? ' · zgłoszono' : '' }}</small></span>
           <svg class="i hw-arr"><use href="#chev"/></svg>
@@ -352,8 +352,8 @@ export default defineComponent({
           <svg class="i hw-arr"><use href="#chev"/></svg>
         </button>
         <div class="hw-links">
-          <button class="hw-link" @click="openGoals()">Cele wsparcia<svg class="i"><use href="#chev"/></svg></button>
-          <button class="hw-link" @click="openServe">Zaangażuj się<svg class="i"><use href="#chev"/></svg></button>
+          <button v-if="modOn('goals')" class="hw-link" @click="openGoals()">Cele wsparcia<svg class="i"><use href="#chev"/></svg></button>
+          <button v-if="modOn('serve')" class="hw-link" @click="openServe">Zaangażuj się<svg class="i"><use href="#chev"/></svg></button>
         </div>
       </section>
     </div>

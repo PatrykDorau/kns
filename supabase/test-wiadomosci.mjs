@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { setupDb, addUser, createFakeClient } from './fake-client.mjs'
 
 const db = new PGlite()
-const files = ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'asb.sql', 'wiadomosci.sql', 'wiadomosci.sql']
+const files = ['schema.sql', 'kalendarz.sql', 'powiadomienia.sql', 'zatwierdzanie.sql', 'profil.sql', 'sluzby.sql', 'skrzynka.sql', 'asb.sql', 'wiadomosci.sql', 'wiadomosci.sql', 'push-sekret.sql', 'push-sekret.sql']
 await setupDb(db, files.map(n => fs.readFileSync(new URL('./' + n, import.meta.url), 'utf8')).join('\n'), ['admin@kns.pl'])
 const user = async (email, name, roles) => {
   const u = await addUser(db, email, name)
@@ -78,9 +78,13 @@ const k = await box('lider.asb@kns.pl')
 assert.ok(k.some(x => x.title === 'Prowadzisz spotkanie ASB za 2 dni' && x.url === './?asb=a1' && x.body.startsWith('Kim jest Jezus?')))
 assert.equal((await box('student@kns.pl'))[0].title, 'Prowadzisz spotkanie ASB za 2 dni')
 assert.equal(ok(await G.rpc('asb_leader_reminders')), 0) // drugi raz nic
-const due = ok(await G.rpc('inbox_push_due'))
+// z hasłem: bez niego i ze złym — odmowa (skrót hasła w server_secrets)
+await db.query("insert into server_secrets (name, hash) values ('push', encode(sha256(convert_to('tajne', 'UTF8')), 'hex'))")
+assert.match((await G.rpc('inbox_push_due')).error?.message || '', /Brak dostępu/)
+assert.match((await G.rpc('inbox_push_due', { secret: 'zle' })).error?.message || '', /Brak dostępu/)
+const due = ok(await G.rpc('inbox_push_due', { secret: 'tajne' }))
 assert.equal(due.length, k.length); assert.equal(due[0].id, 'tel-k')
-assert.equal(ok(await G.rpc('inbox_push_due')).length, 0) // raz
+assert.equal(ok(await G.rpc('inbox_push_due', { secret: 'tajne' })).length, 0) // raz
 // zmiana terminu → nowe przypomnienie
 await db.query(`update asb_meetings set date = $1 where id = 'a1'`, [day(1)])
 assert.equal(ok(await G.rpc('asb_leader_reminders')), 2)
