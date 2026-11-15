@@ -69,7 +69,7 @@ export default defineComponent({
   </Teleport>
   <h2 class="more-sec">Inne</h2>
   <nav class="more-list" aria-label="Inne">
-    <button v-if="api.enabled" @click="reportBug"><svg class="i"><use href="#alert"/></svg><span>Zgłoś błąd albo pomysł</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
+    <button v-if="api.enabled && modOn('bugs') && (canManage || !(modules.navOff || []).includes('bugs'))" @click="reportBug"><svg class="i"><use href="#alert"/></svg><span>Zgłoś błąd albo pomysł</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
     <button class="theme-btn" @click="toggleTheme"><svg class="i"><use :href="theme === 'dark' ? '#sun' : '#moon'"/></svg><span>{{ theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}</span><small></small><svg class="i chev"><use href="#chev"/></svg></button>
   </nav>
   <div v-if="desktop" class="getapp more-getapp">

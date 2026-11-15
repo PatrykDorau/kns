@@ -109,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.36 · 15.11.2026'
+const VERSION = '4.37 · 15.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -532,7 +532,8 @@ export default defineComponent({
     setInterval(() => { if (!document.hidden && Date.now() > heroHold) heroArt.value = (heroArt.value + 1) % HERO_ART.value.length }, 9000)
     function heroStep(d) { heroArt.value = (heroArt.value + d + HERO_ART.value.length) % HERO_ART.value.length; heroHold = Date.now() + 20000 }
     const mapLink = place => (/^(online|zoom|teams|meet)\b/i.test(String(place).trim()) ? null : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place))
-    const sideNav = computed(() => navGroups.value.map(g => ({ ...g, items: g.items.filter(it => modOn(NAV_MODULE[it.id] || it.id)) })).filter(g => g.items.length))
+    // navOff: moduł działa, ale nie ma go w menu (np. Zgłoszenia — tylko w profilu); administrator widzi zawsze
+    const sideNav = computed(() => navGroups.value.map(g => ({ ...g, items: g.items.filter(it => modOn(NAV_MODULE[it.id] || it.id) && (canManage.value || !(modules.value.navOff || []).includes(it.id))) })).filter(g => g.items.length))
     const navGroups = computed(() => {
       const tech = canCamera.value
       return [
@@ -564,7 +565,7 @@ export default defineComponent({
           ...(canManage.value ? [{ id: 'people', icon: 'user', name: 'Osoby', badge: pendingCount.value || '' }] : []),
           ...(canMsg.value ? [{ id: 'msg', icon: 'mail', name: 'Wyślij wiadomość' }] : []),
           ...(cueTopic && tech && !inApp ? [{ id: 'camera', icon: 'camera', name: 'Kamera (sygnały)' }] : []),
-          ...(canManage.value ? [{ id: 'moduly', icon: 'menu', name: 'Moduły' }] : []),
+          ...(canManage.value ? [{ id: 'moduly', icon: 'menu', name: 'Administracja' }] : []), // moduły, role, miejsce na dane
           { id: 'bugs', icon: 'alert', name: canManage.value || myRoles.value.includes('dev') ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' },
         ] },
       ]
@@ -1957,7 +1958,7 @@ export default defineComponent({
     /* ---------- Wybory i głosowania (wybory.sql) ---------- */
     const votesView = ref(false), bugsView = ref(false), prayView = ref(false) // prayView — Modlitwa (osobna strona)
     // Nowe strony (wzór: Avenit) — jeden przełącznik zamiast osobnego dla każdej: zadania, finanse służb, dzieci, tłumaczenie.
-    const PAGES = { zadania: 'Zadania', finanse: 'Finanse służb', dzieci: 'Dzieci', tlumaczenie: 'Tłumaczenie na żywo', moduly: 'Moduły', mapa: 'Mapa KNS' }
+    const PAGES = { zadania: 'Zadania', finanse: 'Finanse służb', dzieci: 'Dzieci', tlumaczenie: 'Tłumaczenie na żywo', moduly: 'Administracja', mapa: 'Mapa KNS' }
     // Moduły (wzór: Avenit): administrator wyłącza części aplikacji dla całego kościoła (site_settings „moduly”: { off: [...] }).
     // Wyłączone znikają z menu, Startu i adresów; nowe moduły są domyślnie włączone. „Grafik” działa tylko przy włączonych służbach.
     const MODULES = [
@@ -1988,7 +1989,7 @@ export default defineComponent({
     ]
     const NAV_MODULE = { myserve: 'serve', display: 'tech', stream: 'tech', camera: 'tech' }
     const MOD_NEEDS = { grafik: 'serve' }
-    const modules = ref({ off: [], only: {}, ranks: {}, people: {}, mute: [] })
+    const modules = ref({ off: [], only: {}, ranks: {}, people: {}, mute: [], navOff: [] })
     // moduł powiadomienia z adresu i tytułu — tak samo jak inbox_module() w bazie
     const GRAFIK_T = /^(Zaproszenie do służby|W niedzielę służysz|Czekamy na odpowiedź|Grafik):| nie może \d\d\.\d\d$/
     function noticeModule(n) {
@@ -2000,6 +2001,11 @@ export default defineComponent({
     function noticeMuted(n) {
       const id = noticeModule(n), off = modules.value.off || []
       return off.includes(id) || (id === 'grafik' && off.includes('serve')) || (modules.value.mute || []).includes(id)
+    }
+    async function setModuleNav(id, shown) {
+      const off = new Set(modules.value.navOff || [])
+      if (shown) off.delete(id); else off.add(id)
+      await saveModules({ ...modules.value, navOff: [...off] })
     }
     async function setModuleMute(id, muted) {
       const mute = new Set(modules.value.mute || [])
@@ -2017,7 +2023,7 @@ export default defineComponent({
       return (modules.value.only?.[id] || []).some(x => myMinistryIds.value.includes(x)) || (modules.value.ranks?.[id] || []).some(r => roles.includes(r)) || myMods.value.includes(id)
     }
     const modOn = id => !(modules.value.off || []).includes(id) && modAllowed(id) && (!MOD_NEEDS[id] || modOn(MOD_NEEDS[id]))
-    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], only: {}, ranks: {}, people: {}, mute: [], ...(v || {}) } }).catch(() => null)
+    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], only: {}, ranks: {}, people: {}, mute: [], navOff: [], ...(v || {}) } }).catch(() => null)
     watch(() => me.value?.email, e => { if (e && api.enabled) api.call('myModules').then(v => { myMods.value = v || [] }, () => {}); else myMods.value = [] }, { immediate: true })
     async function saveModules(next) { await api.call('setModules', next); modules.value = next }
     async function setModule(id, on) {
@@ -2766,7 +2772,7 @@ export default defineComponent({
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, setModuleMute, modules, setModuleOnly, setModuleAccess, modLimited, saveRank, deleteRank, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, setModuleMute, setModuleNav, modules, setModuleOnly, setModuleAccess, modLimited, saveRank, deleteRank, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,

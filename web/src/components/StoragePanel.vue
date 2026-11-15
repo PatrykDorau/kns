@@ -4,7 +4,7 @@ import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
 
-// Miejsce na dane (administrator i deweloperzy, zakładka w „Zgłoszeniach”): ile zajmuje baza i pliki na tle limitów
+// Miejsce na dane (administrator, zakładka w „Administracji”): ile zajmuje baza i pliki na tle limitów
 // darmowego planu Supabase, lista plików (nieużywane na górze), pobieranie i usuwanie (np. przed usunięciem — pobierz na dysk).
 const BUCKETS = { ogloszenia: 'Grafiki i filmy (ogłoszenia, wydarzenia, cele, wydawka)', protokoly: 'Materiały i protokoły', asb: 'Załączniki ASB', zdjecia: 'Zdjęcia na stronę główną' }
 export default defineComponent({

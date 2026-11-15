@@ -24,6 +24,11 @@ export default defineComponent({ setup: () => useApp() })
     <p v-if="!serve.busy && !serve.list.some(m => m.mine || m.leader)" class="note">Nie należysz jeszcze do żadnej służby.</p>
   </div>
   <button class="songsbtn" @click="openServe"><svg class="i"><use href="#serve"/></svg>Zgłoś się do służby<svg class="i chev"><use href="#chev"/></svg></button>
+  <template v-if="modOn('bugs')">
+    <label>Błędy i pomysły</label>
+    <button class="songsbtn" @click="reportBug"><svg class="i"><use href="#plus"/></svg>Zgłoś błąd albo pomysł<svg class="i chev"><use href="#chev"/></svg></button>
+    <button class="songsbtn" @click="openBugs"><svg class="i"><use href="#alert"/></svg>{{ canManage ? 'Zgłoszenia (backlog)' : 'Moje zgłoszenia' }}<svg class="i chev"><use href="#chev"/></svg></button>
+  </template>
   <label>Powiadomienia i newsletter</label>
   <div v-if="push.supported" class="push-card" :class="{ on: push.on }">
     <div class="pc-head">

@@ -3,6 +3,7 @@
 import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
+import StoragePanel from '@/components/StoragePanel.vue'
 
 // Moduły (wzór: Avenit): administrator włącza i wyłącza części aplikacji i decyduje, kto je widzi — wybrane służby,
 // role albo konkretne osoby (wystarczy spełnić jedno). Druga zakładka: role w aplikacji (wszystkie oprócz Administratora):
@@ -31,6 +32,7 @@ const NOTIFY = {
   msg: 'wiadomości do ról, służb i osób',
 }
 export default defineComponent({
+  components: { StoragePanel },
   setup() {
     const app = useApp()
     const st = reactive({ tab: 'mods', busy: '', error: '', acc: null, role: null, peopleQ: '', modPeople: [], peopleLoaded: false })
@@ -65,6 +67,10 @@ export default defineComponent({
     const toggle = m => run(m.id, () => app.setModule(m.id, isOff(m.id)))
     const isMuted = id => (app.modules.value.mute || []).includes(id)
     const toggleMute = m => run('n-' + m.id, () => app.setModuleMute(m.id, !isMuted(m.id)))
+    // moduły, które można schować z menu, zostawiając je w profilu
+    const NAV_HIDE = { bugs: 'Zgłoszenia zostają w „Mój profil”' }
+    const inNav = id => !(app.modules.value.navOff || []).includes(id)
+    const toggleNav = m => run('m-' + m.id, () => app.setModuleNav(m.id, !inNav(m.id)))
 
     // ---- okno dostępu ----
     async function openAccess(m) {
@@ -102,15 +108,16 @@ export default defineComponent({
       if (!(await ask(n ? `Rola „${r.name}” zniknie u ${plural(n, 'osoby', 'osób', 'osób')}. Uprawnienia z innych ról zostają.` : `Usunąć rolę „${r.name}”?`, { title: 'Usunąć rolę?', ok: 'Usuń', danger: true }))) return
       if (await run('role', () => app.deleteRank(r))) st.role = null
     }
-    return { ...app, NOTIFY, isMuted, toggleMute, st, FLAGS, groups, onCount, isOff, ministries, roles, accessLabel, toggle, openAccess, flip, nameOf, peopleHits, accEmpty, saveAccess, count, openRole, saveRole, removeRole }
+    return { ...app, NAV_HIDE, inNav, toggleNav, NOTIFY, isMuted, toggleMute, st, FLAGS, groups, onCount, isOff, ministries, roles, accessLabel, toggle, openAccess, flip, nameOf, peopleHits, accEmpty, saveAccess, count, openRole, saveRole, removeRole }
   },
 })
 </script>
 
 <template>
-  <div class="seg md-tabs" role="tablist" aria-label="Moduły i role">
+  <div class="seg md-tabs" role="tablist" aria-label="Administracja">
     <button role="tab" :aria-selected="st.tab === 'mods'" :class="{ on: st.tab === 'mods' }" @click="st.tab = 'mods'">Moduły</button>
     <button role="tab" :aria-selected="st.tab === 'roles'" :class="{ on: st.tab === 'roles' }" @click="st.tab = 'roles'">Role</button>
+    <button role="tab" :aria-selected="st.tab === 'space'" :class="{ on: st.tab === 'space' }" @click="st.tab = 'space'">Miejsce na dane</button>
   </div>
   <p v-if="st.error && !st.acc && !st.role" class="error">{{ st.error }}</p>
 
@@ -131,12 +138,18 @@ export default defineComponent({
               <svg class="i"><use href="#bell"/></svg>{{ isMuted(m.id) ? 'Powiadomienia wyciszone' : 'Powiadomienia włączone' }}
             </button>
             <small v-if="NOTIFY[m.id] && !isOff(m.id)" class="md-ntf-d">{{ isMuted(m.id) ? 'Nie wysyła: ' : 'Wysyła: ' }}{{ NOTIFY[m.id] }}</small>
+            <button v-if="NAV_HIDE[m.id] && !isOff(m.id)" class="md-acc md-ntf" :class="{ muted: !inNav(m.id) }" role="switch" :aria-checked="inNav(m.id)" :disabled="st.busy === 'm-' + m.id" :title="NAV_HIDE[m.id]" @click="toggleNav(m)">
+              <svg class="i"><use href="#menu"/></svg>{{ inNav(m.id) ? 'W menu' : 'Schowane z menu' }}
+            </button>
+            <small v-if="NAV_HIDE[m.id] && !isOff(m.id) && !inNav(m.id)" class="md-ntf-d">{{ NAV_HIDE[m.id] }}. Ty jako administrator dalej widzisz je w menu.</small>
           </span>
           <button class="md-sw" role="switch" :aria-checked="!isOff(m.id)" :aria-label="(isOff(m.id) ? 'Włącz: ' : 'Wyłącz: ') + m.name" :disabled="st.busy === m.id" @click="toggle(m)"><i></i></button>
         </article>
       </div>
     </section>
   </template>
+
+  <StoragePanel v-else-if="st.tab === 'space'" />
 
   <template v-else>
     <div class="md-rhead">
@@ -218,7 +231,7 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.md-tabs { max-width: 320px; }
+.md-tabs { max-width: 460px; margin-top: 4px; }
 .md-lead { margin: 0 0 16px; color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 72ch; }
 .md-lead b { color: var(--text); font-weight: 600; }
 .md-group { margin-bottom: 20px; }
