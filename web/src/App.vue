@@ -109,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.35 · 15.11.2026'
+const VERSION = '4.36 · 15.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1338,9 +1338,18 @@ export default defineComponent({
       if (ids.length) api.call('inboxRead', { ids }).catch(() => {})
     }
     const readAll = () => markRead(inbox.value)
-    function openNotice(n) {
-      markRead([n]); inboxOpen.value = false
-      openLink(new URL(n.url || './', location.href).searchParams)
+    // powiadomienie → jego miejsce w aplikacji (te same adresy co linki: /glosowania, /modlitwa, /wydarzenie/<id>, Moja służba…);
+    // bez miejsca (zwykła wiadomość) — tylko przeczytane, okno zostaje
+    const noticeTarget = n => { const u = new URL(n.url || './', location.href); return u.origin === location.origin ? linkToPath(u) : '' }
+    async function openNotice(n) {
+      markRead([n])
+      const target = noticeTarget(n)
+      if (!target || target === '/') return
+      inboxOpen.value = false
+      if (!(await closeAll())) return
+      history.pushState(null, '', target)
+      await applyRoute(target)
+      scrollTo(0, 0)
     }
     // Linki do konkretnych rzeczy: ?ogloszenie=id, ?wydarzenie=id, ?nabozenstwo=id, ?sluzba=id (?sluzby=1 — lista służb).
     // Otwierają wskazaną rzecz (także zgłoszenie czekające na zatwierdzenie).
@@ -2638,6 +2647,7 @@ export default defineComponent({
       const q = new URLSearchParams(loc.search)
       for (const k of Object.keys(ROUTE_ITEM)) if (q.get(k)) return '/' + k + '/' + encodeURIComponent(q.get(k))
       if (q.get('sluzba')) return '/zaangazuj-sie?sluzba=' + encodeURIComponent(q.get('sluzba'))
+      if (q.get('sluzby') === 'moja') return '/zaangazuj-sie?sluzby=moja'
       if (q.get('sluzby')) return '/zaangazuj-sie'
       if (q.get('wydawka')) return '/wydawka/' + encodeURIComponent(q.get('wydawka'))
       if (q.get('asb')) return '/asb/' + encodeURIComponent(q.get('asb'))
@@ -2681,7 +2691,7 @@ export default defineComponent({
           annView.value = true
           const x = [...announcements.value, ...pendingAnns.value].find(y => y.id === id)
           if (x) { openAnn(x); if (edit && annEditable.value) annEditing.value = true } else if (id !== 'nowe') error.value = 'Nie znaleziono tego ogłoszenia — mogło zostać usunięte albo nie masz do niego dostępu.'
-        } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(query.includes('sluzba=') ? query : 'sluzby=1'))
+        } else if (view === 'zaangazuj-sie') openLink(new URLSearchParams(/sluzba=|sluzby=moja/.test(query) ? query : 'sluzby=1'))
         else if (view === 'posluchaj') openListen()
         else if (view === 'asb') { asb.tab = id === 'pomysly' ? 'ideas' : id === 'statystyki' && canAsb.value ? 'stats' : 'plan'; await openAsb(); if (id && id !== 'pomysly' && id !== 'statystyki') asbOpenId(id) }
         else if (view === 'nabozenstwa') openServices()
@@ -2773,7 +2783,7 @@ export default defineComponent({
       listen, listenView, listenEdit, listenYt, listenSp, listenLatest, isChannelLink, openListen, saveListen, youtubeEmbed, spotifyEmbed,
       shareLink, shareTarget, qr, openQr, loadQrLib, qrPng, loadAsb, toast, showToast, updateReady, timeRange, annTab, giftOpen, surveyOpen, shrinkImage, newMinistryFile, ministryFiles, saveMinistryInternal, myLeadIds, loadProtocols, reloadPage, ministryNames, svcListView, openServices, serveTab, seekingAll, openMinistry, loadServe, loadGoals, pendingLink, LINK_KIND, LINK_LABEL, linkedMinistry,
       serveSections, canCreateMinistry, addTo, addQuery, addPeople, openAddPerson, addCandidates, addPerson, removeFromMinistry,
-      inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice,
+      inbox, inboxOpen, unread, openInbox, agoText, readAll, openNotice, noticeTarget,
       openAnns, openAnn, newAnn, closeAnn, saveAnn, removeAnn, serveView, serve, openServe, joinMinistry, leaveMinistry, decideMinistry, editMinistry, mEdit, memberNames, toggleLeader, saveMinistry, deleteMinistry, needsName, profileView, profile, profileDirty, openProfile, saveProfile, groupNames, directoryShown, notifyGroupsShown, sermonSlot, songSlots, songsIn, songSheet, songSheetSlot, pickSongsFor, removeSong, moveIn, canReview, canSubmit, reviewItems, approveEvent, approveAnn, rejectEvent, rejectAnn, eventEditable, eventEditing, svcEditing, signup, signupGroups, seatsText, SIGNUP_STATUS, toggleSignup, signupJoin, signupLeave, signupDecide, signupPaid, zlg, closeAll, lastSermon, thoughtList, annEditing, canNotify, notify, directory, openNotify, closeNotify, notifyGroups, toggleGroup, notifySummary, pubWeek, guestCat, guestCats, guestDeck, loginView, showLogin, gisBtn, gisOn, facebook, startFb, imgBusy, pickAnnImage, pickEventImage, vidBusy, pickAnnVideo, videoInfo, newsBusy, toggleNewsletter, pub, pubItems, eventIsPublic,
       hasCouncil, canApprove, canWriteProto, dateTime, protoView, protoKind, protocols, protoBusy, protoError, loadProtoKind, openProtocols,
       currentProto, protoDirty, protoSavedOnce, protoEditable, openProto, newProto, protoForEvent, closeProto, saveProto, removeProto,
