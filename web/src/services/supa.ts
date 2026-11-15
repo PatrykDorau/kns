@@ -155,6 +155,8 @@ export function createSupa(config, client = makeClient(config.supabaseUrl, confi
       if (action === 'schedulePublish') { const n = check(await sb.rpc('schedule_publish', { mid: data.id })); if (n) await pushInbox().catch(() => null); return n }
       // grafik, część 2: role, odpowiedzi na zaproszenia, moje służby, skład na niedzielę
       if (action === 'scheduleRole') return check(await sb.rpc('schedule_role', { mid: data.id, d: data.day, who: data.person, r: data.role || '' }))
+      if (action === 'scheduleSelf') { const r = check(await sb.rpc('schedule_self', { mid: data.id, d: data.day, joining: !!data.join, r: data.role || '' })); await pushInbox().catch(() => null); return r }
+      if (action === 'ministrySelf') return check(await sb.rpc('ministry_set_self', { mid: data.id, on_: !!data.on }))
       if (action === 'ministryRoles') return check(await sb.rpc('ministry_set_roles', { mid: data.id, r: data.roles || [] }))
       if (action === 'scheduleAnswer') { const r = check(await sb.rpc('schedule_answer', { mid: data.id, d: data.day, ok: !!data.ok })); if (!data.ok) await pushInbox().catch(() => null); return r }
       if (action === 'myDuties') return check(await sb.rpc('my_duties')) || []

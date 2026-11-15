@@ -61,12 +61,13 @@ export default defineComponent({
   <p v-if="!mine.length" class="note">Nie należysz jeszcze do żadnej służby — zgłoś się w „Wszystkie służby”.</p>
   <template v-if="m">
     <!-- kilka służb: przełącznik -->
+    <h3 v-if="mine.length > 1" class="ms-pick-h">Twoje służby</h3>
     <div v-if="mine.length > 1" class="ms-pick" role="tablist" aria-label="Służby">
-      <button v-for="x in mine" :key="x.id" role="tab" class="filter" :class="{ on: x.id === m.id }" :aria-selected="x.id === m.id" @click="pick(x.id)">{{ x.name }}</button>
+      <button v-for="x in mine" :key="x.id" role="tab" :class="{ on: x.id === m.id }" :aria-selected="x.id === m.id" @click="pick(x.id)"><svg class="i"><use href="#serve"/></svg>{{ x.name }}<small v-if="x.leader">lider</small></button>
     </div>
 
-    <!-- nagłówek służby -->
-    <header class="ms-head">
+    <!-- nagłówek służby (div, nie <header> — inaczej przejmuje styl przyklejonego nagłówka aplikacji) -->
+    <div class="ms-head">
       <span class="ms-ic"><svg class="i"><use href="#serve"/></svg></span>
       <div class="ms-title">
         <h2>{{ m.name }}<i>.</i></h2>
@@ -76,7 +77,7 @@ export default defineComponent({
         <button v-if="m.leader || (m.lead && canMsg)" class="small" title="Wiadomość do całej służby" @click="openMsg({ ministries: [m.id] })"><svg class="i"><use href="#megaphone"/></svg><span>Wiadomość</span></button>
         <button v-if="m.lead" class="icon" title="Edytuj służbę" aria-label="Edytuj służbę" @click="editMinistry(m)"><svg class="i"><use href="#pencil"/></svg></button>
       </div>
-    </header>
+    </div>
 
     <!-- zakładki -->
     <nav class="ms-tabs" role="tablist" aria-label="Części służby">
@@ -133,8 +134,16 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.ms-pick { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; scrollbar-width: none; }
-.ms-pick button { flex: none; }
+/* przełącznik służb: duże kafelki (wcześniej drobne pigułki — trudno je było znaleźć) */
+.ms-pick-h { margin: 18px 0 8px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ms-pick { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin-bottom: 14px; scrollbar-width: none; }
+.ms-pick button { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 52px !important; padding: 8px 18px !important; border-radius: 16px !important; border: 1px solid var(--line) !important; background: var(--panel) !important; color: var(--text) !important; font-size: 16px !important; font-weight: 650 !important; }
+.ms-pick button .i { width: 20px; height: 20px; color: var(--muted); }
+.ms-pick button small { padding: 1px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); font-size: 11.5px; font-weight: 600; }
+.ms-pick button.on { background: var(--text) !important; color: var(--bg) !important; border-color: var(--text) !important; }
+.ms-pick button.on .i { color: var(--accent); }
+.ms-pick button.on small { background: rgba(255,255,255,.18); color: inherit; }
+@media (hover: hover) { .ms-pick button:not(.on):hover { border-color: var(--accent) !important; } }
 .ms-head { display: flex; align-items: center; gap: 14px; margin: 4px 0 14px; }
 .ms-ic { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--text); color: var(--accent); }
 .ms-ic svg.i { width: 26px; height: 26px; }

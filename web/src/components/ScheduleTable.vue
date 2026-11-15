@@ -29,12 +29,40 @@ export default defineComponent({
       return out
     })
     const inCol = (d, c) => people(d).filter(x => (c.key === '' ? true : c.key === '\u0000' ? !roles.value.includes(x.role) : x.role === c.key))
-    // lider: wszystkie najbliższe niedziele; członek — tylko ułożone (albo wszystkie po „Pokaż wszystkie”)
+    // lider (i członek przy otwartych zapisach): wszystkie najbliższe niedziele; członek — tylko ułożone (albo wszystkie po „Pokaż”)
     const days = computed(() => {
       const x = m.value
       if (!x) return []
-      return x.lead || st.all ? x.days : x.days.filter(d => (x.plan?.[d] || []).length)
+      return x.lead || st.all || canSelf.value ? x.days : x.days.filter(d => (x.plan?.[d] || []).length)
     })
+    // podpowiedzi dla lidera: kto zaznaczył „mogę” (albo „nie wiem”) na ten dzień, a nie jest jeszcze w grafiku
+    const volunteers = d => (m.value?.people || []).filter(p => !(m.value.plan?.[d] || []).includes(p.id) && ['yes', 'maybe'].includes(p.states?.[d]))
+      .sort((a, b) => (a.states[d] === 'yes' ? 0 : 1) - (b.states[d] === 'yes' ? 0 : 1) || a.name.localeCompare(b.name, 'pl'))
+    // kolumna z podpowiedziami: „Skład” albo „Bez roli”
+    const hintCol = c => c.key === '' || c.key === '\u0000'
+    const colRole = c => (c.key === '' || c.key === '\u0000' ? '' : c.key)
+    async function addVolunteer(d, c, p) {
+      st.busy = true; av.error = ''
+      bumpAv()
+      try {
+        await app.api.call('scheduleToggle', { id: m.value.id, day: d, person: p.id })
+        if (colRole(c)) await app.api.call('scheduleRole', { id: m.value.id, day: d, person: p.id, role: colRole(c) })
+        await loadAv(app)
+      } catch (e) { av.error = e.message; loadAv(app) } finally { st.busy = false }
+    }
+    // samodzielne zapisy (ustawienie służby): członek sam dopisuje się na niedzielę (od razu „przyjął”) i sam się wypisuje
+    const canSelf = computed(() => !!(m.value?.self && m.value?.member))
+    const amIn = d => (m.value?.plan?.[d] || []).includes(m.value?.you)
+    async function selfJoin(d, c, join) {
+      st.busy = true; av.error = ''
+      bumpAv()
+      try { await app.api.call('scheduleSelf', { id: m.value.id, day: d, join, role: colRole(c) }); await loadAv(app); app.showToast(join ? 'Zapisano Cię na ' + dayName(d) + '.' : 'Wypisano Cię z ' + dayName(d) + '.') }
+      catch (e) { av.error = e.message; loadAv(app) } finally { st.busy = false }
+    }
+    async function setSelf(on) {
+      st.busy = true
+      try { await app.api.call('ministrySelf', { id: m.value.id, on }); await loadAv(app) } catch (e) { av.error = e.message } finally { st.busy = false }
+    }
     const tally = d => { const t = { yes: 0, sent: 0, no: 0, new: 0 }; for (const x of people(d)) t[x.state]++; return t }
     const unsent = computed(() => (m.value?.days || []).reduce((n, d) => n + people(d).filter(x => x.state === 'new').length, 0))
     const dayName = d => new Date(d + 'T12:00').toLocaleDateString('pl', { day: '2-digit', month: '2-digit' })
@@ -74,7 +102,7 @@ export default defineComponent({
       const list = st.roles.split(',').map(x => x.trim()).filter(Boolean)
       try { await app.api.call('ministryRoles', { id: m.value.id, roles: list }); st.roles = null; await loadAv(app) } catch (e) { av.error = e.message }
     }
-    return { av, st, m, roles, cols, inCol, days, tally, unsent, dayName, dayLong, isNext, open, pickList, pickRole, choose, publish, saveRoles, STATE, AVAIL }
+    return { volunteers, hintCol, addVolunteer, canSelf, amIn, selfJoin, setSelf, av, st, m, roles, cols, inCol, days, tally, unsent, dayName, dayLong, isNext, open, pickList, pickRole, choose, publish, saveRoles, STATE, AVAIL }
   },
 })
 </script>
@@ -84,6 +112,7 @@ export default defineComponent({
     <div class="sg-top">
       <p class="sg-legend"><span><i class="st-yes">✓</i> przyjął</span><span><i class="st-sent">⏱</i> czeka</span><span><i class="st-no">✕</i> nie może</span><span v-if="m.lead"><i>○</i> nie wysłano</span></p>
       <span class="sg-sp"></span>
+      <button v-if="m.lead" class="small sg-self" :class="{ on: m.self }" role="switch" :aria-checked="!!m.self" :disabled="st.busy" title="Członkowie służby sami dopisują się na niedziele (od razu potwierdzone); dostajesz powiadomienie o każdym zapisie" @click="setSelf(!m.self)"><svg class="i"><use :href="m.self ? '#check' : '#users'"/></svg>{{ m.self ? 'Zapisy otwarte' : 'Otwórz zapisy' }}</button>
       <button v-if="m.lead" class="small" @click="st.roles = roles.join(', ')"><svg class="i"><use href="#pencil"/></svg>Role</button>
       <button v-if="m.lead" class="small sg-notify" :class="{ on: unsent }" :disabled="st.busy || !unsent" title="Nowe osoby z grafiku dostaną zaproszenie: Przyjmuję / Nie mogę" @click="publish"><svg class="i"><use href="#megaphone"/></svg>Powiadom{{ unsent ? ' (' + unsent + ')' : '' }}</button>
     </div>
@@ -101,15 +130,19 @@ export default defineComponent({
           <tr v-for="d in days" :key="d" :class="{ next: isNext(d) }">
             <th class="sg-d" :title="dayLong(d)"><b>{{ dayName(d) }}</b><small>{{ isNext(d) ? 'najbliższa' : 'niedziela' }}</small></th>
             <td v-for="c in cols" :key="c.key" :class="{ edit: m.lead }" @click="open(d, c)">
-              <span v-for="x in inCol(d, c)" :key="x.id" class="sg-pill" :class="['st-' + x.state, { me: x.me }]" :title="STATE[x.state][1]"><i>{{ STATE[x.state][0] }}</i>{{ x.name }}<em v-if="c.key === '\u0000' && x.role">{{ x.role }}</em></span>
-              <span v-if="m.lead && !inCol(d, c).length" class="sg-add" aria-hidden="true">+</span>
+              <span v-for="x in inCol(d, c)" :key="x.id" class="sg-pill" :class="['st-' + x.state, { me: x.me }]" :title="STATE[x.state][1]"><i>{{ STATE[x.state][0] }}</i>{{ x.name }}<em v-if="c.key === '\u0000' && x.role">{{ x.role }}</em><button v-if="x.me && canSelf && !m.lead && x.state === 'yes'" class="sg-x" :disabled="st.busy" :aria-label="'Wypisz się z ' + dayName(d)" @click.stop="selfJoin(d, c, false)">×</button></span>
+              <span v-if="m.lead && !inCol(d, c).length && !(hintCol(c) && volunteers(d).length)" class="sg-add" aria-hidden="true">+</span>
+              <!-- podpowiedzi: zgłosili się na ten dzień (dyspozycyjność „mogę”) — stuknij, żeby dodać -->
+              <template v-if="m.lead && hintCol(c)"><button v-for="p in volunteers(d)" :key="'v' + p.id" class="sg-hintp" :class="'av-' + p.states[d]" :disabled="st.busy" :title="(p.states[d] === 'yes' ? 'Może' : 'Nie wie') + ' — dodaj do grafiku'" @click.stop="addVolunteer(d, c, p)">+ {{ p.name }}<i v-if="p.states[d] === 'maybe'">?</i></button></template>
+              <button v-if="canSelf && !m.lead && !amIn(d) && (roles.length ? c.key !== '\u0000' : true)" class="sg-join" :disabled="st.busy" @click.stop="selfJoin(d, c, true)">+ Zapisz się</button>
             </td>
             <td class="sg-s"><span v-if="tally(d).yes" class="st-yes">✓{{ tally(d).yes }}</span><span v-if="tally(d).sent" class="st-sent">⏱{{ tally(d).sent }}</span><span v-if="tally(d).no" class="st-no">✕{{ tally(d).no }}</span><span v-if="m.lead && tally(d).new" class="st-new">○{{ tally(d).new }}</span></td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p v-if="m.lead" class="sg-hint">Stuknij komórkę, żeby wybrać osoby. Nic nie wychodzi, dopóki nie klikniesz „Powiadom”.</p>
+    <p v-if="m.lead" class="sg-hint">Stuknij komórkę, żeby wybrać osoby, albo przerywaną podpowiedź „+ imię” — to osoby, które zaznaczyły, że mogą. {{ m.self ? 'Zapisy są otwarte: członkowie dopisują się też sami.' : '„Otwórz zapisy” — członkowie dopiszą się sami.' }} Zaproszenia wychodzą dopiero po „Powiadom”.</p>
+    <p v-else-if="canSelf" class="sg-hint">Zapisy są otwarte — dopisz się na niedzielę{{ roles.length ? ' w swojej roli' : '' }}. Lider dostanie powiadomienie. Wypisujesz się krzyżykiem przy swoim imieniu.</p>
 
     <!-- lider: wybór osób do komórki (z dyspozycyjnością na ten dzień) -->
     <Teleport to="body">
@@ -164,6 +197,13 @@ tr.next .sg-d b { color: var(--accent-text); }
 .sg-s span { margin-right: 8px; }
 .sg-s .st-yes { color: var(--ok-text) !important; } .sg-s .st-sent { color: var(--accent-text); } .sg-s .st-no { color: var(--bad-text); } .sg-s .st-new { color: var(--muted); }
 .sg-hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.sg-self.on { background: var(--ok-soft) !important; color: var(--ok-text) !important; font-weight: 600 !important; }
+.sg-hintp { display: inline-flex; align-items: center; gap: 3px; margin: 2px 4px 2px 0; min-height: 28px !important; padding: 2px 10px !important; border-radius: 999px !important; border: 1.5px dashed var(--ok) !important; background: transparent !important; color: var(--ok-text) !important; font-size: 13px; font-weight: 600 !important; white-space: nowrap; }
+.sg-hintp.av-maybe { border-color: var(--accent) !important; color: var(--accent-text) !important; }
+.sg-hintp i { font-style: normal; opacity: .8; }
+@media (hover: hover) { .sg-hintp:hover:not(:disabled) { background: var(--ok-soft) !important; } }
+.sg-join { margin: 2px 0; min-height: 30px !important; padding: 2px 12px !important; border-radius: 999px !important; background: var(--accent) !important; color: #2a1906 !important; border: 0 !important; font-size: 13px; font-weight: 700 !important; white-space: nowrap; }
+.sg-x { display: inline-grid; place-items: center; width: 20px; height: 20px; min-height: 0 !important; margin-left: 2px; padding: 0 !important; border-radius: 50% !important; border: 0 !important; background: var(--panel3) !important; color: var(--text) !important; font-size: 14px; line-height: 1; }
 .sg-panel { display: flex; flex-direction: column; gap: 6px; max-height: 80vh; overflow-y: auto; }
 .sg-opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 8px 12px !important; border-radius: 14px !important; text-align: left; justify-content: flex-start; background: var(--panel) !important; border: 0 !important; }
 .sg-opt.on { box-shadow: inset 0 0 0 2px var(--ok) !important; }
