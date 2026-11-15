@@ -13,6 +13,23 @@ const FLAGS = [
   { key: 'protocols', name: 'Protokoły', desc: 'Pisze protokoły spotkań członkowskich' },
   { key: 'approve', name: 'Zatwierdzanie', desc: 'Zatwierdza wpisy i zgłoszenia innych' },
 ]
+// moduły, które wysyłają powiadomienia (dzwonek, telefon, e-mail) — administrator może je wyciszyć
+const NOTIFY = {
+  cal: 'zapisy, miejsca z listy rezerwowej, wpłaty, wpisy pod wydarzeniem, zgłoszenia do zatwierdzenia',
+  anns: 'ogłoszenia do zatwierdzenia',
+  gifts: 'czyja kolej na rzecz z wydawki i jej przekazanie',
+  surveys: 'nowe ankiety',
+  asb: 'przypomnienia prowadzącym spotkania',
+  serve: 'zgłoszenia do służb, przyjęcia, rezygnacje, dyspozycyjność',
+  grafik: 'zaproszenia na niedziele, przypomnienia, odpowiedzi „Nie mogę”',
+  zadania: 'przydzielone zadania',
+  dzieci: 'odbiór dziecka ze szkółki',
+  pray: 'nowe prośby o modlitwę',
+  goals: 'comiesięczne przypomnienie o deklaracji',
+  votes: 'wybory, otwarte głosowania i wyniki',
+  bugs: 'nowe zgłoszenia i zmiany ich stanu',
+  msg: 'wiadomości do ról, służb i osób',
+}
 export default defineComponent({
   setup() {
     const app = useApp()
@@ -46,6 +63,8 @@ export default defineComponent({
       try { await fn(); return true } catch (e) { st.error = e.message; return false } finally { st.busy = '' }
     }
     const toggle = m => run(m.id, () => app.setModule(m.id, isOff(m.id)))
+    const isMuted = id => (app.modules.value.mute || []).includes(id)
+    const toggleMute = m => run('n-' + m.id, () => app.setModuleMute(m.id, !isMuted(m.id)))
 
     // ---- okno dostępu ----
     async function openAccess(m) {
@@ -83,7 +102,7 @@ export default defineComponent({
       if (!(await ask(n ? `Rola „${r.name}” zniknie u ${plural(n, 'osoby', 'osób', 'osób')}. Uprawnienia z innych ról zostają.` : `Usunąć rolę „${r.name}”?`, { title: 'Usunąć rolę?', ok: 'Usuń', danger: true }))) return
       if (await run('role', () => app.deleteRank(r))) st.role = null
     }
-    return { ...app, st, FLAGS, groups, onCount, isOff, ministries, roles, accessLabel, toggle, openAccess, flip, nameOf, peopleHits, accEmpty, saveAccess, count, openRole, saveRole, removeRole }
+    return { ...app, NOTIFY, isMuted, toggleMute, st, FLAGS, groups, onCount, isOff, ministries, roles, accessLabel, toggle, openAccess, flip, nameOf, peopleHits, accEmpty, saveAccess, count, openRole, saveRole, removeRole }
   },
 })
 </script>
@@ -96,7 +115,7 @@ export default defineComponent({
   <p v-if="st.error && !st.acc && !st.role" class="error">{{ st.error }}</p>
 
   <template v-if="st.tab === 'mods'">
-    <p class="md-lead">Włączasz tylko to, czego kościół używa, i decydujesz, kto to widzi: wybrane służby, role albo konkretne osoby. Wyłączona część znika z menu, z dolnego paska i ze Startu, a dane zostają. Start, Osoby i Moduły działają zawsze. Administratorzy widzą wszystko, co włączone. <b>Włączonych: {{ onCount }} z {{ MODULES.length }}.</b></p>
+    <p class="md-lead">Włączasz tylko to, czego kościół używa, i decydujesz, kto to widzi: wybrane służby, role albo konkretne osoby. Wyłączona część znika z menu, z dolnego paska i ze Startu, a dane zostają. Start, Osoby i Moduły działają zawsze. Wyłączony moduł nie wysyła powiadomień, a włączonemu możesz je wyciszyć (dzwonek, telefon i e-mail). Administratorzy widzą wszystko, co włączone. <b>Włączonych: {{ onCount }} z {{ MODULES.length }}.</b></p>
     <section v-for="g in groups" :key="g.name" class="md-group">
       <h3 class="md-h">{{ g.name }}</h3>
       <div class="md-grid">
@@ -108,6 +127,10 @@ export default defineComponent({
             <button class="md-acc" :class="{ limited: modLimited(m.id) }" :disabled="isOff(m.id)" :aria-label="'Kto widzi: ' + m.name + ' — ' + accessLabel(m.id)" @click="openAccess(m)">
               <svg class="i"><use :href="modLimited(m.id) ? '#eye' : '#users'"/></svg>{{ isOff(m.id) ? 'Wyłączony' : accessLabel(m.id) }}<svg class="i md-chev"><use href="#chev"/></svg>
             </button>
+            <button v-if="NOTIFY[m.id] && !isOff(m.id)" class="md-acc md-ntf" :class="{ muted: isMuted(m.id) }" role="switch" :aria-checked="!isMuted(m.id)" :disabled="st.busy === 'n-' + m.id" :title="'Wysyła: ' + NOTIFY[m.id]" :aria-label="'Powiadomienia: ' + m.name + (isMuted(m.id) ? ' — wyciszone' : ' — włączone')" @click="toggleMute(m)">
+              <svg class="i"><use href="#bell"/></svg>{{ isMuted(m.id) ? 'Powiadomienia wyciszone' : 'Powiadomienia włączone' }}
+            </button>
+            <small v-if="NOTIFY[m.id] && !isOff(m.id)" class="md-ntf-d">{{ isMuted(m.id) ? 'Nie wysyła: ' : 'Wysyła: ' }}{{ NOTIFY[m.id] }}</small>
           </span>
           <button class="md-sw" role="switch" :aria-checked="!isOff(m.id)" :aria-label="(isOff(m.id) ? 'Włącz: ' : 'Wyłącz: ') + m.name" :disabled="st.busy === m.id" @click="toggle(m)"><i></i></button>
         </article>
@@ -214,6 +237,9 @@ export default defineComponent({
 .md-acc svg.i { width: 14px; height: 14px; flex: none; }
 .md-acc.limited { color: var(--accent-text) !important; background: color-mix(in srgb, var(--accent) 14%, var(--panel2)) !important; }
 .md-acc:disabled { opacity: .6; }
+.md-acc.md-ntf { margin-top: 6px; }
+.md-acc.md-ntf.muted { color: var(--bad, #e0645c) !important; background: color-mix(in srgb, var(--bad, #e0645c) 12%, var(--panel2)) !important; }
+.md-ntf-d { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.35; white-space: normal; }
 @media (hover: hover) { .md-acc:hover:not(:disabled) { background: var(--panel3) !important; color: var(--text) !important; } }
 .md-sw { position: relative; width: 44px !important; height: 26px; min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 999px !important; background: var(--panel3) !important; transition: background-color .2s; }
 .md-sw i { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .2s; }

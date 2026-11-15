@@ -109,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.33 · 15.11.2026'
+const VERSION = '4.34 · 15.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -1316,11 +1316,13 @@ export default defineComponent({
     }
 
     /* ---------- powiadomienia w aplikacji (dzwonek) ---------- */
-    const inbox = ref([]), inboxOpen = ref(false)
+    // dzwonek bez powiadomień z wyłączonych i wyciszonych modułów (nowe i tak nie powstają — powiadomienia-moduly.sql)
+    const inboxAll = ref([]), inboxOpen = ref(false)
+    const inbox = computed(() => inboxAll.value.filter(n => !noticeMuted(n)))
     const unread = computed(() => inbox.value.filter(n => !n.read).length)
     async function loadInbox() {
       if (!api.enabled || !ready.value || gate.value) return
-      try { inbox.value = (await api.call('inbox')) || [] } catch { /* bez sieci — zostaje poprzednia lista */ }
+      try { inboxAll.value = (await api.call('inbox')) || [] } catch { /* bez sieci — zostaje poprzednia lista */ }
     }
     function openInbox() { inboxOpen.value = true; loadInbox() }
     const agoText = t => {
@@ -1977,7 +1979,24 @@ export default defineComponent({
     ]
     const NAV_MODULE = { myserve: 'serve', display: 'tech', stream: 'tech', camera: 'tech' }
     const MOD_NEEDS = { grafik: 'serve' }
-    const modules = ref({ off: [], only: {}, ranks: {}, people: {} })
+    const modules = ref({ off: [], only: {}, ranks: {}, people: {}, mute: [] })
+    // moduł powiadomienia z adresu i tytułu — tak samo jak inbox_module() w bazie
+    const GRAFIK_T = /^(Zaproszenie do służby|W niedzielę służysz|Czekamy na odpowiedź|Grafik):| nie może \d\d\.\d\d$/
+    function noticeModule(n) {
+      const u = n.url || '', t = n.title || ''
+      if (u.startsWith('./?sluzby')) return GRAFIK_T.test(t) ? 'grafik' : 'serve'
+      const map = [['./?wydarzenie=', 'cal'], ['./glosowania', 'votes'], ['./?asb=', 'asb'], ['./cele', 'goals'], ['./?ogloszenie=', 'anns'], ['./?wydawka=', 'gifts'], ['./ankiety', 'surveys'], ['./zadania', 'zadania'], ['./modlitwa', 'pray'], ['./dzieci', 'dzieci'], ['./zgloszenia', 'bugs']]
+      return map.find(([p]) => u.startsWith(p))?.[1] || 'msg'
+    }
+    function noticeMuted(n) {
+      const id = noticeModule(n), off = modules.value.off || []
+      return off.includes(id) || (id === 'grafik' && off.includes('serve')) || (modules.value.mute || []).includes(id)
+    }
+    async function setModuleMute(id, muted) {
+      const mute = new Set(modules.value.mute || [])
+      if (muted) mute.add(id); else mute.delete(id)
+      await saveModules({ ...modules.value, mute: [...mute] })
+    }
     // Dostęp: only[moduł] = [id służb] (członkowie i liderzy), ranks[moduł] = [role], people[moduł] = liczba osób z dostępem
     // imiennym (same osoby w bazie: module_people — my_modules() mówi, które moduły mam ja). Bez ograniczeń — widzą wszyscy;
     // z ograniczeniami — wystarczy spełnić jedno z nich. Administratorzy widzą wszystko.
@@ -1989,7 +2008,7 @@ export default defineComponent({
       return (modules.value.only?.[id] || []).some(x => myMinistryIds.value.includes(x)) || (modules.value.ranks?.[id] || []).some(r => roles.includes(r)) || myMods.value.includes(id)
     }
     const modOn = id => !(modules.value.off || []).includes(id) && modAllowed(id) && (!MOD_NEEDS[id] || modOn(MOD_NEEDS[id]))
-    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], only: {}, ranks: {}, people: {}, ...(v || {}) } }).catch(() => null)
+    const loadModules = () => api.enabled && api.call('moduly').then(v => { modules.value = { off: [], only: {}, ranks: {}, people: {}, mute: [], ...(v || {}) } }).catch(() => null)
     watch(() => me.value?.email, e => { if (e && api.enabled) api.call('myModules').then(v => { myMods.value = v || [] }, () => {}); else myMods.value = [] }, { immediate: true })
     async function saveModules(next) { await api.call('setModules', next); modules.value = next }
     async function setModule(id, on) {
@@ -2730,7 +2749,7 @@ export default defineComponent({
       el.classList.toggle('editing', !!(current.value || song.value || currentEvent.value || currentProto.value || currentAnn.value || tplType.value || profileView.value))
     })
     return provideApp({
-      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, modules, setModuleOnly, setModuleAccess, modLimited, saveRank, deleteRank, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
+      prayView, openPray, page, PAGES, openPage, MODULES, modOn, setModule, setModuleMute, modules, setModuleOnly, setModuleAccess, modLimited, saveRank, deleteRank, myTaskCount, loadMyTasks, bugsView, bugs, BUG_STATUS, reportBug, sendBug, loadBugs, openBugs, bugsShown, bugCounts, updateBug, liveEvent, liveVotes, attendance, checkinBusy, canCheckIn, checkIn, checkinCode, checkinMsg, needsCode, codeReset, isMeeting, votesView, votes, votesOpen, openVotes, VOTE_STATUS, eventOf, voteEvents, eventVotes, goToVote, newVoteFor, loadElectionPeople, optionsOf, addOption, addPersonOption, addYesNo, moveOption, voteSchedule, voteFormProblem, voteEv, VOTE_EV_TYPES, voteEventsShown, newElection, editElection, saveElection, removeElection, nominate, reviewCand, setElectionStatus, toggleBallot, castVote,
       sideNav, navOn, navTo, inApp, mapLink, theme, toggleTheme, HERO_ART, heroArt, heroStep, heroIsPhoto, photos, asDate, boardAll,
       events, types, typeOf, eventTypes, eventTypesFor, fillProgram, calSel, calQuery, CAL_PRESETS, calPreset, setCalPreset, toggleType, calView, month0, selDay, pickType, WEEK, todayStr, monthLabel, shiftMonth, calDays, agenda,
       openCalendar, openItem, currentEvent, eventDirty, eventSavedOnce, openEvent, newEvent, typeChanged, closeEvent, saveEvent, removeEvent,
