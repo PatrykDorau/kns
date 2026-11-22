@@ -19,7 +19,8 @@ export default defineComponent({
     const m = computed(() => av.list.find(x => x.id === props.ministry))
     const roles = computed(() => m.value?.roles || [])
     const info = (d, id) => m.value?.detail?.[d]?.[id] || { state: 'new', role: '' }
-    const people = d => (m.value?.plan?.[d] || []).map(id => ({ id, name: id === m.value.you ? 'Ty' : m.value.people.find(p => p.id === id)?.name || '?', me: id === m.value.you, ...info(d, id) }))
+    // clash: w grafiku (zaproszenie niewysłane / czeka / przyjęte), a w dyspozycyjności zaznaczone „nie mogę”
+    const people = d => (m.value?.plan?.[d] || []).map(id => { const p = m.value.people.find(x => x.id === id), i = info(d, id); return { id, name: id === m.value.you ? 'Ty' : p?.name || '?', me: id === m.value.you, ...i, clash: i.state !== 'no' && p?.states?.[d] === 'no' } })
     // kolumny: role służby + „Bez roli”, gdy ktoś jej nie ma; bez ról — jedna kolumna
     const cols = computed(() => {
       if (!roles.value.length) return [{ key: '', name: 'Skład' }]
@@ -72,7 +73,7 @@ export default defineComponent({
       st.busy = true
       try { await app.api.call('ministrySelf', { id: m.value.id, on }); await loadAv(app) } catch (e) { av.error = e.message } finally { st.busy = false }
     }
-    const tally = d => { const t = { yes: 0, sent: 0, no: 0, new: 0 }; for (const x of people(d)) t[x.state]++; return t }
+    const tally = d => { const t = { yes: 0, sent: 0, no: 0, new: 0, clash: 0 }; for (const x of people(d)) { t[x.state]++; if (x.clash) t.clash++ } return t }
     const unsent = computed(() => (m.value?.days || []).reduce((n, d) => n + people(d).filter(x => x.state === 'new').length, 0))
     const dayName = d => new Date(d + 'T12:00').toLocaleDateString('pl', { day: '2-digit', month: '2-digit' })
     const dayLong = d => new Date(d + 'T12:00').toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -143,13 +144,13 @@ export default defineComponent({
           <tr v-for="d in days" :key="d" :class="{ next: isNext(d) }">
             <th class="sg-d" :title="dayLong(d)"><b>{{ dayName(d) }}</b><small>{{ isNext(d) ? 'najbliższa' : 'niedziela' }}</small></th>
             <td v-for="c in cols" :key="c.key" :class="{ edit: m.lead }" @click="open(d, c)">
-              <span v-for="x in inCol(d, c)" :key="x.id" class="sg-pill" :class="['st-' + x.state, { me: x.me }]" :title="STATE[x.state][1]"><i>{{ STATE[x.state][0] }}</i>{{ x.name }}<em v-if="c.key === '\u0000' && x.role">{{ x.role }}</em><button v-if="x.me && canSelf && !m.lead && x.state === 'yes'" class="sg-x" :disabled="st.busy" :aria-label="'Wypisz się z ' + dayName(d)" @click.stop="selfJoin(d, c, false)">×</button></span>
+              <span v-for="x in inCol(d, c)" :key="x.id" class="sg-pill" :class="['st-' + x.state, { me: x.me, clash: x.clash }]" :title="STATE[x.state][1] + (x.clash ? ' — w dyspozycyjności zaznaczył(a): nie mogę' : '')"><i>{{ STATE[x.state][0] }}</i>{{ x.name }}<b v-if="x.clash" class="sg-clash">nie może</b><em v-if="c.key === '\u0000' && x.role">{{ x.role }}</em><button v-if="x.me && canSelf && !m.lead && x.state === 'yes'" class="sg-x" :disabled="st.busy" :aria-label="'Wypisz się z ' + dayName(d)" @click.stop="selfJoin(d, c, false)">×</button></span>
               <span v-if="m.lead && !inCol(d, c).length && !(hintCol(c) && volunteers(d).length)" class="sg-add" aria-hidden="true">+</span>
               <!-- podpowiedzi: zgłosili się na ten dzień (dyspozycyjność „mogę”) — stuknij, żeby dodać -->
               <template v-if="m.lead && hintCol(c)"><button v-for="p in volunteers(d)" :key="'v' + p.id" class="sg-hintp" :class="'av-' + p.states[d]" :disabled="st.busy" :title="(p.states[d] === 'yes' ? 'Może' : 'Nie wie') + ' — dodaj do grafiku'" @click.stop="addVolunteer(d, c, p)">+ {{ p.name }}<i v-if="p.states[d] === 'maybe'">?</i></button></template>
               <button v-if="canSelf && !m.lead && !amIn(d) && (roles.length ? c.key !== '\u0000' : true)" class="sg-join" :disabled="st.busy" @click.stop="selfJoin(d, c, true)">+ Zapisz się</button>
             </td>
-            <td class="sg-s"><span v-if="tally(d).yes" class="st-yes">✓{{ tally(d).yes }}</span><span v-if="tally(d).sent" class="st-sent">⏱{{ tally(d).sent }}</span><span v-if="tally(d).no" class="st-no">✕{{ tally(d).no }}</span><span v-if="m.lead && tally(d).new" class="st-new">○{{ tally(d).new }}</span></td>
+            <td class="sg-s"><span v-if="m.lead && tally(d).clash" class="st-clash" title="W grafiku, a w dyspozycyjności: nie mogę">⚠{{ tally(d).clash }}</span><span v-if="tally(d).yes" class="st-yes">✓{{ tally(d).yes }}</span><span v-if="tally(d).sent" class="st-sent">⏱{{ tally(d).sent }}</span><span v-if="tally(d).no" class="st-no">✕{{ tally(d).no }}</span><span v-if="m.lead && tally(d).new" class="st-new">○{{ tally(d).new }}</span></td>
           </tr>
         </tbody>
       </table>
@@ -208,6 +209,9 @@ tr.next .sg-d b { color: var(--accent-text); }
 .sg-add { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1.5px dashed var(--panel3); color: var(--muted); font-weight: 600; }
 .sg-s { white-space: nowrap; font-size: 13px; font-weight: 600; }
 .sg-s span { margin-right: 8px; }
+.sg-pill.clash { box-shadow: inset 0 0 0 1.5px var(--bad-text); }
+.sg-clash { margin-left: 2px; padding: 0 6px; border-radius: 999px; background: var(--bad-soft); color: var(--bad-text); font-size: 11px; font-weight: 700; }
+.sg-s .st-clash { color: var(--bad-text); }
 .sg-s .st-yes { color: var(--ok-text) !important; } .sg-s .st-sent { color: var(--accent-text); } .sg-s .st-no { color: var(--bad-text); } .sg-s .st-new { color: var(--muted); }
 .sg-hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .sg-self.on { background: var(--ok-soft) !important; color: var(--ok-text) !important; font-weight: 600 !important; }
