@@ -4,25 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0a" media="(prefers-color-scheme: dark)">
 <title>Tłumaczenie na żywo — Kościół Na Skale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
 <link rel="icon" href="/favicon.png">
 <!-- Tłumaczenie na żywo dla słuchaczy (bez konta): lista języków, które właśnie nadają (funkcja bazy tl_live), wybór
      języka → połączenie WebRTC prosto z urządzeniem tłumacza (sygnalizacja kanałem Realtime „kns-tl-<id>”; protokół
      opisany w web/src/services/tlumacz.ts). Dźwięk gra w elemencie <audio>. Test z udawaną bazą: ?test=<id kanału>
      (BroadcastChannel między kartami, bez bazy). -->
 <style>
-  :root { --bg: #faf8f5; --panel: #efebe5; --panel2: #e3ded5; --text: #221d16; --muted: #5c5447; --accent: #f2a53c; --ok: #2f8a57; --bad: #c8423b; color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --panel: #262626; --panel2: #303030; --text: #f4f4f2; --muted: #bcbcb8; --ok: #8fd19e; --bad: #ff8a8d; color-scheme: dark; } }
+  :root { --bg: #f3f1ec; --panel: #e9e6de; --panel2: #e0ddd4; --text: #141612; --muted: #55574d; --accent: #f2a53c; --ok: #2f8a57; --bad: #c8423b; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b0b0a; --panel: #171615; --panel2: #1f1e1c; --text: #f4f2ec; --muted: #aca89f; --ok: #8fd19e; --bad: #ff8a8d; color-scheme: dark; } }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 "Inter", system-ui, "Segoe UI", sans-serif; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 "Bricolage Grotesque", "Inter", system-ui, "Segoe UI", sans-serif; }
   main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 16px 40px; }
   header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
   header img { width: 44px; height: 44px; }
   header b { display: block; font-size: 15px; }
   header small { color: var(--muted); font-size: 13px; }
-  h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.1; letter-spacing: -.02em; }
+  h1 { margin: 0 0 6px; font-size: calc(30px + 6px); line-height: 1; font-weight: 800; letter-spacing: -.045em; }
   .lead { margin: 0 0 22px; color: var(--muted); }
   .langs { display: grid; gap: 10px; }
   .lang { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; border: 0; border-radius: 20px; background: var(--panel); color: inherit; font: inherit; text-align: left; cursor: pointer; }

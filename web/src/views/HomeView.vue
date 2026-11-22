@@ -92,6 +92,15 @@ export default defineComponent({
     // „Kazanie”: trwające nabożeństwo (albo to z pytaniami do kazania), a poza tym ostatnie
     const sermonService = computed(() => (app.countdown.value?.live && app.nextService.value) || app.notesService.value || app.lastSermon.value || null)
     // miesiąc w dopełniaczu („listopada”) do biletu
+    // łuk tygodnia nad skałą (z logo): 7 punktów od poniedziałku do niedzieli; słońce stoi na dziś
+    function sunArc(d) {
+      const day = app.asDate(d), now = new Date(); now.setHours(0, 0, 0, 0); day.setHours(0, 0, 0, 0)
+      const left = Math.round((day - now) / 864e5)
+      const i = Math.max(0, Math.min(6, 6 - left))
+      const a = Math.PI - i * Math.PI / 6, x = +(60 + 52 * Math.cos(a)).toFixed(1), y = +(62 - 52 * Math.sin(a)).toFixed(1)
+      const label = left <= 0 ? 'Niedziela — dziś' : 'Do niedzieli ' + left + ' ' + (left === 1 ? 'dzień' : 'dni')
+      return { i, x, y, path: 'M8 62 A52 52 0 0 1 ' + x + ' ' + y, label }
+    }
     const monthOf = d => app.asDate(d).toLocaleDateString('pl', { day: 'numeric', month: 'long' }).replace(/^\d+\s*/, '')
     // powiększenie zdjęcia
     // lb — zdjęcie, do którego przechodzimy; shown — to, które już widać (zmienia się, gdy następne się wczyta,
@@ -161,7 +170,7 @@ export default defineComponent({
     const toNotes = () => document.querySelector('.kh-web .sermon-notes, .kh-web .hm-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // służby i cele do kolumny „Wspólnota” — gdyby pierwsze wczytanie (zaraz po zalogowaniu) wróciło puste
     onMounted(() => setTimeout(() => { if (app.api.enabled && app.ready.value) { if (!app.serve.list.length && !app.serve.busy) app.loadServe(); if (!app.goals.list.length && !app.goals.busy) app.loadGoals() } }, 2500))
-    return { ...app, invites, ahead, aheadOn, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, photoTiles, hasThoughts, hasPhotos, photosTitle }
+    return { ...app, sunArc, invites, ahead, aheadOn, forYou, focus, nextAsb, recording, streamLink, roleOn, annMode, deckCards, openCard, toNotes, sermonService, monthOf, lb, shown, lbStep, lbPaused, lbDx, lbSliding, lbDown, lbMove, lbUp, lbTap, photoTiles, hasThoughts, hasPhotos, photosTitle }
   },
 })
 </script>
@@ -242,39 +251,59 @@ export default defineComponent({
     <!-- 2. najbliższe nabożeństwo: przed (rola, skróty), w trakcie (transmisja, notatki) -->
     <section class="hm-sec">
       <h3 class="hw-h"><span class="hw-step">2</span>{{ countdown?.live ? 'Teraz' : 'Najbliższe nabożeństwo' }}</h3>
-      <!-- bilet: data w odcinku, obok temat i szczegóły -->
-      <article v-if="nextService" class="hm-ticket" :class="{ live: countdown?.live }">
-        <div class="hm-stub">
-          <small>{{ asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) }}</small>
-          <b>{{ asDate(nextService.date).getDate() }}</b>
-          <span>{{ monthOf(nextService.date) }}</span>
-          <em>{{ nextService.time || DEFAULT_TIME }}</em>
+      <!-- Monolit + Wschód: wielka cyfra dnia, a pod nią pole koloru z kazaniem i łukiem tygodnia (słońce = dziś, koniec łuku = niedziela) -->
+      <article v-if="nextService" class="mo-sun" :class="{ live: countdown?.live }">
+        <div class="mo-day">
+          <b class="mo-num">{{ asDate(nextService.date).getDate() }}</b>
+          <span class="mo-month">{{ monthOf(nextService.date) }}<small><i v-if="countdown?.live" class="hm-dot"></i>{{ countdown?.live ? 'trwa teraz' : asDate(nextService.date).toLocaleDateString('pl', { weekday: 'long' }) + ' · ' + untilText }}</small></span>
         </div>
-        <div class="hm-tk-body">
-          <span class="hm-tk-kick"><i v-if="countdown?.live" class="hm-dot"></i>{{ countdown?.live ? 'Trwa teraz' : 'Najbliższe nabożeństwo · ' + untilText }}</span>
-          <h3>{{ nextService.sermonTitle || 'Nabożeństwo' }}</h3>
-          <p>{{ [nextService.passage, nextService.speaker, nextService.place || DEFAULT_PLACE].filter(Boolean).join(' · ') }}</p>
-          <p v-if="canEdit" class="hm-prep" :class="missing(nextService).length ? 'bad' : 'ok'">{{ missing(nextService).length ? 'Brakuje: ' + missing(nextService).join(', ') : 'Przygotowanie: komplet' }}</p>
-          <div class="hm-acts">
-            <a v-if="countdown?.live && streamLink" class="button primary" :href="streamLink" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Oglądaj transmisję</a>
-            <button v-if="countdown?.live && notesService" class="hm-pill" @click="toNotes"><svg class="i"><use href="#book"/></svg>Notatki i pytania</button>
-            <button class="hm-pill" @click="open(nextService)">{{ canEdit && missing(nextService).length ? 'Uzupełnij nabożeństwo' : 'Zobacz nabożeństwo' }}<svg class="i"><use href="#chev"/></svg></button>
-            <span v-if="roleOn(nextService.date).length" class="hm-role"><svg class="i"><use href="#serve"/></svg>Twoja służba: <b>{{ roleOn(nextService.date).join(', ') }}</b></span>
+        <div class="mo-field">
+          <div class="mo-top">
+            <div class="mo-txt">
+              <small>{{ [nextService.time || DEFAULT_TIME, nextService.place || DEFAULT_PLACE].join(' · ') }}</small>
+              <h3>{{ nextService.sermonTitle || 'Nabożeństwo' }}</h3>
+              <p v-if="nextService.passage || nextService.speaker">{{ [nextService.passage, nextService.speaker].filter(Boolean).join(' · ') }}</p>
+            </div>
+            <svg class="mo-arc" viewBox="-10 0 140 84" role="img" :aria-label="sunArc(nextService.date).label">
+              <path d="M8 62 A52 52 0 0 1 112 62" class="mo-arc-track"></path>
+              <path v-if="sunArc(nextService.date).i" :d="sunArc(nextService.date).path" class="mo-arc-done"></path>
+              <circle :cx="sunArc(nextService.date).x" :cy="sunArc(nextService.date).y" r="9" class="mo-arc-sun"></circle>
+              <circle cx="112" cy="62" r="4" class="mo-arc-end"></circle>
+              <path d="M34 66 L56 38 L66 50 L74 44 L92 66 Z" class="mo-arc-rock"></path>
+              <text v-if="sunArc(nextService.date).i" x="8" y="80" class="mo-arc-t">pn</text><text :x="sunArc(nextService.date).x" y="80" class="mo-arc-t b">{{ sunArc(nextService.date).i === 6 ? '' : 'dziś' }}</text><text x="112" y="80" class="mo-arc-t b">nd</text>
+            </svg>
+          </div>
+          <p v-if="canEdit" class="mo-prep" :class="missing(nextService).length ? 'bad' : 'ok'">{{ missing(nextService).length ? 'Brakuje: ' + missing(nextService).join(', ') : 'Przygotowanie: komplet' }}</p>
+          <div v-if="roleOn(nextService.date).length" class="mo-role"><svg class="i"><use href="#serve"/></svg><span>Twoja służba: <b>{{ roleOn(nextService.date).join(', ') }}</b></span></div>
+          <div class="mo-acts">
+            <a v-if="countdown?.live && streamLink" class="mo-btn" :href="streamLink" target="_blank" rel="noopener"><svg class="i"><use href="#play"/></svg>Oglądaj transmisję</a>
+            <button v-if="countdown?.live && notesService" class="mo-btn ghost" @click="toNotes"><svg class="i"><use href="#book"/></svg>Notatki i pytania</button>
+            <button class="mo-btn" :class="{ ghost: countdown?.live && streamLink }" @click="open(nextService)">{{ canEdit && missing(nextService).length ? 'Uzupełnij nabożeństwo' : 'Zobacz nabożeństwo' }}<svg class="i"><use href="#chev"/></svg></button>
           </div>
         </div>
       </article>
-      <article v-else-if="canEdit" class="hm-ticket">
-        <div class="hm-stub">
-          <small>niedziela</small>
-          <b>{{ asDate(planSunday).getDate() }}</b>
-          <span>{{ monthOf(planSunday) }}</span>
-          <em>{{ DEFAULT_TIME }}</em>
+      <article v-else-if="canEdit" class="mo-sun">
+        <div class="mo-day">
+          <b class="mo-num">{{ asDate(planSunday).getDate() }}</b>
+          <span class="mo-month">{{ monthOf(planSunday) }}<small>niedziela · jeszcze nie zaplanowane</small></span>
         </div>
-        <div class="hm-tk-body">
-          <span class="hm-tk-kick">Jeszcze nie zaplanowane</span>
-          <h3>Następne nabożeństwo</h3>
-          <p>Dodaj datę, kazanie i pieśni.</p>
-          <div class="hm-acts"><button class="hm-pill" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(planSunday) }}</button></div>
+        <div class="mo-field">
+          <div class="mo-top">
+            <div class="mo-txt">
+              <small>{{ DEFAULT_TIME }} · {{ DEFAULT_PLACE }}</small>
+              <h3>Następne nabożeństwo</h3>
+              <p>Dodaj datę, kazanie i pieśni.</p>
+            </div>
+            <svg class="mo-arc" viewBox="-10 0 140 84" role="img" :aria-label="sunArc(planSunday).label">
+              <path d="M8 62 A52 52 0 0 1 112 62" class="mo-arc-track"></path>
+              <path v-if="sunArc(planSunday).i" :d="sunArc(planSunday).path" class="mo-arc-done"></path>
+              <circle :cx="sunArc(planSunday).x" :cy="sunArc(planSunday).y" r="9" class="mo-arc-sun"></circle>
+              <circle cx="112" cy="62" r="4" class="mo-arc-end"></circle>
+              <path d="M34 66 L56 38 L66 50 L74 44 L92 66 Z" class="mo-arc-rock"></path>
+              <text v-if="sunArc(planSunday).i" x="8" y="80" class="mo-arc-t">pn</text><text :x="sunArc(planSunday).x" y="80" class="mo-arc-t b">{{ sunArc(planSunday).i === 6 ? '' : 'dziś' }}</text><text x="112" y="80" class="mo-arc-t b">nd</text>
+            </svg>
+          </div>
+          <div class="mo-acts"><button class="mo-btn" @click="create(planSunday)"><svg class="i"><use href="#plus"/></svg>Zaplanuj na {{ shortDate(planSunday) }}</button></div>
         </div>
       </article>
       <!-- bez zaplanowanego nabożeństwa (członek) -->

@@ -109,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.38 · 15.11.2026'
+const VERSION = '4.39 · 22.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -501,9 +501,9 @@ export default defineComponent({
       theme.value = theme.value === 'dark' ? 'light' : 'dark'
       document.documentElement.dataset.theme = theme.value
       try { localStorage.setItem('kns-theme', theme.value) } catch { /* tryb prywatny */ }
-      document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#faf8f5' : '#1a1a1a')
+      document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.value === 'light' ? '#f3f1ec' : '#0b0b0a')
     }
-    if (theme.value === 'light') document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#faf8f5')
+    if (theme.value === 'light') document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#f3f1ec')
     // Ilustracje w karcie najbliższego nabożeństwa — zmieniają się co 9 s (płynnie).
     // Karta najbliższego nabożeństwa: zdjęcia z ostatniego nabożeństwa (z Dysku, przez skrypt Google), a bez nich — ilustracje.
     const ILLUSTRATIONS = ['swit.svg', 'pole.svg', 'jezioro.svg', 'noc.svg']

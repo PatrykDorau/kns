@@ -23,7 +23,10 @@ export default defineComponent({
       tag: a.important ? 'Komunikat rady' : app.annIsNew(a) ? 'Nowe' : app.AUDIENCE[a.audience], sub: a.text || app.shortDate(a.date),
     })))
     const openCard = c => { const a = app.shownActiveAnns.value.find(x => x.id === c.key); if (a) app.openAnn(a) }
-    return { ...app, annMode, deckAud, deckAuds, deckCards, openCard }
+    // pole koloru (Monolit): komunikat rady albo przypięte ogłoszenie na górze listy; lista pod nim bez niego
+    const fieldAnn = computed(() => (app.annQuery.value.trim() ? null : app.shownActiveAnns.value.find(a => a.important) || app.shownActiveAnns.value.find(a => a.pinned) || null))
+    const listAnns = computed(() => app.shownActiveAnns.value.filter(a => a !== fieldAnn.value))
+    return { ...app, annMode, deckAud, deckAuds, deckCards, openCard, fieldAnn, listAnns }
   },
 })
 </script>
@@ -65,8 +68,12 @@ export default defineComponent({
       <button v-for="[k, name] in deckAuds" :key="k" :class="{ on: deckAud === k }" :aria-pressed="deckAud === k" @click="deckAud = k">{{ name }}</button>
     </nav>
   </div>
-  <div v-else class="wide-list ann-list">
-  <button v-for="a in shownActiveAnns" :key="a.id" class="ann" :class="{ important: a.important, fresh: annIsNew(a) }" @click="openAnn(a)">
+  <button v-if="annMode !== 'cards' && fieldAnn" class="mo-next mo-ann" @click="openAnn(fieldAnn)">
+    <span class="mo-next-b"><small>{{ fieldAnn.important ? 'Komunikat rady zboru' : 'Przypięte' }}{{ annIsNew(fieldAnn) ? ' · nowe' : '' }}</small><b>{{ fieldAnn.title }}</b><span v-if="fieldAnn.text" class="mo-ann-t">{{ fieldAnn.text }}</span></span>
+    <svg class="i"><use href="#chev"/></svg>
+  </button>
+  <div v-if="annMode !== 'cards' || !shownActiveAnns.length" class="wide-list ann-list">
+  <button v-for="a in listAnns" :key="a.id" class="ann" :class="{ important: a.important, fresh: annIsNew(a) }" @click="openAnn(a)">
     <img v-if="a.image" class="ann-img" :src="a.image" alt="" loading="lazy">
     <span class="ann-tags"><span v-if="annIsNew(a)" class="ann-tag kh-new">Nowe</span><span v-if="a.pinned" class="ann-tag pin"><svg class="i"><use href="#pin"/></svg>Przypięte</span><span v-if="a.video" class="ann-tag vid">▶ Film</span><span v-if="a.important" class="ann-tag imp"><svg class="i"><use href="#alert"/></svg>Komunikat rady</span><span class="ann-tag">{{ AUDIENCE[a.audience] }}</span><span v-if="a.until" class="ann-tag">do {{ shortDate(a.until) }}</span></span>
     <b>{{ a.title }}</b>

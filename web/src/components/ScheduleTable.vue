@@ -59,6 +59,15 @@ export default defineComponent({
       try { await app.api.call('scheduleSelf', { id: m.value.id, day: d, join, role: colRole(c) }); await loadAv(app); app.showToast(join ? 'Zapisano Cię na ' + dayName(d) + '.' : 'Wypisano Cię z ' + dayName(d) + '.') }
       catch (e) { av.error = e.message; loadAv(app) } finally { st.busy = false }
     }
+    // Twoja najbliższa służba w tej służbie (pole koloru nad tabelą)
+    const myNext = computed(() => {
+      const x = m.value; if (!x) return null
+      const d = x.days.find(d => (x.plan?.[d] || []).includes(x.you) && info(d, x.you).state !== 'no')
+      if (!d) return null
+      const me = info(d, x.you), others = people(d).filter(p => !p.me).map(p => p.name)
+      return { d, role: me.role, state: me.state, others }
+    })
+    const dayNum = d => new Date(d + 'T12:00').getDate()
     async function setSelf(on) {
       st.busy = true
       try { await app.api.call('ministrySelf', { id: m.value.id, on }); await loadAv(app) } catch (e) { av.error = e.message } finally { st.busy = false }
@@ -102,7 +111,7 @@ export default defineComponent({
       const list = st.roles.split(',').map(x => x.trim()).filter(Boolean)
       try { await app.api.call('ministryRoles', { id: m.value.id, roles: list }); st.roles = null; await loadAv(app) } catch (e) { av.error = e.message }
     }
-    return { volunteers, hintCol, addVolunteer, canSelf, amIn, selfJoin, setSelf, av, st, m, roles, cols, inCol, days, tally, unsent, dayName, dayLong, isNext, open, pickList, pickRole, choose, publish, saveRoles, STATE, AVAIL }
+    return { myNext, dayNum, volunteers, hintCol, addVolunteer, canSelf, amIn, selfJoin, setSelf, av, st, m, roles, cols, inCol, days, tally, unsent, dayName, dayLong, isNext, open, pickList, pickRole, choose, publish, saveRoles, STATE, AVAIL }
   },
 })
 </script>
@@ -122,6 +131,10 @@ export default defineComponent({
     </div>
     <p v-if="av.error" class="error">{{ av.error }}</p>
 
+    <div v-if="myNext" class="mo-next sg-mine">
+      <span class="mo-next-d"><small>{{ new Date(myNext.d + 'T12:00').toLocaleDateString('pl', { weekday: 'short' }) }}</small><b>{{ dayNum(myNext.d) }}</b><small>{{ new Date(myNext.d + 'T12:00').toLocaleDateString('pl', { month: 'short' }) }}</small></span>
+      <span class="mo-next-b"><small>Twoja najbliższa służba{{ myNext.role ? ' · ' + myNext.role : '' }}</small><b>{{ { yes: 'Przyjęte', sent: 'Czeka na Twoją odpowiedź', new: 'Wpisany(a) — zaproszenie jeszcze nie wysłane' }[myNext.state] }}</b><span>{{ myNext.others.length ? 'z: ' + myNext.others.join(', ') : 'na razie sam(a)' }}</span></span>
+    </div>
     <p v-if="!days.length" class="note">Grafik nie jest jeszcze ułożony.<button v-if="!m.lead" class="ghost small" @click="st.all = true">Pokaż niedziele</button></p>
     <div v-else class="sg-wrap">
       <table class="sg-table">

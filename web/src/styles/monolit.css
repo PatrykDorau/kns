@@ -1,0 +1,195 @@
+/* Warstwa „Monolit + Wschód” (ładowana po taste.css — nadpisuje kolory, pismo i karty w obu trybach).
+   Projekt: canvas „KNS — nowy wygląd aplikacji”, rząd 7–8.
+   - pismo: Bricolage Grotesque (tytuły 700–800, ciasne odstępy), tekst tą samą rodziną;
+   - jasny: kamienna biel, tusz, jedno pełne „pole koloru” w zieleni szałwii; ciemny: prawie czerń, pole w bursztynie z logo;
+   - karty płaskie (krok tonu zamiast ramki i cienia), przyciski jako pigułki, główny — tusz na jasnym, biel na ciemnym;
+   - dolne menu z ikonami; aktywna pozycja — ikona w kolorze pola i pogrubiony napis (bez podświetlonej pigułki). */
+
+:root {
+  --bg: #0b0b0a; --panel: #171615; --panel2: #1f1e1c; --panel3: #2a2826; --line: #22211e;
+  --text: #f4f2ec; --muted: #aca89f; --faint: #8f8b83;
+  --accent: #f2a53c; --accent-soft: rgba(242, 165, 60, .14); --accent-text: #f2b25c;
+  /* pole koloru (najważniejsza rzecz na ekranie) */
+  --field-hero: #f2a53c; --field-hero-ink: #1a1207; --field-hero-rule: rgba(26, 18, 7, .2);
+  --sun: #f2a53c;
+  --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --edge: rgba(255, 255, 255, .05); --edge-hi: rgba(255, 255, 255, .1);
+  --field: #171615; --field-focus: #1f1e1c; --side-bg: #0b0b0a; --glass: #0b0b0a;
+  --tint: rgba(255, 255, 255, .05); --tint-hi: rgba(255, 255, 255, .08);
+  --r-sm: 14px; --r: 20px; --r-lg: 24px; --r-xl: 24px;
+}
+html[data-theme="light"] {
+  --bg: #f3f1ec; --panel: #e9e6de; --panel2: #e0ddd4; --panel3: #d4d0c5; --line: #dedad1;
+  --text: #141612; --muted: #55574d; --faint: #6b6d62;
+  --accent: #f2a53c; --accent-soft: rgba(242, 165, 60, .18); --accent-text: #8a5208;
+  --field-hero: #24392d; --field-hero-ink: #f3f1ec; --field-hero-rule: rgba(243, 241, 236, .22);
+  --sun: #f2a53c;
+  --side-bg: #f3f1ec; --field: #fbfaf7; --field-focus: #ffffff; --glass: #f3f1ec;
+  --surface: var(--panel); --surface-solid: var(--panel);
+  --tint: rgba(0, 0, 0, .04); --tint-hi: rgba(0, 0, 0, .07);
+  --l-edge: transparent; --l-shadow: none; --l-shadow-hi: none;
+}
+
+/* ---------- pismo ---------- */
+body { font-family: var(--display) !important; font-feature-settings: normal; }
+:is(button, input, select, textarea) { font-family: inherit; }
+header h1, .kh-hello h1, .hello h1, .ann-view-title, .view-title { font-family: var(--display) !important; font-weight: 800 !important; letter-spacing: -.035em !important; }
+h1, h2 { font-weight: 700 !important; letter-spacing: -.02em; }
+@media (max-width: 1023px) {
+  header h1 { font-size: 26px !important; line-height: 1 !important; }
+}
+
+/* ---------- karty: płasko w obu trybach (krok tonu, bez ramki i cienia) ---------- */
+html[data-theme="light"] :is(.card, .ann, .ministry, .goal, .goal-confirm, .person, .push-card, .listen-card, .song, .view-card, .install, .account, .getapp, .whoami,
+  .more-list, .ev, .asb-row, .inbox-item, .goal-form, .goal-support, .dv-card, .kh-panel, .kh-tile, .kh-svc, .hw-feature, .sermon-notes, .lib-trash, .login-card,
+  .remind, .countdown, .suggest, .sv-part, .mm-card, .form-sec, .hw-banner, .invite, .goal-banner, .push-ask, .update-ready, .fact, .signup-card) {
+  border: 0 !important; box-shadow: none !important; }
+html[data-theme="light"] .hw-banner, html[data-theme="light"] :is(.ministry.seeking, .goal-confirm.due) { box-shadow: inset 3px 0 0 var(--accent) !important; }
+@media (hover: hover) {
+  html[data-theme="light"] :is(button.card, button.ann, button.song, button.ev, .kh-tile, .hw-row):hover { background: var(--panel2) !important; box-shadow: none !important; }
+}
+
+/* ---------- przyciski: pigułki; główny — tusz (jasny) / biel (ciemny) ---------- */
+:is(button.primary, a.button.primary, .hw-go) { border-radius: 999px !important; font-weight: 700 !important; }
+html[data-theme="light"] :is(button.primary, a.button.primary, .hw-go) { background: #141612 !important; color: #f3f1ec !important; box-shadow: none !important; }
+html:not([data-theme="light"]) :is(button.primary, a.button.primary, .hw-go) { background: #f4f2ec !important; color: #0b0b0a !important; }
+.seg, .serve-tabs { border-radius: 999px !important; }
+.seg button, .serve-tabs button { border-radius: 999px !important; }
+html[data-theme="light"] .seg, html[data-theme="light"] .serve-tabs { background: var(--panel) !important; }
+html[data-theme="light"] :is(.seg button.on, .serve-tabs button[aria-selected="true"]) { background: #141612 !important; color: #f3f1ec !important; }
+html:not([data-theme="light"]) :is(.seg button.on, .serve-tabs button[aria-selected="true"]) { background: #f4f2ec !important; color: #0b0b0a !important; }
+.chipbtn.on, .filter.on { background: var(--text) !important; color: var(--bg) !important; border-color: var(--text) !important; }
+
+/* ---------- pola formularzy ---------- */
+html[data-theme="light"] :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), textarea, select) { background-color: var(--field) !important; border-color: #d4d0c5 !important; }
+html[data-theme="light"] :is(input, textarea, select):focus { border-color: #24392d !important; box-shadow: 0 0 0 3px rgba(36, 57, 45, .18) !important; }
+html[data-theme="light"] [class*="-search"]:has(> input) { background: var(--field) !important; border-color: #d4d0c5 !important; }
+
+/* ---------- dolne menu: ikony zostają, aktywna — ikona w kolorze pola, napis pogrubiony ---------- */
+.tabbar { background: var(--bg) !important; border-top: 1px solid var(--line) !important; box-shadow: none !important; }
+html[data-theme="light"] .tabbar { background: rgba(243, 241, 236, .97) !important; }
+.tabbar .tab-ind, html[data-theme="light"] .tabbar .tab-ind { background: transparent !important; }
+.tabbar button { color: var(--faint) !important; font-family: var(--display) !important; font-size: 12px !important; }
+.tabbar button.on, html[data-theme="light"] .tabbar button.on { color: var(--text) !important; font-weight: 700 !important; }
+.tabbar button.on svg.i { color: var(--field-hero); stroke-width: 2.2; }
+html:not([data-theme="light"]) .tabbar button.on svg.i { color: var(--sun); }
+
+/* boczny pasek (komputer): aktywna pozycja — neutralna pigułka */
+@media (min-width: 1024px) {
+  html[data-theme="light"] .side-it.on { background: var(--panel) !important; color: var(--text) !important; font-weight: 700 !important; }
+  html:not([data-theme="light"]) .side-it.on { background: var(--panel2) !important; color: var(--text) !important; }
+  .side-it.on svg.i { color: var(--field-hero); }
+  html:not([data-theme="light"]) .side-it.on svg.i { color: var(--sun); }
+}
+
+/* ---------- kalendarz: dziś — kółko w kolorze tuszu ---------- */
+button.cal-day.today, html[data-theme="light"] button.cal-day.today { background-color: var(--text) !important; color: var(--bg) !important; font-weight: 700; }
+html[data-theme="light"] button.cal-day { background-color: transparent; }
+
+/* ---------- drobne: znaczniki, okna, toast ---------- */
+html[data-theme="light"] :is(.ann-tag, .chip, .kh-pill, .count-pill, .asb-badge, .bug-status, .ev .tag) { background: var(--panel2) !important; }
+html[data-theme="light"] .np-overlay { background: rgba(20, 22, 18, .38) !important; }
+html[data-theme="light"] :is(.np-panel, .suggest) { background: var(--bg) !important; box-shadow: 0 30px 70px -24px rgba(20, 22, 18, .45) !important; }
+html[data-theme="light"] .toast { background: #141612 !important; color: #f3f1ec !important; }
+html[data-theme="light"] .bar { background: rgba(243, 241, 236, .95) !important; box-shadow: none !important; }
+html[data-theme="light"] ::selection { background: rgba(36, 57, 45, .22); }
+@media (max-width: 1023px) { html[data-theme="light"] header { background: var(--bg) !important; } }
+html[data-theme="light"] .kns-backdrop { opacity: .22 !important; color: #55574d !important; }
+.kns-backdrop { opacity: .35 !important; }
+
+/* ---------- Start: najbliższe nabożeństwo — wielka cyfra dnia i pole koloru z łukiem tygodnia ---------- */
+.mo-sun { display: flex; flex-direction: column; gap: 12px; }
+.mo-day { display: flex; align-items: flex-end; gap: 12px; }
+.mo-num { font-family: var(--display); font-size: clamp(96px, 30vw, 132px); line-height: .8; font-weight: 800 !important; letter-spacing: -.06em; color: var(--text); }
+.mo-month { display: flex; flex-direction: column; padding-bottom: 6px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.mo-month small { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 15px; font-weight: 400; letter-spacing: 0; }
+.mo-field { display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 24px; background: var(--field-hero); color: var(--field-hero-ink); }
+.mo-top { display: flex; gap: 10px; align-items: flex-start; }
+.mo-txt { flex: 1; min-width: 0; }
+.mo-txt small { display: block; font-size: 14px; opacity: .82; }
+.mo-txt h3 { margin: 6px 0 0 !important; color: inherit !important; font-family: var(--display); font-size: 28px !important; line-height: 1.02 !important; font-weight: 700 !important; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.mo-txt p { margin: 4px 0 0; font-size: 14px; opacity: .82; color: inherit !important; }
+.mo-arc, .kh .mo-arc { flex: none; width: 124px !important; height: 74px !important; }
+.mo-arc-track { fill: none; stroke: var(--field-hero-ink); stroke-opacity: .45; stroke-width: 2.5; stroke-dasharray: 1.5 5; stroke-linecap: round; }
+.mo-arc-done { fill: none; stroke: var(--sun); stroke-width: 2.5; stroke-linecap: round; }
+.mo-arc-sun { fill: var(--sun); }
+.mo-arc-end { fill: var(--field-hero); stroke: var(--field-hero-ink); stroke-width: 2; }
+.mo-arc-rock { fill: var(--field-hero-ink); opacity: .9; }
+.mo-arc-t { font: 400 11px var(--display); fill: var(--field-hero-ink); text-anchor: middle; opacity: .75; }
+.mo-arc-t.b { font-weight: 700; opacity: 1; }
+html:not([data-theme="light"]) { --sun: #1a1207; } /* na bursztynowym polu słońce w kolorze tuszu */
+html:not([data-theme="light"]) .tabbar button.on svg.i, html:not([data-theme="light"]) .side-it.on svg.i { color: #f2a53c; }
+.mo-prep { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--field-hero-rule); font-size: 14px; color: inherit !important; }
+.mo-role { display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid var(--field-hero-rule); font-size: 15px; }
+.mo-role .i { width: 18px; height: 18px; flex: none; }
+.mo-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.mo-btn { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px !important; padding: 0 18px !important; border: 0 !important; border-radius: 999px !important; background: var(--field-hero-ink) !important; color: var(--field-hero) !important; font: 700 15px var(--display) !important; text-decoration: none; box-shadow: none !important; }
+.mo-btn.ghost { background: var(--field-hero-rule) !important; color: var(--field-hero-ink) !important; }
+.mo-btn .i { width: 18px; height: 18px; }
+@media (hover: hover) { .mo-btn:hover { filter: brightness(1.08); } }
+.mo-sun.live .mo-field { box-shadow: 0 0 0 3px var(--sun) inset; }
+
+/* ---------- strona dla gości (przed zalogowaniem) w stylu Monolitu ---------- */
+body.guest-page { background: var(--bg) !important; }
+.gx .gx-title { font-weight: 800 !important; letter-spacing: -.06em !important; }
+.gx .gx-h { font-weight: 800 !important; letter-spacing: -.05em !important; line-height: .95 !important; }
+.gx .gx-h .gx-dim { font-weight: 700; }
+.gx .gx-chip { background: var(--panel) !important; color: var(--text) !important; font-family: var(--display) !important; }
+html[data-theme="light"] .gx .gx-chip { background: var(--panel) !important; }
+.gx .gx-btn { font-family: var(--display) !important; font-weight: 700 !important; }
+.gx .gx-btn.gx-dark, html[data-theme="light"] .gx .gx-dark { background: var(--text) !important; color: var(--bg) !important; }
+.gx .gx-btn.gx-light { background: var(--panel) !important; color: var(--text) !important; }
+.gx .gx-panel, html[data-theme="light"] .gx .gx-panel { background: var(--panel) !important; box-shadow: none !important; border: 0 !important; }
+/* kazanie najbliższej niedzieli — pole koloru jak na Starcie aplikacji */
+.gx .gx-sermon { max-width: 720px; padding: clamp(22px, 4vw, 36px); border-radius: 28px; background: var(--field-hero); color: var(--field-hero-ink); }
+.gx .gx-sermon b { font-weight: 700 !important; letter-spacing: -.03em; }
+.gx .gx-sermon small, .gx .gx-sermon span, html[data-theme="light"] .gx :is(.gx-sermon small, .gx-sermon span) { color: var(--field-hero-ink) !important; opacity: .85; }
+/* wydarzenia: wielkie cyfry dnia */
+.gx .gx-ev-date { color: var(--text) !important; }
+.gx .gx-ev-date b { font-weight: 800 !important; letter-spacing: -.05em; }
+/* „Należysz do zboru?” — pełne pole koloru zamiast poświaty */
+.gx .gx-join .gx-panel, html[data-theme="light"] .gx .gx-join .gx-panel { background: var(--field-hero) !important; color: var(--field-hero-ink) !important; }
+.gx .gx-join .gx-panel :is(.gx-h, .gx-sub, .gx-dim), html[data-theme="light"] .gx .gx-join .gx-panel :is(.gx-h, .gx-sub, .gx-dim) { color: var(--field-hero-ink) !important; }
+.gx .gx-join .gx-btn.gx-accent, html[data-theme="light"] .gx .gx-join .gx-btn.gx-accent { background: var(--field-hero-ink) !important; color: var(--field-hero) !important; }
+/* menu strony: pigułka z linkami w tonie karty */
+.gx .gx-bar-links, html[data-theme="light"] .gx .gx-bar-links { background: var(--panel) !important; box-shadow: none !important; }
+.gx .gx-bar-links a { color: var(--text) !important; font-family: var(--display) !important; font-weight: 600 !important; }
+.gx .gx-bar-links a:hover { background: var(--panel3) !important; }
+.gx .gx-logo { font-family: var(--display) !important; }
+
+/* ---------- pole koloru: wspólny wzór (najbliższe wydarzenie, Twoja służba, przypięte ogłoszenie, Kanały KNS) ---------- */
+.mo-next { display: flex !important; align-items: center; gap: 16px; width: 100%; min-height: 0 !important; margin: 4px 0 18px !important; padding: 16px 18px !important; border: 0 !important; border-radius: 24px !important; background: var(--field-hero) !important; color: var(--field-hero-ink) !important; text-align: left; box-shadow: none !important; font-family: var(--display); }
+.mo-next > .i { flex: none; width: 20px; height: 20px; opacity: .8; }
+.mo-next-d { flex: none; display: flex; flex-direction: column; align-items: center; line-height: 1; min-width: 52px; }
+.mo-next-d small { font-size: 13px; opacity: .8; }
+.mo-next-d b { font-size: 42px; font-weight: 800 !important; letter-spacing: -.05em; margin: 2px 0; }
+.mo-next-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.mo-next-b small { font-size: 13px; opacity: .8; }
+.mo-next-b b { font-size: 20px; line-height: 1.1; font-weight: 700 !important; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.mo-next-b span { font-size: 14px; opacity: .85; }
+@media (hover: hover) { .mo-next:hover { filter: brightness(1.06); } }
+
+/* listy wydarzeń: wielkie cyfry dnia */
+.ev .when b { font-family: var(--display); font-size: 26px !important; font-weight: 800 !important; letter-spacing: -.05em; }
+.ev .body b { font-weight: 700 !important; letter-spacing: -.01em; }
+.section h2, .cal-list .section h2 { font-size: 20px !important; font-weight: 800 !important; letter-spacing: -.03em; }
+.mo-ann .mo-next-b b { font-size: 24px; }
+.mo-ann-t { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* ogłoszenia: duże tytuły */
+.ann-list .ann > b, .ann .ann-title, .ann > span > b { font-size: 18px !important; font-weight: 700 !important; letter-spacing: -.015em; }
+/* grafik służby: wielkie daty, Twoja najbliższa służba w polu koloru */
+.sg-mine { cursor: default; }
+.sg-table .sg-d b { font-family: var(--display); font-size: 20px !important; font-weight: 800 !important; letter-spacing: -.04em; }
+.sg-wrap { border-radius: 20px !important; }
+.ms-head h2 { font-size: 34px !important; font-weight: 800 !important; letter-spacing: -.045em !important; line-height: .95 !important; }
+/* Więcej: imię jako nagłówek, Kanały KNS w polu koloru */
+.mo-me { display: flex !important; align-items: center; gap: 12px; width: 100%; min-height: 0 !important; margin: 4px 0 14px !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; text-align: left; color: var(--text) !important; }
+.mo-me > span:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mo-me b { font-family: var(--display); font-size: 48px; line-height: .92; font-weight: 800 !important; letter-spacing: -.05em; overflow-wrap: anywhere; }
+.mo-me small { color: var(--muted); font-size: 14px; margin-top: 6px; }
+.mo-me-go { flex: none; padding: 9px 14px; border-radius: 999px; background: var(--panel); font-size: 13px; font-weight: 600; }
+.more-list.ln-field, html[data-theme="light"] .more-list.ln-field { background: var(--field-hero) !important; border-radius: 24px !important; }
+.more-list.ln-field button { color: var(--field-hero-ink) !important; background: transparent !important; border: 0 !important; }
+.more-list.ln-field button + button { border-top: 1px solid var(--field-hero-rule) !important; }
+.more-list.ln-field :is(.ln-note, .chev, svg.i) { color: var(--field-hero-ink) !important; opacity: .85; }
+@media (min-width: 1024px) { .more-list.ln-field { display: flex !important; flex-direction: column; gap: 0 !important; padding: 4px 8px; } .more-list.ln-field button { border-radius: 0 !important; min-height: 60px !important; } }

@@ -1,6 +1,6 @@
 <script lang="ts">
 // @ts-nocheck — szablon przeniesiony z App.vue; stan i działania wspólne (useApp)
-import { defineComponent, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineComponent, onBeforeUnmount, ref, watch } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { useSwipe } from '@/utils/swipe'
 
@@ -20,7 +20,10 @@ export default defineComponent({
     }, { flush: 'post' })
     onBeforeUnmount(() => io?.disconnect())
     // miesiąc idzie za palcem; strzałki — to samo przejście
-    return { ...app, inviteEnd, inviteStuck, ...useSwipe(() => app.shiftMonth(1), () => app.shiftMonth(-1), { target: '.cal-grid' }) }
+    // najbliższe wydarzenie w polu koloru (Monolit) — gdy nie wybrano dnia; lista pod nim bez niego
+    const nextEv = computed(() => (!app.selDay.value && app.agenda.value.length ? app.agenda.value[0] : null))
+    const listAgenda = computed(() => (nextEv.value ? app.agenda.value.slice(1) : app.agenda.value))
+    return { ...app, nextEv, listAgenda, inviteEnd, inviteStuck, ...useSwipe(() => app.shiftMonth(1), () => app.shiftMonth(-1), { target: '.cal-grid' }) }
   },
 })
 </script>
@@ -55,11 +58,16 @@ export default defineComponent({
   </div>
   </div>
   <div class="cal-list">
-  <div class="section"><h2>{{ selDay ? pretty(selDay) : 'Najbliższe' }}</h2><button v-if="selDay" class="ghost" @click="selDay = ''">Wszystkie</button></div>
+  <button v-if="nextEv" class="mo-next" :style="{ '--c': typeOf(nextEv.type).color }" @click="openItem(nextEv)">
+    <span class="mo-next-d"><small>{{ wd(nextEv.date) }}</small><b>{{ day(nextEv.date) }}</b><small>{{ month(nextEv.date) }}</small></span>
+    <span class="mo-next-b"><small>Najbliższe · {{ typeOf(nextEv.type).name }}</small><b>{{ nextEv.title }}</b><span>{{ nextEv.time || 'cały dzień' }}<template v-if="nextEv.place"> · {{ nextEv.place }}</template></span></span>
+    <svg class="i"><use href="#chev"/></svg>
+  </button>
+  <div class="section"><h2>{{ selDay ? pretty(selDay) : nextEv ? 'Później' : 'Najbliższe' }}</h2><button v-if="selDay" class="ghost" @click="selDay = ''">Wszystkie</button></div>
   <Transition name="cal-swap" mode="out-in">
   <div :key="selDay || 'all'" class="cal-agenda">
-  <p v-if="!agenda.length" class="note">{{ selDay ? 'Tego dnia nic nie zaplanowano.' : calQuery.trim() ? 'Nic nie znaleziono dla „' + calQuery.trim() + '”.' : calSel.length ? 'Brak nadchodzących wydarzeń tego rodzaju.' : 'Na najbliższe tygodnie nic nie zaplanowano.' }}</p>
-  <button v-for="it in agenda" :key="it.kind + it.id" class="ev" :style="{ '--c': typeOf(it.type).color }" @click="openItem(it)">
+  <p v-if="!agenda.length || (!listAgenda.length && !nextEv)" class="note">{{ selDay ? 'Tego dnia nic nie zaplanowano.' : calQuery.trim() ? 'Nic nie znaleziono dla „' + calQuery.trim() + '”.' : calSel.length ? 'Brak nadchodzących wydarzeń tego rodzaju.' : 'Na najbliższe tygodnie nic nie zaplanowano.' }}</p>
+  <button v-for="it in listAgenda" :key="it.kind + it.id" class="ev" :style="{ '--c': typeOf(it.type).color }" @click="openItem(it)">
     <span class="when"><small>{{ wd(it.date) }}</small><b>{{ day(it.date) }}</b><small>{{ month(it.date) }}</small></span>
     <span class="body"><b>{{ it.title }}</b><small>{{ it.time || 'cały dzień' }}<template v-if="it.place"> · {{ it.place }}</template></small><span class="tag">{{ typeOf(it.type).name }}</span></span>
     <svg class="i chev"><use href="#chev"/></svg>

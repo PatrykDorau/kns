@@ -40,6 +40,8 @@ export default defineComponent({
     const plural = n => (G.value ? (n === 1 ? 'grupka' : few(n) ? 'grupki' : 'grupek') : n === 1 ? 'wpis' : few(n) ? 'wpisy' : 'wpisów')
     const osob = n => (n === 1 ? 'osoba' : few(n) ? 'osoby' : 'osób')
     const myGroup = computed(() => st.groups.find(g => g.mine) || null)
+    // pole koloru: moje osiedle — ile osób z kościoła i moja grupka
+    const myArea = computed(() => { const m = st.list.find(e => e.mine); return m ? { area: m.area, name: m.area.slice(3), n: st.list.filter(e => e.area === m.area).length } : null })
     const hoverArea = computed(() => areas.value.find(a => a.id === st.hover) || null)
     // ramka kształtu klikniętego obszaru (z liczb w ścieżce) — do powiększonego podglądu
     const selBox = computed(() => {
@@ -197,7 +199,7 @@ export default defineComponent({
     })
     const mapCard = ref(null)
     function showOnMap(e) { focus(e); setTimeout(() => mapCard.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }
-    return { ...app, listRows, mapCard, showOnMap, MAP, G, items, osob, myGroup, setMode, openGroup, toggleLeader, saveGroup, removeGroup, join, when, ppu, lines, bubbles, plural, hoverArea, selBox, side, st, z, geo, areas, byArea, pzCount, mine, hits, hitAreas, selArea, selList, areaName, maxLabels, fs, svg, vb, zoomAt, reset, wheel, down, move, up, pick, setView, goPoznan, focus, OPTIONS, openMe, openEdit, save, remove }
+    return { ...app, myArea, listRows, mapCard, showOnMap, MAP, G, items, osob, myGroup, setMode, openGroup, toggleLeader, saveGroup, removeGroup, join, when, ppu, lines, bubbles, plural, hoverArea, selBox, side, st, z, geo, areas, byArea, pzCount, mine, hits, hitAreas, selArea, selList, areaName, maxLabels, fs, svg, vb, zoomAt, reset, wheel, down, move, up, pick, setView, goPoznan, focus, OPTIONS, openMe, openEdit, save, remove }
   },
 })
 </script>
@@ -222,6 +224,11 @@ export default defineComponent({
   <p v-else-if="st.q" class="note">{{ G ? 'Nie ma takiej grupki.' : 'Nikogo takiego na mapie.' }}</p>
   <p v-if="st.error && !st.edit && !st.gedit" class="error">{{ st.error }}</p>
 
+  <button v-if="myArea" class="mo-next km-mine" @click="focus({ area: myArea.area })">
+    <span class="mo-next-d"><b>{{ myArea.n }}</b><small>{{ osob(myArea.n) }}</small></span>
+    <span class="mo-next-b"><small>Twoje {{ myArea.area.startsWith('pz:') ? 'osiedle' : 'okolice' }}</small><b>{{ myArea.name }}</b><span>{{ myGroup ? 'Grupka: ' + myGroup.name + (when(myGroup) ? ' · ' + when(myGroup) : '') : 'Bez grupki — sprawdź „Grupki domowe”' }}</span></span>
+    <svg class="i"><use href="#pin"/></svg>
+  </button>
   <div class="km-wrap">
     <div ref="mapCard" class="km-card">
       <div class="km-badge"><span>{{ G ? 'Grupki domowe' : 'Mapa KNS' }}</span><b>{{ st.view === 'pz' ? 'Poznań' : 'Okolice Poznania' }}</b></div>

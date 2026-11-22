@@ -4,23 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0a" media="(prefers-color-scheme: dark)">
 <title>Ankieta — ASB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
 <!-- Ankieta ASB z kodu QR (bez konta): /ankieta?t=<token>. Pytania z funkcji bazy asb_survey_public, odpowiedzi do
      asb_survey_submit (baza przyjmuje tylko znane pytania i opcje). Jedna odpowiedź z urządzenia — zapamiętana lokalnie.
      Test z udawaną bazą: ?t=test (pytania przykładowe, bez wysyłania). -->
 <style>
-  :root { --bg: #faf8f5; --panel: #efebe5; --panel2: #e3ded5; --line: #ddd2bf; --text: #221d16; --muted: #5c5447; --accent: #f2a53c; --ok: #2f8a57; --bad: #c8423b; color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --panel: #262626; --panel2: #303030; --line: #3a3a3a; --text: #f4f4f2; --muted: #bcbcb8; --ok: #8fd19e; --bad: #ff8a8d; color-scheme: dark; } }
+  :root { --bg: #f3f1ec; --panel: #e9e6de; --panel2: #e0ddd4; --line: #ddd2bf; --text: #141612; --muted: #55574d; --accent: #f2a53c; --ok: #2f8a57; --bad: #c8423b; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b0b0a; --panel: #171615; --panel2: #1f1e1c; --line: #3a3a3a; --text: #f4f2ec; --muted: #aca89f; --ok: #8fd19e; --bad: #ff8a8d; color-scheme: dark; } }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 "Inter", system-ui, "Segoe UI", sans-serif; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 "Bricolage Grotesque", "Inter", system-ui, "Segoe UI", sans-serif; }
   main { max-width: 560px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 16px 48px; }
   header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
   header .mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--accent); color: #2a1906; font-weight: 800; font-size: 15px; letter-spacing: .02em; }
   header b { display: block; font-size: 15px; }
   header small { color: var(--muted); font-size: 13px; }
-  h1 { margin: 0 0 6px; font-size: 28px; line-height: 1.15; letter-spacing: -.02em; }
+  h1 { margin: 0 0 6px; font-size: calc(28px + 6px); line-height: 1; font-weight: 800; letter-spacing: -.045em; }
   .lead { margin: 0 0 22px; color: var(--muted); white-space: pre-line; }
   fieldset { margin: 0 0 14px; padding: 16px; border: 0; border-radius: 20px; background: var(--panel); }
   legend { float: left; width: 100%; padding: 0; margin: 0 0 10px; font-size: 18px; font-weight: 650; }

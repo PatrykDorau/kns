@@ -29,10 +29,12 @@ export default defineComponent({
 </script>
 
 <template>
+  <!-- ja: imię jako duży nagłówek (Monolit), stuknięcie — mój profil -->
+  <button v-if="api.enabled && me" class="mo-me" @click="openProfile"><span><b>{{ (me.name || me.email || '').split(' ')[0] }}</b><small>{{ [myRanks, me.grupa].filter(Boolean).join(' · ') || 'Uzupełnij profil' }}</small></span><span class="mo-me-go">Profil</span></button>
   <!-- kanały KNS: z aplikacji do grup WhatsApp, na Facebooka i stronę — tylko dla zalogowanych -->
   <template v-if="api.enabled && (ln.list.length || canManage)">
     <div class="more-sec ln-h"><h2 class="more-sec">Kanały KNS</h2><button v-if="canManage" class="ghost" @click="editLinks"><svg class="i"><use href="#pencil"/></svg>{{ ln.list.length ? 'Zmień' : 'Dodaj linki' }}</button></div>
-    <nav v-if="ln.list.length" class="more-list" aria-label="Kanały KNS">
+    <nav v-if="ln.list.length" class="more-list ln-field" aria-label="Kanały KNS">
       <button v-for="l in ln.list" :key="l.id" @click="openLink(l)"><svg class="i"><use :href="'#' + ICON[KIND(l.url)]"/></svg><span>{{ l.name }}<small class="ln-note">{{ [KIND(l.url), l.note].filter(Boolean).join(' · ') }}</small></span><small></small><svg class="i chev"><use href="#link"/></svg></button>
     </nav>
     <p v-else class="note">Dodaj linki do grup WhatsApp (członkowie, kobiety…), Facebooka i strony KNS — członkowie dotrą do nich z aplikacji. Linki widzą tylko zalogowani.</p>
