@@ -3,6 +3,7 @@
 import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
+import { cached, remember } from '@/utils/viewCache' // ostatnie dane od razu przy ponownym wejściu
 import ColChart from '@/components/ColChart.vue'
 import DonutChart from '@/components/DonutChart.vue'
 import ComboChart from '@/components/ComboChart.vue'
@@ -81,10 +82,12 @@ export default defineComponent({
       for (const [k, n] of Object.entries(r.counts)) st.ev[k] = n
       if (!st.ev.src_basis || st.ev.src_basis === 'zapisy' && st.ev.signups == null) st.ev.src_basis = 'ankieta'
     }
+    { const c = cached('asbStats', app.me.value?.email); if (c) Object.assign(st, { events: c.events, ads: c.ads, cities: c.cities, fbEvents: c.fbEvents || [], meetings: c.meetings || [] }) }
     async function load() {
-      st.busy = true; st.error = ''
+      st.busy = !st.events.length; st.error = ''
       try {
         const r = await app.api.call('asbStats')
+        remember('asbStats', app.me.value?.email, r)
         Object.assign(st, { events: r.events, ads: r.ads, cities: r.cities, fbEvents: r.fbEvents || [], meetings: r.meetings || [] })
         loadSurveys()
         const cs = cityList.value

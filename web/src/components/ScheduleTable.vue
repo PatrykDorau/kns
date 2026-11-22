@@ -173,7 +173,7 @@ export default defineComponent({
     </div>
     </Teleport>
   </div>
-  <p v-else class="note">Wczytywanie grafiku…</p>
+  <div v-else class="skel-list" aria-busy="true" aria-label="Wczytywanie grafiku"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
 </template>
 
 <style scoped>

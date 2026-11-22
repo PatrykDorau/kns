@@ -1,14 +1,14 @@
 {
   "name": "Kościół Na Skale",
   "short_name": "KNS",
-  "description": "Organizacja nabożeństw Kościoła Na Skale",
+  "description": "Aplikacja Kościoła Na Skale: nabożeństwa, kalendarz, ogłoszenia, służby i grafik",
   "lang": "pl",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1a1a1a",
-  "theme_color": "#1a1a1a",
+  "background_color": "#0b0b0a",
+  "theme_color": "#0b0b0a",
   "icons": [
     {
       "src": "icon-192.png?v=4",

@@ -2,7 +2,7 @@
 // Talia kart: przechylone karty jedna na drugiej; górną przeciąga się palcem/myszą (albo strzałkami) — odlatuje na spód talii.
 // Karta: zdjęcie (albo kolor i pierwsza litera), znaczek, tytuł, podpis. Kliknięcie górnej karty — „open”.
 import { computed, ref } from 'vue'
-import { animate } from 'motion'
+import { springTo } from '@/utils/spring'
 
 // action — przycisk pod talią dla tej karty (np. „Biorę”); '' — bez przycisku; brak — wspólny z „action” talii
 export interface DeckCard { key: string; title: string; sub?: string; tag?: string; image?: string; color?: string; action?: string }
@@ -48,7 +48,7 @@ function up(e: PointerEvent) {
   if (Math.abs(dx) > 90) { el.style.transform = ''; dragging.value = false; fling(dx > 0 ? 1 : -1, dx); return }
   dragging.value = false
   if (still) { el.style.transform = ''; return }
-  animate(el, { transform: 'translateX(0px) rotate(0deg)' }, { type: 'spring', stiffness: 500, damping: 32 }).then(() => { if (!dragging.value) el.style.transform = '' })
+  springTo(el, { transform: 'translateX(0px) rotate(0deg)' }, 420).then(() => { if (!dragging.value) el.style.transform = '' })
 }
 // górna karta odlatuje w bok (kopia) i trafia na spód; od razu górną staje się następna
 function fling(dir: number, fromX = 0) {

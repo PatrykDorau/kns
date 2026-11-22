@@ -74,8 +74,10 @@ export default defineComponent({
     function discover() {
       if (!ready.value) { show(); return }
       switchedAt = performance.now()
-      open.value = true; body.add('guest-open')
+      // przewijanie zablokowane na czas wjazdu strony — inaczej ten sam gest palcem (i jego rozpęd) przewijał od razu kilka sekcji w dół
+      open.value = true; body.add('guest-open', 'guest-opening')
       window.scrollTo(0, 0); topAt = performance.now()
+      setTimeout(() => { body.remove('guest-opening'); window.scrollTo(0, 0); topAt = performance.now() }, still ? 0 : 1000)
       setTimeout(() => page.value?.querySelector('h2')?.focus({ preventScroll: true }), still ? 0 : 900)
     }
     function back() {
@@ -108,7 +110,7 @@ export default defineComponent({
       // góra z tła (szybsza) to ekran wczytywania — zwykle już się rysuje od startu strony (boot.ts), więc czekamy do końca
       timer = window.setTimeout(show, continueBackdrop(0.42) + 150)
     })
-    onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open') })
+    onBeforeUnmount(() => { clearTimeout(timer); body.remove('guest-page', 'guest-ready', 'guest-open', 'guest-opening') })
     return { ...app, trail, trailDrawn, svc, svcDate, svcTime, svcPlace, when, cdText, events, anns, calLink, ready, open, page, show, discover, back, wheel, touchStart, touchMove, key }
   },
 })
@@ -241,7 +243,8 @@ export default defineComponent({
 body.guest-page { padding: 0 !important; }
 body.guest-page #app { max-width: none; padding-bottom: 0; }
 body.guest-page #app > .gx { max-width: none !important; margin: 0 !important; }
-body.guest-page:not(.guest-open), html:has(body.guest-page:not(.guest-open)) { overflow: hidden; }
+body.guest-page:not(.guest-open), html:has(body.guest-page:not(.guest-open)), body.guest-opening, html:has(body.guest-opening) { overflow: hidden; }
+body.guest-opening { touch-action: none; }
 body.guest-page.hdr-hide .gx-bar { transform: translateY(-100%); }
 /* pierwszy ekran: góra rysuje się na cały ekran w tle; po narysowaniu przygasa, a na niej pojawia się nazwa */
 body.guest-page .kns-backdrop { height: 94svh; opacity: .6; transition: transform .95s cubic-bezier(.7, 0, .2, 1), opacity 1.2s ease; }

@@ -8,14 +8,18 @@ import DutyInvites, { duties, loadDuties } from '@/components/DutyInvites.vue'
 import SundayLineup from '@/components/SundayLineup.vue'
 
 // HomeView
+const MINE = reactive({ av: [], surveys: [], focus: [], tasks: [], loaded: false, who: '' })
 export default defineComponent({
   components: { SermonNotes, CardDeck, DutyInvites, SundayLineup },
   setup() {
     const app = useApp()
     // „Dla Ciebie”: grafik i dyspozycyjność w moich służbach, ankiety bez mojej odpowiedzi, modlitwa dnia/tygodnia
-    const mine = reactive({ av: [], surveys: [], focus: [], tasks: [], loaded: false })
+    // „Dla Ciebie” trzymane między wejściami na Start (moduł, nie komponent) — po powrocie od razu widać ostatnie, świeże dochodzą w tle
+    const mine = MINE
+    if (mine.who !== (app.me.value?.email || '')) Object.assign(mine, { av: [], surveys: [], focus: [], tasks: [], loaded: false, who: app.me.value?.email || '' })
     async function loadMine() {
       if (!app.api.enabled || !app.ready.value) return
+      mine.who = app.me.value?.email || ''
       const [av, sv, fc, tk] = await Promise.all(['availability', 'surveys', 'prayerFocus', 'myTasks'].map(a => app.api.call(a).catch(() => null)))
       mine.av = av || []; mine.surveys = sv?.list || (Array.isArray(sv) ? sv : []); mine.focus = fc || []; mine.tasks = tk || []; mine.loaded = true
     }

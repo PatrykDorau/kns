@@ -111,14 +111,19 @@ export default defineComponent({
       <p v-for="c in clashes" :key="c.id" class="av-clash"><svg class="i"><use href="#warn"/></svg><span><b>{{ c.name }}: „nie mogę”, a w grafiku</b><small>{{ c.days.map(dayLabel).join(', ') }} · {{ m.lead ? 'zmień grafik albo ustal to z tą osobą' : 'ustal zmianę z liderem' }}</small></span></p>
     </template>
 
+    <div v-if="m.member" class="av-howto">
+      <b>Jak to działa?</b>
+      <p>Przy każdej niedzieli zaznacz, czy możesz służyć. <b>Stuknij kafelek</b> — kolejne stuknięcia zmieniają odpowiedź: <span class="st-yes">✓ mogę</span> → <span class="st-no">✕ nie mogę</span> → <span class="st-maybe">? nie wiem</span> → bez odpowiedzi. Zapisuje się od razu.</p>
+      <p>{{ m.lead ? 'Na tej podstawie układasz grafik — w tabeli „Kto kiedy może” widzisz odpowiedzi wszystkich.' : 'Lider widzi Twoje odpowiedzi i na ich podstawie układa grafik.' }} Niedziela, na którą jesteś w grafiku, ma znaczek <span class="av-tag">w grafiku</span>.</p>
+    </div>
     <section v-if="m.member" class="av-block">
       <h4>Kiedy mogę<small>{{ myAnswers(m) }} z {{ m.days.length }} niedziel</small></h4>
       <div class="avail-days" role="group" :aria-label="'Moja dyspozycyjność: ' + m.name">
         <button v-for="d in m.days" :key="d" type="button" class="avail-day" :class="[m.mine[d] ? 'st-' + m.mine[d] : '', { planned: inPlan(m, d, m.you), locked: locked(m, d), clash: inPlan(m, d, m.you) && m.mine[d] === 'no' }]" :aria-disabled="locked(m, d)" :title="(LABEL[m.mine[d]] || 'Brak odpowiedzi') + (locked(m, d) ? ' · w grafiku — zmianę ustal z liderem' : inPlan(m, d, m.you) ? ' · w grafiku' : '')" :aria-label="dayLabel(d) + ': ' + (LABEL[m.mine[d]] || 'brak odpowiedzi') + (inPlan(m, d, m.you) ? ', jesteś w grafiku' : '')" @click="cycle(m, d)">
-          <small>{{ dayLabel(d) }}</small><span>{{ m.mine[d] === 'yes' ? '✓' : m.mine[d] === 'no' ? '✕' : m.mine[d] === 'maybe' ? '?' : '–' }}</span>
+          <small>{{ dayLabel(d) }}</small><span>{{ m.mine[d] === 'yes' ? '✓' : m.mine[d] === 'no' ? '✕' : m.mine[d] === 'maybe' ? '?' : '–' }}</span><em v-if="inPlan(m, d, m.you)" class="av-tag">w grafiku</em>
         </button>
       </div>
-      <p class="av-legend"><span><b class="st-yes">✓</b> mogę</span><span><b class="st-no">✕</b> nie mogę</span><span><b class="st-maybe">?</b> nie wiem</span><span><i></i> w grafiku</span></p>
+      <p class="av-legend"><span><b class="st-yes">✓</b> mogę</span><span><b class="st-no">✕</b> nie mogę</span><span><b class="st-maybe">?</b> nie wiem</span><span><em class="av-tag">w grafiku</em> jesteś w grafiku</span></p>
     </section>
 
     <section class="av-block">
@@ -144,7 +149,7 @@ export default defineComponent({
             <tbody>
               <tr v-for="p in m.people" :key="p.id"><th>{{ p.name }}</th>
                 <td v-for="d in m.days" :key="d" :class="[p.states[d] ? 'st-' + p.states[d] : '', { planned: inPlan(m, d, p.id), pick: av.planning[m.id], clash: inPlan(m, d, p.id) && p.states[d] === 'no' }]" :title="(LABEL[p.states[d]] || 'brak') + (inPlan(m, d, p.id) ? ' · w grafiku' : '') + (av.planning[m.id] ? ' — kliknij: do grafiku / z grafiku' : '')"
-                    @click="av.planning[m.id] && togglePlan(m, d, p)">{{ p.states[d] === 'yes' ? '✓' : p.states[d] === 'no' ? '✕' : p.states[d] === 'maybe' ? '?' : '' }}</td></tr>
+                    @click="av.planning[m.id] && togglePlan(m, d, p)">{{ p.states[d] === 'yes' ? '✓' : p.states[d] === 'no' ? '✕' : p.states[d] === 'maybe' ? '?' : '' }}<i v-if="inPlan(m, d, p.id)" class="av-dot" aria-label="w grafiku"></i></td></tr>
               <tr class="avail-sum"><th>Mogą</th><td v-for="d in m.days" :key="d">{{ count(m, d, 'yes') }}</td></tr>
               <tr class="avail-sum"><th>W grafiku</th><td v-for="d in m.days" :key="d" :class="{ on: planned(m, d) }">{{ planned(m, d) }}</td></tr>
             </tbody>
@@ -157,7 +162,7 @@ export default defineComponent({
           <button class="small" :class="{ primary: av.planning[m.id] }" :aria-pressed="!!av.planning[m.id]" :disabled="!m.people.length" title="Klikaj komórki tabeli: osoba → niedziela" @click="av.planning[m.id] = !av.planning[m.id]"><svg class="i"><use :href="av.planning[m.id] ? '#check' : '#calendar'"/></svg>{{ av.planning[m.id] ? 'Gotowe' : 'Układam grafik' }}</button>
           <button class="small" :class="{ primary: !av.planning[m.id] && unsent(m) }" :disabled="av.busy || !unsent(m)" title="Nowe osoby z grafiku dostaną zaproszenie: Przyjmuję / Nie mogę" @click="publish(m)"><svg class="i"><use href="#megaphone"/></svg>Wyślij zaproszenia<template v-if="unsent(m)"> ({{ unsent(m) }})</template></button>
         </div>
-        <p v-for="c in clashes" :key="c.id" class="av-clash"><svg class="i"><use href="#warn"/></svg><span><b>{{ c.name }}: „nie mogę”, a w grafiku</b><small>{{ c.days.map(dayLabel).join(', ') }} · {{ m.lead ? 'zmień grafik albo ustal to z tą osobą' : 'ustal zmianę z liderem' }}</small></span></p>
+        <p v-for="c in (availOnly ? [] : clashes)" :key="c.id" class="av-clash"><svg class="i"><use href="#warn"/></svg><span><b>{{ c.name }}: „nie mogę”, a w grafiku</b><small>{{ c.days.map(dayLabel).join(', ') }} · {{ m.lead ? 'zmień grafik albo ustal to z tą osobą' : 'ustal zmianę z liderem' }}</small></span></p>
         <div v-if="!availOnly && planDays.length" class="avail-plan">
           <div v-for="d in planDays" :key="d" class="ap-row" :class="{ me: inPlan(m, d, m.you) }"><b>{{ dayLabel(d) }}</b>
             <span class="ap-pills"><span v-for="x in lineup(m, d)" :key="x.id" class="ap-pill" :class="'st-' + x.state" :title="STATE[x.state][1]"><i>{{ STATE[x.state][0] }}</i>{{ x.name }}<select v-if="m.lead && (m.roles || []).length" :value="x.role" :aria-label="'Rola: ' + x.name" @change="setRole(m, d, x.id, $event.target.value)"><option value="">bez roli</option><option v-for="r in m.roles" :key="r">{{ r }}</option></select><em v-else-if="x.role">{{ x.role }}</em></span></span>
@@ -188,7 +193,14 @@ export default defineComponent({
 .avail-day.clash { box-shadow: 0 0 0 2px var(--bad-text); }
 .av-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; color: var(--muted); font-size: 13px; }
 .av-legend span { display: inline-flex; align-items: center; gap: 5px; }
-.av-legend i { width: 12px; height: 12px; border-radius: 4px; box-shadow: inset 0 0 0 2px var(--accent); }
+.av-howto { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 6px; padding: 14px 16px; border-radius: 18px; background: var(--panel2); font-size: 14px; line-height: 1.45; }
+.av-howto > b { font-size: 15px; }
+.av-howto p { margin: 0; color: var(--muted); }
+.av-howto p b { color: var(--text); }
+.av-howto .st-yes, .av-howto .st-no, .av-howto .st-maybe { font-weight: 700; white-space: nowrap; }
+.av-tag { display: inline-block; padding: 1px 7px; border-radius: 999px; background: var(--field-hero, #24392d); color: var(--field-hero-ink, #f3f1ec); font: 700 10.5px/1.5 var(--display); font-style: normal; white-space: nowrap; }
+.avail-day .av-tag { margin-top: 3px; }
+.av-dot { display: inline-block; width: 8px; height: 8px; margin-left: 5px; border-radius: 50%; background: var(--field-hero, #24392d); vertical-align: middle; }
 .av-empty { margin: 0; color: var(--muted); font-size: 14px; }
 .av-progress { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 14px; }
 .av-progress b { color: var(--text); }

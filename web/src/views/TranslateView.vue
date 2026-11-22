@@ -148,7 +148,7 @@ export default defineComponent({
       <label v-for="m in st.info.ministries" :key="m.id" class="check"><input type="checkbox" :checked="m.on" @change="toggleMinistry(m, $event.target.checked)">{{ m.name }}</label>
     </details>
   </template>
-  <p v-else-if="!st.error" class="note">Wczytywanie…</p>
+  <div v-else-if="!st.error" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
 </template>
 
 <style scoped>

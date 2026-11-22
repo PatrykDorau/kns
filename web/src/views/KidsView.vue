@@ -3,6 +3,7 @@
 import { computed, defineComponent, onMounted, onUnmounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
+import { cached, remember } from '@/utils/viewCache' // ostatnie dane od razu przy ponownym wejściu
 
 // Meldowanie dzieci (wzór: Avenit, bez drukarki). Rodzic: swoje dzieci, meldunek do sali i kod odbioru na ekranie.
 // Nauczyciel szkółki: dzisiejsze sale z alergiami i wydawanie dziecka po kodzie. Administrator: która służba to szkółka.
@@ -10,12 +11,15 @@ export default defineComponent({
   setup() {
     const app = useApp()
     const st = reactive({ me: null, board: [], error: '', busy: false, pick: {}, room: '', form: null, code: '', picked: '', rooms: null })
+    const who = () => app.me.value?.email
+    { const c = cached('kids', who()); if (c) { st.me = c.me; st.board = c.board; st.room = c.me?.rooms?.[0] || '' } }
     async function load() {
       st.error = ''
       try {
         st.me = await app.api.call('kids')
         if (!st.room) st.room = st.me.rooms?.[0] || ''
         if (st.me.teacher) st.board = (await app.api.call('kidsBoard')) || []
+        remember('kids', who(), { me: st.me, board: st.board })
       } catch (e) { st.error = e.message }
     }
     onMounted(load)
@@ -109,7 +113,7 @@ export default defineComponent({
       <label v-for="m in st.me.ministries" :key="m.id" class="check"><input type="checkbox" :checked="m.kids" @change="setKidsMinistry(m, $event.target.checked)">{{ m.name }}</label>
     </details>
   </template>
-  <p v-else-if="!st.error" class="note">Wczytywanie…</p>
+  <div v-else-if="!st.error" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
 </template>
 
 <style scoped>

@@ -2,14 +2,19 @@
 // @ts-nocheck — stan i działania wspólne (useApp)
 import { defineComponent, onMounted, ref } from 'vue'
 import { useApp } from '@/composables/useApp'
+import { cached, remember } from '@/utils/viewCache' // ostatnie dane od razu przy ponownym wejściu
 
 // „Skład na niedzielę” (wzór: Avenit) — kto w najbliższą niedzielę służy w każdej służbie, z rolą i stanem
 // potwierdzenia (✓ przyjął, ⏱ czeka, ✕ nie może). Widzą wszyscy zatwierdzeni członkowie; wpisy niewysłane — nie.
 export default defineComponent({
   setup() {
     const app = useApp()
-    const line = ref(null)
-    onMounted(async () => { if (app.api.enabled) line.value = await app.api.call('sundayLineup').catch(() => null) })
+    const line = ref(cached('lineup', app.me.value?.email) || null)
+    onMounted(async () => {
+      if (!app.api.enabled) return
+      const v = await app.api.call('sundayLineup').catch(() => undefined)
+      if (v !== undefined) { line.value = v; remember('lineup', app.me.value?.email, v) }
+    })
     const ICON = { yes: '✓', sent: '⏱', no: '✕' }
     const TITLE = { yes: 'potwierdził(a)', sent: 'czeka na odpowiedź', no: 'nie może' }
     const day = d => new Date(d + 'T12:00').toLocaleDateString('pl', { day: 'numeric', month: 'long' })

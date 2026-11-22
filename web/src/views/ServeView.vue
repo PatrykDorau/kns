@@ -13,18 +13,18 @@ export default defineComponent({
     // przesunięcie palcem: w lewo — „Moja służba”, w prawo — „Wszystkie służby” (gdy jest zakładka „Moja służba”)
     const hasMine = () => app.sideNav.value.some(g => g.items.some(i => i.id === 'myserve'))
     const swipe = useSwipe(() => { app.serveTab.value = 'mine' }, () => { app.serveTab.value = 'all' }, {
-      skip: '.avail-days, .avail-table-wrap, .chips, .ui-select-list', target: '.serve-pane',
+      skip: '.avail-days, .avail-table-wrap, .chips, .ui-select-list, .sg-wrap, .ms-pick, .ms-tabs, table, .seg', target: '.serve-pane',
       canLeft: () => hasMine() && app.serveTab.value === 'all', canRight: () => app.serveTab.value === 'mine',
     })
     // zakładki: to samo przejście co przesunięcie palcem
     const tab = (t, pane) => { if (app.serveTab.value !== t) swipe.swipeTo(t === 'mine' ? -1 : 1, () => { app.serveTab.value = t }, pane) }
-    return { ...app, ...swipe, tab }
+    return { ...app, ...swipe, tab, hasMine }
   },
 })
 </script>
 
 <template>
-<div class="serve-view" @touchstart.passive="swipeStart" @touchmove.passive="swipeMove" @touchend="swipeEnd">
+<div class="serve-view" :data-swipe-claim="serveTab === 'all' && hasMine() ? 'left' : serveTab === 'mine' ? 'right' : ''" @touchstart.passive="swipeStart" @touchmove.passive="swipeMove" @touchend="swipeEnd">
   <div v-if="sideNav.some(g => g.items.some(i => i.id === 'myserve'))" class="serve-tabs" role="tablist">
     <button role="tab" :aria-selected="serveTab === 'all'" @click="tab('all', $refs.pane)"><svg class="i"><use href="#serve"/></svg>Wszystkie służby</button>
     <button role="tab" :aria-selected="serveTab === 'mine'" @click="tab('mine', $refs.pane)"><svg class="i"><use href="#users"/></svg>Moja służba</button>

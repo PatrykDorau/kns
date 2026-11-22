@@ -181,7 +181,7 @@ html[data-theme="light"] .gx .gx-chip { background: var(--panel) !important; }
 .sg-mine { cursor: default; }
 .sg-table .sg-d b { font-family: var(--display); font-size: 20px !important; font-weight: 800 !important; letter-spacing: -.04em; }
 .sg-wrap { border-radius: 20px !important; }
-.ms-head h2 { font-size: 34px !important; font-weight: 800 !important; letter-spacing: -.045em !important; line-height: .95 !important; }
+.ms-head h2 { font-size: clamp(24px, 6.4vw, 34px) !important; font-weight: 800 !important; letter-spacing: -.045em !important; line-height: .95 !important; }
 /* Więcej: imię jako nagłówek, Kanały KNS w polu koloru */
 .mo-me { display: flex !important; align-items: center; gap: 12px; width: 100%; min-height: 0 !important; margin: 4px 0 14px !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; text-align: left; color: var(--text) !important; }
 .mo-me > span:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -193,3 +193,57 @@ html[data-theme="light"] .gx .gx-chip { background: var(--panel) !important; }
 .more-list.ln-field button + button { border-top: 1px solid var(--field-hero-rule) !important; }
 .more-list.ln-field :is(.ln-note, .chev, svg.i) { color: var(--field-hero-ink) !important; opacity: .85; }
 @media (min-width: 1024px) { .more-list.ln-field { display: flex !important; flex-direction: column; gap: 0 !important; padding: 4px 8px; } .more-list.ln-field button { border-radius: 0 !important; min-height: 60px !important; } }
+
+/* najechanie na pola koloru: ogólna reguła przycisków (ciemne tło --panel3) nie może ich przyciemniać — delikatny krok w kolorze pola */
+@media (hover: hover) {
+  button.mo-next:hover:not(:disabled) { background: color-mix(in srgb, var(--field-hero) 90%, var(--field-hero-ink)) !important; filter: none; }
+  :is(button, a).mo-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--field-hero-ink) 86%, var(--field-hero)) !important; filter: none; }
+  :is(button, a).mo-btn.ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--field-hero-ink) 24%, var(--field-hero)) !important; }
+  button.mo-me:hover:not(:disabled) { background: none !important; }
+  button.mo-me:hover .mo-me-go { background: var(--panel2); }
+  .more-list.ln-field button:hover:not(:disabled) { background: var(--field-hero-rule) !important; }
+  body .gx .gx-join .gx-btn.gx-accent[class]:hover:not(:disabled), html[data-theme="light"] body .gx .gx-join .gx-btn.gx-accent[class]:hover:not(:disabled) { background: color-mix(in srgb, var(--field-hero-ink) 86%, var(--field-hero)) !important; }
+}
+
+/* strona dla gości: najechanie na przyciski — stare kolory (jasne tło przy jasnym tekście) znikały w ciemnym trybie */
+@media (hover: hover) {
+  body .gx .gx-btn.gx-light[class]:hover:not(:disabled), html[data-theme="light"] body .gx .gx-btn.gx-light[class]:hover:not(:disabled) { background: var(--panel3) !important; color: var(--text) !important; }
+  body .gx .gx-btn.gx-dark[class]:hover:not(:disabled), html[data-theme="light"] body .gx .gx-btn.gx-dark[class]:hover:not(:disabled), body .gx .gx-panel .gx-btn.gx-dark[class]:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 84%, var(--bg)) !important; color: var(--bg) !important; }
+  body .gx .gx-btn.gx-accent[class]:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #ffffff) !important; color: #1a1207 !important; }
+}
+/* kazanie: zwarty pasek zamiast dużego pola — mało treści, więc mało miejsca */
+.gx .gx-sermon { display: flex; flex-direction: column; align-items: center; gap: 2px; width: fit-content; max-width: min(560px, 100%); margin: 28px auto 0; padding: 14px 26px; border-radius: 20px; text-align: center; box-sizing: border-box; }
+.gx .gx-sermon small { font-size: 13px; }
+.gx .gx-sermon b { font-size: clamp(20px, 2.2vw, 24px) !important; line-height: 1.15; }
+.gx .gx-sermon span { font-size: 15px; }
+/* (te same reguły bez warunku „hover: hover” — stara reguła strony gości działa zawsze, więc i poprawka musi) */
+body .gx .gx-btn.gx-light[class]:hover:not(:disabled), html[data-theme="light"] body .gx .gx-btn.gx-light[class]:hover:not(:disabled) { background: var(--panel3) !important; color: var(--text) !important; }
+body .gx .gx-btn.gx-dark[class]:hover:not(:disabled), html[data-theme="light"] body .gx .gx-btn.gx-dark[class]:hover:not(:disabled), body .gx .gx-panel .gx-btn.gx-dark[class]:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 84%, var(--bg)) !important; color: var(--bg) !important; }
+body .gx .gx-btn.gx-accent[class]:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #ffffff) !important; color: #1a1207 !important; }
+body .gx .gx-join .gx-btn.gx-accent[class]:hover:not(:disabled), html[data-theme="light"] body .gx .gx-join .gx-btn.gx-accent[class]:hover:not(:disabled) { background: color-mix(in srgb, var(--field-hero-ink) 86%, var(--field-hero)) !important; color: var(--field-hero) !important; }
+
+/* dyspozycyjność: „w grafiku” — znaczek i lekkie tło w kolorze pola zamiast pomarańczowej ramki */
+.avail-day.planned { box-shadow: none !important; outline: 2px solid var(--field-hero); outline-offset: -2px; }
+.avail-table td.planned { box-shadow: none !important; background: color-mix(in srgb, var(--field-hero) 16%, transparent) !important; }
+.avail-table td.planned.clash { box-shadow: inset 0 0 0 2px var(--bad-text) !important; }
+
+/* kalendarz: wybrany dzień — pole koloru (zieleń / bursztyn); dziś — kółko w kolorze tuszu; dziś i wybrany — pole z obwódką */
+button.cal-day.sel, html[data-theme="light"] button.cal-day.sel { background-color: var(--field-hero) !important; color: var(--field-hero-ink) !important; font-weight: 800 !important; opacity: 1; }
+button.cal-day.sel.today, html[data-theme="light"] button.cal-day.sel.today { box-shadow: inset 0 0 0 3px var(--text) !important; }
+button.cal-day.sel .cal-dots i { box-shadow: 0 0 0 1.5px var(--field-hero-ink); }
+@media (hover: hover) { button.cal-day.sel:hover:not(:disabled) { background-color: color-mix(in srgb, var(--field-hero) 90%, var(--field-hero-ink)) !important; } }
+
+/* avatar z inicjałami: płaskie pole koloru (gradient był wycinany przez regułę „bez gradientów” — litera znikała na ciemnym tle) */
+.kh-av { background: var(--field-hero) !important; background-image: none !important; color: var(--field-hero-ink) !important; font-weight: 800 !important; }
+/* Mapa KNS: plakietka „Mapa KNS / Poznań” — ciemny napis na złotym (biały miał za mały kontrast) */
+.km-badge { color: #1f1405 !important; }
+
+/* przesuwanie palcem między zakładkami: dymek ze stroną docelową i podświetlona zakładka w menu */
+.swipe-hint { position: fixed; top: 46%; right: 14px; z-index: 40; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: var(--panel2); color: var(--text); font: 700 15px var(--display); opacity: 0; pointer-events: none; box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .45); transition: background .15s, color .15s; }
+.swipe-hint.left { right: auto; left: 14px; }
+.swipe-hint svg { width: 20px; height: 20px; }
+.swipe-hint b { font-size: 20px; line-height: 1; opacity: .7; }
+.swipe-hint.armed { background: var(--field-hero); color: var(--field-hero-ink); }
+.tabbar button.swipe-target { color: var(--text) !important; }
+.tabbar button.swipe-target svg.i { color: var(--field-hero); transform: translateY(-2px) scale(1.08) !important; transition: transform .15s; }
+html:not([data-theme="light"]) .tabbar button.swipe-target svg.i { color: #f2a53c; }

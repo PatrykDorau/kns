@@ -3,6 +3,7 @@
 import { computed, defineComponent, onMounted, reactive } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
+import { cached, remember } from '@/utils/viewCache' // ostatnie dane od razu przy ponownym wejściu
 
 // Finanse służb (wzór: Avenit, bez płatności online): roczny plan każdej służby, wydatki i pasek realizacji.
 // Lider widzi swoją służbę i wpisuje wydatki; rada i administrator widzą wszystkie i ustalają plany.
@@ -10,9 +11,14 @@ export default defineComponent({
   setup() {
     const app = useApp()
     const st = reactive({ year: new Date().getFullYear(), data: null, error: '', busy: false, open: '', plan: {}, add: {} })
+    const who = () => app.me.value?.email
+    st.data = cached('finance:' + st.year, who()) || null
+    let shownYear = st.year
     async function load() {
       st.error = ''
-      try { st.data = await app.api.call('finance', { year: st.year }) } catch (e) { st.error = e.message }
+      const y = st.year
+      if (shownYear !== y) { st.data = cached('finance:' + y, who()) || null; shownYear = y } // inny rok — nie pokazujemy danych poprzedniego
+      try { st.data = await app.api.call('finance', { year: y }); remember('finance:' + y, who(), st.data) } catch (e) { st.error = e.message }
     }
     onMounted(load)
     const list = computed(() => st.data?.ministries || [])
@@ -85,7 +91,7 @@ export default defineComponent({
       </div>
     </article>
   </template>
-  <p v-else-if="!st.error" class="note">Wczytywanie…</p>
+  <div v-else-if="!st.error" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
 </template>
 
 <style scoped>

@@ -3,6 +3,7 @@
 import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
 import { useApp } from '@/composables/useApp'
 import { ask } from '@/utils/ask'
+import { cached, remember } from '@/utils/viewCache' // ostatnie dane od razu przy ponownym wejściu
 
 // Projekty i zadania (wzór: Avenit): tablica całego kościoła i każdej mojej służby. Zadania pogrupowane według
 // statusu, przy każdym osoba, termin i priorytet. Lider (albo prawo edycji przy tablicy kościoła) dodaje i zmienia,
@@ -13,9 +14,11 @@ export default defineComponent({
   setup() {
     const app = useApp()
     const st = reactive({ boards: [], board: '', busy: false, error: '', only: false })
+    const who = () => app.me.value?.email
+    { const c = cached('tasks', who()); if (c) { st.boards = c.boards; st.board = c.board } }
     const form = ref(null) // edytowane / nowe zadanie
     async function load() {
-      try { st.boards = (await app.api.call('tasks')) || []; if (!st.boards.some(b => b.id === st.board)) st.board = st.boards[0]?.id ?? '' } catch (e) { st.error = e.message }
+      try { st.boards = (await app.api.call('tasks')) || []; if (!st.boards.some(b => b.id === st.board)) st.board = st.boards[0]?.id ?? ''; remember('tasks', who(), { boards: st.boards, board: st.board }) } catch (e) { st.error = e.message }
     }
     onMounted(load)
     const board = computed(() => st.boards.find(b => b.id === st.board))
@@ -98,7 +101,7 @@ export default defineComponent({
       </div>
     </section>
   </template>
-  <p v-else-if="!st.error" class="note">Wczytywanie…</p>
+  <div v-else-if="!st.error" class="skel-list" aria-busy="true" aria-label="Wczytywanie"><div v-for="n in 4" :key="n" class="skel skel-row"></div></div>
 </template>
 
 <style scoped>

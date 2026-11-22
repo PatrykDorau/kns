@@ -9,17 +9,21 @@ import MAP from '@/data/mapa-kns.json'
 // podpisy osób z kościoła. Tylko osiedle albo miejscowość — bez adresów. Widzą zalogowani członkowie (baza: kns_map).
 // Przybliżanie kółkiem / dwoma palcami / przyciskami, przesuwanie przeciągnięciem; kliknięcie obszaru — lista osób.
 // Przełącznik „Grupki domowe”: ta sama mapa z grupkami (kns_groups) — dzień i godzina, prowadzący, uczestnicy.
+// ostatnie dane mapy w pamięci — ponowne wejście pokazuje je od razu, a świeże dochodzą w tle
+let CACHE = null
 export default defineComponent({
   setup() {
     const app = useApp()
     const svg = ref(null)
     const st = reactive({ sort: 'name', mode: 'ludzie', groups: [], gedit: null, open: '', hover: '', busy: true, error: '', list: [], view: 'pz', q: '', sel: '', me: null, edit: null, saving: false })
     const z = reactive({ k: 1, x: 0, y: 0 })
+    if (CACHE && CACHE.who === app.me.value?.email) { st.list = CACHE.list; st.groups = CACHE.groups; st.busy = false }
     async function load() {
-      st.busy = true; st.error = ''
+      st.busy = !st.list.length; st.error = ''
       try {
         const [list, groups] = await Promise.all([app.api.call('mapLoad'), app.api.call('groupsLoad').catch(() => [])])
         st.list = list; st.groups = (groups || []).map(g => ({ ...g, label: g.name }))
+        CACHE = { who: app.me.value?.email, list: st.list, groups: st.groups }
       } catch (e) { st.error = e.message } finally { st.busy = false }
     }
     onMounted(load)

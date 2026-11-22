@@ -43,11 +43,11 @@ const PeopleView = lazy(() => import('@/views/PeopleView.vue'))
 const SongsView = lazy(() => import('@/views/SongsView.vue'))
 const GoogleCalendarView = lazy(() => import('@/views/GoogleCalendarView.vue'))
 const ServeView = lazy(() => import('@/views/ServeView.vue'))
-import AsbPublicView from '@/views/AsbPublicView.vue'
+const AsbPublicView = lazy(() => import('@/views/AsbPublicView.vue'))
 const AsbView = lazy(() => import('@/views/AsbView.vue'))
 const VotesView = lazy(() => import('@/views/VotesView.vue'))
 import AskDialog from '@/components/dialogs/AskDialog.vue'
-import MapView from '@/views/MapView.vue'
+const MapView = lazy(() => import('@/views/MapView.vue')) // z granicami osiedli (~45 KB) — dopiero przy otwarciu mapy
 import { ask } from '@/utils/ask'
 import { startUpdateCheck, updateReady } from '@/utils/updateCheck'
 import { startTabSwipe } from '@/utils/tabSwipe'
@@ -109,7 +109,7 @@ const nextSunday = () => { const d = new Date(); d.setDate(d.getDate() + ((7 - d
 const lines = text => String(text || '').replace(/^\[[^\]\s]{1,3}\]\s*/, '').trim().split('\n').filter(l => l.trim()).slice(0, 2).join(' / ')
 const asDate = date => new Date((date || today()) + 'T12:00')
 // Widoczna w stopce — po każdej zmianie strony rośnie, żeby było widać, że telefon ma nową wersję.
-const VERSION = '4.39 · 22.11.2026'
+const VERSION = '4.40 · 22.11.2026'
 
 /* ---------- Kamera ---------- */
 // Operator streamu wysyła stan przez ntfy.sh (temat z config.js); telefon gra sygnał i potwierdza odbiór,
@@ -346,7 +346,31 @@ export default defineComponent({
       const failed = await data
       if (failed) throw failed
       gate.value = ''; ready.value = true
+      saveSnap()
       if (canManage.value) loadPeople()
+    }
+    // Migawka danych na telefonie: przy następnym otwarciu strona główna jest od razu (z ostatnich danych),
+    // a świeże dochodzą w tle. Tylko dla tej samej osoby, najwyżej 3 tygodnie; znika przy wylogowaniu.
+    const SNAP = 'kns-snap'
+    function saveSnap() {
+      if (!api.enabled || me.value?.status !== 'active') return
+      const from = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)
+      try {
+        localStorage.setItem(SNAP, JSON.stringify({ v: 1, at: Date.now(), email: me.value.email, me: me.value, ranks: ranks.value,
+          services: services.value.filter(x => !x.date || x.date >= from), events: events.value, types: types.value, typesBase,
+          announcements: announcements.value, modules: modules.value }))
+      } catch { /* brak miejsca albo tryb prywatny — bez migawki */ }
+    }
+    function restoreSnap() {
+      try {
+        const x = JSON.parse(localStorage.getItem(SNAP) || 'null')
+        if (!x || x.v !== 1 || !x.email || x.email !== memberEmail() || Date.now() - x.at > 21 * 864e5) return false
+        me.value = x.me; ranks.value = x.ranks || []; services.value = x.services || []; events.value = x.events || []
+        types.value = x.types || types.value; typesBase = x.typesBase || 0; announcements.value = x.announcements || []
+        if (x.modules) modules.value = x.modules
+        gate.value = ''; ready.value = true
+        return true
+      } catch { return false }
     }
     const recheck = () => guard(enter)
     const continueToDrive = () => guard(async () => { await drive.signIn(false, 'drive'); await enter() })
@@ -368,6 +392,7 @@ export default defineComponent({
       types.value = mergeTypes(data.templates); typesBase = data.templatesUpdated || 0
       announcements.value = (data.announcements || []).filter(a => a.status !== 'pending'); pendingAnns.value = (data.announcements || []).filter(a => a.status === 'pending')
       if (api.enabled) { setTimeout(loadInbox); setTimeout(loadSeenAnns); setTimeout(loadGoals) } // po ustawieniu „ready”
+      saveSnap()
     }
     // Z serwerem kont nowa osoba loguje się najpierw samą tożsamością — o Dysk pytamy dopiero po zatwierdzeniu.
     const start = (choose = false) => guard(async () => {
@@ -390,7 +415,7 @@ export default defineComponent({
       if (push.on && api.enabled && drive.removePush) await Promise.race([drive.removePush(pushId).catch(() => {}), new Promise(r => setTimeout(r, 1500))])
       drive.signOut()
       ready.value = false; services.value = []; current.value = null
-      gate.value = ''; me.value = null; people.value = []; try { localStorage.removeItem('kns-photos') } catch { /* bez pamięci */ } peopleView.value = false; annView.value = false; currentAnn.value = null
+      gate.value = ''; me.value = null; people.value = []; try { localStorage.removeItem('kns-photos'); localStorage.removeItem('kns-snap') } catch { /* bez pamięci */ } peopleView.value = false; annView.value = false; currentAnn.value = null
       currentProto.value = null; protoView.value = false; currentEvent.value = null; tplView.value = false; tplType.value = null; calView.value = false
     }
     /* ---------- przeniesienie danych z Dysku do bazy (administrator, jednorazowo) ---------- */
@@ -2610,7 +2635,10 @@ export default defineComponent({
     // Po powrocie z logowania Google baza najpierw odtwarza sesję (drive.ready).
     Promise.resolve(drive.ready).then(() => {
       if (demo) start()
-      else if (clientId && drive.signedIn()) guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } }).finally(() => { booting.value = false })
+      else if (clientId && drive.signedIn()) {
+        if (api.enabled && restoreSnap()) booting.value = false // ostatnie dane od razu; świeże dochodzą w tle
+        guard(async () => { if (api.enabled) await enter(); else { await fetchAll(); ready.value = true } }).finally(() => { booting.value = false })
+      }
       else booting.value = false
     })
 
