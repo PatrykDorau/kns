@@ -431,7 +431,8 @@ export default function createGoogleDrive({ serviceFolderName, safeId }) {
   }
   const mirrorFind = async name => (await list(`${q(await mirrorFolder())} in parents and name=${q(name)} and trashed=false`))[0] || null
   // wysłanie strumieniem (duże filmy nie trafiają w całości do pamięci); nazwa docelowa dopiero po wysłaniu całości
-  async function mirrorUpload(file, name) {
+  // limit() — bajty/s w tej chwili (0 — bez limitu); sprawdzany co kawałek, więc działa też po otwarciu rzutnika w trakcie
+  async function mirrorUpload(file, name, { limit = (): number => 0 } = {}) {
     if (await mirrorFind(name)) return { ok: true, had: true }
     const dir = await mirrorFolder()
     const size = (await fs.promises.stat(file)).size
@@ -440,7 +441,18 @@ export default function createGoogleDrive({ serviceFolderName, safeId }) {
       method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Upload-Content-Type': 'application/octet-stream', 'X-Upload-Content-Length': String(size) }, body: '{}',
     })
     const location = session.headers.get('location')
-    await call(location, { method: 'PUT', headers: { 'Content-Length': String(size) }, body: Readable.toWeb(fs.createReadStream(file)), duplex: 'half' }, false)
+    let sent = 0, t0 = Date.now(), was = 0
+    const paced = Readable.from((async function* () {
+      for await (const chunk of fs.createReadStream(file, { highWaterMark: 64 * 1024 })) {
+        const lim = limit()
+        if (lim !== was) { was = lim; sent = 0; t0 = Date.now() } // nowe tempo liczone od teraz
+        sent += chunk.length
+        const wait = lim ? (sent / lim) * 1000 - (Date.now() - t0) : 0
+        if (wait > 0) await new Promise(r => setTimeout(r, wait))
+        yield chunk
+      }
+    })())
+    await call(location, { method: 'PUT', headers: { 'Content-Length': String(size) }, body: Readable.toWeb(paced), duplex: 'half' }, false)
     await patchMeta(id, { name })
     return { ok: true }
   }

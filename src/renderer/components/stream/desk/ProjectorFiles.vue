@@ -29,7 +29,7 @@ async function wipe() {
 <template>
   <div class="desk-media-bar">
     <button class="small" :disabled="!open.length" @click="fetchAllProjFiles"><Icon name="import" />Pobierz wszystkie<template v-if="open.length"> ({{ open.length }})</template></button>
-    <label class="check" title="Pobieranie zajmuje internet — w trakcie transmisji domyślnie czeka na Twoją decyzję i jest przycięte do 2 MB/s"><input v-model="settings.mirrorLive" type="checkbox"> Pobieraj sam także w trakcie transmisji</label>
+    <label class="check" title="W trakcie transmisji pobieranie jest przycięte do 2 MB/s, żeby internet został dla streamu. Wyłączone — nowe pliki czekają na Twoją decyzję."><input v-model="settings.mirrorLive" type="checkbox"> Pobieraj sam także w trakcie transmisji</label>
     <button class="small" title="Po nabożeństwie: usuwa pliki z Dysku Google i z tego komputera" :disabled="!list.length" @click="wipe"><Icon name="trash" />Usuń pliki po nabożeństwie</button>
   </div>
   <p v-if="message" class="desk-help" role="status">{{ message }}</p>

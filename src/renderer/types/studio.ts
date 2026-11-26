@@ -96,6 +96,8 @@ export interface StudioState {
   slideId: string
   skipped: number
   audioDb: number
+  audioPeak: number
+  clipAt: number
   silentFor: number
   camera: string
   audio: string

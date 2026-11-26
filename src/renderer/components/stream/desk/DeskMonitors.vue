@@ -4,6 +4,7 @@ import { settings } from '@/stores'
 import { differs, music, previewCanvas, setFps, stopMusic, studio, studioCanvas, take } from '@/services/studio'
 import Icon from '@/components/common/Icon.vue'
 import MusicEq from './MusicEq.vue'
+import AudioMeter from './AudioMeter.vue'
 import { SCENE_NAME } from '@/composables/stream/useStreamDesk'
 
 // Studio: podgląd i wizja (płótna rysowane przez moduł studio) i „Na wizję”; „Od razu na wizję” — w Ustawieniach nadawania.
@@ -50,7 +51,7 @@ onBeforeUnmount(() => { io?.disconnect(); removeEventListener('resize', place) }
       <div class="mon-scr"><div ref="pvEl" class="studio-host"></div></div>
     </figure>
     <figure class="mon pgm">
-      <figcaption>Na wizji <small>{{ SCENE_NAME[studio.program.scene] }}</small><span v-if="music.playing" class="desk-mon-music" :title="'Na transmisji gra: ' + musicName"><MusicEq />muzyka</span></figcaption>
+      <figcaption>Na wizji <small>{{ SCENE_NAME[studio.program.scene] }}</small><span class="mon-cam" :class="{ none: !settings.studioCamera }" :title="'Kamera (źródło obrazu): ' + (settings.studioCamera || 'nie wybrano — Ustawienia nadawania')"><Icon name="camera" />{{ settings.studioCamera || 'brak kamery' }}</span><span v-if="music.playing" class="desk-mon-music" :title="'Na transmisji gra: ' + musicName"><MusicEq />muzyka</span></figcaption>
       <div class="mon-scr"><div ref="stageEl" class="studio-host"></div></div>
     </figure>
     <!-- przypięte: „Na wizję” pod ręką -->
@@ -66,5 +67,13 @@ onBeforeUnmount(() => { io?.disconnect(); removeEventListener('resize', place) }
     <span class="spacer"></span>
     <span v-if="music.playing" class="desk-music-pill" :title="'Podkład: ' + musicName"><MusicEq /><span>{{ musicName }}</span><button class="small" @click="stopMusic(3)">Wycisz</button></span>
   </div>
+  <!-- dźwięk transmisji: zawsze na widoku, obok obrazu -->
+  <AudioMeter />
   </div>
 </template>
+
+<style scoped>
+.mon-cam { display: inline-flex; align-items: center; gap: 4px; max-width: 45%; margin-left: 8px; padding: 1px 8px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.mon-cam :deep(svg) { width: 13px; height: 13px; flex: none; }
+.mon-cam.none { background: color-mix(in srgb, #e5484d 22%, transparent); color: #ff8a8d; }
+</style>

@@ -40,6 +40,8 @@ export const studio = reactive<StudioState>({
   slideId: '', // slajd na wizji teraz
   skipped: 0, // klatki pominięte, bo karta graficzna nie nadążała
   audioDb: -100, // szczyt dźwięku w ostatniej chwili (dBFS)
+  audioPeak: -100, // najwyższy szczyt z ostatnich 1,5 s (kreska na mierniku)
+  clipAt: 0, // kiedy ostatnio był przester (ms)
   silentFor: 0, // ile sekund cisza (np. odpięty kabel z miksera)
   camera: '', audio: '', fps: 30, bitrate: 6800000, live: false, error: '', encoder: '',
   hardware: null, // null — nie sprawdzono; true/false — czy karta koduje H.264

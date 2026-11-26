@@ -1116,9 +1116,11 @@ app.whenReady().then(() => {
     return out
   })
   let mirrorQueue = Promise.resolve()
+  const MIRROR_UP_LIMIT = 600e3 // B/s (~5 Mb/s) w trakcie wyświetlania
   ipcMain.handle('mirror:upload', (e, file, name) => {
     if (typeof file !== 'string' || !MIRROR_NAME.test(String(name)) || !fs.existsSync(file)) return { error: 'Nieprawidłowy plik.' }
-    const job = mirrorQueue.then(() => viaGoogle(() => gdrive.mirrorUpload(file, name)))
+    // rzutnik wyświetla — wysyłanie przycięte: to samo Wi-Fi niesie obraz do rzutnika (np. Epson iProjection) i transmisję
+    const job = mirrorQueue.then(() => viaGoogle(() => gdrive.mirrorUpload(file, name, { limit: () => (output && !output.isDestroyed() ? MIRROR_UP_LIMIT : 0) })))
     mirrorQueue = job.catch(() => {})
     return job
   })

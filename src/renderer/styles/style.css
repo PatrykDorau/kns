@@ -1518,7 +1518,7 @@ select { padding-right: 36px !important; }
 /* pulpit studia: wyraźne odstępy między częściami, ramki przycisków i pól (bez nich wszystko się zlewało) */
 .desk-stage-rest { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
 .desk.cols .desk-stage-rest { margin-top: 0; }
-.desk-stage-rest > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.desk-stage-rest > * { margin-top: 0 !important; margin-bottom: 0 !important; flex-shrink: 0; } /* przewijana kolumna nie ściska paneli (treść nachodziła na Bibliotekę) */
 .desk-stage-rest .desk-scene-panel, .desk-stage-rest .desk-ovl, .desk-stage-rest .desk-cd { border: 1px solid var(--line) !important; border-radius: 12px; }
 .desk-stage-rest .desk-ovl { padding: 10px 12px; gap: 8px 10px; }
 .desk-stage-rest button:not(.desk-media-pic):not([role=tab]):not(.linkbtn):not(.desk-take-btn):not(.primary) { border: 1px solid var(--line); }

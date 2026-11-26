@@ -1,9 +1,10 @@
 // Dźwięk: ATEM + filmy ze scen → PCM 48 kHz do FFmpeg; miernik poziomu i wykrywanie ciszy.
-import { api } from '@/stores'
+import { api, settings } from '@/stores'
 import { studio } from './state'
 
 let meter: AnalyserNode = null
 let voice: AnalyserNode = null
+let micGain: GainNode = null
 let ac: AudioContext = null, mix: GainNode = null, worklet: AudioWorkletNode = null, micSource: MediaStreamAudioSourceNode = null, micStream: MediaStream = null, mediaSources = new WeakSet()
 const WORKLET = `class Pcm extends AudioWorkletProcessor {
   constructor() { super(); this.buf = new Int16Array(2048 * 2); this.n = 0 }
@@ -32,17 +33,23 @@ export async function audioGraph() {
   // poziom dźwięku (miernik na pulpicie i ostrzeżenie o ciszy)
   meter = ac.createAnalyser(); meter.fftSize = 1024; mix.connect(meter)
   voice = ac.createAnalyser(); voice.fftSize = 2048
+  // wzmocnienie wejścia (suwak przy mierniku): mikser → wzmocnienie → miks
+  micGain = ac.createGain(); micGain.gain.value = dbToGain(settings.studioGain || 0); micGain.connect(mix); micGain.connect(voice)
   const buf = new Float32Array(meter.fftSize)
-  let quietSince = performance.now()
+  let quietSince = performance.now(), holdAt = 0
+  // co 80 ms: szczyt (miernik), szczyt zapamiętany na 1,5 s, przester (≥ −1 dBFS — zostaje zapalony 3 s)
   setInterval(() => {
     meter.getFloatTimeDomainData(buf)
     let peak = 0
     for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i]))
-    const db = peak > 0 ? Math.max(-100, Math.round(20 * Math.log10(peak))) : -100
+    const db = peak > 0 ? Math.max(-100, Math.round(20 * Math.log10(peak) * 10) / 10) : -100
+    const now = performance.now()
     studio.audioDb = db
-    if (db > -55) quietSince = performance.now()
-    studio.silentFor = Math.floor((performance.now() - quietSince) / 1000)
-  }, 250)
+    if (db >= studio.audioPeak || now - holdAt > 1500) { studio.audioPeak = db; holdAt = now }
+    if (db >= -1) studio.clipAt = Date.now()
+    if (db > -55) quietSince = now
+    studio.silentFor = Math.floor((now - quietSince) / 1000)
+  }, 80)
 }
 export function connectMedia(el) {
   audioGraph().then(() => { if (mediaSources.has(el)) return; mediaSources.add(el); ac.createMediaElementSource(el).connect(mix) })
@@ -76,10 +83,16 @@ export async function setAudio(deviceId) {
     if (studio.audio !== deviceId) { st.getTracks().forEach(tr => tr.stop()); return } // w międzyczasie wybrano inne
     micStream = st
     micSource = ac.createMediaStreamSource(st)
-    micSource.connect(mix); micSource.connect(voice)
+    micSource.connect(micGain)
     if (studio.error.startsWith('Nie mogę otworzyć dźwięku')) studio.error = ''
   } catch (e) { studio.error = 'Nie mogę otworzyć dźwięku: ' + (e?.message || e) }
   drop()
+}
+const dbToGain = (db: number) => Math.pow(10, (Math.max(-24, Math.min(24, +db || 0))) / 20)
+// Wzmocnienie wejścia w dB (−24…+24) — także w trakcie transmisji, płynnie.
+export function setGain(db: number) {
+  settings.studioGain = Math.max(-24, Math.min(24, Math.round(+db || 0)))
+  if (micGain && ac) micGain.gain.setTargetAtTime(dbToGain(settings.studioGain), ac.currentTime, 0.05)
 }
 // Poziom samego mikrofonu w dB (bez podkładu) — do ściszania muzyki pod mową.
 export function voiceDb() {

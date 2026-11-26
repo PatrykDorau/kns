@@ -17,6 +17,7 @@ export interface Settings {
   lyricsOnline: boolean
   mirrorStream?: boolean
   mirrorLive?: boolean
+  mirrorLiveOn?: boolean // jednorazowe włączenie mirrorLive po zmianie domyślnej
   checkItems?: { id: string, text: string }[] // własne punkty listy przed transmisją
   checkDone?: { day: string, ids: string[] } // co odhaczono tego dnia
   cardPhotos?: { name: string, pic: string }[] // zdjęcia na karty ogłoszeń, osobno od galerii paska mówcy
@@ -46,6 +47,7 @@ export interface Settings {
   streamEngine: 'studio' | 'simple' | string
   studioCamera: string
   studioAudio: string
+  studioGain?: number // wzmocnienie dźwięku z miksera w dB (suwak przy mierniku)
   streamKbps: number
   pipCorner: string
   pipSize: string
@@ -53,6 +55,8 @@ export interface Settings {
   studioDirect: boolean
   ytFolded: boolean
   cfgFolded: boolean
+  cfgTab?: string // otwarta zakładka Ustawień nadawania
+  gpuBench?: { q: string, fps: number, lost: number, lost720?: number, error?: string } // ostatni test karty graficznej
   mediaOpen: boolean
   screenShare: boolean // ten komputer wysyła obraz rzutnika przez sieć
   screenRemote: boolean // stream odbiera obraz rzutnika przez sieć

@@ -26,7 +26,8 @@ async function txOffer(id) {
     if (tr.kind === 'video') tr.contentHint = 'detail' // napisy i slajdy ostre
     const sender = pc.addTrack(tr, tx.stream)
     if (tr.kind === 'video') {
-      const p = sender.getParameters(); p.encodings = [{ ...(p.encodings?.[0] || {}), maxBitrate: 8_000_000, maxFramerate: 30 }]
+      // 4 Mb/s: to samo Wi-Fi niesie obraz do rzutnika (np. Epson iProjection) — mniej obciąża sieć
+      const p = sender.getParameters(); p.encodings = [{ ...(p.encodings?.[0] || {}), maxBitrate: 4_000_000, maxFramerate: 30 }]
       // przy zmianie slajdu (cały obraz naraz) płynność ważniejsza niż ostrość — inaczej koder gubi klatki i przejście się wlecze
       sender.setParameters(p).then(() => { const q = sender.getParameters() as any; q.degradationPreference = 'maintain-framerate'; return sender.setParameters(q) }).catch(() => {})
     }

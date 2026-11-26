@@ -86,7 +86,11 @@ function findBook(text) {
 }
 // „J 3,16–21” → { book: 42, label, parts: [{ chapter, from, to }] }; obsługuje też „J 3,16-4,2”, „Ps 23”, „J 3:16”, „Rz 8,28.31-32”.
 export function parseRef(ref) {
-  const m = /^\s*((?:[1-3]\s*)?[\p{L}][\p{L}\s.]*?)\s*(\d+)(.*)$/u.exec(String(ref || ''))
+  // „Ew. Jana”, „Ewangelia wg św. Marka”, „List św. Pawła do Efezjan”, „Księga Psalmów” → sama nazwa księgi
+  const clean = String(ref || '').replace(/^\s*(?:ewangeli[ae]|ew\.?)\s+(?:wg\.?\s+|według\s+)?(?:św\.?\s+)?/iu, '')
+    .replace(/^\s*([1-3]\.?\s*)?(?:list\s+)?(?:św\.?\s+)?(?:pawła\s+)?(?:do\s+)?(?=\p{L})/iu, '$1')
+    .replace(/^\s*(?:księga\s+)/iu, '').replace(/^([1-3])\.\s*/, '$1 ')
+  const m = /^\s*((?:[1-3]\s*)?[\p{L}][\p{L}\s.]*?)\s*(\d+)(.*)$/u.exec(clean)
   if (!m) return null
   const book = findBook(m[1])
   if (book < 0) return null

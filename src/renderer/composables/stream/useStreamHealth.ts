@@ -83,7 +83,7 @@ export function useStreamHealth(youtube: YouTube, bc: Broadcast, dev: StreamDevi
     else if (slow) alert = { cls: 'warn', text: 'Wysyłanie zwalnia — internet albo komputer na granicy możliwości.' }
     else if (st && st.status === 'active' && st.health === 'bad') alert = { cls: 'warn', text: 'YouTube ocenia sygnał jako słaby' + ((st.issues || []).length ? ': ' + st.issues.map(i => i.text || i.reason).join(' · ') : '.') }
     else if (engine.value === 'studio' && settings.studioAudio && studio.silentFor > 10) alert = { cls: 'warn', text: 'Od ' + studio.silentFor + ' s nie ma dźwięku — sprawdź mikser (ATEM) i kabel USB.' }
-    else if (engine.value === 'studio' && studio.skipped > 50 && live.value.running) alert = { cls: 'warn', text: 'Karta graficzna nie nadąża z kodowaniem — spróbuj 30 kl./s albo 720p.' }
+    else if (engine.value === 'studio' && studio.skipped > 50 && live.value.running) alert = { cls: 'warn', text: 'Karta graficzna nie nadąża z kodowaniem' + (settings.streamQuality !== '720' ? ' — po tej transmisji ustaw 720p' : +settings.streamFps > 30 ? ' — po tej transmisji ustaw 30 kl./s' : ' — zamknij inne programy') + ' (Ustawienia nadawania → Jakość → „Sprawdź”).' }
     const level = chips.some(c => c.cls === 'bad') || alert?.cls === 'bad' ? 'bad' : chips.some(c => c.cls === 'warn') || alert ? 'warn' : L.running ? 'ok' : 'wait'
     const title = { bad: 'Problem z transmisją', warn: 'Uwaga', ok: 'Transmisja stabilna', wait: 'Łączę z YouTube…' }[level]
     return { chips: chips.filter(c => c.id !== 'view'), alert, level, title } // widzowie — w podsumowaniu

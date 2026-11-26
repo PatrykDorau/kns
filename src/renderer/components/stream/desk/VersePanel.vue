@@ -9,7 +9,9 @@ import PresetPicker from './PresetPicker.vue'
 
 // Werset na wizji: odnośnik i przekład → slajdy po 1–2 wersety → podgląd → „Na wizję”. Gdy fragment jest już na wizji,
 // strzałki przełączają od razu (jak slajdy na rzutniku); „Zdejmij” — od razu.
-const refText = ref(nearestService.value?.passage?.trim() || '')
+// fragment z nabożeństwa — tylko gdy to prawdziwy odnośnik (wpis „test” itp. nie straszy błędem na start)
+const svcRef = nearestService.value?.passage?.trim() || ''
+const refText = ref(parseRef(svcRef) ? svcRef : '')
 const per = ref(1), at = ref(0), which = ref(settings.verseBible || 0), error = ref(''), ready = ref(false)
 onMounted(async () => { await loadBible(); ready.value = true; if (which.value && !bible2.value) which.value = 0 })
 onBeforeUnmount(() => setVerse(null)) // schowany panel zdejmuje werset z podglądu, wizja zostaje
@@ -46,6 +48,8 @@ async function load(slot: 0 | 1) {
 
 <template>
   <section class="verse-panel" aria-label="Werset na wizji">
+    <!-- bez Biblii nic nie trafi na podgląd — najpierw to, wyraźnie -->
+    <p v-if="ready && !bible" class="verse-nobible"><Icon name="info" /><span><b>Na tym komputerze nie ma jeszcze Biblii</b> — bez niej werset nie pojawi się na podglądzie. Wczytaj plik przekładu (OpenSong albo Zefania XML); zostaje na tym komputerze.</span><button class="primary small" @click="load(0)"><Icon name="import" />Wybierz plik Biblii…</button></p>
     <PresetPicker kind="verse" />
     <div class="verse-row">
       <label class="searchbox"><Icon name="book" /><input v-model="refText" placeholder="np. J 3,16–21" aria-label="Fragment Biblii"></label>
@@ -60,7 +64,6 @@ async function load(slot: 0 | 1) {
         <option :value="5">Po 5 wersetów</option>
       </select>
     </div>
-    <p v-if="ready && !bible" class="desk-help">Najpierw wczytaj plik Biblii (OpenSong albo Zefania XML). <button class="small" @click="load(0)"><Icon name="import" />Wybierz plik…</button></p>
     <p v-if="hint" class="note bad">{{ hint }}</p>
     <p v-if="error" class="note bad">{{ error }}</p>
     <blockquote v-if="payload">{{ payload.text }}<cite>{{ payload.ref }} · {{ payload.tr }}</cite></blockquote>
@@ -82,5 +85,8 @@ async function load(slot: 0 | 1) {
 .verse-row .searchbox { flex: 1 1 200px; }
 .verse-row select { max-width: 220px; }
 blockquote { margin: 0; padding: 8px 12px; border-left: 3px solid var(--accent); font-size: 15px; line-height: 1.45; }
+.verse-nobible { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 12px; border: 1px solid color-mix(in srgb, #f6a836 55%, var(--line)); border-radius: 10px; background: color-mix(in srgb, #f6a836 12%, var(--panel)); line-height: 1.4; }
+.verse-nobible > span { flex: 1; }
+.verse-nobible .primary { white-space: nowrap; }
 cite { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; font-style: normal; }
 </style>

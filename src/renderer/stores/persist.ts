@@ -71,6 +71,8 @@ export async function init() {
     for (const it of items.value) if (it.type === 'text' && !it.hidden && it.fs === 9 && it.valign === 'bottom' && it.shadow && !it.countMode) it.lib = 'stream'
     settings.libSplit = true
   }
+  // pliki z rzutnika pobierane same także w trakcie transmisji — od teraz domyślnie (raz włączane także u tych, którzy mieli wyłączone)
+  if (!settings.mirrorLiveOn) { settings.mirrorLive = true; settings.mirrorLiveOn = true }
   syncAnnouncements()
   watch(projectorGraphics, syncAnnouncements)
   purgeOldTrash()
