@@ -64,6 +64,15 @@ export function encodeFrame(canvas: HTMLCanvasElement, t: number) {
 // Test karty graficznej przed transmisją: przez kilka sekund koduje prawdziwy obraz studia (bez wysyłania)
 // w danej rozdzielczości i tempie, tak samo jak w trakcie transmisji. Wynik: procent klatek, które trzeba by pominąć.
 export const bench = { running: false }
+// Nazwa karty graficznej (do wyniku testu) — z WebGL, bez uprawnień.
+export function gpuName() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl')
+    const ext = gl?.getExtension('WEBGL_debug_renderer_info')
+    const n = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : ''
+    return n.replace(/^ANGLE \((.*)\)$/, '$1').replace(/,? ?Direct3D.*$/i, '').replace(/^(NVIDIA|AMD|Intel(?:\(R\))?|Google)[^,]*, /, '').replace(/ \(0x[0-9A-F]+\)/gi, '').trim()
+  } catch { return '' }
+}
 export async function benchEncoder(canvas: HTMLCanvasElement, quality: string, fps: number, ms = 4000): Promise<{ lost: number, error?: string }> {
   if (typeof VideoEncoder === 'undefined') return { lost: 100, error: 'Brak kodowania na karcie graficznej.' }
   const [w, h] = outSize(quality)

@@ -126,6 +126,9 @@ export interface KnsApi {
   streamAudio: Invoke
   captureTarget: Invoke
   hostname: () => Promise<string>
+  gpuInfo?: () => Promise<{ gpus: { vendor: string }[], high: boolean }>
+  gpuHigh?: () => Promise<{ ok?: boolean, error?: string }>
+  restartApp?: () => Promise<void>
   streamLyrics: (text: string) => void
   onStreamState: Listen
   streamStartStudio: Invoke

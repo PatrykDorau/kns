@@ -1005,6 +1005,23 @@ app.whenReady().then(() => {
   // Obraz rzutnika przez sieć: getDisplayMedia w oknie aplikacji dostaje ekran z rzutnikiem (bez dźwięku — idzie przez konsolę).
   let captureDisplay = null
   ipcMain.handle('app:hostname', () => os.hostname())
+  // Karta graficzna: laptop z Intel + NVIDIA — Windows domyślnie daje aplikacjom zintegrowanego Intela, a Stream potrzebuje
+  // NVIDIA (rysowanie i kodowanie obrazu; OBS też jej używa). To samo co Ustawienia → System → Ekran → Grafika →
+  // „Wysoka wydajność”, tylko dla tej aplikacji; działa po ponownym uruchomieniu.
+  const GPU_KEY = 'HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences'
+  ipcMain.handle('gpu:info', async () => {
+    const info: any = await app.getGPUInfo('basic').catch(() => ({}))
+    const VENDOR = { 0x10de: 'NVIDIA', 0x1002: 'AMD', 0x8086: 'Intel' }
+    const gpus = (info.gpuDevice || []).map(d => ({ vendor: VENDOR[d.vendorId] || 'inna' }))
+    const pref = process.platform === 'win32' ? await run('reg', ['query', GPU_KEY, '/v', process.execPath], 10000).catch(() => '') : ''
+    return { gpus, high: /GpuPreference=2/.test(String(pref)) }
+  })
+  ipcMain.handle('gpu:high', async () => {
+    if (process.platform !== 'win32') return { error: 'Tylko w Windows.' }
+    try { await run('reg', ['add', GPU_KEY, '/v', process.execPath, '/t', 'REG_SZ', '/d', 'GpuPreference=2;', '/f'], 10000); return { ok: true } }
+    catch (e) { return { error: e.message } }
+  })
+  ipcMain.handle('app:restart', () => { app.relaunch(); app.exit(0) })
   ipcMain.handle('capture:target', (e, id) => { captureDisplay = id == null ? null : String(id); return true })
   const ytPlayer = createYtPlayer(() => control)
   session.defaultSession.setDisplayMediaRequestHandler(async (req, done) => {

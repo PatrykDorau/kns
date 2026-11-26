@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
-import { settings } from '@/stores'
+import { api, settings } from '@/stores'
 import { lyricsKey } from '@/services/lyricsFeed'
 import { remote as remoteScreen } from '@/services/screenShare'
-import { bench, benchEncoder, setDirect, studio, studioCanvas } from '@/services/studio'
+import { bench, benchEncoder, gpuName, setDirect, studio, studioCanvas } from '@/services/studio'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { ago } from '@/composables/stream/useProjectorList'
 
@@ -23,15 +23,28 @@ const tab = computed({ get: () => settings.cfgTab || 'src', set: v => { settings
 
 // Test karty graficznej: koduje prawdziwy obraz studia przez 4 s (bez wysyłania) — czy nadąży z tą jakością.
 // Raz na uruchomienie sam (przed transmisją), potem przyciskiem. Gdy 1080p nie daje rady — od razu sprawdza 720p.
-const gpu = ref<{ q: string, fps: number, lost: number, lost720?: number, error?: string } | null>(settings.gpuBench || null)
+const gpu = ref<{ q: string, fps: number, lost: number, lost720?: number, error?: string, name?: string } | null>(settings.gpuBench || null)
 async function testGpu() {
   if (bench.running || liveOn.value || engine.value !== 'studio') return
   const q = settings.streamQuality, fps = +settings.streamFps || 30
   const r = await benchEncoder(studioCanvas(), q, fps)
-  const out = { q, fps, lost: r.lost, error: r.error, lost720: undefined as number | undefined }
+  const out = { q, fps, lost: r.lost, error: r.error, lost720: undefined as number | undefined, name: gpuName() }
   if (q !== '720' && r.lost > 1) out.lost720 = (await benchEncoder(studioCanvas(), '720', fps)).lost
   gpu.value = out; settings.gpuBench = out
 }
+// Dwie karty (Intel + NVIDIA/AMD), a aplikacja działa na zintegrowanej — przycisk przełącza ją na mocniejszą.
+const gpuInfo = ref<{ gpus: { vendor: string }[], high: boolean } | null>(null)
+const strong = computed(() => gpuInfo.value?.gpus.find(x => x.vendor === 'NVIDIA' || x.vendor === 'AMD'))
+const usedName = gpuName() // karta, na której naprawdę rysuje aplikacja (WebGL)
+const onWeak = computed(() => !!strong.value && /intel|uhd|hd graphics|iris/i.test(usedName))
+const gpuSet = ref(''), gpuErr = ref('')
+async function useStrong() {
+  gpuErr.value = ''
+  const r = await api.gpuHigh?.()
+  if (r?.error) { gpuErr.value = r.error; return }
+  gpuSet.value = strong.value?.vendor || 'mocniejsza'
+}
+onMounted(async () => { gpuInfo.value = (await api.gpuInfo?.().catch(() => null)) || null })
 const gpuStale = computed(() => !!gpu.value && (gpu.value.q !== settings.streamQuality || gpu.value.fps !== (+settings.streamFps || 30)))
 onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.value) { gpuAuto.done = true; setTimeout(testGpu, 2500) } })
 </script>
@@ -139,7 +152,10 @@ onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.valu
         <!-- czy karta graficzna nadąży z kodowaniem -->
         <div v-if="engine === 'studio'" class="st-gpu" :class="gpu && !gpuStale && !bench.running ? (gpu.lost > 3 ? 'bad' : gpu.lost > 1 ? 'warn' : 'ok') : ''">
           <span class="st-txt">
-            <b>Karta graficzna</b>
+            <b>Karta graficzna</b><small v-if="gpu?.name" class="st-gpu-name">{{ gpu.name }}</small>
+            <small v-if="onWeak" class="st-gpu-weak">Aplikacja działa na słabszej, zintegrowanej karcie Intel, a w komputerze jest {{ strong?.vendor }}. Przełącz — obraz będzie rysowany i kodowany na {{ strong?.vendor }} (jak w OBS).</small>
+            <small v-if="gpuSet" class="st-gpu-weak">Ustawione: {{ gpuSet }}. Zadziała po ponownym uruchomieniu aplikacji.</small>
+            <small v-if="gpuErr" class="st-gpu-weak">Nie udało się: {{ gpuErr }}</small>
             <small v-if="bench.running">Sprawdzam — kilka sekund kodowania obrazu studia…</small>
             <small v-else-if="!gpu">Sprawdź, czy ten komputer nadąży z kodowaniem obrazu w tej jakości.</small>
             <small v-else-if="gpuStale">Zmieniono jakość — sprawdź ponownie.</small>
@@ -148,6 +164,8 @@ onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.valu
             <small v-else>{{ gpu.q }}p, {{ gpu.fps }} kl./s — <b>nie nadąża</b>: {{ gpu.lost.toLocaleString('pl') }}% klatek trzeba by pominąć (szarpanie u widzów).<template v-if="gpu.lost720 != null"> W 720p: {{ gpu.lost720.toLocaleString('pl') }}%.</template></small>
           </span>
           <span class="st-gpu-act">
+            <button v-if="onWeak && !gpuSet" class="primary small" :disabled="liveOn" @click="useStrong">Używaj karty {{ strong?.vendor }}</button>
+            <button v-if="gpuSet" class="primary small" :disabled="liveOn" title="Zamyka i od razu otwiera aplikację" @click="api.restartApp?.()">Uruchom ponownie</button>
             <button v-if="gpu && !gpuStale && !bench.running && gpu.lost > 1 && settings.streamQuality !== '720' && gpu.lost720 != null && gpu.lost720 <= 1" class="primary small" :disabled="liveOn" @click="settings.streamQuality = '720'; testGpu()">Ustaw 720p</button>
             <button v-else-if="gpu && !gpuStale && !bench.running && gpu.lost > 1 && +settings.streamFps > 30" class="primary small" :disabled="liveOn" @click="settings.streamFps = 30; testGpu()">Ustaw 30 kl./s</button>
             <button class="small" :disabled="bench.running || liveOn" @click="testGpu"><Icon name="refresh" />{{ gpu ? 'Sprawdź ponownie' : 'Sprawdź' }}</button>
@@ -169,4 +187,6 @@ onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.valu
 .st-gpu.warn { border-color: #e5c33b; }
 .st-gpu.bad { border-color: #e5484d; background: color-mix(in srgb, #e5484d 8%, transparent); }
 .st-gpu-act { display: flex; gap: 6px; }
+.st-gpu-name { opacity: 0.75; }
+.st-gpu-weak { display: block; margin-top: 4px; color: #e5a93b; }
 </style>

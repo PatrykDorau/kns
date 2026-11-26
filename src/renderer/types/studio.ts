@@ -95,6 +95,7 @@ export interface StudioState {
   hidden: string[]
   slideId: string
   skipped: number
+  paintMs: number
   audioDb: number
   audioPeak: number
   clipAt: number

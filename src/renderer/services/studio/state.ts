@@ -39,6 +39,7 @@ export const studio = reactive<StudioState>({
   hidden: ['svc'], // wyłączone slajdy (id); „svc” — karta najbliższego nabożeństwa
   slideId: '', // slajd na wizji teraz
   skipped: 0, // klatki pominięte, bo karta graficzna nie nadążała
+  paintMs: 0, // średni czas rysowania jednej klatki (ms)
   audioDb: -100, // szczyt dźwięku w ostatniej chwili (dBFS)
   audioPeak: -100, // najwyższy szczyt z ostatnich 1,5 s (kreska na mierniku)
   clipAt: 0, // kiedy ostatnio był przester (ms)

@@ -50,8 +50,24 @@ export function trimmed(im) {
   trims.set(im, box)
   return box
 }
+// Rozmyte tło liczone raz na grafikę (w 1/4 rozdzielczości — rozmycie i tak nie ma szczegółów) i potem tylko
+// kopiowane: rozmycie całego kadru 1920×1080 w każdej klatce zjadało słabszą kartę graficzną.
+const blurred = new WeakMap<object, HTMLCanvasElement>()
+const BQ = 4
+function blurredOf(im) {
+  let c = blurred.get(im)
+  if (c) return c
+  c = document.createElement('canvas'); c.width = (W + 120) / BQ; c.height = (H + 120) / BQ
+  const p = c.getContext('2d', { alpha: false })
+  p.filter = 'blur(' + 40 / BQ + 'px) brightness(0.45)'
+  const s = Math.max(c.width / im.naturalWidth, c.height / im.naturalHeight), dw = im.naturalWidth * s, dh = im.naturalHeight * s
+  p.drawImage(im, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh)
+  blurred.set(im, c)
+  return c
+}
 export function fullImage(im) {
-  g.save(); g.filter = 'blur(40px) brightness(0.45)'; fit(im, im.naturalWidth, im.naturalHeight, -60, -60, W + 120, H + 120, 'cover'); g.restore()
+  // grafika na cały kadr (16:9) — tła nie widać, nie ma co rozmywać
+  if (Math.abs(im.naturalWidth / im.naturalHeight - W / H) > 0.01) g.drawImage(blurredOf(im), -60, -60, W + 120, H + 120)
   fit(im, im.naturalWidth, im.naturalHeight, 0, 0, W, H, 'contain')
 }
 // Tło planszy: ciemne, z wolno płynącymi plamami w kolorach kościoła.
@@ -84,7 +100,48 @@ export function setOutline(c?: string) { const p = outline; outline = c || ''; r
 export function withOutline<R>(c: string | undefined, draw: () => R) { const p = setOutline(c); try { return draw() } finally { setOutline(p) } }
 export const luminance = (hex: string) => { const n = parseInt(String(hex || '#f6a836').slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 }
 const darkHex = (c: string) => { const m = /^#([0-9a-f]{6})$/i.exec(c); if (!m) return false; const n = parseInt(m[1], 16); return ((n >> 16) * 0.3 + (n >> 8 & 255) * 0.59 + (n & 255) * 0.11) < 120 }
+// Napisy z cieniem albo obwódką (napisy pieśni, werset, plansze): cień rozmywany przez kartę graficzną w każdej
+// klatce był drogi — taki napis rysujemy raz na osobnym płótnie i potem tylko go kopiujemy (setki razy taniej).
+const sprites = new Map<string, { c: HTMLCanvasElement, ox: number, oy: number }>()
+if (typeof document !== 'undefined') document.fonts?.addEventListener?.('loadingdone', () => sprites.clear()) // doczytana czcionka — narysuj od nowa
+function sprite(str: string, o: { size: number, weight: number, color: string, align: string, shadow: number, font: Font, italic: boolean, spacing: number }, stroke: string, strokeW: number) {
+  const key = [str, o.size, o.weight, o.color, o.align, o.shadow, o.font, o.italic, o.spacing, stroke, strokeW].join('|')
+  let sp = sprites.get(key)
+  if (sp) { sprites.delete(key); sprites.set(key, sp); return sp } // ostatnio używane na koniec
+  const c = document.createElement('canvas'), p = c.getContext('2d')
+  p.font = fontStr(o.weight, o.size, o.font, o.italic)
+  if (o.spacing) p.letterSpacing = o.spacing + 'px'
+  const m = p.measureText(str)
+  const asc = m.fontBoundingBoxAscent || o.size, desc = m.fontBoundingBoxDescent || o.size * 0.3
+  const pad = Math.ceil(o.shadow * 2 + strokeW + o.size * 0.3)
+  const left = Math.ceil(m.actualBoundingBoxLeft || 0), right = Math.ceil(Math.max(m.width, m.actualBoundingBoxRight || 0))
+  c.width = Math.max(1, left + right + pad * 2); c.height = Math.ceil(asc + desc + pad * 2 + o.shadow / 6)
+  p.font = fontStr(o.weight, o.size, o.font, o.italic) // po zmianie rozmiaru płótna ustawienia się zerują
+  if (o.spacing) p.letterSpacing = o.spacing + 'px'
+  p.textAlign = 'left'; p.textBaseline = 'alphabetic'; p.fillStyle = o.color
+  const bx = pad + left, by = pad + asc
+  if (o.shadow) { p.shadowColor = 'rgba(0,0,0,0.85)'; p.shadowBlur = o.shadow; p.shadowOffsetY = o.shadow / 6 }
+  if (stroke) { p.lineJoin = 'round'; p.lineWidth = strokeW; p.strokeStyle = stroke; p.strokeText(str, bx, by); if (outline) p.shadowColor = 'transparent' }
+  p.fillText(str, bx, by)
+  const shift = o.align === 'center' ? m.width / 2 : o.align === 'right' || o.align === 'end' ? m.width : 0
+  sp = { c, ox: bx + shift, oy: by }
+  sprites.set(key, sp)
+  if (sprites.size > 120) sprites.delete(sprites.keys().next().value)
+  return sp
+}
 export function text(str, x, y, { size = 48, weight = 600, color = '#fff', align = 'left', alpha = 1, shadow = 0, font = 'ui' as Font, italic = false, spacing = 0 } = {}) {
+  str = String(str ?? '')
+  if (!str) return
+  const halo1 = !shadow && halo && !outline && darkHex(color)
+  if ((shadow || outline || halo1) && typeof color === 'string') {
+    const stroke = outline || (halo1 ? halo : ''), strokeW = outline ? outlineWidth(size) : halo1 ? Math.min(16, Math.max(5, size * 0.16)) : 0
+    const sp = sprite(str, { size, weight, color, align, shadow, font, italic, spacing }, stroke, strokeW)
+    const a = g.globalAlpha
+    g.globalAlpha = a * alpha
+    g.drawImage(sp.c, x - sp.ox, y - sp.oy)
+    g.globalAlpha = a
+    return
+  }
   g.save()
   g.globalAlpha *= alpha
   g.font = fontStr(weight, size, font, italic)

@@ -6,7 +6,7 @@ import { H, W, studio } from './state'
 import { paintOn } from './paint'
 import { countdownLeft } from './cards'
 import { syncVideos } from './media'
-import { fade } from './look'
+import { differs, fade } from './look'
 import { SCENE_DRAW, musicTag } from './scenes'
 import { encodeFrame } from './encoder'
 
@@ -22,6 +22,7 @@ function draw(ctx: CanvasRenderingContext2D, L: Look, t: number) {
   try { (SCENE_DRAW[L.scene] || SCENE_DRAW.camera)(t); musicTag(t) } finally { paintOn(main, studio.program) }
 }
 
+let paintAvg = 0
 function frame() {
   const t = performance.now()
   if (studio.program.scene === 'countdown' || studio.preview.scene === 'countdown') { const l = countdownLeft(); if (l !== studio.left) studio.left = l }
@@ -33,12 +34,19 @@ function frame() {
     draw(tmp.getContext('2d'), fade.from, t)
     main.save(); main.globalAlpha = 1 - (t - fade.at) / 500; main.drawImage(tmp, 0, 0); main.restore()
   } else fade.from = null
-  // podgląd: co drugą klatkę, w połowie rozdzielczości
-  if (pvCanvas?.isConnected && !studio.direct && frameNo2++ % 2 === 0) {
-    pv.setTransform(PV, 0, 0, PV, 0, 0)
-    try { draw(pv, studio.preview, t) } finally { pv.setTransform(1, 0, 0, 1, 0, 0) }
+  // podgląd w połowie rozdzielczości: taki sam jak wizja — kopia gotowej klatki (bez rysowania sceny drugi raz);
+  // inny — rysowany co drugą klatkę, a w trakcie transmisji co trzecią (karta ma pracować dla widzów)
+  if (pvCanvas?.isConnected && !studio.direct && frameNo2++ % (studio.live ? 3 : 2) === 0) {
+    if (!fade.from && !differs()) pv.drawImage(canvas, 0, 0, W * PV, H * PV)
+    else {
+      pv.setTransform(PV, 0, 0, PV, 0, 0)
+      try { draw(pv, studio.preview, t) } finally { pv.setTransform(1, 0, 0, 1, 0, 0) }
+    }
   }
   encodeFrame(canvas, t)
+  // ile trwa jedna klatka (rysowanie + oddanie do kodera), średnio — widać w stanie transmisji
+  paintAvg = paintAvg ? paintAvg * 0.95 + (performance.now() - t) * 0.05 : performance.now() - t
+  if (frameNo2 % 15 === 0) studio.paintMs = Math.round(paintAvg * 10) / 10
 }
 
 export function previewCanvas() {
