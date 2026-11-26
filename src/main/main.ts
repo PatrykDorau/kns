@@ -1226,6 +1226,8 @@ app.whenReady().then(() => {
   ipcMain.on('stream:lyrics', (e, text) => streamer.setLyrics(text))
   // studio: obraz i dźwięk składa aplikacja (okno), tutaj tylko wysyłka
   ipcMain.handle('stream:startStudio', yt(o => streamer.startStudio(o)))
+  // próba kodera FFmpeg (test w „Jakości”): klatki jak w transmisji, ale bez wysyłania; zatrzymanie — stream:stop
+  ipcMain.handle('stream:benchStudio', (e, o) => (streamer.want ? { error: 'Trwa transmisja.' } : streamer.startStudio({ ...o, dry: true }).catch(err => ({ error: err.message }))))
   ipcMain.on('studio:video', (e, buf) => streamer.writeVideo(buf))
   ipcMain.on('studio:audio', (e, buf) => streamer.writeAudio(buf))
   streamer.on('needKey', () => toControl('studio:needKey'))

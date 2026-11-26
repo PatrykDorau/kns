@@ -132,6 +132,7 @@ export interface KnsApi {
   streamLyrics: (text: string) => void
   onStreamState: Listen
   streamStartStudio: Invoke
+  streamBenchStudio?: Invoke
   studioVideo: (buf: ArrayBuffer | Uint8Array) => void
   studioAudio: (buf: ArrayBuffer | Uint8Array) => void
   onStudioNeedKey: Listen

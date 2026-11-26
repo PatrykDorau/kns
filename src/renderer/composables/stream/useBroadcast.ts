@@ -4,7 +4,7 @@ import { ask } from '@/utils/ask'
 import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 import { api, cameraLock, settings } from '@/stores'
 import { refeedLyrics } from '@/services/lyricsFeed'
-import { requestKeyFrame, setFps, startEncoding, stopEncoding, studio } from '@/services/studio'
+import { rawInfo, requestKeyFrame, setFps, startEncoding, stopEncoding, studio, studioCanvas } from '@/services/studio'
 import type { StreamState, YtBroadcast, Service } from '@/types'
 import { ytDescription, type YouTube } from './useYouTube'
 import type { StreamDevices } from './useStreamDevices'
@@ -45,9 +45,12 @@ export function useBroadcast(service: Ref<Service | null>, youtube: YouTube, dev
       // studio: obraz składa i koduje aplikacja (karta graficzna), FFmpeg tylko wysyła
       setFps(settings.streamFps)
       studio.bitrate = kbps.value * 1000
-      const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps, kbps: kbps.value, broadcast: b.id })
+      // koder: karta przez przeglądarkę (gotowe H.264) albo FFmpeg (surowe klatki — format i rozmiar dla FFmpeg)
+      const enc = settings.streamEncoder || 'gpu'
+      const raw = enc !== 'gpu' ? rawInfo(studioCanvas()) : null
+      const res = await api.streamStartStudio({ url: yt.value.stream.url, key: yt.value.stream.key, fps: settings.streamFps, kbps: kbps.value, broadcast: b.id, encoder: enc, raw })
       if (res?.error) { liveError.value = res.error; return }
-      await startEncoding()
+      await startEncoding(enc)
       watchGoLive()
       return
     }
@@ -98,9 +101,15 @@ export function useBroadcast(service: Ref<Service | null>, youtube: YouTube, dev
 
   let offLive: (() => void) | null = null, offKey: (() => void) | null = null
   onMounted(async () => {
-    offLive = api.onStreamState?.(x => { live.value = x })
+    // próba kodera (test w „Jakości”) to nie transmisja — jej stan nie trafia na pulpit
+    offLive = api.onStreamState?.(x => {
+      if (x?.dry) return
+      live.value = x
+      // koder FFmpeg nie ruszył (np. stary sterownik) — nadawanie stanęło na dobre: koniec wysyłania klatek, błąd zostaje widoczny
+      if (studio.live && !x.running && !x.starting && x.error) { stopEncoding(); liveError.value = x.error }
+    })
     const ls = await api.streamState?.()
-    if (ls) { live.value = ls; if (ls.running || ls.starting) cameraLock.value = true }
+    if (ls && !ls.dry) { live.value = ls; if (ls.running || ls.starting) cameraLock.value = true }
     offKey = api.onStudioNeedKey?.(() => requestKeyFrame())
   })
   // goLiveTimer zostaje: transmisja trwa także po wyjściu z ekranu Stream

@@ -7,6 +7,16 @@ import { H, W, studio } from './state'
 import { resumeAudio } from './audio'
 
 let encoder: VideoEncoder = null, frameNo = 0, needKey = true
+// Koder do wyboru w „Jakości”: „gpu” — przeglądarka (WebCodecs) na karcie graficznej; pozostałe — FFmpeg (jak w OBS):
+// aplikacja oddaje gotowe klatki, FFmpeg koduje NVENC / QuickSync / AMF albo procesorem (x264).
+export const ENCODERS = [
+  ['gpu', 'Karta graficzna — przez przeglądarkę', 'Najlżejsze dla komputera: obraz nie opuszcza karty graficznej.'],
+  ['nvenc', 'FFmpeg — NVIDIA NVENC', 'Jak w OBS: lepsza jakość przy tej samej przepływności. Klatki są kopiowane do FFmpeg (więcej pracy procesora).'],
+  ['qsv', 'FFmpeg — Intel QuickSync', 'Karta zintegrowana Intel przez FFmpeg.'],
+  ['amf', 'FFmpeg — AMD AMF', 'Karta AMD przez FFmpeg.'],
+  ['x264', 'FFmpeg — procesor (x264)', 'Bez karty graficznej: najwięcej pracy procesora — na starszym komputerze raczej 720p.'],
+] as const
+let raw = false, rawBusy = 0
 let outW = W, outH = H, small: HTMLCanvasElement = null, sctx: CanvasRenderingContext2D = null
 
 export const outSize = (q = settings.streamQuality) => (q === '720' ? [1280, 720] : [W, H])
@@ -29,10 +39,35 @@ function source(canvas: HTMLCanvasElement) {
   sctx.drawImage(canvas, 0, 0, outW, outH)
   return small
 }
-export async function startEncoding() {
+// Format surowej klatki z płótna (BGRX / RGBX …) i rozmiar — FFmpeg musi je znać przed pierwszą klatką.
+export function rawInfo(canvas: HTMLCanvasElement, quality = settings.streamQuality) {
+  ;[outW, outH] = outSize(quality)
+  const vf = new VideoFrame(source(canvas), { timestamp: 0 })
+  const format = vf.format
+  vf.close()
+  return { w: outW, h: outH, format }
+}
+// Klatka do FFmpeg: kopia z karty w tle (bez czekania pętli rysowania); gdy poprzednie jeszcze się kopiują — pominięta.
+function sendRaw(canvas: HTMLCanvasElement, t: number, busy: { n: number }, onLost: () => void, send: (b: Uint8Array) => void) {
+  if (busy.n >= 2) { onLost(); return }
+  const vf = new VideoFrame(source(canvas), { timestamp: Math.round(t * 1000) })
+  const opt = { rect: { x: 0, y: 0, width: outW, height: outH }, layout: [{ offset: 0, stride: outW * 4 }] }
+  const buf = new Uint8Array(outW * outH * 4)
+  busy.n++
+  vf.copyTo(buf, opt).then(() => send(buf), () => onLost()).finally(() => { vf.close(); busy.n-- })
+}
+const rawBusyBox = { n: 0 }
+export async function startEncoding(mode = 'gpu') {
   await resumeAudio()
-  encoder?.close?.()
+  encoder?.close?.(); encoder = null
   ;[outW, outH] = outSize()
+  raw = mode !== 'gpu'; rawBusyBox.n = 0
+  if (raw) {
+    studio.encoder = (ENCODERS.find(e => e[0] === mode)?.[1] || 'FFmpeg') + ' · ' + outH + 'p'
+    frameNo = 0; needKey = true; studio.skipped = 0
+    studio.live = true
+    return
+  }
   encoder = new VideoEncoder({
     output: chunk => { const b = new Uint8Array(chunk.byteLength); chunk.copyTo(b); api.studioVideo(b) },
     error: e => { studio.error = 'Kodowanie obrazu: ' + (e?.message || e) },
@@ -43,7 +78,7 @@ export async function startEncoding() {
   studio.live = true
 }
 export function stopEncoding() {
-  studio.live = false
+  studio.live = false; raw = false
   try { encoder?.close() } catch { /* już zamknięty */ }
   encoder = null
 }
@@ -51,6 +86,7 @@ export function stopEncoding() {
 export function requestKeyFrame() { needKey = true }
 // Klatka płótna do kodera (pominięta, gdy karta nie nadąża).
 export function encodeFrame(canvas: HTMLCanvasElement, t: number) {
+  if (raw) { if (studio.live) sendRaw(canvas, t, rawBusyBox, () => { studio.skipped++ }, b => api.studioVideo(b)); return }
   if (!encoder || encoder.state !== 'configured') return
   if (encoder.encodeQueueSize > maxQueue(studio.fps)) { studio.skipped++; return } // karta nie nadąża — klatka pominięta zamiast opóźnienia
   const vf = new VideoFrame(source(canvas), { timestamp: Math.round(t * 1000) })
@@ -73,7 +109,8 @@ export function gpuName() {
     return n.replace(/^ANGLE \((.*)\)$/, '$1').replace(/,? ?Direct3D.*$/i, '').replace(/^(NVIDIA|AMD|Intel(?:\(R\))?|Google)[^,]*, /, '').replace(/ \(0x[0-9A-F]+\)/gi, '').trim()
   } catch { return '' }
 }
-export async function benchEncoder(canvas: HTMLCanvasElement, quality: string, fps: number, ms = 4000): Promise<{ lost: number, error?: string }> {
+export async function benchEncoder(canvas: HTMLCanvasElement, quality: string, fps: number, ms = 4000, mode = 'gpu'): Promise<{ lost: number, error?: string }> {
+  if (mode !== 'gpu') return benchFfmpeg(canvas, quality, fps, ms + 1000, mode)
   if (typeof VideoEncoder === 'undefined') return { lost: 100, error: 'Brak kodowania na karcie graficznej.' }
   const [w, h] = outSize(quality)
   let err = ''
@@ -98,4 +135,37 @@ export async function benchEncoder(canvas: HTMLCanvasElement, quality: string, f
     return { lost: err ? 100 : Math.round((lost / Math.max(1, sent + lost)) * 1000) / 10, error: err || undefined }
   } catch (e) { return { lost: 100, error: String(e?.message || e) } }
   finally { bench.running = false; try { enc.close() } catch { /* zamknięty */ } }
+}
+
+// Test kodera FFmpeg: prawdziwe klatki studia do FFmpeg, który koduje wybranym koderem „do nikąd” (bez wysyłania).
+// Zgubione = pominięte przy kopiowaniu z karty + pominięte przed FFmpeg (gdy koder nie nadąża, kolejka rośnie
+// i po pół sekundzie zaległości klatki są pomijane — tak samo jak w transmisji). Tempo z FFmpeg nie jest miarą:
+// x264 na starcie zbiera klatki do analizy i przez pierwsze sekundy pokazuje „wolniej”, choć nadąża.
+async function benchFfmpeg(canvas: HTMLCanvasElement, quality: string, fps: number, ms: number, mode: string): Promise<{ lost: number, error?: string }> {
+  if (studio.live) return { lost: 0, error: 'Trwa transmisja.' }
+  bench.running = true
+  const keep = [outW, outH]
+  try {
+    const info = rawInfo(canvas, quality)
+    const r = await api.streamBenchStudio?.({ fps, kbps: quality === '720' ? 3500 : 6800, encoder: mode, raw: info })
+    if (!r || r.error) return { lost: 100, error: r?.error || 'Brak FFmpeg.' }
+    const busy = { n: 0 }
+    let sent = 0, lost = 0
+    await new Promise(r => setTimeout(r, 600)) // FFmpeg startuje
+    const t0 = performance.now()
+    await new Promise<void>(done => {
+      const id = setInterval(() => {
+        if (performance.now() - t0 > ms) { clearInterval(id); done(); return }
+        sendRaw(canvas, performance.now(), busy, () => { lost++ }, b => { sent++; api.studioVideo(b) })
+      }, 1000 / fps)
+    })
+    await new Promise(r => setTimeout(r, 500))
+    const st: any = (await api.streamState?.()) || {}
+    await api.streamStop?.()
+    if (st.error) return { lost: 100, error: st.error }
+    if (!st.running && !st.time) return { lost: 100, error: 'FFmpeg nie zakodował ani jednej klatki.' }
+    const pct = ((lost + (st.skipped || 0)) / Math.max(1, sent + lost)) * 100
+    return { lost: Math.round(pct * 10) / 10 }
+  } catch (e) { await api.streamStop?.().catch(() => {}); return { lost: 100, error: String(e?.message || e) } }
+  finally { bench.running = false; [outW, outH] = keep }
 }

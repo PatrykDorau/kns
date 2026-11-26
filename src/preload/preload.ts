@@ -120,6 +120,7 @@ contextBridge.exposeInMainWorld('api', {
   streamLyrics: text => ipcRenderer.send('stream:lyrics', text),
   onStreamState: on('stream:state'),
   streamStartStudio: invoke('stream:startStudio'),
+  streamBenchStudio: invoke('stream:benchStudio'),
   studioVideo: buf => ipcRenderer.send('studio:video', buf),
   studioAudio: buf => ipcRenderer.send('studio:audio', buf),
   onStudioNeedKey: on('studio:needKey'),

@@ -56,7 +56,8 @@ export interface Settings {
   ytFolded: boolean
   cfgFolded: boolean
   cfgTab?: string // otwarta zakładka Ustawień nadawania
-  gpuBench?: { q: string, fps: number, lost: number, lost720?: number, error?: string, name?: string } // ostatni test karty graficznej
+  streamEncoder?: string // koder studia: 'gpu' (przeglądarka) | 'nvenc' | 'qsv' | 'amf' | 'x264' (FFmpeg)
+  gpuBench?: { q: string, fps: number, lost: number, lost720?: number, error?: string, name?: string, enc?: string } // ostatni test karty graficznej
   mediaOpen: boolean
   screenShare: boolean // ten komputer wysyła obraz rzutnika przez sieć
   screenRemote: boolean // stream odbiera obraz rzutnika przez sieć

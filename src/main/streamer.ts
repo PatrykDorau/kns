@@ -54,12 +54,30 @@ function isKeyFrame(b) {
   }
   return false
 }
+// Studio z koderem FFmpeg (wybór w „Jakości”): aplikacja oddaje gotowe klatki obrazu (BGRA/RGBA), FFmpeg koduje.
+// NVENC dostaje RGB wprost (kolory zamienia karta NVIDIA), pozostałe — po zamianie na NV12 / YUV 4:2:0 procesorem.
+const RAW_FMT = { BGRX: 'bgr0', BGRA: 'bgra', RGBX: 'rgb0', RGBA: 'rgba' }
+function studioEncoder(enc, kbps, fps) {
+  const rate = ['-b:v', kbps + 'k', '-maxrate', kbps + 'k', '-bufsize', kbps * 2 + 'k', '-g', String(fps * 2)]
+  if (enc === 'nvenc') return { args: ['-c:v', 'h264_nvenc', '-preset', 'p5', '-tune', 'hq', '-rc', 'cbr', ...rate, '-bf', '2', '-spatial-aq', '1', '-profile:v', 'high'], name: 'NVIDIA NVENC (FFmpeg)' }
+  if (enc === 'qsv') return { args: ['-vf', 'format=nv12', '-c:v', 'h264_qsv', '-preset', 'medium', ...rate, '-bf', '2', '-profile:v', 'high'], name: 'Intel QuickSync (FFmpeg)' }
+  if (enc === 'amf') return { args: ['-vf', 'format=nv12', '-c:v', 'h264_amf', '-usage', 'lowlatency', '-quality', 'balanced', '-rc', 'cbr', ...rate, '-profile:v', 'high'], name: 'AMD AMF (FFmpeg)' }
+  return { args: ['-vf', 'format=yuv420p', '-c:v', 'libx264', '-preset', 'veryfast', ...rate, '-bf', '2', '-profile:v', 'high', '-x264-params', 'nal-hrd=cbr'], name: 'procesor x264 (FFmpeg)' }
+}
+// Czytelny powód, gdy koder FFmpeg nie ruszył (np. stary sterownik NVIDIA).
+function encoderTrouble(log, enc) {
+  if (/Driver does not support the required nvenc API version|minimum required Nvidia driver/i.test(log)) return 'Sterownik NVIDIA jest za stary dla kodera NVENC — zaktualizuj go (nvidia.com → Sterowniki) albo wybierz inny koder.'
+  if (/No NVENC capable devices|Cannot load nvcuda|nvenc.*(not|unsupported)|OpenEncodeSessionEx failed/i.test(log)) return 'Karta NVIDIA nie jest dostępna dla kodera NVENC — wybierz inny koder.'
+  if (enc === 'qsv' && /qsv|MFX|Error initializing an internal MFX session/i.test(log)) return 'Intel QuickSync nie działa na tym komputerze — wybierz inny koder.'
+  if (enc === 'amf' && /amf|AMF/i.test(log)) return 'Koder AMD AMF nie działa na tym komputerze — wybierz inny koder.'
+  return ''
+}
 // Bez postępu (czas transmisji stoi) tyle ms = łącze zerwane. Przy starcie dłużej — łączenie i otwieranie kamery trwa.
 const STALL_MS = 12000, START_MS = 25000
 class Streamer extends EventEmitter {
   // proces FFmpeg, podgląd, napisy i stan nadawania
   dir: () => string; proc: any; want: any; state: any; preview: any; audio: any
-  lastText: string; lastStats: number; lastTime: string; statsTimer: any; skipped: number; choked: boolean; switching: any
+  lastText: string; lastStats: number; lastTime: string; statsTimer: any; skipped: number; choked: boolean; switching: any; frameBytes = 0
   constructor({ dir }) {
     super()
     this.dir = dir
@@ -105,7 +123,8 @@ class Streamer extends EventEmitter {
     this.statsTimer = setInterval(() => {
       if (this.proc !== proc) { clearInterval(this.statsTimer); return }
       const idle = Date.now() - this.lastStats
-      const studio = kbps ? { backlog: Math.round(((proc.stdin.writableLength || 0) * 8) / (kbps * 1000) * 10) / 10, skipped: this.skipped } : {}
+      const raw = this.want?.raw ? (proc.stdin.writableLength || 0) / (this.frameBytes || 1) / (+this.want.fps || 30) : null
+      const studio = kbps ? { backlog: Math.round((raw ?? ((proc.stdin.writableLength || 0) * 8) / (kbps * 1000)) * 10) / 10, skipped: this.skipped } : {}
       this.emitState({ ...studio, stalled: this.state.running && idle > 5000 })
       if (idle > (this.state.running ? STALL_MS : START_MS)) { proc.cut = true; proc.kill() }
     }, 1000)
@@ -160,7 +179,7 @@ class Streamer extends EventEmitter {
     this.lastText = null
     this.setLyrics(current)
     await this.startPreviewServer()
-    this.emitState({ starting: true, running: false, error: '', restarts: 0, drop: 0, previewUrl: `http://127.0.0.1:${this.preview.port}/podglad` })
+    this.emitState({ dry: false, starting: true, running: false, error: '', restarts: 0, drop: 0, previewUrl: `http://127.0.0.1:${this.preview.port}/podglad` })
     this.launch(o.encoder === 'x264' ? 'x264' : 'nvenc')
     return this.state
   }
@@ -229,12 +248,15 @@ class Streamer extends EventEmitter {
   /* ---------- tryb studia: obraz składa i koduje aplikacja (karta graficzna), dźwięk miksuje aplikacja ---------- */
   // Wejścia FFmpeg: H.264 (gotowe klatki) przez stdin i PCM 48 kHz przez lokalne gniazdo TCP; obraz bez przerabiania,
   // dźwięk → AAC; oba ze znacznikami czasu „zegara ściennego”, więc zostają zgrane.
+  // o.raw — { w, h, format } klatki od aplikacji (koder FFmpeg o.encoder); bez — gotowe H.264 z karty (WebCodecs).
+  // o.dry — próba kodera bez wysyłania (test w „Jakości”): bez dźwięku, wynik do nikąd, bez wznawiania.
   async startStudio(o) {
     if (this.want) return this.state
-    if (!o?.url || !o?.key) throw new Error('Brak adresu albo klucza transmisji YouTube.')
+    if (!o?.dry && (!o?.url || !o?.key)) throw new Error('Brak adresu albo klucza transmisji YouTube.')
+    if (o.raw && !RAW_FMT[o.raw.format]) throw new Error('Nieznany format klatek: ' + o.raw.format)
     this.want = { ...o, studio: true }
     this.skipped = 0; this.choked = false
-    this.emitState({ starting: true, running: false, error: '', restarts: 0, drop: 0, previewUrl: '', encoder: 'karta graficzna (studio)', backlog: 0, stalled: false, skipped: 0, target: +o.kbps || 0 })
+    this.emitState({ dry: !!o.dry, starting: true, running: false, error: '', restarts: 0, drop: 0, previewUrl: '', fps: 0, speed: '', time: '', encoder: o.raw ? studioEncoder(o.encoder, 0, 30).name : 'karta graficzna (studio)', backlog: 0, stalled: false, skipped: 0, target: +o.kbps || 0 })
     await this.launchStudio()
     return this.state
   }
@@ -244,13 +266,18 @@ class Streamer extends EventEmitter {
     const port = await new Promise<number>(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = (s.address() as any).port; s.close(() => r(p)) }) })
     let log = ''
     const fps = [25, 30, 50, 60].includes(+o.fps) ? +o.fps : 30
-    const proc = spawn(ffmpegPath(), ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1',
-      '-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-probesize', '500000', '-analyzeduration', '0', '-framerate', String(fps), '-f', 'h264', '-i', 'pipe:0',
-      '-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', `tcp://127.0.0.1:${port}?listen=1`,
-      // dźwięk: znaczniki z zegara ściennego drgają (paczki PCM przychodzą nierówno) — bez rozciągania próbek (to dawało
-      // „wibracje” wysokości dźwięku); dopasowanie tylko przy rozjeździe > 100 ms (cisza / pominięcie)
-      '-map', '0:v', '-c:v', 'copy', '-map', '1:a', '-af', 'aresample=async=1:min_hard_comp=0.100000', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2',
-      '-f', 'flv', o.url.replace(/\/$/, '') + '/' + o.key], { windowsHide: true })
+    const kbps = +o.kbps || 6800
+    const video = o.raw
+      ? ['-thread_queue_size', '64', '-use_wallclock_as_timestamps', '1', '-f', 'rawvideo', '-pix_fmt', RAW_FMT[o.raw.format], '-s', o.raw.w + 'x' + o.raw.h, '-framerate', String(fps), '-i', 'pipe:0']
+      : ['-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-probesize', '500000', '-analyzeduration', '0', '-framerate', String(fps), '-f', 'h264', '-i', 'pipe:0']
+    const venc = o.raw ? studioEncoder(o.encoder, kbps, fps).args : ['-c:v', 'copy']
+    const audio = o.dry ? [] : ['-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', `tcp://127.0.0.1:${port}?listen=1`]
+    // dźwięk: znaczniki z zegara ściennego drgają (paczki PCM przychodzą nierówno) — bez rozciągania próbek (to dawało
+    // „wibracje” wysokości dźwięku); dopasowanie tylko przy rozjeździe > 100 ms (cisza / pominięcie)
+    const aenc = o.dry ? ['-an'] : ['-map', '1:a', '-af', 'aresample=async=1:min_hard_comp=0.100000', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2']
+    const out = o.dry ? ['-f', 'null', '-'] : ['-f', 'flv', o.url.replace(/\/$/, '') + '/' + o.key]
+    const proc = spawn(ffmpegPath(), ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1', ...video, ...audio, '-map', '0:v', ...venc, ...aenc, ...out], { windowsHide: true })
+    if (o.raw) this.frameBytes = o.raw.w * o.raw.h * 4
     this.proc = proc
     this.audio = { socket: null, queue: [] }
     proc.stdin.on('error', () => {})
@@ -261,7 +288,7 @@ class Streamer extends EventEmitter {
       sock.on('connect', () => { if (this.proc !== proc || !this.audio) { sock.destroy(); return } this.audio.socket = sock; for (const b of this.audio.queue) sock.write(b); this.audio.queue = [] })
       sock.on('error', () => { if (this.audio && !this.audio.socket && tries < 100) setTimeout(() => connect(tries + 1), 200) })
     }
-    connect()
+    if (!o.dry) connect()
     this.emit('needKey')
     // co sekundę: ile obrazu czeka na wysłanie (internet nie nadąża → rośnie) i czy FFmpeg w ogóle coś wysyła
     this.watch(proc, +o.kbps || 6800)
@@ -273,15 +300,21 @@ class Streamer extends EventEmitter {
       if (process.env.KNS_STREAM_DEBUG) process.stderr.write(text)
       // obraz bez przerabiania — FFmpeg nie podaje klatek, tylko czas i przepływność
       const tm = (text.match(/time=(\S+)/g) || []).pop()?.slice(5), br = (text.match(/bitrate=\s*(\S+)/g) || []).pop()?.replace(/bitrate=\s*/, '')
-      if (ok(tm)) this.progress(tm)
+      if (ok(tm)) { this.progress(tm); encoded = true }
       if (m && ok(m[3])) this.emitState({ running: true, starting: false, error: '', fps: Math.round(+m[2]), time: m[3].replace(/\.\d+$/, ''), bitrate: ok(m[4]), speed: ok(m[5]) })
       else if (ok(tm)) this.emitState({ running: true, starting: false, error: '', fps, time: tm.replace(/\.\d+$/, ''), bitrate: ok(br) })
     })
+    let encoded = false // koder dał choć jedną klatkę
     proc.on('exit', code => {
-      if (this.proc === proc) this.proc = null
+      // spóźniony koniec poprzedniego procesu (np. po teście kodera) nie rusza bieżącego
+      if (this.proc !== proc) return
+      this.proc = null
       try { this.audio?.socket?.destroy() } catch { /* zamknięte */ }
       this.audio = null
       if (!this.want) { this.emitState({ running: false, starting: false }); return }
+      // koder nie ruszył (sterownik, brak karty) — wznawianie nic nie da
+      const trouble = o.raw && !encoded ? encoderTrouble(log, o.encoder) : ''
+      if (o.dry || trouble) { this.want = null; clearInterval(this.statsTimer); this.emitState({ running: false, starting: false, error: trouble || (code ? 'Koder zakończył pracę: ' + ((log.match(/\n([^\n]*(Error|error|Invalid|failed)[^\n]*)/) || [])[1] || 'kod ' + code).trim() : '') }); return }
       if ((proc as any).cut) { this.lostLink(() => this.launchStudio()); return }
       const reason = (log.match(/(I\/O error|Connection|Error opening|Invalid data|Broken pipe)[^\n]*/i) || [])[0] || 'FFmpeg zakończył pracę (kod ' + code + ').'
       this.emitState({ running: false, starting: true, restarts: this.state.restarts + 1, error: 'Przerwa w nadawaniu: ' + reason.trim() + ' — wznawiam za 3 s.' })
@@ -294,6 +327,12 @@ class Streamer extends EventEmitter {
     const stdin = this.proc?.stdin
     if (!this.want?.studio || !stdin?.writable) return
     const b = Buffer.from(buf)
+    // surowe klatki (koder FFmpeg): każda jest pełnym obrazem — przy zatkaniu (ponad pół sekundy w kolejce) pomijamy pojedyncze
+    if (this.want.raw) {
+      if (b.length !== this.frameBytes) return
+      if (stdin.writableLength > this.frameBytes * Math.max(4, (+this.want.fps || 30) / 2)) { this.skipped = (this.skipped || 0) + 1; return }
+      stdin.write(b); return
+    }
     if (stdin.writableLength > 48e6) { if (!this.choked) { this.choked = true; this.emit('needKey') } }
     if (this.choked) {
       if (stdin.writableLength > 4e6 || !isKeyFrame(b)) { this.skipped = (this.skipped || 0) + 1; if (this.skipped % 30 === 1) this.emit('needKey'); return }
@@ -318,7 +357,7 @@ class Streamer extends EventEmitter {
     }
     for (const c of this.preview.clients) c.end()
     this.preview.clients.clear()
-    this.emitState({ running: false, starting: false, fps: 0, bitrate: '', speed: '', error: '', backlog: 0, stalled: false })
+    this.emitState({ dry: false, running: false, starting: false, fps: 0, bitrate: '', speed: '', error: '', backlog: 0, stalled: false })
     return this.state
   }
 }

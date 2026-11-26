@@ -4,7 +4,7 @@ import Icon from '@/components/common/Icon.vue'
 import { api, settings } from '@/stores'
 import { lyricsKey } from '@/services/lyricsFeed'
 import { remote as remoteScreen } from '@/services/screenShare'
-import { bench, benchEncoder, gpuName, setDirect, studio, studioCanvas } from '@/services/studio'
+import { ENCODERS, bench, benchEncoder, gpuName, setDirect, studio, studioCanvas } from '@/services/studio'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { ago } from '@/composables/stream/useProjectorList'
 
@@ -23,13 +23,13 @@ const tab = computed({ get: () => settings.cfgTab || 'src', set: v => { settings
 
 // Test karty graficznej: koduje prawdziwy obraz studia przez 4 s (bez wysyłania) — czy nadąży z tą jakością.
 // Raz na uruchomienie sam (przed transmisją), potem przyciskiem. Gdy 1080p nie daje rady — od razu sprawdza 720p.
-const gpu = ref<{ q: string, fps: number, lost: number, lost720?: number, error?: string, name?: string } | null>(settings.gpuBench || null)
+const gpu = ref<{ q: string, fps: number, lost: number, lost720?: number, error?: string, name?: string, enc?: string } | null>(settings.gpuBench || null)
 async function testGpu() {
   if (bench.running || liveOn.value || engine.value !== 'studio') return
-  const q = settings.streamQuality, fps = +settings.streamFps || 30
-  const r = await benchEncoder(studioCanvas(), q, fps)
-  const out = { q, fps, lost: r.lost, error: r.error, lost720: undefined as number | undefined, name: gpuName() }
-  if (q !== '720' && r.lost > 1) out.lost720 = (await benchEncoder(studioCanvas(), '720', fps)).lost
+  const q = settings.streamQuality, fps = +settings.streamFps || 30, enc = settings.streamEncoder || 'gpu'
+  const r = await benchEncoder(studioCanvas(), q, fps, 4000, enc)
+  const out = { q, fps, enc, lost: r.lost, error: r.error, lost720: undefined as number | undefined, name: gpuName() }
+  if (q !== '720' && r.lost > 1 && !r.error) out.lost720 = (await benchEncoder(studioCanvas(), '720', fps, 4000, enc)).lost
   gpu.value = out; settings.gpuBench = out
 }
 // Dwie karty (Intel + NVIDIA/AMD), a aplikacja działa na zintegrowanej — przycisk przełącza ją na mocniejszą.
@@ -45,7 +45,8 @@ async function useStrong() {
   gpuSet.value = strong.value?.vendor || 'mocniejsza'
 }
 onMounted(async () => { gpuInfo.value = (await api.gpuInfo?.().catch(() => null)) || null })
-const gpuStale = computed(() => !!gpu.value && (gpu.value.q !== settings.streamQuality || gpu.value.fps !== (+settings.streamFps || 30)))
+const gpuStale = computed(() => !!gpu.value && (gpu.value.q !== settings.streamQuality || gpu.value.fps !== (+settings.streamFps || 30) || (gpu.value.enc || 'gpu') !== (settings.streamEncoder || 'gpu')))
+const encHint = computed(() => ENCODERS.find(e => e[0] === (settings.streamEncoder || 'gpu'))?.[2] || '')
 onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.value) { gpuAuto.done = true; setTimeout(testGpu, 2500) } })
 </script>
 
@@ -149,6 +150,13 @@ onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.valu
           <select v-model.number="settings.streamKbps" :disabled="liveOn"><option :value="0">automatycznie ({{ (autoKbps / 1000).toLocaleString('pl') }} Mb/s)</option><option v-for="v in [3000, 4500, 6000, 8000, 10000, 12000]" :key="v" :value="v">{{ (v / 1000).toLocaleString('pl') }} Mb/s</option></select>
           <span class="st-hint">YouTube zaleca dla 1080p 4,5–9 Mb/s. Klatki ustaw jak w ATEM. Przy „słabym sygnale” — zmniejsz.</span>
         </div>
+        <div v-if="engine === 'studio'" class="st-stack">
+          <label>Koder</label>
+          <select :value="settings.streamEncoder || 'gpu'" :disabled="liveOn" aria-label="Koder" @change="settings.streamEncoder = ($event.target as HTMLSelectElement).value; testGpu()">
+            <option v-for="[id, name] in ENCODERS" :key="id" :value="id">{{ name }}</option>
+          </select>
+          <span class="st-hint">{{ encHint }} Po zmianie — „Sprawdź” poniżej pokaże, czy nadąża.</span>
+        </div>
         <!-- czy karta graficzna nadąży z kodowaniem -->
         <div v-if="engine === 'studio'" class="st-gpu" :class="gpu && !gpuStale && !bench.running ? (gpu.lost > 3 ? 'bad' : gpu.lost > 1 ? 'warn' : 'ok') : ''">
           <span class="st-txt">
@@ -158,7 +166,7 @@ onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.valu
             <small v-if="gpuErr" class="st-gpu-weak">Nie udało się: {{ gpuErr }}</small>
             <small v-if="bench.running">Sprawdzam — kilka sekund kodowania obrazu studia…</small>
             <small v-else-if="!gpu">Sprawdź, czy ten komputer nadąży z kodowaniem obrazu w tej jakości.</small>
-            <small v-else-if="gpuStale">Zmieniono jakość — sprawdź ponownie.</small>
+            <small v-else-if="gpuStale">Zmieniono jakość albo koder — sprawdź ponownie.</small>
             <small v-else-if="gpu.error">Nie udało się: {{ gpu.error }}</small>
             <small v-else-if="gpu.lost <= 1">{{ gpu.q }}p, {{ gpu.fps }} kl./s — nadąża ({{ gpu.lost.toLocaleString('pl') }}% pominiętych klatek).</small>
             <small v-else>{{ gpu.q }}p, {{ gpu.fps }} kl./s — <b>nie nadąża</b>: {{ gpu.lost.toLocaleString('pl') }}% klatek trzeba by pominąć (szarpanie u widzów).<template v-if="gpu.lost720 != null"> W 720p: {{ gpu.lost720.toLocaleString('pl') }}%.</template></small>
