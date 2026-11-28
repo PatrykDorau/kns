@@ -51,7 +51,7 @@ async function fromService() {
   <p v-if="svcMsg" class="desk-help" role="status">{{ svcMsg }}</p>
   <LibraryTrash v-if="showTrash" lib="stream" />
   <div v-if="showMats" class="desk-mats"><ChurchMaterials action="Do mediów" lib="stream" @added="showMats = false" /></div>
-  <p class="desk-help"><b>Na ekran</b> — materiał zamiast obrazu z kamery (scena „Materiał”). <b>Nakładka</b> — na obrazie z kamery albo rzutnika: w rogu albo na całym kadrze (logo PNG, napis).</p>
+  <p class="desk-help desk-help-1" title="Na ekran — materiał zamiast obrazu z kamery (scena „Materiał”). Nakładka — na obrazie z kamery albo rzutnika: w rogu albo na całym kadrze (logo PNG, napis)."><b>Na ekran</b> — zamiast kamery · <b>Nakładka</b> — na kamerze lub rzutniku</p>
   <div class="desk-media-grid">
     <div class="desk-media-it desk-media-ann" :class="{ on: annPv, live: annAir }">
       <button class="desk-media-pic" title="Ogłoszenia w pętli na cały ekran" @click="showMediaFull(ANN_MEDIA)"><img v-if="ann.pic" :src="ann.pic" alt=""><span v-else class="desk-ann-ph"><Icon name="slides" /></span></button>

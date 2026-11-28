@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, toRef } from 'vue'
+import { computed, ref, toRef } from 'vue'
+import { KEY_HELP, useDeskKeys } from '@/composables/stream/useDeskKeys'
 import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { studio } from '@/services/studio'
@@ -22,8 +23,11 @@ import LiveChat from './desk/LiveChat.vue'
 // Pulpit streamu: po lewej obraz (podgląd i wizja ze scenami, nakładkami i mediami — albo kamery w trybie prostym)
 // i ATEM; po prawej YouTube i ustawienia nadawania. Stan i działania — composables/stream (useDesk w częściach).
 const props = withDefaults(defineProps<{ service?: Service | null }>(), { service: null })
-const { live, liveOn, engine, unrail, deskMode, chat } = provideDesk(toRef(props, 'service'))
+const { live, liveOn, engine, unrail, deskMode, chat, stopLive } = provideDesk(toRef(props, 'service'))
 const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
+// skróty klawiszowe (Studio): Spacja — na wizję, F1–F6 — sceny, N — napisy
+useDeskKeys(() => engine.value === 'studio' && deskMode.value === 'live')
+const keysOpen = ref(false)
 const chatDocked = computed(() => !!settings.chatDock && chat.open && settings.deskLayout === 'cols' && engine.value === 'studio')
 </script>
 
@@ -34,14 +38,16 @@ const chatDocked = computed(() => !!settings.chatDock && chat.open && settings.d
       <!-- Podgląd: przed startem obraz z kamer (ATEM po USB), w trakcie — dokładnie to, co widzą widzowie -->
       <section class="desk-stage">
         <div class="desk-stage-head">
+          <slot name="back" />
           <h2>{{ liveOn ? 'To widzą widzowie' : 'Podgląd' }}</h2>
           <b v-if="liveOn" class="desk-onair" :class="live.running ? 'live' : 'wait'">{{ live.running ? '● NA ŻYWO' : 'Łączę z YouTube…' }}</b>
           <span v-if="liveOn && live.time" class="desk-clock">{{ live.time }}</span>
           <span class="spacer"></span>
           <slot v-if="!liveOn && engine !== 'studio'" name="tools" />
-          <small v-else class="muted">{{ live.encoder }}</small>
-          <button v-if="engine === 'studio'" class="small desk-layout-btn" :title="settings.deskLayout === 'cols' ? 'Układ: podgląd i wizja nad ustawieniami' : 'Układ: podgląd i wizja w kolumnie po lewej, ustawienia obok'" @click="settings.deskLayout = settings.deskLayout === 'cols' ? 'classic' : 'cols'"><Icon name="grid" />{{ settings.deskLayout === 'cols' ? 'Układ: kolumna' : 'Układ: klasyczny' }}</button>
+          <button v-if="engine === 'studio'" class="iconbtn" :title="'Skróty klawiszowe: ' + KEY_HELP.map(([k, v]) => k + ' — ' + v).join(', ')" aria-label="Skróty klawiszowe" @click="keysOpen = !keysOpen"><Icon name="info" /></button>
+          <slot name="actions" />
         </div>
+        <div v-if="keysOpen" class="desk-keys" role="note"><span v-for="[k, v] in KEY_HELP" :key="k"><kbd>{{ k }}</kbd> {{ v }}</span><button class="iconbtn" aria-label="Zamknij" @click="keysOpen = false"><Icon name="x" /></button></div>
         <!-- statystyki: w prawej kolumnie; gdy zwinięta — pod jej przyciskami, a tu tylko podpowiedź o problemie -->
         <DeskHealth v-if="liveOn && settings.railFolded" alert />
         <template v-if="engine === 'studio'">
@@ -84,6 +90,8 @@ const chatDocked = computed(() => !!settings.chatDock && chat.open && settings.d
         </div>
         <button class="rail-btn" :class="{ on: chat.open }" :aria-pressed="chat.open" :title="chat.unread ? 'Czat na żywo — nieodczytane: ' + chat.unread : 'Czat na żywo'" aria-label="Czat na żywo" @click="chat.open = !chat.open"><Icon name="chat" /><em v-if="chat.unread" class="chat-badge">{{ unread() }}</em></button>
         <DeskHealth v-if="liveOn" rail />
+        <!-- koniec transmisji bez rozwijania kolumny (z potwierdzeniem) -->
+        <button v-if="liveOn" class="rail-btn rail-stop" title="Zakończ transmisję" aria-label="Zakończ transmisję" @click="stopLive"><i></i></button>
       </nav>
       <div v-else key="full" class="desk-right-full">
       <!-- przypięte u góry przy przewijaniu: zwijanie, tryb pulpitu, czat -->

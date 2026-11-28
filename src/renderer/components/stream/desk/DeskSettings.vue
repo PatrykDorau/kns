@@ -71,6 +71,13 @@ onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.valu
             <button :class="{ on: settings.streamEngine === 'simple' }" :disabled="liveOn" @click="settings.streamEngine = 'simple'">Prosty</button>
           </div>
         </div>
+        <div v-if="engine === 'studio'" class="st-stack">
+          <span class="st-lbl">Układ pulpitu</span>
+          <div class="st-seg" role="group" aria-label="Układ pulpitu">
+            <button :class="{ on: settings.deskLayout === 'cols' }" title="Podgląd i wizja w kolumnie po lewej, reszta obok" @click="settings.deskLayout = 'cols'">Kolumna</button>
+            <button :class="{ on: settings.deskLayout !== 'cols' }" title="Podgląd i wizja nad resztą" @click="settings.deskLayout = 'classic'">Klasyczny</button>
+          </div>
+        </div>
         <div v-if="engine === 'studio'" class="st-row">
           <span class="st-txt"><b>Od razu na wizję</b><small>Bez podglądu: kliknięcie sceny albo nakładki od razu zmienia obraz na YouTube.</small></span>
           <input :checked="studio.direct" class="sw" type="checkbox" aria-label="Od razu na wizję" @change="direct(($event.target as HTMLInputElement).checked)">

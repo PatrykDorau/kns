@@ -431,7 +431,7 @@ header > button { flex: none; white-space: nowrap; }
 @keyframes kns-rise { from { opacity: 0; transform: translateY(8px); } }
 @keyframes kns-sheet { from { opacity: 0; transform: translateY(24px); } }
 @media (prefers-reduced-motion: no-preference) {
-  #app > :not(header):not(nav):not(.tabbar):not(.kh-bar):not(.version):not(.toast) { animation: kns-fade .24s ease-out backwards; }
+  #app > :not(header):not(nav):not(.tabbar):not(.kh-bar):not(.version):not(.toast):not(.np-overlay):not(.kh-modal) { animation: kns-fade .24s ease-out backwards; }
   .np-overlay { animation: kns-fade .18s ease-out backwards; }
   .np-panel { animation: kns-sheet .26s cubic-bezier(.2, .8, .2, 1) backwards; }
   .asb-row, .mn-person, .ev, .kh-ev, .cm-item, .notify-person, .band-row, .inbox-item { animation: kns-rise .22s ease-out backwards; }
@@ -1002,7 +1002,7 @@ textarea.ann-text { min-height: 160px; }
   header button.ghost { min-height: 38px; padding: 7px 15px; border-radius: 999px; background: var(--accent-soft); font-size: 14px; font-weight: 600; }
   header button.ghost svg.i { width: 18px; height: 18px; }
   /* edytory i listy: wygodna szerokość treści — pasek i nagłówek bez zmian */
-  #app.narrow > :not(.kh-bar):not(header):not(.version):not(.sheet):not(.kh-modal) { max-width: 760px; margin-left: auto; margin-right: auto; }
+  #app.narrow > :not(.kh-bar):not(header):not(.version):not(.sheet):not(.kh-modal):not(.np-overlay):not(.login-pop):not(.ios-in) { /* tła okien zawsze na cały ekran */ max-width: 760px; margin-left: auto; margin-right: auto; }
   #app.narrow > header { max-width: 760px; margin: 0 auto; }
   #app.narrow > input, #app.narrow > select, #app.narrow > textarea { display: block; }
   #app.narrow > button, #app.narrow > a.button { display: flex; width: 100%; }

@@ -209,19 +209,18 @@ onBeforeUnmount(() => {
       <button class="iconbtn" :class="{ on: settings.camOnTop }" :title="settings.camOnTop ? 'Zawsze na wierzchu — włączone' : 'Zawsze na wierzchu'" aria-label="Zawsze na wierzchu" :aria-pressed="settings.camOnTop" @click="toggleOnTop"><Icon name="pin" /></button>
       <button class="iconbtn" title="Wyjdź z trybu nakładki" aria-label="Wyjdź z trybu nakładki" @click="toggleOverlay"><Icon name="expand" /></button>
     </div>
-    <header v-if="!overlay">
-      <button class="iconbtn" title="Zmień służbę" aria-label="Zmień służbę" @click="role = null"><Icon name="left" /></button>
-      <Brand />
-      <h1>Stream</h1>
-      <span class="spacer"></span>
-      <button :class="{ on: settings.camOnTop }" :aria-pressed="settings.camOnTop" title="Okno zawsze nad innymi programami" @click="toggleOnTop"><Icon name="pin" />Zawsze na wierzchu</button>
-      <button title="Małe okno z samymi kamerami" @click="toggleOverlay"><Icon name="shrink" />Tryb nakładki</button>
-      <button @click="reconnectCamera(); refresh()"><Icon name="camera" />Odśwież kamery</button>
-    </header>
 
     <main class="stream wide">
       <section>
         <StreamDesk v-if="!overlay" :service="service">
+          <template #back>
+            <button class="iconbtn desk-back" title="Wróć (zmień służbę albo tryb)" aria-label="Zmień służbę" @click="role = null"><Icon name="left" /></button>
+          </template>
+          <template #actions>
+            <button class="iconbtn" :class="{ on: settings.camOnTop }" :aria-pressed="settings.camOnTop" :title="settings.camOnTop ? 'Zawsze na wierzchu — włączone' : 'Okno zawsze nad innymi programami'" aria-label="Zawsze na wierzchu" @click="toggleOnTop"><Icon name="pin" /></button>
+            <button class="iconbtn" title="Tryb nakładki: małe okno z samymi kamerami" aria-label="Tryb nakładki" @click="toggleOverlay"><Icon name="shrink" /></button>
+            <button class="iconbtn" title="Odśwież kamery (połącz od nowa)" aria-label="Odśwież kamery" @click="reconnectCamera(); refresh()"><Icon name="refresh" /></button>
+          </template>
           <template #tools>
             <div class="seg" role="group" aria-label="Układ kamer">
               <button v-for="[id, icon, name] in LAYOUTS" :key="id" :class="{ on: settings.camLayout === id }" :title="name" :aria-label="name" :aria-pressed="settings.camLayout === id" @click="setLayout(id)"><Icon :name="icon" /></button>

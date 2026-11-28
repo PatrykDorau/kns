@@ -95,7 +95,7 @@ onBeforeUnmount(() => { io?.disconnect(); removeEventListener('resize', place) }
   </div>
   </div>
   <div class="desk-take">
-    <button class="desk-take-btn" :class="{ ready: pending }" :disabled="studio.direct || !pending" title="Podgląd przechodzi na wizję (płynnie)" @click="take">Na wizję ▸</button>
+    <button class="desk-take-btn" :class="{ ready: pending }" :disabled="studio.direct || !pending" title="Podgląd przechodzi na wizję (płynnie) — klawisz Spacja" @click="take">Na wizję ▸ <kbd class="take-key">Spacja</kbd></button>
     <small class="muted">{{ studio.direct ? 'Zmiany idą od razu na wizję' : pending ? 'Podgląd różni się od wizji — sprawdź i kliknij „Na wizję”' : 'Podgląd = wizja' }}</small>
     <span class="spacer"></span>
     <span v-if="music.playing" class="desk-music-pill" :title="'Podkład: ' + musicName"><MusicEq /><span>{{ musicName }}</span><button class="small" @click="stopMusic(3)">Wycisz</button></span>

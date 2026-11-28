@@ -11,14 +11,6 @@ import { fetchAllProjFiles, projFiles } from '@/services/projectorMirror'
 // Ustawienia sceny w podglądzie (stale pod przyciskami scen) (odliczanie, kamera w okienku, okienko z materiałem).
 const { pvFull, deskTab } = useDesk()
 
-const SCENE_HELP = {
-  camera: 'Obraz z kamery (ATEM po USB). Napisy, pasek mówcy, modlitwa, PIP (materiał w okienku), grafika i baner — niżej, w „Nakładkach”.',
-  projector: 'Obraz z rzutnika (przez sieć z laptopa przy rzutniku). Kamerę w okienku włączysz niżej, w „Nakładkach”.',
-  countdown: 'Plansza przed nabożeństwem: zegar, ogłoszenia w środku (które i jak często — zakładka „Ogłoszenia”), na końcu „Zaraz zaczynamy”.',
-  media: 'Materiał z Biblioteki na cały ekran — wybierz go niżej w Bibliotece („Na ekran”).',
-  life: 'Kamera i jadące obok ogłoszenia, do tego najbliższe wydarzenia i kod QR. Na czas, gdy kamerzysta chodzi między ludźmi.',
-  end: 'Podziękowanie z kodami QR (wsparcie, YouTube, Spotify) — dane do wsparcia w „Plansza końcowa” w prawej kolumnie.',
-}
 const clock = (sec: number) => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
 const countdownInfo = computed(() => (studio.left ? 'zostało ' + clock(studio.left) : 'na planszy: „Zaraz zaczynamy”') + (studio.countdownTo ? '' : ' · do nabożeństwa'))
 // rzutnik przysłał pliki, a w trakcie transmisji pobranie to decyzja operatora
@@ -34,7 +26,6 @@ const projectorNote = computed(() => remoteScreen.state === 'on' ? '● obraz z 
 </script>
 
 <template>
-  <p class="desk-help">{{ SCENE_HELP[studio.preview.scene] }}</p>
   <div v-if="studio.preview.scene === 'countdown' || studio.program.scene === 'countdown'" class="desk-opt-group" role="group" aria-label="Odliczanie">
     <small class="muted">{{ studio.preview.scene === 'countdown' ? 'Zegar' : 'Zegar na wizji' }}</small>
     <button :class="{ on: !studio.countdownTo }" title="Odliczanie do godziny nabożeństwa" @click="setCountdown(0)">do nabożeństwa</button>

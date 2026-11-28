@@ -42,7 +42,7 @@ function open(p: Preset | null) { prepKind.value = props.kind; prepId.value = p?
 <template>
   <div class="pz" role="group" aria-label="Presety">
     <div v-for="p in list" :key="p.id" class="pz-card" :class="{ on: chosen === p.id, live: isAir(p.id) }">
-      <button class="pz-main" :aria-pressed="chosen === p.id" :title="'Na podgląd: ' + p.name" @click="pickPreset(p)">
+      <button class="pz-main" :aria-pressed="chosen === p.id" :title="'Na podgląd: ' + p.name + (p.desc ? ' — ' + p.desc : '')" @click="pickPreset(p)">
         <span class="pz-pic"><img v-if="thumbs[p.id]" :src="thumbs[p.id]" alt=""></span>
         <span class="pz-meta">
           <b>{{ p.name }}</b>
