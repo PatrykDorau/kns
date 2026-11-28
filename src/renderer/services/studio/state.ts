@@ -40,10 +40,12 @@ export const studio = reactive<StudioState>({
   slideId: '', // slajd na wizji teraz
   skipped: 0, // klatki pominięte, bo karta graficzna nie nadążała
   paintMs: 0, // średni czas rysowania jednej klatki (ms)
+  late: 0, // klatki, które nie powstały — pętla rysowania spóźniona (komputer zajęty)
   audioDb: -100, // szczyt dźwięku w ostatniej chwili (dBFS)
   audioPeak: -100, // najwyższy szczyt z ostatnich 1,5 s (kreska na mierniku)
   clipAt: 0, // kiedy ostatnio był przester (ms)
   silentFor: 0, // ile sekund cisza (np. odpięty kabel z miksera)
+  cameraLabel: '', // nazwa urządzenia, które naprawdę gra (pusta — kamera nie gra)
   camera: '', audio: '', fps: 30, bitrate: 6800000, live: false, error: '', encoder: '',
   hardware: null, // null — nie sprawdzono; true/false — czy karta koduje H.264
   remoteScreen: false, // obraz rzutnika przez sieć dociera

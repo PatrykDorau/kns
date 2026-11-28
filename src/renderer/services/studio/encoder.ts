@@ -64,7 +64,7 @@ export async function startEncoding(mode = 'gpu') {
   raw = mode !== 'gpu'; rawBusyBox.n = 0
   if (raw) {
     studio.encoder = (ENCODERS.find(e => e[0] === mode)?.[1] || 'FFmpeg') + ' · ' + outH + 'p'
-    frameNo = 0; needKey = true; studio.skipped = 0
+    frameNo = 0; needKey = true; studio.skipped = 0; studio.late = 0
     studio.live = true
     return
   }
@@ -74,7 +74,7 @@ export async function startEncoding(mode = 'gpu') {
   })
   encoder.configure(config('prefer-hardware', outW, outH))
   studio.encoder = 'karta graficzna · ' + outH + 'p'
-  frameNo = 0; needKey = true; studio.skipped = 0
+  frameNo = 0; needKey = true; studio.skipped = 0; studio.late = 0
   studio.live = true
 }
 export function stopEncoding() {
@@ -123,8 +123,12 @@ export async function benchEncoder(canvas: HTMLCanvasElement, quality: string, f
     let sent = 0, lost = 0, n = 0
     const t0 = performance.now()
     await new Promise<void>(done => {
+      let last = 0
       const id = setInterval(() => {
-        if (performance.now() - t0 > ms || err) { clearInterval(id); done(); return }
+        const now = performance.now()
+        if (last && now - last > 1500 / fps) lost += Math.round((now - last) * fps / 1000) - 1 // komputer nie zdążył (jak „late” w transmisji)
+        last = now
+        if (now - t0 > ms || err) { clearInterval(id); done(); return }
         if (enc.encodeQueueSize > maxQueue(fps)) { lost++; return }
         if (cx) cx.drawImage(canvas, 0, 0, w, h)
         const vf = new VideoFrame(c || canvas, { timestamp: Math.round((performance.now() - t0) * 1000) })
@@ -154,8 +158,12 @@ async function benchFfmpeg(canvas: HTMLCanvasElement, quality: string, fps: numb
     await new Promise(r => setTimeout(r, 600)) // FFmpeg startuje
     const t0 = performance.now()
     await new Promise<void>(done => {
+      let last = 0
       const id = setInterval(() => {
-        if (performance.now() - t0 > ms) { clearInterval(id); done(); return }
+        const now = performance.now()
+        if (last && now - last > 1500 / fps) lost += Math.round((now - last) * fps / 1000) - 1
+        last = now
+        if (now - t0 > ms) { clearInterval(id); done(); return }
         sendRaw(canvas, performance.now(), busy, () => { lost++ }, b => { sent++; api.studioVideo(b) })
       }, 1000 / fps)
     })

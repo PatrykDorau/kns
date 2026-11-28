@@ -45,11 +45,7 @@ function writeLook(kind: PresetKind, data) {
 const starter = (kind: PresetKind, name: string, desc: string, data): Preset => ({ id: uid(), kind, name, desc, data })
 const banner = (title: string, sub: string, qr: string) => ({ banner: { ...BANNER_DEFAULT, title, sub, qr }, queue: [], cycle: false, sec: 10 })
 const STARTERS = (): Preset[] => [
-  starter('cd', 'Szczyt', 'Zegar z ogłoszeniami, góra się rysuje', { ...CD_DEFAULT }),
-  starter('cd', 'Noc', 'Spokojnie, na wieczorne spotkania', { ...CD_DEFAULT, bg: 'noc' }),
-  starter('cd', 'Świt', 'Góra nad chmurami', { ...CD_DEFAULT, bg: 'swit' }),
   starter('end', 'Podziękowanie', 'Napis i kody QR', { ...END_DEFAULT }),
-  starter('end', 'Żar', 'Mocne zakończenie', { ...END_DEFAULT, bg: 'zar' }),
   starter('banner', 'Podziękowanie', 'Wszystkie kody QR', banner('Dziękujemy, że byliście z nami!', BANNER_DEFAULT.sub, 'all')),
   starter('banner', 'Wsparcie', 'Przelew i BLIK', banner('Buduj razem z nami', 'Twoje wsparcie ma znaczenie', 'bank')),
   starter('banner', 'YouTube', 'Zaproszenie na kanał', banner('Subskrybuj nasz kanał', 'Kazania i transmisje co tydzień', 'youtube')),
@@ -61,7 +57,6 @@ const STARTERS = (): Preset[] => [
 const CLEAN_STARTERS = (): Preset[] => [
   starter('cd', 'Krem', 'Czysto, niebieska typografia', { ...CD_DEFAULT, accent: '#1a2a9a', bg: 'krem', layout: 'edit', title: 'Zaczynamy za', done: 'Zaraz zaczynamy' }),
   starter('cd', 'Piasek', 'Czysto, ciepłe kolory', { ...CD_DEFAULT, accent: '#e8525f', bg: 'piasek', layout: 'edit', title: 'Zaczynamy za', done: 'Zaraz zaczynamy' }),
-  starter('cd', 'Uwielbienie', 'Czarno-żółty, na wieczory', { ...CD_DEFAULT, accent: '#f5e66c', bg: 'czern', layout: 'edit', title: 'Wieczór uwielbienia', done: 'Zaraz zaczynamy' }),
   starter('end', 'Krem', 'Czysto, kody QR obok', { ...END_DEFAULT, bg: 'krem', layout: 'edit', title: 'Dziękujemy, że byliście z nami' }),
   starter('end', 'Piasek', 'Czysto, ciepłe kolory', { ...END_DEFAULT, bg: 'piasek', layout: 'edit', title: 'Do zobaczenia' }),
   starter('banner', 'Jasny', 'Kremowy pas', { banner: { ...BANNER_DEFAULT, style: 'edit', color: '#1a2a9a' }, queue: [], cycle: false, sec: 10 }),
@@ -100,19 +95,36 @@ export function ensurePresets() {
   if (settings.presetsV < 5) for (const p of settings.studioPresets) if (p.name === 'Czysty' && p.kind !== 'cd' && p.kind !== 'end') p.name = p.kind === 'prayer' ? 'Jasna' : 'Jasny' // dawna nazwa gotowych presetów
   if (settings.presetsV < 4) {
     settings.presetsV = 4
-    const frames = [starter('life', 'Szczyt', 'Ramka na tle góry', { ...LIFE_DEFAULT }), starter('life', 'Noc', 'Ramka na nocnym niebie', { ...LIFE_DEFAULT, bg: 'noc' }), starter('life', 'Krem', 'Jasna, czysta ramka', { ...LIFE_DEFAULT, bg: 'krem' })]
+    const frames = [starter('life', 'Krem', 'Jasna, czysta ramka', { ...LIFE_DEFAULT, bg: 'krem' })]
     settings.studioPresets.push(...frames)
     settings.presetOn[frames[0].kind] = frames[0].id; writeLook('life', frames[0].data)
   }
   // jasne plansze dostają dobrane kolory zamiast domyślnego pomarańczowego zegara
   if (settings.presetsV < 6) for (const p of settings.studioPresets) if (['krem', 'piasek', 'czern'].includes(p.data?.bg) && (!p.data.accent || p.data.accent === CD_DEFAULT.accent)) { p.data.ink = p.data.ink || ''; p.data.accent = PALETTES[p.data.bg][0][1] }
-  if (settings.presetsV < 7) settings.studioPresets.push(starter('cd', 'Dymek', 'Logo zaprasza: zegar w dużym dymku', { ...CD_DEFAULT, layout: 'chat', bg: 'noc', ink: '#f4ecdf', accent: '#f5c96b', timer: 'bubble' }))
+
   if ((settings.presetsV || 0) < 8) {
-    const verses = [starter('verse', 'Na dole', '1–2 wersety na pasie', { ...VERSE_DEFAULT }), starter('verse', 'Z boku', 'Kilka wersetów z prawej', { ...VERSE_DEFAULT, place: 'right' }), starter('verse', 'Okienko', 'Kamera i werset na kremie', { ...VERSE_DEFAULT, place: 'window' }), starter('verse', 'Okienko na górze', 'Kamera i werset na tle Szczyt', { ...VERSE_DEFAULT, place: 'window', bg: 'szczyt' })]
+    const verses = [starter('verse', 'Na dole', '1–2 wersety na pasie', { ...VERSE_DEFAULT }), starter('verse', 'Z boku', 'Kilka wersetów z prawej', { ...VERSE_DEFAULT, place: 'right' }), starter('verse', 'Okienko', 'Kamera i werset na kremie', { ...VERSE_DEFAULT, place: 'window' })]
     settings.studioPresets.push(...verses)
     settings.presetOn[verses[0].kind] = verses[0].id; writeLook('verse', verses[0].data)
   }
-  settings.presetsV = 8
+  // tło „Góra” (Szczyt, Świt, Noc, Żar, Czerń) usunięte: gotowe presety na nim znikają, własne przechodzą na Krem
+  if ((settings.presetsV || 0) < 9) {
+    const PEAK = ['szczyt', 'swit', 'noc', 'zar', 'czern'], BUILT = ['Szczyt', 'Noc', 'Świt', 'Żar', 'Dymek', 'Uwielbienie', 'Okienko na górze']
+    settings.studioPresets = settings.studioPresets.filter(p => !(PEAK.includes(p.data?.bg) && BUILT.includes(p.name)))
+    const toKrem = d => { if (!d || !PEAK.includes(d.bg)) return; d.bg = 'krem'; [d.ink, d.accent] = PALETTES.krem[0]; if (d.layout === 'rock') d.layout = 'edit' }
+    for (const p of settings.studioPresets) toKrem(p.data)
+    for (const k of ['cdLook', 'endLook', 'lifeLook', 'verseLook']) toKrem(settings[k])
+    for (const [kind] of PRESET_KINDS) if (settings.presetOn[kind] && !settings.studioPresets.some(p => p.id === settings.presetOn[kind])) {
+      const first = settings.studioPresets.find(p => p.kind === kind)
+      if (first) { settings.presetOn[kind] = first.id; writeLook(kind, first.data) } else delete settings.presetOn[kind]
+    }
+  }
+  settings.presetsV = 9
+  // każdy rodzaj ma wybrany preset (np. po usunięciu gotowych) — najlepiej „Krem”, inaczej pierwszy
+  for (const [kind] of PRESET_KINDS) if (!settings.presetOn[kind] || !settings.studioPresets.some(p => p.id === settings.presetOn[kind])) {
+    const pick = settings.studioPresets.find(p => p.kind === kind && p.name === 'Krem') || settings.studioPresets.find(p => p.kind === kind)
+    if (pick) { settings.presetOn[kind] = pick.id; writeLook(kind, pick.data) }
+  }
 }
 export const presetsOf = (kind: PresetKind) => (settings.studioPresets || []).filter(p => p.kind === kind)
 export const blankPreset = (kind: PresetKind): Preset => ({

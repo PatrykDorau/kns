@@ -4,9 +4,19 @@ import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 
-// Czat na żywo: okienko nad pulpitem (widzi je tylko realizator, nie ma go na wizji). Przesuwa się za nagłówek, rozmiar
-// zmienia się za róg; miejsce i rozmiar zostają zapamiętane na tym komputerze.
-const { chat, chatBroadcast, yt } = useDesk()
+// Czat na żywo (widzi go tylko realizator, nie ma go na wizji): okienko nad pulpitem — przesuwa się za nagłówek, rozmiar
+// za róg, miejsce zostaje zapamiętane — albo „przypięty”: stała kolumna obok pulpitu (docked). Odpowiedź idzie jako
+// połączony kanał YouTube.
+const props = defineProps<{ docked?: boolean }>()
+const { chat, chatBroadcast, yt, send } = useDesk()
+const draft = ref(''), sending = ref(false), sendErr = ref('')
+async function submit() {
+  if (!draft.value.trim() || sending.value) return
+  sending.value = true; sendErr.value = ''
+  const r = await send(draft.value)
+  sending.value = false
+  if (r.error) sendErr.value = r.error; else { draft.value = ''; toEnd(true) }
+}
 const box = ref<HTMLElement>(), list = ref<HTMLElement>()
 const pos = ref({ x: 0, y: 84, w: 380, h: 520, ...settings.chatPos })
 if (!settings.chatPos) pos.value.x = Math.max(16, innerWidth - pos.value.w - 340)
@@ -61,11 +71,12 @@ const note = computed(() => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="chat.open" ref="box" class="livechat" role="dialog" aria-label="Czat na żywo" :style="{ left: pos.x + 'px', top: pos.y + 'px', width: pos.w + 'px', height: pos.h + 'px' }">
-      <header @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up">
+  <Teleport to="body" :disabled="props.docked">
+    <div v-if="chat.open" ref="box" class="livechat" :class="{ docked: props.docked }" role="dialog" aria-label="Czat na żywo" :style="props.docked ? null : { left: pos.x + 'px', top: pos.y + 'px', width: pos.w + 'px', height: pos.h + 'px' }">
+      <header @pointerdown="!props.docked && down($event)" @pointermove="move" @pointerup="up" @pointercancel="up">
         <Icon name="chat" />
         <div><b>Czat na żywo</b><small v-if="chatBroadcast">{{ chatBroadcast.title }}</small></div>
+        <button class="iconbtn" :title="props.docked ? 'Odepnij — pływające okienko' : 'Przypnij obok pulpitu — zawsze widoczny'" :aria-label="props.docked ? 'Odepnij czat' : 'Przypnij czat'" @click="settings.chatDock = !props.docked"><Icon :name="props.docked ? 'expand' : 'pin'" /></button>
         <button class="iconbtn" title="Schowaj czat" aria-label="Schowaj czat" @click="chat.open = false"><Icon name="x" /></button>
       </header>
       <ol ref="list" aria-live="polite">
@@ -75,6 +86,11 @@ const note = computed(() => {
         </li>
       </ol>
       <p v-if="note" class="livechat-note" :class="{ bad: chat.error }">{{ note }}</p>
+      <form v-if="chatBroadcast && !chat.ended && yt.loggedIn" class="livechat-send" @submit.prevent="submit">
+        <input v-model="draft" maxlength="200" :placeholder="'Odpowiedz jako ' + (yt.channel || 'kanał')" aria-label="Wiadomość na czat" :disabled="sending">
+        <button class="primary small" :disabled="!draft.trim() || sending">{{ sending ? '…' : 'Wyślij' }}</button>
+      </form>
+      <p v-if="sendErr" class="livechat-note bad">{{ sendErr }}</p>
     </div>
   </Teleport>
 </template>
@@ -93,6 +109,10 @@ li b { min-width: 0; overflow: hidden; font-size: 13px; text-overflow: ellipsis;
 li.owner b, li.mod b { color: var(--accent); }
 time { flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 li p { margin: 2px 0 0; overflow-wrap: anywhere; font-size: 15px; line-height: 1.4; }
+.livechat.docked { position: relative; z-index: 1; width: auto; height: 100%; min-width: 0; min-height: 0; max-width: none; max-height: none; resize: none; box-shadow: none; border-color: var(--line); }
+.livechat.docked header { cursor: default; }
+.livechat-send { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line); background: var(--panel3); }
+.livechat-send input { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
 .livechat-note { margin: 0; padding: 10px 14px; color: var(--muted); }
 .livechat-note.bad { color: var(--bad, #e5484d); }
 </style>

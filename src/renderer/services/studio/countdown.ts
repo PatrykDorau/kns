@@ -7,7 +7,6 @@ import { clockFor, clockWidth, glassPanel, hairline, roughClock, roughFit, rough
 import { cleanInk, pill } from './clean'
 import { mediaSlide, mediaUrl } from './media'
 import { BACKGROUNDS, LIGHT_BG } from './backgrounds'
-import { drawPeak } from './peak'
 
 export const LAYOUTS = [
   ['rock', 'Mocny napis', 'Wielki plakatowy napis i zegar z lewej, ogłoszenia w panelu'],
@@ -122,7 +121,7 @@ function bigText(str, x, y, w, { size = 130, color = '#2b2b2b', align = 'left', 
   ls.forEach((l, i) => text(l, align === 'center' ? x + w / 2 : x, y + i * size * 0.98, { size, weight: 700, font: 'cond', color, align, shadow: shadowPx }))
   return ls.length * size * 0.98
 }
-// lewa strona układu „Dzielony”: góry (domyślnie), szkic, papier, kolor akcentu albo grafika z Biblioteki
+// lewa strona układu „Dzielony”: kolor akcentu (domyślnie), szkic, papier albo grafika z Biblioteki
 function photo(L, x, y, w, h) {
   const id = L.photo || '', it = id && !id.startsWith('@') && mediaSlide(id), im = it?.type === 'image' && img(mediaUrl(it.path))
   const lightSide = id === '@sketch' || id === '@paper'
@@ -130,8 +129,7 @@ function photo(L, x, y, w, h) {
   if (im) fit(im, im.naturalWidth, im.naturalHeight, x, y, w, h, 'cover')
   else if (id === '@sketch') BACKGROUNDS.sketch()
   else if (id === '@paper') paper()
-  else if (id === '@accent') { const a = g.createLinearGradient(x, y, x + w, y + h); a.addColorStop(0, L.accent || '#f6a836'); a.addColorStop(1, '#2b2b2b'); g.fillStyle = a; g.fillRect(x, y, w, h) }
-  else drawPeak('szczyt')
+  else { const a = g.createLinearGradient(x, y, x + w, y + h); a.addColorStop(0, L.accent || '#f6a836'); a.addColorStop(1, '#2b2b2b'); g.fillStyle = a; g.fillRect(x, y, w, h) }
   // ciepłe przyciemnienie, żeby zegar się wyróżniał (na jasnych — delikatne)
   const gr = g.createLinearGradient(x, y, x, y + h); gr.addColorStop(0, lightSide ? 'rgba(30,18,10,0.04)' : 'rgba(30,18,10,0.15)'); gr.addColorStop(1, lightSide ? 'rgba(30,18,10,0.16)' : 'rgba(30,18,10,0.55)')
   g.fillStyle = gr; g.fillRect(x, y, w, h)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { toRef } from 'vue'
+import { computed, toRef } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { studio } from '@/services/studio'
@@ -24,10 +24,11 @@ import LiveChat from './desk/LiveChat.vue'
 const props = withDefaults(defineProps<{ service?: Service | null }>(), { service: null })
 const { live, liveOn, engine, unrail, deskMode, chat } = provideDesk(toRef(props, 'service'))
 const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
+const chatDocked = computed(() => !!settings.chatDock && chat.open && settings.deskLayout === 'cols' && engine.value === 'studio')
 </script>
 
 <template>
-  <div class="desk" :class="{ cols: settings.deskLayout === 'cols' && engine === 'studio' }">
+  <div class="desk" :class="{ cols: settings.deskLayout === 'cols' && engine === 'studio', 'chat-docked': chatDocked }">
     <div class="desk-main">
       <div class="desk-left">
       <!-- Podgląd: przed startem obraz z kamer (ATEM po USB), w trakcie — dokładnie to, co widzą widzowie -->
@@ -67,6 +68,8 @@ const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
       </section>
       </div>
 
+      <!-- czat przypięty: stała kolumna obok pulpitu (w układzie „kolumna”) -->
+      <aside v-if="chatDocked" class="desk-chat-dock"><LiveChat docked /></aside>
       <!-- Prawa kolumna: YouTube, ustawienia nadawania i (ze Stream) sygnały dla kamerzysty — sekcje zwijane -->
       <div class="desk-right" :class="{ rail: settings.railFolded }">
       <!-- zwinięta kolumna: same ikonki (transmisja, sygnały, nabożeństwo) — podgląd i wizja na całą szerokość -->
@@ -83,12 +86,15 @@ const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
         <DeskHealth v-if="liveOn" rail />
       </nav>
       <div v-else key="full" class="desk-right-full">
+      <!-- przypięte u góry przy przewijaniu: zwijanie, tryb pulpitu, czat -->
+      <div class="desk-right-head">
       <button class="rail-fold" title="Zwiń kolumnę — więcej miejsca na podgląd i wizję" aria-label="Zwiń kolumnę" @click="settings.railFolded = true"><Icon name="right" /></button>
       <div v-if="engine === 'studio'" class="desk-mode" role="tablist" aria-label="Tryb pulpitu">
         <button role="tab" :aria-selected="deskMode === 'live'" :class="{ on: deskMode === 'live' }" @click="deskMode = 'live'">Studio</button>
         <button role="tab" :aria-selected="deskMode === 'prep'" :class="{ on: deskMode === 'prep' }" @click="deskMode = 'prep'">Przygotowanie</button>
       </div>
       <button class="desk-chat-btn" :class="{ on: chat.open }" :aria-pressed="chat.open" :title="chat.open ? 'Schowaj czat' : 'Pokaż czat — okienko można przesuwać'" @click="chat.open = !chat.open"><Icon name="chat" />Czat na żywo<em v-if="chat.unread" class="chat-badge" :aria-label="'Nieodczytane: ' + chat.unread">{{ unread() }}</em></button>
+      </div>
       <DeskHealth v-if="liveOn" vertical />
       <DeskStart />
       <DeskYouTube />
@@ -100,6 +106,6 @@ const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
       </div>
     </div>
 
-    <LiveChat />
+    <LiveChat v-if="!chatDocked" />
   </div>
 </template>

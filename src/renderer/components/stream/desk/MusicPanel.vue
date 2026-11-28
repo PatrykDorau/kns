@@ -2,11 +2,28 @@
 import { computed, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { api, settings } from '@/stores'
-import { addMusic, addPlaylist, findMusicLinks, music, nextMusic, playAllMusic, playMusic, removeMusic, setMusicVolume, stopMusic, toggleMusic, trackInfo, ytLink } from '@/services/studio'
+import { ask } from '@/utils/ask'
+import { addMusic, addPlaylist, clearMusic, findMusicLinks, music, nextMusic, playAllMusic, playMusic, removeMusic, setMusicVolume, stopMusic, toggleMusic, trackInfo, ytLink } from '@/services/studio'
 import MusicEq from './MusicEq.vue'
-import { mmss } from '@/composables/stream/useStudioMedia'
+import MusicNow from './MusicNow.vue'
 
-const nowName = computed(() => settings.musicList.find(x => x.id === music.current)?.name || 'Nic nie gra')
+// Długa lista (np. playlista z YouTube, kilkaset utworów): widać 40, reszta po „Pokaż więcej” albo przez szukanie —
+// setki wierszy na ekranie spowalniały cały pulpit (a z nim obraz transmisji).
+const PAGE = 40
+const ytCount = computed(() => settings.musicList.filter(t => t.yt).length)
+async function clearAll(onlyYt: boolean) {
+  const n = onlyYt ? ytCount.value : settings.musicList.length
+  if (!(await ask(onlyYt ? 'Usunąć z listy ' + n + ' utworów z YouTube? Same filmy na YouTube zostają.' : 'Usunąć wszystkie utwory z listy (' + n + ')? Pliki dodane z dysku zostaną usunięte z folderu aplikacji.'))) return
+  clearMusic(onlyYt)
+}
+const query = ref(''), limit = ref(PAGE)
+const norm = (x: string) => x.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
+const found = computed(() => { const q = norm(query.value.trim()); return q ? settings.musicList.filter(t => norm(t.name).includes(q)) : settings.musicList })
+const shown = computed(() => {
+  const list = found.value.slice(0, limit.value)
+  const cur = settings.musicList.find(t => t.id === music.current) // to, co gra, zawsze na liście
+  return cur && !list.includes(cur) && !query.value ? [cur, ...list] : list
+})
 // Podkład muzyczny na transmisji (np. własne nagrania KNS Music — z YouTube Studio: Treści → ⋮ → Pobierz).
 // Gra tylko na transmisji, z własną głośnością; „Wycisz” — płynnie w 3 s.
 const editing = ref('') // utwór z rozwiniętymi polami do plakietki
@@ -58,7 +75,7 @@ async function findLinks() {
         <button class="iconbtn solid" :title="music.playing ? 'Pauza (płynnie)' : 'Odtwórz'" :aria-label="music.playing ? 'Pauza' : 'Odtwórz'" @click="toggleMusic"><Icon :name="music.playing ? 'pause' : 'play'" /></button>
         <button class="iconbtn" title="Następny utwór" aria-label="Następny utwór" @click="nextMusic"><Icon name="right" /></button>
         <button class="small" :disabled="!music.playing" title="Płynne wyciszenie (3 s) i zatrzymanie" @click="stopMusic(3)">Wycisz</button>
-        <span class="desk-music-now"><MusicEq v-if="music.playing" />{{ nowName }}<small v-if="music.current && music.duration"> · {{ mmss(music.time) }} / {{ mmss(music.duration) }}</small></span>
+        <MusicNow />
       </div>
       <label class="desk-music-vol"><Icon name="volume" /><input type="range" min="0" max="1" step="0.01" :value="settings.musicVolume" aria-label="Głośność podkładu" @input="setMusicVolume(+($event.target as HTMLInputElement).value)"><small>{{ Math.round(settings.musicVolume * 100) }}%</small></label>
       <div class="desk-music-opts">
@@ -71,8 +88,9 @@ async function findLinks() {
         <button class="small desk-music-find" :disabled="linkBusy" title="Szuka utworów bez linku wśród filmów kanału YouTube — link to kod QR na plakietce" @click="findLinks"><Icon name="qr" />{{ linkBusy ? 'Szukam…' : 'Znajdź linki na kanale' }}</button>
       </div>
       <p v-if="linkNote" class="desk-help">{{ linkNote }}</p>
+      <label v-if="settings.musicList.length > PAGE" class="searchbox desk-music-search"><Icon name="search" /><input v-model="query" :placeholder="'Szukaj wśród ' + settings.musicList.length + ' utworów'" aria-label="Szukaj utworu" @input="limit = PAGE"></label>
       <ul class="desk-music-list">
-        <li v-for="t in settings.musicList" :key="t.id" :class="{ on: music.current === t.id, playing: music.current === t.id && music.playing }">
+        <li v-for="t in shown" :key="t.id" :class="{ on: music.current === t.id, playing: music.current === t.id && music.playing }">
           <button class="desk-music-play" :title="'Odtwórz: ' + t.name" @click="playMusic(t.id)"><MusicEq v-if="music.current === t.id && music.playing" /><Icon v-else name="play" /><span>{{ t.name }}</span></button>
           <Icon v-if="t.yt" name="video" class="desk-music-qr" title="Gra z YouTube" />
           <Icon v-if="t.link" name="qr" class="desk-music-qr" title="Ma link — kod QR na plakietce" />
@@ -85,6 +103,12 @@ async function findLinks() {
           </div>
         </li>
       </ul>
+      <button v-if="found.length > limit" class="small desk-music-more" @click="limit += 100">Pokaż więcej ({{ found.length - limit }})</button>
+      <p v-else-if="query && !found.length" class="desk-help">Nie ma takiego utworu.</p>
+      <div class="desk-music-clear">
+        <button v-if="ytCount && ytCount < settings.musicList.length" class="small" @click="clearAll(true)"><Icon name="trash" />Usuń utwory z YouTube ({{ ytCount }})</button>
+        <button class="small" @click="clearAll(false)"><Icon name="trash" />Usuń wszystkie ({{ settings.musicList.length }})</button>
+      </div>
       <p v-if="music.error" class="note bad">{{ music.error }}</p>
     </template>
   </section>
@@ -92,6 +116,9 @@ async function findLinks() {
 
 <style scoped>
 .desk-music { margin: 0; }
+.desk-music-search { margin: 6px 0; }
+.desk-music-more { margin-top: 6px; }
+.desk-music-clear { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .desk-music-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .desk-music-h b { flex: 1; display: flex; align-items: center; gap: 6px; }
 .desk-music-ctl { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; }

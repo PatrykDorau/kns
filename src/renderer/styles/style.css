@@ -1028,12 +1028,19 @@ main.stream > section:first-child { overflow-y: auto; }
 .pz-meta em.live { color: #ff6b6f; }
 .pz-meta em.pv { color: #3fb950; }
 /* Przygotowanie */
+.desk-right-head { position: sticky; top: -12px; z-index: 6; display: flex; flex-direction: column; gap: 8px; margin: -12px -12px 0; padding: 12px 12px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.desk-right-head .rail-fold { align-self: flex-end; }
 .desk-chat-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 8px 12px; font-weight: 600; }
 .desk-chat-btn.on { border-color: var(--accent); }
 .chat-badge { min-width: 20px; padding: 1px 6px; border-radius: 10px; background: var(--live, #e5484d); color: #fff; font-size: 12px; font-style: normal; font-weight: 700; line-height: 18px; text-align: center; }
 .rail-btn .chat-badge { position: absolute; top: -5px; right: -5px; min-width: 18px; padding: 0 4px; font-size: 11px; line-height: 16px; }
 .rail-mode { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 .rail-mode .rail-btn.on { color: #fff; background: var(--panel3, #2a2d34); border-color: var(--accent); }
+.prep-sync { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.prep-sync > span { flex: 1 1 220px; display: grid; }
+.prep-sync small { color: var(--muted); font-size: 12px; }
+.prep-sync-note { flex-basis: 100%; margin: 2px 0 0; color: #3ccf73; font-size: 12.5px; }
+.prep-sync-note.bad { color: #e5484d; }
 .prep-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .prep-kinds em { font-style: normal; color: var(--muted); margin-left: 4px; }
 .prep-kinds button.on { border-color: var(--accent); color: var(--accent); }
@@ -1044,7 +1051,8 @@ main.stream > section:first-child { overflow-y: auto; }
 .prep-list small { color: var(--muted); }
 .prep-list .prep-add { flex-direction: row; align-items: center; gap: 6px; color: var(--muted); }
 .prep-main { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.prep-canvas { width: 100%; max-width: 640px; aspect-ratio: 16 / 9; border-radius: 8px; background: #000; }
+.prep-preview { position: sticky; top: -2px; z-index: 4; padding: 2px 0 8px; background: var(--panel); }
+.prep-canvas { display: block; width: min(100%, 640px, calc(36vh * 16 / 9)); aspect-ratio: 16 / 9; border-radius: 8px; background: #000; }
 .prep-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
 .prep-head label { display: flex; flex-direction: column; gap: 3px; flex: 1 1 200px; color: var(--muted); font-size: 12.5px; }
 @media (max-width: 760px) { .prep-body { grid-template-columns: minmax(0, 1fr); } }
@@ -1514,6 +1522,10 @@ select { padding-right: 36px !important; }
   .desk.cols .desk-right:not(.rail) .desk-right-full { position: fixed; z-index: 60; top: 70px; right: 16px; bottom: 16px; width: min(400px, 90vw); overflow-y: auto; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: -18px 0 50px rgba(0, 0, 0, .55); animation: desk-drawer .2s ease-out; }
   .desk.cols .desk-right:not(.rail) .desk-right-full > * { flex-shrink: 0; } /* stała wysokość — sekcje się nie ściskają, panel się przewija */
   @keyframes desk-drawer { from { opacity: 0; transform: translateX(24px); } }
+  /* czat przypięty: kolumna między pulpitem a paskiem po prawej */
+  .desk.cols.chat-docked .desk-main { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px) 58px; }
+  .desk.cols.chat-docked .desk-main:has(> .desk-right.rail .dh-rail) { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px) 80px; }
+  .desk-chat-dock { min-height: 0; height: 100%; padding: 0 0 0 4px; }
 }
 /* pulpit studia: wyraźne odstępy między częściami, ramki przycisków i pól (bez nich wszystko się zlewało) */
 .desk-stage-rest { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
@@ -1529,7 +1541,7 @@ select { padding-right: 36px !important; }
 .desk-stage-rest input:focus, .desk-stage-rest select:focus, .desk-stage-rest textarea:focus { outline: none; border-color: var(--accent) !important; }
 /* podgląd i wizja w kolumnie mieszczą się w oknie (bez przewijania lewej kolumny) */
 @media (min-width: 1000px) {
-  .desk.cols .mon-scr, .desk.cols .desk-take { width: min(100%, calc((100vh - 320px) / 2 * 16 / 9)); }
+  .desk.cols .mon-scr, .desk.cols .desk-take { width: min(100%, var(--mon-w, calc((100vh - 440px) / 2 * 16 / 9))); }
   .desk.cols .desk-mons-col { overflow: hidden; }
   /* sceny zawsze pod ręką: przypięte u góry przewijanej części */
   .desk.cols .desk-stage-rest > .desk-scenes { position: sticky; top: -2px; z-index: 5; padding: 2px 0 10px; background: var(--panel); }

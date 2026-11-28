@@ -418,6 +418,22 @@ export default function createGoogleDrive({ serviceFolderName, safeId }) {
     return { mtime: res.modifiedTime }
   }
 
+  /* ---------- wyglądy streamu (presety z „Przygotowania”) — jeden plik w folderze aplikacji ---------- */
+  // Ustawione w domu → „Wyślij na Dysk”; na laptopie w kościele → „Pobierz z Dysku” (to samo konto Google).
+  const LOOKS = 'wyglady-streamu.json'
+  async function looksFile() { const { root } = await folders(); return (await list(`${q(root)} in parents and name='${LOOKS}' and trashed=false`))[0] || null }
+  async function writeLooks(data) {
+    const { root } = await folders()
+    const id = (await looksFile())?.id || (await createMeta({ name: LOOKS, parents: [root] })).id
+    const res = await writeJson(id, data)
+    return { ok: true, mtime: res.modifiedTime }
+  }
+  async function readLooks() {
+    const f = await looksFile()
+    if (!f) return { missing: true }
+    return { data: await readJson(f.id), mtime: f.modifiedTime }
+  }
+
   /* ---------- wymiana materiałów: rzutnik → Stream (folder „rzutnik-pliki”) ---------- */
   // Rzutnik wysyła pliki biblioteki (zdjęcia, filmy, slajdy prezentacji), Stream na innym komputerze pobiera je,
   // zanim zostaną wyświetlone — przez internet przechodzi potem tylko informacja, co pokazać. Nazwa pliku to
@@ -472,5 +488,5 @@ export default function createGoogleDrive({ serviceFolderName, safeId }) {
     return { ok: true, removed }
   }
 
-  return { login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles, idToken, mapFiles, storeFiles, mirrorUpload, mirrorFetch, mirrorClean }
+  return { writeLooks, readLooks, login, logout, status, readServices, writeService, removeService, ensureFiles, readSongs, writeSongs, folderFiles, idToken, mapFiles, storeFiles, mirrorUpload, mirrorFetch, mirrorClean }
 }

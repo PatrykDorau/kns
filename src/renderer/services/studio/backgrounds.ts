@@ -60,5 +60,6 @@ function sketch() {
 }
 
 export const BACKGROUNDS = { mountains, sketch }
-export const BG_IDS = ['szczyt', 'swit', 'noc', 'zar', 'krem', 'piasek', 'czern', 'paper', 'sketch', 'colors', 'image', 'camera']
+// (tło „Góra” z motywami Szczyt, Świt, Noc, Żar i Czerń zostało usunięte — dawne presety przechodzą na Krem)
+export const BG_IDS = ['krem', 'piasek', 'paper', 'sketch', 'colors', 'image', 'camera']
 export const LIGHT_BG = ['paper', 'sketch', 'krem', 'piasek'] // jasne tła — tekst na nich ciemny

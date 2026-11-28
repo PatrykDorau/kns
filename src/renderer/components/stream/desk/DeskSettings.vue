@@ -27,9 +27,9 @@ const gpu = ref<{ q: string, fps: number, lost: number, lost720?: number, error?
 async function testGpu() {
   if (bench.running || liveOn.value || engine.value !== 'studio') return
   const q = settings.streamQuality, fps = +settings.streamFps || 30, enc = settings.streamEncoder || 'gpu'
-  const r = await benchEncoder(studioCanvas(), q, fps, 4000, enc)
+  const r = await benchEncoder(studioCanvas(), q, fps, 8000, enc)
   const out = { q, fps, enc, lost: r.lost, error: r.error, lost720: undefined as number | undefined, name: gpuName() }
-  if (q !== '720' && r.lost > 1 && !r.error) out.lost720 = (await benchEncoder(studioCanvas(), '720', fps, 4000, enc)).lost
+  if (q !== '720' && r.lost > 1 && !r.error) out.lost720 = (await benchEncoder(studioCanvas(), '720', fps, 8000, enc)).lost
   gpu.value = out; settings.gpuBench = out
 }
 // Dwie karty (Intel + NVIDIA/AMD), a aplikacja działa na zintegrowanej — przycisk przełącza ją na mocniejszą.
@@ -164,7 +164,7 @@ onMounted(() => { if (!gpuAuto.done && engine.value === 'studio' && !liveOn.valu
             <small v-if="onWeak" class="st-gpu-weak">Aplikacja działa na słabszej, zintegrowanej karcie Intel, a w komputerze jest {{ strong?.vendor }}. Przełącz — obraz będzie rysowany i kodowany na {{ strong?.vendor }} (jak w OBS).</small>
             <small v-if="gpuSet" class="st-gpu-weak">Ustawione: {{ gpuSet }}. Zadziała po ponownym uruchomieniu aplikacji.</small>
             <small v-if="gpuErr" class="st-gpu-weak">Nie udało się: {{ gpuErr }}</small>
-            <small v-if="bench.running">Sprawdzam — kilka sekund kodowania obrazu studia…</small>
+            <small v-if="bench.running">Sprawdzam — 8 s kodowania obrazu studia. Najlepiej przy tym, co będzie w transmisji (scena, grająca muzyka).</small>
             <small v-else-if="!gpu">Sprawdź, czy ten komputer nadąży z kodowaniem obrazu w tej jakości.</small>
             <small v-else-if="gpuStale">Zmieniono jakość albo koder — sprawdź ponownie.</small>
             <small v-else-if="gpu.error">Nie udało się: {{ gpu.error }}</small>

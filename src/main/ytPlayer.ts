@@ -11,7 +11,9 @@ export default function createYtPlayer(parent: () => BrowserWindow) {
   let win: BrowserWindow | null = null, armed = false, want = false, since = 0
   async function open() {
     if (win && !win.isDestroyed()) return win
-    win = new BrowserWindow({ show: false, parent: parent(), width: 640, height: 360, webPreferences: { partition: 'ytplayer', sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } })
+    // potrzebny jest tylko dźwięk: małe okno, a niżej najniższa jakość obrazu — film w HD w ukrytym oknie
+    // zajmował kartę graficzną, której potrzebuje obraz transmisji
+    win = new BrowserWindow({ show: false, parent: parent(), width: 256, height: 144, webPreferences: { partition: 'ytplayer', sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } })
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     win.webContents.on('will-navigate', e => e.preventDefault())
     win.on('closed', () => { win = null })
@@ -36,6 +38,8 @@ export default function createYtPlayer(parent: () => BrowserWindow) {
     async state() {
       const s = await run(`(() => { const v = document.querySelector('video'), ad = !!document.querySelector('.ad-showing')
         if (v && ${want} && v.paused && !v.ended) v.play().catch(() => {})
+        const p = document.getElementById('movie_player')
+        if (p && !window.__low) { try { p.setPlaybackQualityRange?.('tiny', 'tiny'); p.setPlaybackQuality?.('tiny'); window.__low = 1 } catch {} }
         return v ? { ready: true, time: v.currentTime, duration: v.duration || 0, playing: !v.paused && !v.ended, ended: v.ended, ad } : { ready: false, blocked: !!document.querySelector('.ytp-error') } })()`)
       const ready = !!s?.ready
       if (ready && s.playing) since = 0

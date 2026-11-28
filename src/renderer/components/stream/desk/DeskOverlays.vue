@@ -41,6 +41,15 @@ const bnOn = computed(() => !!(studio.program.endOvl || studio.preview.endOvl))
 const pipPending = computed(() => !!studio.preview.pip.on && (!studio.program.pip.on || studio.program.pip.corner !== studio.preview.pip.corner || studio.program.pip.size !== studio.preview.pip.size))
 const mpipPending = computed(() => !!pvCorner.value && (studio.program.ovl !== 'corner' || studio.program.omedia !== studio.preview.omedia || studio.program.mpos.corner !== studio.preview.mpos.corner || studio.program.mpos.size !== studio.preview.mpos.size))
 function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMode('corner') } else setOverlayMode('off') }
+// Jedna lista PIP: kamera (ATEM) albo materiał. Kamera to osobna warstwa (rysowana nad sceną), materiał — nakładka;
+// wybór jednego zdejmuje drugie z podglądu, żeby nie było dwóch okienek naraz.
+const CAM = '@kamera'
+const pipValue = computed(() => (studio.preview.pip.on && on('pip') ? CAM : pvCorner.value ? studio.preview.omedia : ''))
+function pickPip(id: string) {
+  if (id === CAM) { if (pvCorner.value) setOverlayMode('off'); pip({ on: true }); return }
+  if (studio.preview.pip.on) pip({ on: false })
+  cornerMedia(id)
+}
 </script>
 
 <template>
@@ -58,21 +67,31 @@ function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMod
     <button v-if="on('verse')" class="ovl-btn" :class="{ on: verseOpen, live: studio.program.verse && air('verse') }" :aria-pressed="verseOpen"
             title="Fragment Biblii na dolnym pasie obrazu — wybierz odnośnik i wyślij na wizję" @click="verseOpen = !verseOpen"><Icon name="book" />Werset</button>
     <!-- PIP: materiał z Biblioteki w okienku w rogu -->
-    <span v-if="on('media')" class="desk-ovl-media" :class="{ on: pvCorner, live: pgCorner }">
+    <span v-if="on('media') || on('pip')" class="desk-ovl-media" :class="{ on: pvCorner || (studio.preview.pip.on && on('pip')), live: pgCorner || (studio.program.pip.on && air('pip')) }">
       <Icon name="layers" /><b class="desk-ovl-tag">PIP</b>
-      <select :value="pvCorner ? studio.preview.omedia : ''" aria-label="Materiał w okienku PIP" @change="cornerMedia(($event.target as HTMLSelectElement).value)">
+      <select :value="pipValue" aria-label="Okienko PIP: kamera albo materiał" @change="pickPip(($event.target as HTMLSelectElement).value)">
         <option value="">— bez PIP —</option>
+        <option v-if="on('pip')" :value="CAM">Kamera (ATEM)</option>
+        <template v-if="on('media')">
         <option :value="PROJ_MEDIA">Rzutnik (to, co teraz pokazuje)</option>
         <option :value="ANN_MEDIA">Ogłoszenia w pętli</option>
         <option v-for="it in mediaList" :key="it.id" :value="it.id">{{ label(it) }} ({{ mediaKind(it).toLowerCase() }})</option>
+        </template>
       </select>
+      <!-- kamera w okienku: róg, rozmiar, na wizję -->
+      <template v-if="studio.preview.pip.on && on('pip')">
+        <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="lbl" :aria-label="lbl" @click="pip({ corner: id })">{{ arrow }}</button>
+        <button class="desk-corner" :title="studio.preview.pip.size === 'large' ? 'Mniejsze okienko' : 'Większe okienko'" @click="pip({ size: studio.preview.pip.size === 'large' ? 'small' : 'large' })">{{ studio.preview.pip.size === 'large' ? 'L' : 'S' }}</button>
+        <button class="desk-send" :class="{ ready: pipPending }" :disabled="!pipPending" :title="pipPending ? 'PIP z kamerą na wizję (reszta wizji bez zmian)' : 'Ten PIP jest już na wizji'" @click="confirmLive('PIP kamera', pipToProgram)"><Icon name="play" />Na wizję</button>
+        <button class="desk-x" title="Zdejmij PIP z kamerą" aria-label="Zdejmij PIP z kamerą" @click="pip({ on: false })"><Icon name="x" /></button>
+      </template>
       <template v-if="pvCorner">
         <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.mpos.corner === id }" :title="lbl" :aria-label="lbl" @click="setMediaPos({ corner: id })">{{ arrow }}</button>
         <button class="desk-corner" :title="studio.preview.mpos.size === 'large' ? 'Mniejsze okienko' : 'Większe okienko'" @click="setMediaPos({ size: studio.preview.mpos.size === 'large' ? 'small' : 'large' })">{{ studio.preview.mpos.size === 'large' ? 'L' : 'S' }}</button>
         <button class="desk-send" :class="{ ready: mpipPending }" :disabled="!mpipPending" :title="mpipPending ? 'Ten PIP na wizję (reszta wizji bez zmian)' : 'Ten PIP jest już na wizji'" @click="confirmLive('PIP: ' + (pvCorner ? label(pvCorner) : ''), mediaPipToProgram)"><Icon name="play" />Na wizję</button>
         <button class="desk-x" title="Zdejmij PIP" aria-label="Zdejmij PIP" @click="setOverlayMode('off')"><Icon name="x" /></button>
       </template>
-      <button v-if="!mediaList.length" class="desk-ovl-add" @click="deskTab = 'media'">Biblioteka…</button>
+      <button v-if="!mediaList.length && on('media')" class="desk-ovl-add" @click="deskTab = 'media'">Biblioteka…</button>
     </span>
     <!-- grafika albo napis na całym kadrze -->
     <span v-if="on('media') && pvFullOvl" class="desk-ovl-media" :class="{ on: pvFullOvl, live: pgFullOvl }">
@@ -81,15 +100,6 @@ function cornerMedia(id: string) { if (id) { showMediaOverlay(id); setOverlayMod
         <span class="desk-ovl-name" :title="label(pvFullOvl)">{{ label(pvFullOvl) }}</span>
         <button class="desk-corner" title="Do okienka PIP w rogu" @click="setOverlayMode('corner')">PIP</button>
         <button class="desk-x" title="Zdejmij nakładkę" aria-label="Zdejmij nakładkę" @click="setOverlayMode('off')"><Icon name="x" /></button>
-      </template>
-    </span>
-    <!-- PIP: kamera w okienku (sceny inne niż Kamera) -->
-    <span v-if="on('pip')" class="desk-ovl-media" :class="{ on: studio.preview.pip.on, live: studio.program.pip.on && air('pip') }">
-      <button class="ovl-btn" :class="{ on: studio.preview.pip.on, live: studio.program.pip.on && air('pip') }" :aria-pressed="!!studio.preview.pip.on" title="Obraz z kamery (ATEM) w okienku — najpierw na podgląd, na wizję przyciskiem „Na wizję” obok; wyłączenie od razu" @click="pip({ on: !(studio.program.pip.on || studio.preview.pip.on) })"><Icon name="camera" />PIP kamera</button>
-      <template v-if="studio.preview.pip.on">
-        <button v-for="[id, arrow, lbl] in CORNERS" :key="id" class="desk-corner" :class="{ on: studio.preview.pip.corner === id }" :title="lbl" :aria-label="lbl" @click="pip({ corner: id })">{{ arrow }}</button>
-        <button class="desk-corner" :title="studio.preview.pip.size === 'large' ? 'Mniejsze okienko' : 'Większe okienko'" @click="pip({ size: studio.preview.pip.size === 'large' ? 'small' : 'large' })">{{ studio.preview.pip.size === 'large' ? 'L' : 'S' }}</button>
-        <button class="desk-send" :class="{ ready: pipPending }" :disabled="!pipPending" :title="pipPending ? 'PIP z kamerą na wizję (reszta wizji bez zmian)' : 'Ten PIP jest już na wizji'" @click="confirmLive('PIP kamera', pipToProgram)"><Icon name="play" />Na wizję</button>
       </template>
     </span>
     <button v-if="on('end')" class="ovl-btn" :class="{ on: studio.preview.endOvl, live: studio.program.endOvl && air('end') }" :aria-pressed="!!studio.preview.endOvl" title="Baner na obrazie z kamery: napis i kod QR — wybierz preset i wyślij na wizję; wyłączenie od razu" @click="toggleOverlay(bnOn, setEndOverlay, 'endOvl')"><Icon name="qr" />Baner</button>

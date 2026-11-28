@@ -83,6 +83,14 @@ export function removeMusic(id: string) {
   const i = settings.musicList.findIndex(x => x.id === id)
   if (i >= 0) { const [f] = settings.musicList.splice(i, 1); if (f.path) api.removeFile(f.path) }
 }
+// Usunięcie wielu naraz: wszystkie utwory albo tylko te z YouTube (pliki z dysku — razem z kopią w folderze aplikacji).
+export function clearMusic(onlyYt = false) {
+  const gone = settings.musicList.filter(t => !onlyYt || t.yt)
+  if (gone.some(t => t.id === music.current)) stopMusic(0)
+  for (const t of gone) if (t.path) api.removeFile(t.path)
+  settings.musicList = settings.musicList.filter(t => !gone.includes(t))
+  return gone.length
+}
 // Playlista z YouTube: link albo id; utwory dopisują się do listy, te już dodane są pomijane.
 export async function addPlaylist(linkOrId: string) {
   const id = String(linkOrId).match(/[?&]list=([\w-]+)/)?.[1] || String(linkOrId).trim()

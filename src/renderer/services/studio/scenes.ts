@@ -65,7 +65,7 @@ export function drawPreset(ctx, kind, data, t, edit = false) {
   try {
     if (kind === 'cd') SCENE_DRAW.countdown(t); else if (kind === 'end') SCENE_DRAW.end(t)
     else if (kind === 'life') drawLife(t, L => bannerQrs(L), (q, x, y, size, label) => qrTile(q, x, y, size, label), logo, true)
-    else { cdBackground({ bg: 'szczyt', draw: false, dim: 0 }, t); endOverlay(); prayerOverlay(); verseOverlay(); lowerThird(t) }
+    else { cdBackground({ bg: 'colors', c1: '#1d2a44', c2: '#4a3524', draw: false, dim: 0 }, t); endOverlay(); prayerOverlay(); verseOverlay(); lowerThird(t) }
   } finally { setDemo(false); paintOn(prev.ctx, prev.look) }
 }
 // Kamera w okienku (nakładka na każdej scenie poza Kamerą): wybrany róg, małe albo duże.

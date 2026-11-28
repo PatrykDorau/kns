@@ -7,7 +7,7 @@ import { HEALTH, type YouTube } from './useYouTube'
 import type { Broadcast } from './useBroadcast'
 import type { StreamDevices } from './useStreamDevices'
 
-export interface HealthChip { id: string; label: string; value: string; cls: string; tip?: string }
+export interface HealthChip { id: string; label: string; value: string; cls: string; tip?: string; reasons?: { label: string; n: number; hint: string }[] }
 
 // ikonki komórek paska (ścieżki SVG 24×24)
 export const DH_ICON = {
@@ -27,6 +27,7 @@ export function useStreamHealth(youtube: YouTube, bc: Broadcast, dev: StreamDevi
   const { engine } = dev
 
   const online = ref(navigator.onLine)
+  let lostLog: { s: number, n: number }[] = [] // zgubione klatki co sekundę transmisji (do „ostatniej minuty”); bez reaktywności — tylko pamięć licznika
   const onNet = () => { online.value = navigator.onLine }
   window.addEventListener('online', onNet); window.addEventListener('offline', onNet)
   onBeforeUnmount(() => { window.removeEventListener('online', onNet); window.removeEventListener('offline', onNet) })
@@ -57,11 +58,24 @@ export function useStreamHealth(youtube: YouTube, bc: Broadcast, dev: StreamDevi
     if (engine.value === 'studio') chips.push({ id: 'lag', label: 'Opóźnienie wysyłania', value: (L.backlog || 0).toLocaleString('pl') + ' s', cls: (L.backlog || 0) > 5 ? 'bad' : (L.backlog || 0) > 2 ? 'warn' : 'ok', tip: 'Ile obrazu czeka na wysłanie. Rośnie, gdy internet nie nadąża.' })
     else chips.push({ id: 'lag', label: 'Tempo', value: L.speed || '—', cls: slow ? 'warn' : 'ok', tip: 'Poniżej 1x — komputer albo internet nie nadąża.' })
     // klatki
-    const lost = (L.drop || 0) + (L.skipped || 0) + (engine.value === 'studio' ? studio.skipped : 0)
-    // procent zgubionych: wobec klatek, które powinny wyjść od startu (czas transmisji × ustawione klatki na sekundę)
-    const secs = String(L.time || '').split(':').reduce((t, x) => t * 60 + (+x || 0), 0), expected = secs * (+settings.streamFps || 30)
+    const ff = engine.value === 'studio' && (settings.streamEncoder || 'gpu') !== 'gpu'
+    const reasons = engine.value === 'studio' ? [
+      { label: 'Komputer nie zdążył narysować klatki', n: studio.late, hint: 'Procesor albo karta zajęte czymś innym (inne programy, przeglądarka, długie listy na ekranie). Zamknij zbędne programy.' },
+      { label: ff ? 'Kopiowanie obrazu z karty nie nadąża' : 'Karta nie nadąża z kodowaniem', n: studio.skipped, hint: ff ? 'Spróbuj kodera „Karta graficzna — przez przeglądarkę” albo 720p.' : 'Sprawdź w „Jakości”, czy aplikacja działa na NVIDIA; pomaga 30 kl./s albo 720p.' },
+      { label: ff ? 'FFmpeg (koder albo internet) nie nadąża' : 'Internet nie nadąża — pominięte przed wysłaniem', n: L.skipped || 0, hint: ff ? 'Koder nie wyrabia albo wysyłanie stoi — sprawdź „Opóźnienie wysyłania”.' : 'Zmniejsz przepływność w „Jakości”.' },
+      { label: 'Pominięte przez FFmpeg', n: L.drop || 0, hint: '' },
+    ] : [{ label: 'Pominięte przez FFmpeg (komputer albo internet)', n: L.drop || 0, hint: '' }]
+    const lost = reasons.reduce((a, r) => a + r.n, 0)
+    // procent: wobec klatek, które powinny wyjść (czas × klatki na sekundę) — z ostatniej minuty i od startu
+    const fpsSet = +settings.streamFps || 30
+    const secs = String(L.time || '').split(':').reduce((t, x) => t * 60 + (+x || 0), 0), expected = secs * fpsSet
     const lostPct = expected ? Math.min(100, (lost / expected) * 100) : 0
-    chips.push({ id: 'fps', label: 'Klatki', value: (L.fps || 0) + '/s · ' + lostPct.toLocaleString('pl', { maximumFractionDigits: lostPct < 1 ? 2 : 1 }) + '% zgub.', cls: lostPct > 5 ? 'bad' : lostPct > 1 ? 'warn' : 'ok', tip: 'Klatki na sekundę; zgubione: ' + lost + ' (' + lostPct.toLocaleString('pl', { maximumFractionDigits: 2 }) + '% od startu) — pominięte przez kartę graficzną albo przy zatkanym internecie. Do 1% niezauważalne.' + (engine.value === 'studio' ? ' Rysowanie klatki: ' + studio.paintMs.toLocaleString('pl') + ' ms (limit ' + Math.round(1000 / (+settings.streamFps || 30)) + ' ms).' : '') })
+    lostLog = [...lostLog.filter(p => p.s > secs - 61 && p.s <= secs), { s: secs, n: lost }].slice(-70)
+    const first = lostLog[0], span = secs - first.s
+    const minutePct = span >= 5 ? Math.min(100, ((lost - first.n) / (span * fpsSet)) * 100) : lostPct
+    const pct = (x: number) => x.toLocaleString('pl', { maximumFractionDigits: x < 1 ? 2 : 1 })
+    chips.push({ id: 'fps', label: 'Klatki', value: (L.fps || 0) + '/s · ' + pct(minutePct) + '% zgub.', cls: minutePct > 5 ? 'bad' : minutePct > 1 ? 'warn' : 'ok',
+      tip: 'Zgubione w ostatniej minucie: ' + pct(minutePct) + '%; od startu: ' + pct(lostPct) + '% (' + lost + ' klatek). Do 1% niezauważalne.', reasons: reasons.filter(r => r.n > 0) })
     // internet
     chips.push({ id: 'net', label: 'Internet', value: !online.value ? 'brak' : L.stalled ? 'stoi' : slow ? 'wolny' : 'OK', cls: !online.value || L.stalled ? 'bad' : slow ? 'warn' : 'ok' })
     // YouTube

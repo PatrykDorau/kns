@@ -55,6 +55,8 @@ export interface Settings {
   studioDirect: boolean
   ytFolded: boolean
   cfgFolded: boolean
+  monSize?: string // rozmiar podglądu i wizji w lewej kolumnie: s | m | l
+  chatDock?: boolean // czat przypięty obok pulpitu (zamiast pływającego okienka)
   cfgTab?: string // otwarta zakładka Ustawień nadawania
   streamEncoder?: string // koder studia: 'gpu' (przeglądarka) | 'nvenc' | 'qsv' | 'amf' | 'x264' (FFmpeg)
   gpuBench?: { q: string, fps: number, lost: number, lost720?: number, error?: string, name?: string, enc?: string } // ostatni test karty graficznej

@@ -22,9 +22,12 @@ function draw(ctx: CanvasRenderingContext2D, L: Look, t: number) {
   try { (SCENE_DRAW[L.scene] || SCENE_DRAW.camera)(t); musicTag(t) } finally { paintOn(main, studio.program) }
 }
 
-let paintAvg = 0
+let paintAvg = 0, lastAt = 0
 function frame() {
   const t = performance.now()
+  // w trakcie transmisji: przerwa dłuższa niż półtorej klatki = klatki, które w ogóle nie powstały
+  if (studio.live && lastAt) { const per = 1000 / studio.fps, gap = t - lastAt; if (gap > per * 1.5) studio.late += Math.round(gap / per) - 1 }
+  lastAt = t
   if (studio.program.scene === 'countdown' || studio.preview.scene === 'countdown') { const l = countdownLeft(); if (l !== studio.left) studio.left = l }
   syncVideos()
   draw(main, studio.program, t)

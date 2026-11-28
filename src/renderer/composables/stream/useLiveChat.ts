@@ -42,5 +42,14 @@ export function useLiveChat({ yt, chosen }: Pick<YouTube, 'yt' | 'chosen'>) {
   watch(() => chat.open, open => { if (open) { chat.unread = 0; pull() } })
   onBeforeUnmount(() => { clearTimeout(timer); run++ })
 
-  return { chat, chatBroadcast }
+  // odpowiedź jako połączony kanał; po wysłaniu od razu na liście (bez czekania na kolejne pytanie)
+  async function send(text: string) {
+    const id = chatBroadcast.value?.chatId
+    if (!id) return { error: 'Czat ruszy razem z transmisją.' }
+    const res = await api.ytChatSend?.({ chatId: id, text })
+    if (!res || res.error) return { error: res?.error || 'Nie udało się wysłać.' }
+    if (!chat.messages.some(m => m.id === res.message.id)) chat.messages = [...chat.messages, res.message].slice(-KEEP)
+    return { ok: true }
+  }
+  return { chat, chatBroadcast, send }
 }

@@ -110,6 +110,7 @@ export interface KnsApi {
   ytKeep: Invoke
   ytGoLive: Invoke
   ytChat: Invoke
+  ytChatSend?: Invoke
   ytVideos: Invoke
   ytPlaylists: Invoke
   ytPlaylist: Invoke
@@ -126,6 +127,8 @@ export interface KnsApi {
   streamAudio: Invoke
   captureTarget: Invoke
   hostname: () => Promise<string>
+  looksWrite?: Invoke
+  looksRead?: Invoke
   gpuInfo?: () => Promise<{ gpus: { vendor: string }[], high: boolean }>
   gpuHigh?: () => Promise<{ ok?: boolean, error?: string }>
   restartApp?: () => Promise<void>

@@ -96,11 +96,13 @@ export interface StudioState {
   slideId: string
   skipped: number
   paintMs: number
+  late: number
   audioDb: number
   audioPeak: number
   clipAt: number
   silentFor: number
   camera: string
+  cameraLabel: string
   audio: string
   fps: number
   bitrate: number

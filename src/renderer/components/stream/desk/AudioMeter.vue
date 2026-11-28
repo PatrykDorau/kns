@@ -3,10 +3,14 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import { settings } from '@/stores'
 import { setGain, studio } from '@/services/studio'
+import { useDesk } from '@/composables/stream/useStreamDesk'
 
 // Dźwięk transmisji pod wizją: duży miernik jak w mikserze (zielony do −18 dB, żółty do −6, czerwony do 0),
 // kreska szczytu z ostatnich 1,5 s, napis PRZESTER (świeci 3 s po każdym przesterowaniu), źródło dźwięku
 // i suwak wzmocnienia wejścia — działa także w trakcie transmisji.
+const { studioDevices, chooseAudio } = useDesk()
+// zapamiętany mikrofon, którego teraz nie ma (odłączony) — zostaje na liście, żeby było widać, czego brakuje
+const missing = computed(() => !!settings.studioAudio && !studioDevices.value.audio.some(d => d.label === settings.studioAudio))
 const FLOOR = -60
 const pos = (db: number) => Math.max(0, Math.min(100, ((db - FLOOR) / -FLOOR) * 100))
 const now = ref(Date.now())
@@ -22,7 +26,12 @@ const gain = computed(() => settings.studioGain || 0)
 
 <template>
   <div class="am" :class="'am-' + level" role="group" aria-label="Dźwięk transmisji">
-    <span class="am-src" :title="'Źródło dźwięku: ' + (settings.studioAudio || 'brak')"><Icon name="volume" /><b>{{ settings.studioAudio || 'bez dźwięku' }}</b></span>
+    <label class="am-src" title="Źródło dźwięku — zmiana także w trakcie transmisji, bez przerwy"><Icon name="volume" />
+      <select :value="settings.studioAudio" aria-label="Źródło dźwięku (mikrofon)" @change="chooseAudio(($event.target as HTMLSelectElement).value)">
+        <option value="">bez dźwięku</option>
+        <option v-if="missing" :value="settings.studioAudio">{{ settings.studioAudio }} (niepodłączony)</option>
+        <option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option>
+      </select></label>
     <div class="am-bar" role="meter" :aria-valuenow="Math.round(studio.audioDb)" aria-valuemin="-60" aria-valuemax="0" aria-label="Poziom dźwięku w dB">
       <div class="am-track">
         <i class="am-fill" :style="{ clipPath: 'inset(0 ' + (100 - pos(studio.audioDb)) + '% 0 0)' }"></i>
@@ -39,9 +48,9 @@ const gain = computed(() => settings.studioGain || 0)
 </template>
 
 <style scoped>
-.am { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'src state' 'bar bar' 'gain gain'; align-items: center; gap: 6px 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); }
+.am { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'src state' 'bar bar' 'gain gain'; align-items: center; gap: 4px 10px; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); }
 .am-src { grid-area: src; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; color: var(--muted); }
-.am-src b { overflow: hidden; color: var(--text); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.am-src select { flex: 1; min-width: 0; padding: 3px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 12px; font-weight: 600; }
 .am-bar { grid-area: bar; min-width: 0; }
 .am-track { position: relative; height: 18px; overflow: hidden; border-radius: 4px; background: color-mix(in srgb, var(--text) 10%, var(--bg)); }
 /* kolory stref na całej szerokości, odsłaniane do poziomu: −60…−18 zielony, −18…−6 żółty, −6…0 czerwony */

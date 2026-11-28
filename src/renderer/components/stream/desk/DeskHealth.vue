@@ -3,6 +3,8 @@ import { settings } from '@/stores'
 import { studio } from '@/services/studio'
 import { useDesk } from '@/composables/stream/useStreamDesk'
 import { DH_ICON } from '@/composables/stream/useStreamHealth'
+import { computed, ref } from 'vue'
+import HealthTip from './HealthTip.vue'
 
 // Stan transmisji: ogólna ocena, wysyłanie (wykres), opóźnienie, klatki, internet, YouTube, dźwięk
 // (miernik i zmiana źródła w trakcie); na dole podpowiedź przy najważniejszym problemie.
@@ -10,13 +12,22 @@ import { DH_ICON } from '@/composables/stream/useStreamHealth'
 // rail — w zwiniętej kolumnie pod przyciskami: ikonka i wartość (opis w podpowiedzi); alert — sama podpowiedź o problemie.
 const props = defineProps<{ vertical?: boolean, rail?: boolean, alert?: boolean }>()
 const { live, health, liveBc, engine, studioDevices, devices, chooseAudio, switchSimpleAudio, rateHistory, sparkPoints, sparkTarget } = useDesk()
+// dymek: która komórka i gdzie (w zwiniętej kolumnie — z lewej, inaczej pod komórką)
+const tipId = ref(''), tipAt = ref<{ x: number, y: number, side: 'left' | 'below' } | null>(null)
+const tipChip = computed(() => health.value.chips.find(c => c.id === tipId.value) || null)
+function tipOn(id: string, e: MouseEvent) {
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  tipId.value = id
+  tipAt.value = props.rail || props.vertical ? { x: r.left, y: r.top, side: 'left' } : { x: r.left + r.width / 2, y: r.bottom, side: 'below' }
+}
+function tipOff() { tipId.value = ''; tipAt.value = null }
 </script>
 
 <template>
   <p v-if="props.alert" v-show="health.alert" class="dh-alert dh-alert-solo" :class="health.alert?.cls" role="status"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{{ health.alert?.text }}</p>
   <div v-else-if="props.rail" class="dh-rail" :class="'dh-' + health.level" role="group" aria-label="Stan transmisji">
     <span class="dh-rail-sum" :title="health.title + (liveBc?.viewers != null ? ' · ' + liveBc.viewers + ' ogląda' : '')"><i class="dh-led"></i><small>{{ live.time || '…' }}</small><small v-if="liveBc?.viewers != null">{{ liveBc.viewers }} ogl.</small></span>
-    <span v-for="c in health.chips" :key="c.id" class="dh-rail-cell" :class="'s-' + (c.cls || 'none')" :title="c.label + ': ' + c.value + (c.tip ? ' — ' + c.tip : '')">
+    <span v-for="c in health.chips" :key="c.id" class="dh-rail-cell" :class="'s-' + (c.cls || 'none')" tabindex="0" :aria-label="c.label + ': ' + c.value" @mouseenter="tipOn(c.id, $event)" @mouseleave="tipOff" @focus="tipOn(c.id, $event as any)" @blur="tipOff">
       <svg class="dh-ic" viewBox="0 0 24 24" aria-hidden="true"><path v-for="(d, k) in DH_ICON[c.id]" :key="k" :d="d" /></svg>
       <i v-if="c.id === 'audio' && engine === 'studio'" class="dh-meter" aria-hidden="true"><i :style="{ width: Math.max(0, Math.min(100, (studio.audioDb + 60) / 60 * 100)) + '%' }"></i></i>
       <b>{{ c.value }}</b>
@@ -29,7 +40,7 @@ const { live, health, liveBc, engine, studioDevices, devices, chooseAudio, switc
         <span><b>{{ health.title }}</b><small>{{ live.time || 'łączę…' }}{{ liveBc?.viewers != null ? ' · ' + liveBc.viewers + ' ogląda' : '' }}</small></span>
         <button v-if="props.vertical" class="icon dh-fold" :aria-expanded="!settings.healthFolded" :title="settings.healthFolded ? 'Pokaż statystyki transmisji' : 'Zwiń statystyki'" :aria-label="settings.healthFolded ? 'Pokaż statystyki' : 'Zwiń statystyki'" @click="settings.healthFolded = !settings.healthFolded">{{ settings.healthFolded ? '▾' : '▴' }}</button>
       </div>
-      <div v-for="c in props.vertical && settings.healthFolded ? [] : health.chips" :key="c.id" class="dh-cell" :class="['s-' + (c.cls || 'none'), 'dh-' + c.id]" :title="c.tip">
+      <div v-for="c in props.vertical && settings.healthFolded ? [] : health.chips" :key="c.id" class="dh-cell" :class="['s-' + (c.cls || 'none'), 'dh-' + c.id]" @mouseenter="tipOn(c.id, $event)" @mouseleave="tipOff">
         <svg class="dh-ic" viewBox="0 0 24 24" aria-hidden="true"><path v-for="(d, k) in DH_ICON[c.id]" :key="k" :d="d" /></svg>
         <!-- dźwięk: poziom, stan i wybór źródła (zmiana także w trakcie transmisji) -->
         <span v-if="c.id === 'audio'" class="dh-txt">
@@ -47,4 +58,5 @@ const { live, health, liveBc, engine, studioDevices, devices, chooseAudio, switc
     </div>
     <p v-if="health.alert" class="dh-alert" :class="health.alert.cls" role="status"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{{ health.alert.text }}</p>
   </div>
+  <HealthTip :chip="tipChip" :at="tipAt" />
 </template>

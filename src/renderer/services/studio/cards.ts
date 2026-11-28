@@ -254,17 +254,17 @@ export function addCountdown(minutes) { studio.countdownTo = Math.max(Date.now()
 export let armed = false, zeroAt = 0
 export function setArmed(v: boolean, at = 0) { armed = v; zeroAt = at }
 // Wygląd „Odliczania” (Studio → Scena): domyślnie papier z falą i ogłoszeniami w środku.
-export const CD_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'ZACZYNAMY ZA', done: 'ZARAZ ZACZYNAMY', sub: '', brand: 'KOŚCIÓŁ NA SKALE', foot: '{nabożeństwo}', layout: 'rock', timer: 'plain', accent: '#f6a836', show: 'ann', photo: '' } as const
-// tło spoza listy (np. dawne „Ciemne” albo „Góry”) — Szczyt
-const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'szczyt' })
+export const CD_DEFAULT = { bg: 'krem', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'ZACZYNAMY ZA', done: 'ZARAZ ZACZYNAMY', sub: '', brand: 'KOŚCIÓŁ NA SKALE', foot: '{nabożeństwo}', layout: 'edit', timer: 'plain', accent: '#1a2a9a', ink: '#1a2a9a', show: 'ann', photo: '' } as const
+// tło spoza listy (np. dawna „Góra” z motywami) — Krem
+const safeBg = L => (BG_IDS.includes(L.bg) ? L : { ...L, bg: 'krem' })
 // wizja rysuje wygląd z chwili „Na wizję” (S.styles), podgląd — bieżące ustawienia
 export const styleOf = (k: 'cd' | 'end' | 'life', live) => (S?.styles ? S.styles[k] : live)
 export const cdLook = () => safeBg({ ...CD_DEFAULT, ...(styleOf('cd', settings.cdLook) || {}) })
 // Wygląd „Końca”: tło jak w odliczaniu, układ (karta z kafelkami, obok siebie, duży napis), napis i podpis.
-export const END_DEFAULT = { bg: 'szczyt', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'DZIĘKUJEMY, ŻE BYLIŚCIE Z NAMI', sub: 'Do zobaczenia: {nabożeństwo}', brand: 'KOŚCIÓŁ NA SKALE', layout: 'rock', pic: '' } as const
+export const END_DEFAULT = { bg: 'krem', draw: true, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, title: 'DZIĘKUJEMY, ŻE BYLIŚCIE Z NAMI', sub: 'Do zobaczenia: {nabożeństwo}', brand: 'KOŚCIÓŁ NA SKALE', layout: 'edit', pic: '' } as const
 export const endLook = () => safeBg({ ...END_DEFAULT, ...(styleOf('end', settings.endLook) || {}) })
 // Ramka sceny „Życie kościoła”: tło jak w planszach, napisy, ogłoszenia, wydarzenia i kod QR.
-export const LIFE_DEFAULT = { bg: 'szczyt', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, layout: 'side', banner: true, title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
+export const LIFE_DEFAULT = { bg: 'krem', draw: false, c1: '#1d2a44', c2: '#e8952f', image: '', dim: 0, layout: 'side', banner: true, title: 'Życie kościoła', brand: 'KOŚCIÓŁ NA SKALE', ann: true, events: true, qr: 'bank', link: '' } as const
 export const lifeLook = () => safeBg({ ...LIFE_DEFAULT, ...(styleOf('life', settings.lifeLook) || {}) })
 // Pasek mówcy: {mówca} i {kazanie} — z najbliższego nabożeństwa; puste pole — nic.
 export const LOWER_DEFAULT = { style: 'rock', name: '{mówca}', sub: '{kazanie}', color: '#f6a836', logo: true, photo: '@speaker', photoSize: 'm' } as const

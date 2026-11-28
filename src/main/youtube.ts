@@ -242,6 +242,13 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
         author: m.authorDetails?.displayName || 'Widz', owner: !!m.authorDetails?.isChatOwner, mod: !!m.authorDetails?.isChatModerator })),
     }
   }
+  // Odpowiedź na czacie jako połączony kanał (50 jednostek limitu na wiadomość). YouTube przyjmuje do 200 znaków.
+  async function chatSend({ chatId, text }) {
+    const msg = String(text || '').trim().slice(0, 200)
+    if (!chatId || !msg) return { error: 'Pusta wiadomość.' }
+    const m = await call('POST', '/liveChat/messages?part=snippet,authorDetails', { snippet: { liveChatId: chatId, type: 'textMessageEvent', textMessageDetails: { messageText: msg } } })
+    return { message: { id: m.id, at: m.snippet?.publishedAt || new Date().toISOString(), text: m.snippet?.displayMessage || msg, author: m.authorDetails?.displayName || 'Ty', owner: true, mod: false } }
+  }
   // Filmy z playlisty (bez prywatnych i usuniętych).
   async function playlistVideos(id) {
     const out = []
@@ -280,5 +287,5 @@ export default function createYouTube({ dir, open, encrypt = s => Buffer.from(s)
     return { ...status(), stream, broadcasts: list }
   }
 
-  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview, bindToKey, goLive, keepAfterOutage, chat, channelVideos, playlists, playlistVideos }
+  return { login, logout, status, streamKey, broadcasts, createBroadcast, updateBroadcast, endBroadcast, deleteBroadcast, overview, bindToKey, goLive, keepAfterOutage, chat, chatSend, channelVideos, playlists, playlistVideos }
 }

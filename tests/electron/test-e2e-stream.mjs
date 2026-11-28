@@ -133,7 +133,7 @@ try {
   await ev(`await clk('Przygotowanie','.desk-mode button'); await w(500); return 1`)
   ok('Przygotowanie otwarte, sceny schowane', await ev(`return !!document.querySelector('.prep')&&!document.querySelector('.desk-scenes')`))
   const makers = [
-    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); document.querySelector('[aria-label="Kolor obwódki #000000"]').click(); await clk('Duży zegar','.desk-layout'); await clk('Noc','.desk-motif button');`],
+    ['Odliczanie', 'Duży zegar test', 'Przed nabożeństwem', `await setv($$('.desk-cd-text input')[0],'TEST ZEGAR'); document.querySelector('[aria-label="Kolor obwódki #000000"]').click(); await clk('Duży zegar','.desk-layout'); await clk('Piasek','.desk-bg');`],
     ['Koniec', 'Koniec kamera', 'Z kamerą w tle', `await clk('Duży napis','.desk-opt-group button'); await clk('Kamera','.desk-bg'); await setv($$('.desk-cd-text input')[0],'TEST KONIEC');`],
     ['Baner', 'Zbiórka test', 'Po kazaniu', `await setv($$('.desk-cd-text input')[0],'TEST BANER'); await clk('Pasek','.desk-opt-group button');`],
     ['Modlitwa', 'Modlitwa test', 'Czas modlitwy', `await setv($$('.desk-cd-text input')[1],'TEST MODLITWA');`],
@@ -144,7 +144,7 @@ try {
     ok(`Przygotowanie: utworzony „${name}”`, await ev(`return s.settings.studioPresets.some(p=>p.name===${JSON.stringify(name)}&&p.desc===${JSON.stringify(desc)})`))
   }
   ok('obwódka z kreatora zapisana w presecie', await ev(`return s.settings.studioPresets.find(x=>x.name==='Duży zegar test').data.outline==='#000000'`))
-  ok('edycja trafia do presetu, nie do ustawień', await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Duży zegar test'); return p.data.title==='TEST ZEGAR'&&p.data.layout==='center'&&s.settings.cdLook.title==='ZACZYNAMY ZA'`))
+  ok('edycja trafia do presetu, nie do ustawień', await ev(`const p=s.settings.studioPresets.find(x=>x.name==='Duży zegar test'); return p.data.title==='TEST ZEGAR'&&p.data.layout==='center'&&s.settings.cdLook.title!=='TEST ZEGAR'`))
   ok('duży podgląd presetu coś rysuje', await ev(`const c=document.querySelector('.prep-canvas'); const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let v=new Set(); for(let i=0;i<d.length;i+=4001)v.add(d[i]); return v.size>4`))
   await shot('2-przygotowanie.png')
   /* ---------- zdjęcie mówcy na pasku: PNG z przezroczystymi marginesami ---------- */
@@ -199,8 +199,8 @@ try {
   await ev(`await clk('Koniec','.desk-scenes button'); await w(400); await clk('Koniec kamera','.pz-main'); await clk('Na wizję','.desk-take button'); await w(900); return 1`)
   ok('Koniec na wizji', await ev(`return st.program.scene==='end'&&st.program.styles.end.title==='TEST KONIEC'`))
   await wait(4000)
-  await ev(`await clk('Życie kościoła','.desk-scenes button'); await w(400); await clk('Noc','.pz-main'); await w(300); await clk('Na wizję','.desk-take button'); await w(1200); return 1`)
-  ok('Życie kościoła na wizji w trakcie transmisji', await ev(`return st.program.scene==='life'&&st.program.styles.life.bg==='noc'&&!!document.querySelector('.pz-card.live')`))
+  await ev(`await clk('Życie kościoła','.desk-scenes button'); await w(400); await clk('Krem','.pz-main'); await w(300); await clk('Na wizję','.desk-take button'); await w(1200); return 1`)
+  ok('Życie kościoła na wizji w trakcie transmisji', await ev(`return st.program.scene==='life'&&st.program.styles.life.bg==='krem'&&!!document.querySelector('.pz-card.live')`))
   await wait(3000)
   await ev(`await clk('Kamera','.desk-scenes button'); await clk('Na wizję','.desk-take button'); await w(700); await clk('Baner','.ovl-btn'); await w(400); await clk('Zbiórka test','.pz-main'); await w(300); return 1`)
   ok('baner na podglądzie, nie na wizji', await ev(`return st.preview.endOvl&&!st.program.endOvl`))

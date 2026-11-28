@@ -29,6 +29,7 @@ export async function listCameras() {
   return { video: all.filter(d => d.kind === 'videoinput'), audio: all.filter(d => d.kind === 'audioinput' && d.deviceId !== 'default' && d.deviceId !== 'communications') }
 }
 function release() {
+  studio.cameraLabel = ''
   camStream?.getTracks().forEach(tr => tr.stop())
   camStream = null
   if (camVideo) camVideo.srcObject = null
@@ -49,6 +50,7 @@ async function open() {
       camVideo.requestVideoFrameCallback(tick)
     }
     const [track] = stream.getVideoTracks()
+    studio.cameraLabel = track?.label || ''
     // odpięty kabel, urządzenie zabrane przez inny program — od razu kolejna próba
     track?.addEventListener('ended', () => { if (camStream === stream) later(1000, 'Kamera się rozłączyła — łączę ponownie…') })
     camVideo.srcObject = stream
@@ -93,8 +95,15 @@ export function startCameraHold() {
   holdCamera().catch(() => {})
   navigator.mediaDevices?.addEventListener('devicechange', () => { holdCamera().catch(() => {}) })
 }
-// ręcznie: „Połącz ponownie” / „Odśwież kamery”
-export function reconnectCamera() { if (wanted) { tries = 0; open() } }
+// ręcznie: „Połącz kamerę” / „Odśwież kamery” — zamyka i otwiera od nowa (najpierw bez wymagań co do formatu: urządzenie
+// mogło zostać w formacie ustawionym przez inny program); bez wybranej — bierze zapamiętaną albo ATEM
+export async function reconnectCamera() {
+  if (!wanted) { await holdCamera().catch(() => {}); return }
+  seq++; release(); tries = 1; retryAt = 0; note = 'Łączę z kamerą…'; studio.error = ''
+  await new Promise(r => setTimeout(r, 400)) // Windows potrzebuje chwili na zwolnienie urządzenia
+  open()
+}
+export const cameraNote = () => note
 
 // Strażnik: co sekundę sprawdza, czy obraz płynie; jeśli nie — otwiera kamerę ponownie (coraz rzadziej, najwyżej co 10 s).
 setInterval(() => {
