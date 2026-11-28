@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Icon from '@/components/common/Icon.vue'
 import Brand from '@/components/common/Brand.vue'
 import AskDialog from '@/components/common/AskDialog.vue'
@@ -10,6 +10,7 @@ import CalendarView from '@/components/planner/CalendarView.vue'
 import PeopleView from '@/components/planner/PeopleView.vue'
 import HomeBoard from '@/components/home/HomeBoard.vue'
 import WebShell from '@/components/home/WebShell.vue'
+import LaunchChooser from '@/components/home/LaunchChooser.vue'
 import { lyricsFeed, startLyricsFeed } from '@/services/lyricsFeed'
 import { startProjectorFeed } from '@/services/projectorFeed'
 import { followSlide, pilot, startPreacherPilot } from '@/services/preacherPilot'
@@ -26,7 +27,7 @@ import GuestBoard from '@/components/home/GuestBoard.vue'
 import InboxBell from '@/components/common/InboxBell.vue'
 import SyncButton from '@/components/common/SyncButton.vue'
 import * as store from '@/stores'
-import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init, planAlert, planReady, role, serviceModal, services, sharedStatus, syncShared, syncing, googleExpired, googleError, loginGoogle, logoutGoogle } from '@/stores'
+import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init, planAlert, planReady, role, serviceModal, services, settings, sharedStatus, syncShared, syncing, googleExpired, googleError, loginGoogle, logoutGoogle } from '@/stores'
 
 // Strona startowa: konto, cztery służby (według rang) i tablica — komunikaty rady, newsletter,
 // najbliższe nabożeństwo i ten tydzień. Bez zalogowania wszystko jest zablokowane.
@@ -35,13 +36,33 @@ onMounted(async () => {
   window.rzutnik = store // uchwyt do podglądania stanu z konsoli i w testach
   window.rzutnikStream = { benchEncoder, studioCanvas, cardPic, setCardPic, setAudio, startDuck, studio, lyricsFeed, startEncoding, stopEncoding, audioInfo, setCamera, setEndOverlay, bannerPending, bannerToProgram, followSlide, pilot, projFiles, projectorMessage: onShow, presetThumb, lowerNow, choosePhoto, showSlide, musicTag, music, paintOn, speakerPic }
   await init()
+  ready.value = true
+  // tryb zapamiętany na tym komputerze — od razu; inaczej pytanie (okno wyboru)
+  if (['stream', 'display', 'full'].includes(settings.launchMode)) launch(settings.launchMode as Mode)
+})
+
+// Tryb pracy: sam Stream, sam Rzutnik albo cała aplikacja. W trybie pojedynczym nie ma strony startowej (wbudowanej
+// strony kns-nabo, która w całości działała w tle także w trakcie transmisji), a komputer przy rzutniku nie zajmuje ATEM.
+type Mode = 'stream' | 'display' | 'full'
+const mode = ref<Mode | ''>('')
+function startFor(m: Mode) {
   startLyricsFeed() // napisy na stream niezależnie od otwartego ekranu
   startProjectorFeed() // scena „Rzutnik”: to, co pokazuje rzutnik na tym komputerze
   startPreacherPilot() // pilot kaznodziei w telefonie i slajdy prezentacji w Stream
   startProjectorMirror() // Stream na innym komputerze pokazuje ten sam materiał co rzutnik (własna kopia z Dysku)
-  startCameraHold() // ATEM po USB trzymany od startu aplikacji — inny program go nie przejmie
-  ready.value = true
-})
+  if (m !== 'display') startCameraHold() // ATEM po USB trzymany od startu — inny program go nie przejmie
+}
+// Stream albo Rzutnik otwarty inną drogą (kafelek strony, testy) — jego usługi też muszą działać
+watch(role, r => { if (r === 'stream' || r === 'display') startFor(r) })
+async function launch(m: Mode) {
+  mode.value = m
+  startFor(m)
+  if (m === 'full') return
+  if (!canUse(m)) await refreshAccess().catch(() => {})
+  if (canUse(m)) choose(m)
+}
+// wstecz z Rzutnika / Streamu w trybie pojedynczym — z powrotem do wyboru trybu
+const chooser = computed(() => ready.value && !role.value && mode.value !== 'full')
 
 function choose(next) {
   if (!canUse(next)) return
@@ -79,7 +100,8 @@ const TILES = [
 </script>
 
 <template>
-  <WebShell v-show="!role" ref="shell" class="app-web" @open="openNative" @login="webLogin" @logout="webLogout">
+  <LaunchChooser v-if="chooser" @pick="launch" />
+  <WebShell v-if="mode === 'full'" v-show="!role" ref="shell" class="app-web" @open="openNative" @login="webLogin" @logout="webLogout">
   <template #fallback>
   <div class="home">
     <div class="kh">

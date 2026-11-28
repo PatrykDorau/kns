@@ -91,7 +91,10 @@ async function holdCamera() {
   const d = (await listCameras()).video.find(x => x.label === settings.studioCamera || /blackmagic|atem/i.test(x.label))
   if (d && !wanted && settings.streamEngine !== 'simple') setCamera(d.deviceId)
 }
+let holding = false
 export function startCameraHold() {
+  if (holding) return
+  holding = true
   holdCamera().catch(() => {})
   navigator.mediaDevices?.addEventListener('devicechange', () => { holdCamera().catch(() => {}) })
 }
