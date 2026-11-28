@@ -5,11 +5,12 @@ import Icon from '@/components/common/Icon.vue'
 import { api, flush, output, remoteUrl, settings, uid } from '@/stores'
 import { share } from '@/services/screenShare'
 import { focusOnce } from '@/utils/dom'
+import ProjectorLink from './ProjectorLink.vue'
 
 const emit = defineEmits(['close'])
 const message = ref('')
 // zakładki ustawień
-const TABS = [['stream', 'link', 'Dla streamu'], ['display', 'monitor', 'Obraz i pliki'], ['remote', 'gear', 'Pilot w telefonie'], ['backup', 'folder', 'Kopia biblioteki']]
+const TABS = [['proj', 'monitor', 'Połączenie z rzutnikiem'], ['stream', 'link', 'Dla streamu'], ['display', 'monitor', 'Obraz i pliki'], ['remote', 'gear', 'Pilot w telefonie'], ['backup', 'folder', 'Kopia biblioteki']]
 const tab = ref('stream')
 // Przez internet: adres z kluczem tego komputera (Stream na drugim laptopie, w dowolnej sieci).
 const onlineLink = computed(() => 'https://kns-nabo.netlify.app/napisy?k=' + settings.lyricsKey)
@@ -46,6 +47,8 @@ async function importBackup() {
         </nav>
 
         <div class="st-pane">
+          <!-- połączenie z rzutnikiem Epson (iProjection): diagnoza i połączenie ręczne po adresie IP -->
+          <ProjectorLink v-if="tab === 'proj'" />
           <!-- Dla streamu: obraz rzutnika i napisy na laptop ze streamem -->
           <template v-if="tab === 'stream'">
             <h4>Dla streamu</h4>
@@ -124,7 +127,7 @@ async function importBackup() {
           </template>
 
           <!-- Kopia biblioteki -->
-          <template v-else>
+          <template v-else-if="tab === 'backup'">
             <h4>Kopia biblioteki</h4>
             <p class="st-help">Folder z Biblioteką, pieśniami i ustawieniami — do przeniesienia na inny komputer.</p>
             <div class="st-card">

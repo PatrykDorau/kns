@@ -23,9 +23,9 @@ import LiveChat from './desk/LiveChat.vue'
 // Pulpit streamu: po lewej obraz (podgląd i wizja ze scenami, nakładkami i mediami — albo kamery w trybie prostym)
 // i ATEM; po prawej YouTube i ustawienia nadawania. Stan i działania — composables/stream (useDesk w częściach).
 const props = withDefaults(defineProps<{ service?: Service | null }>(), { service: null })
-const { live, liveOn, engine, unrail, deskMode, chat, stopLive } = provideDesk(toRef(props, 'service'))
+const { live, liveOn, engine, unrail, deskMode, chat } = provideDesk(toRef(props, 'service'))
 const unread = () => (chat.unread > 99 ? '99+' : chat.unread)
-// skróty klawiszowe (Studio): Spacja — na wizję, F1–F6 — sceny, N — napisy
+// skróty klawiszowe (Studio): F1–F6 — sceny, N — napisy (na wizję — tylko przyciskiem)
 useDeskKeys(() => engine.value === 'studio' && deskMode.value === 'live')
 const keysOpen = ref(false)
 const chatDocked = computed(() => !!settings.chatDock && chat.open && settings.deskLayout === 'cols' && engine.value === 'studio')
@@ -90,8 +90,6 @@ const chatDocked = computed(() => !!settings.chatDock && chat.open && settings.d
         </div>
         <button class="rail-btn" :class="{ on: chat.open }" :aria-pressed="chat.open" :title="chat.unread ? 'Czat na żywo — nieodczytane: ' + chat.unread : 'Czat na żywo'" aria-label="Czat na żywo" @click="chat.open = !chat.open"><Icon name="chat" /><em v-if="chat.unread" class="chat-badge">{{ unread() }}</em></button>
         <DeskHealth v-if="liveOn" rail />
-        <!-- koniec transmisji bez rozwijania kolumny (z potwierdzeniem) -->
-        <button v-if="liveOn" class="rail-btn rail-stop" title="Zakończ transmisję" aria-label="Zakończ transmisję" @click="stopLive"><i></i></button>
       </nav>
       <div v-else key="full" class="desk-right-full">
       <!-- przypięte u góry przy przewijaniu: zwijanie, tryb pulpitu, czat -->

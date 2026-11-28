@@ -115,6 +115,8 @@ contextBridge.exposeInMainWorld('api', {
   streamAudio: invoke('stream:audio'),
   captureTarget: invoke('capture:target'),
   hostname: invoke('app:hostname'),
+  projCheck: invoke('proj:check'),
+  projIProjection: invoke('proj:iprojection'),
   looksWrite: invoke('looks:write'),
   looksRead: invoke('looks:read'),
   gpuInfo: invoke('gpu:info'),

@@ -11,6 +11,7 @@ import { Atem } from './atem'
 import createYouTube from './youtube'
 import createYtPlayer from './ytPlayer'
 import { Streamer, listDevices } from './streamer'
+import { checkProjector, openIProjection } from './projectorLink'
 import CONFIG from './google-config'
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL
@@ -1005,6 +1006,9 @@ app.whenReady().then(() => {
   // Obraz rzutnika przez sieć: getDisplayMedia w oknie aplikacji dostaje ekran z rzutnikiem (bez dźwięku — idzie przez konsolę).
   let captureDisplay = null
   ipcMain.handle('app:hostname', () => os.hostname())
+  // połączenie z rzutnikiem Epson: diagnoza sieci i szybkie połączenie ręczne w iProjection
+  ipcMain.handle('proj:check', (e, ip) => checkProjector(ip))
+  ipcMain.handle('proj:iprojection', (e, ip) => openIProjection(ip))
   // Karta graficzna: laptop z Intel + NVIDIA — Windows domyślnie daje aplikacjom zintegrowanego Intela, a Stream potrzebuje
   // NVIDIA (rysowanie i kodowanie obrazu; OBS też jej używa). To samo co Ustawienia → System → Ekran → Grafika →
   // „Wysoka wydajność”, tylko dla tej aplikacji; działa po ponownym uruchomieniu.
