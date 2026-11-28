@@ -1541,10 +1541,10 @@ select { padding-right: 36px !important; }
 .desk-stage-rest button.live:not([role=tab]) { border-color: #e5484d !important; }
 .desk-stage-rest input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), .desk-stage-rest select, .desk-stage-rest textarea { border: 1px solid var(--line) !important; border-radius: 8px; background: var(--bg) !important; padding: 6px 10px; }
 .desk-stage-rest input:focus, .desk-stage-rest select:focus, .desk-stage-rest textarea:focus { outline: none; border-color: var(--accent) !important; }
-/* podgląd i wizja w kolumnie mieszczą się w oknie (bez przewijania lewej kolumny) */
+/* podgląd i wizja w kolumnie: L — cała szerokość kolumny, M — wszystko mieści się bez przewijania, S — mniejsze */
 @media (min-width: 1000px) {
   .desk.cols .mon-scr, .desk.cols .desk-take { width: min(100%, var(--mon-w, calc((100vh - 440px) / 2 * 16 / 9))); }
-  .desk.cols .desk-mons-col { overflow: hidden; }
+  .desk.cols .desk-mons-col { overflow-x: hidden; overflow-y: auto; }
   /* sceny zawsze pod ręką: przypięte u góry przewijanej części */
   .desk.cols .desk-stage-rest > .desk-scenes { position: sticky; top: -2px; z-index: 5; padding: 2px 0 10px; background: var(--panel); }
 }

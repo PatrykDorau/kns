@@ -2,7 +2,11 @@
 // ocena YouTube, dźwięk, wznowienia — i jedna podpowiedź przy najważniejszym problemie.
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { settings } from '@/stores'
-import { studio } from '@/services/studio'
+import { gpuName, studio } from '@/services/studio'
+
+// karta, na której naprawdę działa aplikacja (raz — WebGL) — w podpowiedziach przy zgubionych klatkach
+let gpuCache: string | null = null
+const onGpu = () => { if (gpuCache == null) gpuCache = gpuName(); return gpuCache ? ' Aplikacja działa teraz na: ' + gpuCache + (/intel|uhd|iris/i.test(gpuCache) ? ' (zintegrowana) — w „Jakości” przełącz na NVIDIA.' : '.') : '' }
 import { HEALTH, type YouTube } from './useYouTube'
 import type { Broadcast } from './useBroadcast'
 import type { StreamDevices } from './useStreamDevices'
@@ -60,8 +64,8 @@ export function useStreamHealth(youtube: YouTube, bc: Broadcast, dev: StreamDevi
     // klatki
     const ff = engine.value === 'studio' && (settings.streamEncoder || 'gpu') !== 'gpu'
     const reasons = engine.value === 'studio' ? [
-      { label: 'Komputer nie zdążył narysować klatki', n: studio.late, hint: 'Procesor albo karta zajęte czymś innym (inne programy, przeglądarka, długie listy na ekranie). Zamknij zbędne programy.' },
-      { label: ff ? 'Kopiowanie obrazu z karty nie nadąża' : 'Karta nie nadąża z kodowaniem', n: studio.skipped, hint: ff ? 'Spróbuj kodera „Karta graficzna — przez przeglądarkę” albo 720p.' : 'Sprawdź w „Jakości”, czy aplikacja działa na NVIDIA; pomaga 30 kl./s albo 720p.' },
+      { label: 'Komputer nie zdążył narysować klatki', n: studio.late, hint: 'Procesor albo karta zajęte czymś innym (inne programy, przeglądarka). Zamknij zbędne programy; laptop podłącz do zasilania (na baterii zwalnia).' + onGpu() },
+      { label: ff ? 'Kopiowanie obrazu z karty nie nadąża' : 'Karta nie nadąża z kodowaniem', n: studio.skipped, hint: (ff ? 'Odczyt obrazu z karty nie nadąża — spróbuj kodera „Karta graficzna — przez przeglądarkę”, 30 kl./s albo 720p.' : 'Koder karty ma kolejkę — pomaga 30 kl./s albo 720p.') + onGpu() },
       { label: ff ? 'FFmpeg (koder albo internet) nie nadąża' : 'Internet nie nadąża — pominięte przed wysłaniem', n: L.skipped || 0, hint: ff ? 'Koder nie wyrabia albo wysyłanie stoi — sprawdź „Opóźnienie wysyłania”.' : 'Zmniejsz przepływność w „Jakości”.' },
       { label: 'Pominięte przez FFmpeg', n: L.drop || 0, hint: '' },
     ] : [{ label: 'Pominięte przez FFmpeg (komputer albo internet)', n: L.drop || 0, hint: '' }]

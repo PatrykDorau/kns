@@ -139,6 +139,7 @@ export interface KnsApi {
   streamStartStudio: Invoke
   streamBenchStudio?: Invoke
   studioVideo: (buf: ArrayBuffer | Uint8Array) => void
+  studioVideoPort?: () => void
   studioAudio: (buf: ArrayBuffer | Uint8Array) => void
   onStudioNeedKey: Listen
   remoteState: (state: unknown) => void

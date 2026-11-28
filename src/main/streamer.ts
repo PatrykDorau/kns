@@ -56,10 +56,12 @@ function isKeyFrame(b) {
 }
 // Studio z koderem FFmpeg (wybór w „Jakości”): aplikacja oddaje gotowe klatki obrazu (BGRA/RGBA), FFmpeg koduje.
 // NVENC dostaje RGB wprost (kolory zamienia karta NVIDIA), pozostałe — po zamianie na NV12 / YUV 4:2:0 procesorem.
-const RAW_FMT = { BGRX: 'bgr0', BGRA: 'bgra', RGBX: 'rgb0', RGBA: 'rgba' }
+const RAW_FMT = { I420: 'yuv420p', BGRX: 'bgr0', BGRA: 'bgra', RGBX: 'rgb0', RGBA: 'rgba' }
+// I420 przeliczone na karcie w aplikacji: BT.709, zakres TV — tak oznaczamy wyjście, żeby YouTube nie przesunął kolorów
+const BT709 = ['-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv']
 function studioEncoder(enc, kbps, fps) {
   const rate = ['-b:v', kbps + 'k', '-maxrate', kbps + 'k', '-bufsize', kbps * 2 + 'k', '-g', String(fps * 2)]
-  if (enc === 'nvenc') return { args: ['-c:v', 'h264_nvenc', '-preset', 'p5', '-tune', 'hq', '-rc', 'cbr', ...rate, '-bf', '2', '-spatial-aq', '1', '-profile:v', 'high'], name: 'NVIDIA NVENC (FFmpeg)' }
+  if (enc === 'nvenc') return { args: ['-c:v', 'h264_nvenc', '-preset', 'p4', '-tune', 'hq', '-rc', 'cbr', ...rate, '-bf', '2', '-spatial-aq', '1', '-profile:v', 'high'], name: 'NVIDIA NVENC (FFmpeg)' }
   if (enc === 'qsv') return { args: ['-vf', 'format=nv12', '-c:v', 'h264_qsv', '-preset', 'medium', ...rate, '-bf', '2', '-profile:v', 'high'], name: 'Intel QuickSync (FFmpeg)' }
   if (enc === 'amf') return { args: ['-vf', 'format=nv12', '-c:v', 'h264_amf', '-usage', 'lowlatency', '-quality', 'balanced', '-rc', 'cbr', ...rate, '-profile:v', 'high'], name: 'AMD AMF (FFmpeg)' }
   return { args: ['-vf', 'format=yuv420p', '-c:v', 'libx264', '-preset', 'veryfast', ...rate, '-bf', '2', '-profile:v', 'high', '-x264-params', 'nal-hrd=cbr'], name: 'procesor x264 (FFmpeg)' }
@@ -270,14 +272,14 @@ class Streamer extends EventEmitter {
     const video = o.raw
       ? ['-thread_queue_size', '64', '-use_wallclock_as_timestamps', '1', '-f', 'rawvideo', '-pix_fmt', RAW_FMT[o.raw.format], '-s', o.raw.w + 'x' + o.raw.h, '-framerate', String(fps), '-i', 'pipe:0']
       : ['-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-probesize', '500000', '-analyzeduration', '0', '-framerate', String(fps), '-f', 'h264', '-i', 'pipe:0']
-    const venc = o.raw ? studioEncoder(o.encoder, kbps, fps).args : ['-c:v', 'copy']
+    const venc = o.raw ? [...studioEncoder(o.encoder, kbps, fps).args, ...(o.raw.format === 'I420' ? BT709 : [])] : ['-c:v', 'copy']
     const audio = o.dry ? [] : ['-thread_queue_size', '512', '-use_wallclock_as_timestamps', '1', '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', `tcp://127.0.0.1:${port}?listen=1`]
     // dźwięk: znaczniki z zegara ściennego drgają (paczki PCM przychodzą nierówno) — bez rozciągania próbek (to dawało
     // „wibracje” wysokości dźwięku); dopasowanie tylko przy rozjeździe > 100 ms (cisza / pominięcie)
     const aenc = o.dry ? ['-an'] : ['-map', '1:a', '-af', 'aresample=async=1:min_hard_comp=0.100000', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2']
     const out = o.dry ? ['-f', 'null', '-'] : ['-f', 'flv', o.url.replace(/\/$/, '') + '/' + o.key]
     const proc = spawn(ffmpegPath(), ['-hide_banner', '-loglevel', 'info', '-stats', '-stats_period', '1', ...video, ...audio, '-map', '0:v', ...venc, ...aenc, ...out], { windowsHide: true })
-    if (o.raw) this.frameBytes = o.raw.w * o.raw.h * 4
+    if (o.raw) this.frameBytes = o.raw.format === 'I420' ? o.raw.w * o.raw.h * 3 / 2 : o.raw.w * o.raw.h * 4
     this.proc = proc
     this.audio = { socket: null, queue: [] }
     proc.stdin.on('error', () => {})
@@ -326,7 +328,7 @@ class Streamer extends EventEmitter {
   writeVideo(buf) {
     const stdin = this.proc?.stdin
     if (!this.want?.studio || !stdin?.writable) return
-    const b = Buffer.from(buf)
+    const b = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength) // bez kopiowania (klatka 1080p to kilka MB)
     // surowe klatki (koder FFmpeg): każda jest pełnym obrazem — przy zatkaniu (ponad pół sekundy w kolejce) pomijamy pojedyncze
     if (this.want.raw) {
       if (b.length !== this.frameBytes) return

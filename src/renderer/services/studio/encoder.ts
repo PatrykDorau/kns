@@ -5,6 +5,8 @@
 import { api, settings } from '@/stores'
 import { H, W, studio } from './state'
 import { resumeAudio } from './audio'
+import { YuvReader } from './yuv'
+import { frameBuffer, sendVideo, videoPipe } from './videoPipe'
 
 let encoder: VideoEncoder = null, frameNo = 0, needKey = true
 // Koder do wyboru w „Jakości”: „gpu” — przeglądarka (WebCodecs) na karcie graficznej; pozostałe — FFmpeg (jak w OBS):
@@ -40,19 +42,36 @@ function source(canvas: HTMLCanvasElement) {
   return small
 }
 // Format surowej klatki z płótna (BGRX / RGBX …) i rozmiar — FFmpeg musi je znać przed pierwszą klatką.
+// Najpierw I420 przeliczane na karcie (3,1 MB na klatkę 1080p zamiast 8,3 MB); bez WebGL2 — surowe RGBX jak dawniej.
+let yuv: YuvReader | null = null
+function yuvFor(w: number, h: number) {
+  if (yuv && yuv.w === w && yuv.h === h) return yuv
+  yuv?.dispose(); yuv = YuvReader.create(w, h)
+  return yuv
+}
 export function rawInfo(canvas: HTMLCanvasElement, quality = settings.streamQuality) {
   ;[outW, outH] = outSize(quality)
+  if (yuvFor(outW, outH)) return { w: outW, h: outH, format: 'I420' }
   const vf = new VideoFrame(source(canvas), { timestamp: 0 })
   const format = vf.format
   vf.close()
   return { w: outW, h: outH, format }
 }
 // Klatka do FFmpeg: kopia z karty w tle (bez czekania pętli rysowania); gdy poprzednie jeszcze się kopiują — pominięta.
+// `send` dostaje bufor na własność (z puli videoPipe) — oddaje go dalej bez kopii
 function sendRaw(canvas: HTMLCanvasElement, t: number, busy: { n: number }, onLost: () => void, send: (b: Uint8Array) => void) {
+  const y = yuv && yuv.w === outW && yuv.h === outH ? yuv : null
+  if (y) {
+    y.drain(send, () => frameBuffer(y.bytes)) // gotowe klatki z poprzednich wywołań
+    if (!y.push(source(canvas))) onLost()
+    return
+  }
   if (busy.n >= 2) { onLost(); return }
   const vf = new VideoFrame(source(canvas), { timestamp: Math.round(t * 1000) })
   const opt = { rect: { x: 0, y: 0, width: outW, height: outH }, layout: [{ offset: 0, stride: outW * 4 }] }
-  const buf = new Uint8Array(outW * outH * 4)
+  // bufor z puli (bez nowej tablicy 8 MB co klatkę — to dławiło odśmiecanie pamięci i pętlę rysowania)
+  const size = outW * outH * 4
+  const buf = frameBuffer(size)
   busy.n++
   vf.copyTo(buf, opt).then(() => send(buf), () => onLost()).finally(() => { vf.close(); busy.n-- })
 }
@@ -63,6 +82,7 @@ export async function startEncoding(mode = 'gpu') {
   ;[outW, outH] = outSize()
   raw = mode !== 'gpu'; rawBusyBox.n = 0
   if (raw) {
+    await videoPipe()
     studio.encoder = (ENCODERS.find(e => e[0] === mode)?.[1] || 'FFmpeg') + ' · ' + outH + 'p'
     frameNo = 0; needKey = true; studio.skipped = 0; studio.late = 0
     studio.live = true
@@ -86,7 +106,7 @@ export function stopEncoding() {
 export function requestKeyFrame() { needKey = true }
 // Klatka płótna do kodera (pominięta, gdy karta nie nadąża).
 export function encodeFrame(canvas: HTMLCanvasElement, t: number) {
-  if (raw) { if (studio.live) sendRaw(canvas, t, rawBusyBox, () => { studio.skipped++ }, b => api.studioVideo(b)); return }
+  if (raw) { if (studio.live) sendRaw(canvas, t, rawBusyBox, () => { studio.skipped++ }, b => sendVideo(b, true)); return }
   if (!encoder || encoder.state !== 'configured') return
   if (encoder.encodeQueueSize > maxQueue(studio.fps)) { studio.skipped++; return } // karta nie nadąża — klatka pominięta zamiast opóźnienia
   const vf = new VideoFrame(source(canvas), { timestamp: Math.round(t * 1000) })
@@ -151,6 +171,7 @@ async function benchFfmpeg(canvas: HTMLCanvasElement, quality: string, fps: numb
   const keep = [outW, outH]
   try {
     const info = rawInfo(canvas, quality)
+    await videoPipe()
     const r = await api.streamBenchStudio?.({ fps, kbps: quality === '720' ? 3500 : 6800, encoder: mode, raw: info })
     if (!r || r.error) return { lost: 100, error: r?.error || 'Brak FFmpeg.' }
     const busy = { n: 0 }
@@ -164,7 +185,7 @@ async function benchFfmpeg(canvas: HTMLCanvasElement, quality: string, fps: numb
         if (last && now - last > 1500 / fps) lost += Math.round((now - last) * fps / 1000) - 1
         last = now
         if (now - t0 > ms) { clearInterval(id); done(); return }
-        sendRaw(canvas, performance.now(), busy, () => { lost++ }, b => { sent++; api.studioVideo(b) })
+        sendRaw(canvas, performance.now(), busy, () => { lost++ }, b => { sent++; sendVideo(b, true) })
       }, 1000 / fps)
     })
     await new Promise(r => setTimeout(r, 500))

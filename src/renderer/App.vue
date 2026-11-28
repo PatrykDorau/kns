@@ -22,6 +22,7 @@ import { paintOn } from '@/services/studio/paint'
 import { musicTag } from '@/services/studio/scenes'
 import { choosePhoto, lowerNow } from '@/services/studio/cards'
 import { audioInfo, bannerPending, benchEncoder, studioCanvas, bannerToProgram, setAudio, setCamera, setEndOverlay, startCameraHold, startDuck, startEncoding, stopEncoding, studio } from '@/services/studio'
+import { YuvReader } from '@/services/studio/yuv'
 import SermonThoughts from '@/components/home/SermonThoughts.vue'
 import GuestBoard from '@/components/home/GuestBoard.vue'
 import InboxBell from '@/components/common/InboxBell.vue'
@@ -34,7 +35,7 @@ import { access, accessReason, canUse, refreshAccess, api, appUpdate, busy, init
 const ready = ref(false)
 onMounted(async () => {
   window.rzutnik = store // uchwyt do podglądania stanu z konsoli i w testach
-  window.rzutnikStream = { benchEncoder, studioCanvas, cardPic, setCardPic, setAudio, startDuck, studio, lyricsFeed, startEncoding, stopEncoding, audioInfo, setCamera, setEndOverlay, bannerPending, bannerToProgram, followSlide, pilot, projFiles, projectorMessage: onShow, presetThumb, lowerNow, choosePhoto, showSlide, musicTag, music, paintOn, speakerPic }
+  window.rzutnikStream = { YuvReader, benchEncoder, studioCanvas, cardPic, setCardPic, setAudio, startDuck, studio, lyricsFeed, startEncoding, stopEncoding, audioInfo, setCamera, setEndOverlay, bannerPending, bannerToProgram, followSlide, pilot, projFiles, projectorMessage: onShow, presetThumb, lowerNow, choosePhoto, showSlide, musicTag, music, paintOn, speakerPic }
   await init()
   ready.value = true
   // tryb zapamiętany na tym komputerze — od razu; inaczej pytanie (okno wyboru)

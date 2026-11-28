@@ -127,6 +127,8 @@ contextBridge.exposeInMainWorld('api', {
   streamStartStudio: invoke('stream:startStudio'),
   streamBenchStudio: invoke('stream:benchStudio'),
   studioVideo: buf => ipcRenderer.send('studio:video', buf),
+  // kanał surowych klatek (FFmpeg): jeden koniec do procesu głównego, drugi do strony (stamtąd do Workera)
+  studioVideoPort: () => { const { port1, port2 } = new MessageChannel(); ipcRenderer.postMessage('studio:videoPort', null, [port1]); window.postMessage('kns-video-port', '*', [port2]) },
   studioAudio: buf => ipcRenderer.send('studio:audio', buf),
   onStudioNeedKey: on('studio:needKey'),
   remoteState: state => ipcRenderer.send('remote:state', state),

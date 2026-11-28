@@ -28,9 +28,9 @@ const camName = computed(() => {
 })
 const camTip = computed(() => studio.cameraLabel ? 'Obraz z: ' + studio.cameraLabel + (atem.value?.connected ? ' — na wyjściu miksera: ' + camName.value.replace('ATEM: ', '') : ' (połącz ATEM w ustawieniach, żeby widzieć, która kamera jest na wyjściu miksera)') : 'Kamera nie daje obrazu — kliknij, żeby połączyć od nowa')
 
-// Rozmiar podglądu i wizji: S/M/L; L wypełnia kolumnę tak, żeby wszystko (z dźwiękiem) mieściło się bez przewijania.
+// Rozmiar podglądu i wizji: L — cała szerokość kolumny (kolumna się przewija), M — wszystko (z dźwiękiem) bez przewijania, S — mniejsze.
 const col = ref<HTMLElement | null>(null), fitW = ref(0)
-const SIZES = [['s', 'S', 0.62], ['m', 'M', 0.8], ['l', 'L', 1]] as const
+const SIZES = [['s', 'S', 0.75], ['m', 'M', 1], ['l', 'L', 0]] as const // L (0) — cała szerokość kolumny
 function fit() {
   const c = col.value
   if (!c || !c.clientHeight) return
@@ -45,7 +45,7 @@ let ro: ResizeObserver | null = null
 onMounted(() => { ro = new ResizeObserver(() => requestAnimationFrame(fit)); if (col.value) ro.observe(col.value); setTimeout(fit, 200) })
 onBeforeUnmount(() => ro?.disconnect())
 watch(() => [studio.direct, settings.monSize], () => requestAnimationFrame(fit))
-const monW = computed(() => { const k = SIZES.find(s => s[0] === (settings.monSize || 'l'))?.[2] || 1; return fitW.value ? Math.round(fitW.value * k) + 'px' : '' })
+const monW = computed(() => { const k = SIZES.find(s => s[0] === (settings.monSize || 'l'))?.[2] ?? 0; return !k ? '100%' : fitW.value ? Math.max(160, Math.round(fitW.value * k)) + 'px' : '' })
 const musicName = computed(() => settings.musicList.find(x => x.id === music.current)?.name || '')
 
 // Przewinięte niżej (ustawienia, biblioteka): podgląd i wizja przypinają się pomniejszone u góry, przy prawej krawędzi
@@ -106,7 +106,7 @@ onBeforeUnmount(() => { io?.disconnect(); removeEventListener('resize', place) }
 </template>
 
 <style scoped>
-.mons-size { display: flex; align-items: center; gap: 2px; margin: -4px 0 6px; font-size: 11px; color: var(--muted); }
+.mons-size { display: flex; align-items: center; gap: 2px; margin: 0 0 6px; font-size: 11px; color: var(--muted); }
 .mons-size span { margin-right: 6px; }
 .mons-size button { min-width: 26px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 700; }
 .mons-size button.on { border-color: var(--accent); color: var(--text); }

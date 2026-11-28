@@ -18,7 +18,7 @@ const tick = setInterval(() => { now.value = Date.now() }, 250)
 onBeforeUnmount(() => clearInterval(tick))
 const clip = computed(() => now.value - studio.clipAt < 3000)
 const level = computed(() => (clip.value ? 'clip' : studio.audioPeak > -6 ? 'hot' : studio.audioDb < -50 ? 'low' : 'ok'))
-const status = computed(() => ({ clip: 'PRZESTER — ścisz', hot: 'głośno', low: settings.studioAudio ? 'cisza' : 'bez dźwięku', ok: 'dobrze' }[level.value]))
+const status = computed(() => ({ clip: 'PRZESTER — ścisz', hot: 'głośno', low: 'cisza', ok: 'dobrze' }[level.value]))
 const MARKS = [-48, -36, -24, -18, -12, -6, 0]
 
 const gain = computed(() => settings.studioGain || 0)
@@ -28,11 +28,11 @@ const gain = computed(() => settings.studioGain || 0)
   <div class="am" :class="'am-' + level" role="group" aria-label="Dźwięk transmisji">
     <label class="am-src" title="Źródło dźwięku — zmiana także w trakcie transmisji, bez przerwy"><Icon name="volume" />
       <select :value="settings.studioAudio" aria-label="Źródło dźwięku (mikrofon)" @change="chooseAudio(($event.target as HTMLSelectElement).value)">
-        <option value="">bez dźwięku</option>
+        <option value="">bez mikrofonu (tylko muzyka)</option>
         <option v-if="missing" :value="settings.studioAudio">{{ settings.studioAudio }} (niepodłączony)</option>
         <option v-for="d in studioDevices.audio" :key="d.deviceId" :value="d.label">{{ d.label || 'Mikrofon' }}</option>
       </select></label>
-    <div class="am-bar" role="meter" :aria-valuenow="Math.round(studio.audioDb)" aria-valuemin="-60" aria-valuemax="0" aria-label="Poziom dźwięku w dB">
+    <div class="am-bar" role="meter" :aria-valuenow="Math.round(studio.audioDb)" aria-valuemin="-60" aria-valuemax="0" aria-label="Poziom dźwięku w dB" title="Cały dźwięk transmisji: mikrofon i muzyka razem">
       <div class="am-track">
         <i class="am-fill" :style="{ clipPath: 'inset(0 ' + (100 - pos(studio.audioDb)) + '% 0 0)' }"></i>
         <i class="am-peak" :style="{ left: pos(studio.audioPeak) + '%' }"></i>

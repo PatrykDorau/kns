@@ -1237,6 +1237,8 @@ app.whenReady().then(() => {
   // próba kodera FFmpeg (test w „Jakości”): klatki jak w transmisji, ale bez wysyłania; zatrzymanie — stream:stop
   ipcMain.handle('stream:benchStudio', (e, o) => (streamer.want ? { error: 'Trwa transmisja.' } : streamer.startStudio({ ...o, dry: true }).catch(err => ({ error: err.message }))))
   ipcMain.on('studio:video', (e, buf) => streamer.writeVideo(buf))
+  // surowe klatki z Workera okna (poza wątkiem rysowania) — kanał MessagePort
+  ipcMain.on('studio:videoPort', e => { const port = e.ports[0]; if (!port) return; port.on('message', m => streamer.writeVideo(m.data)); port.start() })
   ipcMain.on('studio:audio', (e, buf) => streamer.writeAudio(buf))
   streamer.on('needKey', () => toControl('studio:needKey'))
   // Zamknięcie w trakcie nadawania: transmisja nie ma automatycznego końca, więc kończymy ją na YouTube (najwyżej 3 s czekania).
